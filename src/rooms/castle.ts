@@ -18,6 +18,7 @@ export const greatHall: RoomDef = {
       y: 0.35,
       width: 0.14,
       height: 0.3,
+      icon: "torch",
       interaction: {
         type: "examine",
         text: 'Scratched into the stone beneath the torch: "Sun. Moon. Star. In that order, the old dial turns."',
@@ -31,6 +32,7 @@ export const greatHall: RoomDef = {
       y: 0.4,
       width: 0.18,
       height: 0.22,
+      icon: "dial",
       interaction: {
         type: "puzzle",
         puzzleId: "great-hall-dial",
@@ -44,6 +46,7 @@ export const greatHall: RoomDef = {
       width: 0.22,
       height: 0.62,
       requiresFlag: "dial-solved",
+      icon: "door",
       interaction: {
         type: "unlock",
         requiresItem: "iron-key",

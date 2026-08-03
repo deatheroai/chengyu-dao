@@ -17,6 +17,13 @@ export type HotspotInteraction =
       failText: string;
     };
 
+/**
+ * Which decorative motif RoomScene draws for a hotspot. Purely visual —
+ * defaults to "generic" (a plain stone alcove) if omitted, so content can
+ * be added before art exists for it.
+ */
+export type HotspotIcon = "torch" | "dial" | "door" | "lever" | "chest" | "generic";
+
 export interface Hotspot {
   id: string;
   label: string;
@@ -27,6 +34,8 @@ export interface Hotspot {
   height: number;
   /** Hidden until this flag (if set) is true. */
   requiresFlag?: string;
+  /** Visual motif to render; defaults to "generic". */
+  icon?: HotspotIcon;
   interaction: HotspotInteraction;
 }
 

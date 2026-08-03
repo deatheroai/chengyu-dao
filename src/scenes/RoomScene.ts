@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { RoomDef, Hotspot } from "../state/types";
+import type { RoomDef, Hotspot, HotspotIcon } from "../state/types";
 import type { GameStateStore } from "../state/gameState";
 import type { DialPuzzleConfig } from "../state/types";
 import { handleHotspotTap } from "../state/interactions";
@@ -10,6 +10,21 @@ export interface RoomSceneData {
   store: GameStateStore;
   puzzles: Record<string, DialPuzzleConfig>;
 }
+
+/**
+ * Procedural/vector art style: no external image assets, drawn entirely
+ * with Phaser Graphics + emoji glyphs. Chosen over raster/commissioned art
+ * because there's no image-generation tool in this environment to produce
+ * the latter — see DECISIONS.md's resolved "art direction" entry.
+ */
+const ICON_GLYPH: Record<HotspotIcon, string> = {
+  torch: "🔥",
+  dial: "🌀",
+  door: "🚪",
+  lever: "🕹",
+  chest: "🧰",
+  generic: "",
+};
 
 export class RoomScene extends Phaser.Scene {
   private room!: RoomDef;
@@ -43,19 +58,50 @@ export class RoomScene extends Phaser.Scene {
     this.children.getAll("name", "bg").forEach((obj) => obj.destroy());
 
     const { width, height } = this.scale;
+    const base = this.room.backgroundColor;
+    const accent = this.room.accentColor;
+    const lit = Phaser.Display.Color.IntegerToColor(base).lighten(10).color;
+    const wallHeight = height * 0.85;
+
     const bg = this.add.graphics();
     bg.name = "bg";
-    bg.fillStyle(this.room.backgroundColor, 1);
-    bg.fillRect(0, 0, width, height);
 
-    // A little placeholder set-dressing so the scene doesn't look empty.
-    bg.fillStyle(this.room.accentColor, 0.5);
-    for (let i = 0; i < 6; i++) {
-      const x = (i / 6) * width + width * 0.02;
-      bg.fillRect(x, 0, width * 0.02, height);
+    // Wall: gentle top-lit gradient, as if torchlight falls from above.
+    bg.fillGradientStyle(lit, lit, base, base, 1);
+    bg.fillRect(0, 0, width, wallHeight);
+
+    // Stone brick coursing.
+    const brickH = height * 0.055;
+    const brickW = width * 0.09;
+    bg.lineStyle(1, accent, 0.4);
+    for (let row = 0, y = 0; y < wallHeight; row++, y += brickH) {
+      const offset = row % 2 === 0 ? 0 : brickW / 2;
+      for (let x = -brickW + offset; x < width; x += brickW) {
+        bg.strokeRect(x, y, brickW, brickH);
+      }
     }
-    bg.fillStyle(this.room.accentColor, 0.8);
-    bg.fillRect(0, height * 0.85, width, height * 0.15);
+
+    // Floor band.
+    bg.fillGradientStyle(accent, accent, base, base, 1);
+    bg.fillRect(0, wallHeight, width, height - wallHeight);
+    bg.lineStyle(2, accent, 0.7);
+    bg.lineBetween(0, wallHeight, width, wallHeight);
+
+    // Soft corner vignette for depth (layered translucent circles, since
+    // Graphics doesn't support radial gradients).
+    const corners: Array<[number, number]> = [
+      [0, 0],
+      [width, 0],
+      [0, height],
+      [width, height],
+    ];
+    const vignetteRadius = width * 0.32;
+    for (const [cx, cy] of corners) {
+      bg.fillStyle(0x000000, 0.12);
+      bg.fillCircle(cx, cy, vignetteRadius);
+      bg.fillStyle(0x000000, 0.08);
+      bg.fillCircle(cx, cy, vignetteRadius * 0.65);
+    }
 
     this.children.sendToBack(bg);
   }
@@ -76,16 +122,29 @@ export class RoomScene extends Phaser.Scene {
     const y = hotspot.y * sceneHeight;
     const w = hotspot.width * sceneWidth;
     const h = hotspot.height * sceneHeight;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const cornerRadius = Math.min(w, h) * 0.12;
 
     const zone = this.add.zone(x, y, w, h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
 
-    const outline = this.add
-      .rectangle(x, y, w, h, 0xffffff, 0.06)
-      .setOrigin(0, 0)
-      .setStrokeStyle(2, 0xd9c8ff, 0.7);
+    // A recessed stone alcove: dark fill + outer stroke + a faint inner
+    // highlight to fake a bevel.
+    const frame = this.add.graphics();
+    frame.fillStyle(0x000000, 0.25);
+    frame.fillRoundedRect(x, y, w, h, cornerRadius);
+    frame.lineStyle(2, 0xd9c8ff, 0.55);
+    frame.strokeRoundedRect(x, y, w, h, cornerRadius);
+    frame.lineStyle(1, 0xffffff, 0.15);
+    frame.strokeRoundedRect(x + 3, y + 3, w - 6, h - 6, Math.max(0, cornerRadius - 3));
+
+    const glyph = ICON_GLYPH[hotspot.icon ?? "generic"];
+    const icon = glyph
+      ? this.add.text(cx, cy, glyph, { fontSize: `${Math.round(Math.min(w, h) * 0.5)}px` }).setOrigin(0.5)
+      : null;
 
     const label = this.add
-      .text(x + w / 2, y + h + 6, hotspot.label, {
+      .text(cx, y + h + 6, hotspot.label, {
         fontSize: "13px",
         color: "#d9c8ff",
         fontFamily: "system-ui, sans-serif",
@@ -93,8 +152,8 @@ export class RoomScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
 
     this.tweens.add({
-      targets: outline,
-      alpha: { from: 0.35, to: 0.8 },
+      targets: icon ?? frame,
+      alpha: { from: 0.6, to: 1 },
       duration: 900,
       yoyo: true,
       repeat: -1,
@@ -104,6 +163,8 @@ export class RoomScene extends Phaser.Scene {
       handleHotspotTap(hotspot, this.store, this.puzzles, () => this.drawHotspots());
     });
 
-    this.hotspotLayer.add([outline, label, zone]);
+    const objects: Phaser.GameObjects.GameObject[] = [frame, label, zone];
+    if (icon) objects.splice(1, 0, icon);
+    this.hotspotLayer.add(objects);
   }
 }
