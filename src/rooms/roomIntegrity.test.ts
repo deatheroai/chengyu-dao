@@ -49,6 +49,26 @@ describe("castle room data integrity", () => {
     }
   });
 
+  it("every travel target references a room that exists", () => {
+    for (const room of rooms) {
+      for (const hotspot of room.hotspots) {
+        const interaction = hotspot.interaction;
+        if (interaction.type === "travel") {
+          expect(
+            castleRooms[interaction.toRoom],
+            `${room.id}/${hotspot.id} travels to unknown room "${interaction.toRoom}"`,
+          ).toBeDefined();
+        }
+        if (interaction.type === "unlock" && interaction.travelTo) {
+          expect(
+            castleRooms[interaction.travelTo],
+            `${room.id}/${hotspot.id} travels to unknown room "${interaction.travelTo}"`,
+          ).toBeDefined();
+        }
+      }
+    }
+  });
+
   it("every requiresFlag is set by something in the same room", () => {
     for (const room of rooms) {
       const settableFlags = new Set<string>();

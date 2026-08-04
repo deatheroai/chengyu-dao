@@ -21,7 +21,7 @@ async function bootstrap(): Promise<void> {
   };
 
   const game = new Phaser.Game(config);
-  game.scene.start("RoomScene", { room, store, puzzles });
+  game.scene.start("RoomScene", { room, store, puzzles, allRooms: castleRooms });
 }
 
 void bootstrap();

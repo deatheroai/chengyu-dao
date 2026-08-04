@@ -4,11 +4,14 @@ import type { GameStateStore } from "../state/gameState";
 import type { DialPuzzleConfig } from "../state/types";
 import { handleHotspotTap } from "../state/interactions";
 import { renderInventory } from "../ui/inventory";
+import { isPuzzleOpen } from "../ui/puzzleOverlay";
 
 export interface RoomSceneData {
   room: RoomDef;
   store: GameStateStore;
   puzzles: Record<string, DialPuzzleConfig>;
+  /** All rooms travel hotspots may target, keyed by room id. */
+  allRooms: Record<string, RoomDef>;
 }
 
 /**
@@ -30,6 +33,7 @@ export class RoomScene extends Phaser.Scene {
   private room!: RoomDef;
   private store!: GameStateStore;
   private puzzles!: Record<string, DialPuzzleConfig>;
+  private allRooms!: Record<string, RoomDef>;
   private hotspotLayer!: Phaser.GameObjects.Container;
 
   constructor() {
@@ -40,6 +44,7 @@ export class RoomScene extends Phaser.Scene {
     this.room = data.room;
     this.store = data.store;
     this.puzzles = data.puzzles;
+    this.allRooms = data.allRooms;
   }
 
   create(): void {
@@ -106,6 +111,18 @@ export class RoomScene extends Phaser.Scene {
     this.children.sendToBack(bg);
   }
 
+  private goToRoom(roomId: string): void {
+    const nextRoom = this.allRooms[roomId];
+    if (!nextRoom) return;
+
+    this.room = nextRoom;
+    this.store.update((state) => {
+      state.currentRoom = roomId;
+    });
+    this.drawBackground();
+    this.drawHotspots();
+  }
+
   private drawHotspots(): void {
     this.hotspotLayer.removeAll(true);
     const { width, height } = this.scale;
@@ -160,7 +177,22 @@ export class RoomScene extends Phaser.Scene {
     });
 
     zone.on("pointerdown", () => {
-      handleHotspotTap(hotspot, this.store, this.puzzles, () => this.drawHotspots());
+      // Phaser also listens for mousedown/touchstart at the window level
+      // (to catch pointer-up outside the canvas during drags), which
+      // means a click on a DOM element sitting on top of the canvas -
+      // like the puzzle overlay's buttons - can still hit-test against
+      // canvas zones underneath and spuriously re-trigger a hotspot.
+      // Puzzles are meant to pause exploration, so ignore taps while one
+      // is open rather than let them re-open/reset it mid-interaction.
+      if (isPuzzleOpen()) return;
+
+      handleHotspotTap(
+        hotspot,
+        this.store,
+        this.puzzles,
+        () => this.drawHotspots(),
+        (roomId) => this.goToRoom(roomId),
+      );
     });
 
     const objects: Phaser.GameObjects.GameObject[] = [frame, label, zone];

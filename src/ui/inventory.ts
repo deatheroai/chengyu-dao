@@ -1,5 +1,6 @@
 const ITEM_LABELS: Record<string, string> = {
   "iron-key": "🗝 Iron Key",
+  "brass-medallion": "🎖 Brass Medallion",
 };
 
 export function renderInventory(items: string[]): void {

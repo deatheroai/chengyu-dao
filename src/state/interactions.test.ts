@@ -16,6 +16,8 @@ import { initGameState } from "./gameState";
 import { handleHotspotTap } from "./interactions";
 import type { Hotspot, DialPuzzleConfig } from "./types";
 
+let onTravel: (roomId: string) => void;
+
 beforeEach(() => {
   localStorage.clear();
   document.body.innerHTML = `
@@ -23,6 +25,7 @@ beforeEach(() => {
     <div id="clue-text"></div>
   `;
   puzzleMocks.openDialPuzzle.mockReset();
+  onTravel = vi.fn<(roomId: string) => void>();
 });
 
 function baseHotspot(overrides: Partial<Hotspot> & Pick<Hotspot, "interaction">): Hotspot {
@@ -37,11 +40,12 @@ describe("handleHotspotTap: examine", () => {
       interaction: { type: "examine", text: "A clue.", setsFlag: "clue-found" },
     });
 
-    handleHotspotTap(hotspot, store, {}, onRoomChanged);
+    handleHotspotTap(hotspot, store, {}, onRoomChanged, onTravel);
 
     expect(document.getElementById("clue-text")?.textContent).toBe("A clue.");
     expect(store.hasFlag("clue-found")).toBe(true);
     expect(onRoomChanged).toHaveBeenCalledTimes(1);
+    expect(onTravel).not.toHaveBeenCalled();
   });
 
   it("shows text but does not trigger a room refresh when no flag is configured", async () => {
@@ -49,7 +53,7 @@ describe("handleHotspotTap: examine", () => {
     const onRoomChanged = vi.fn();
     const hotspot = baseHotspot({ interaction: { type: "examine", text: "Just flavor text." } });
 
-    handleHotspotTap(hotspot, store, {}, onRoomChanged);
+    handleHotspotTap(hotspot, store, {}, onRoomChanged, onTravel);
 
     expect(document.getElementById("clue-text")?.textContent).toBe("Just flavor text.");
     expect(onRoomChanged).not.toHaveBeenCalled();
@@ -72,19 +76,26 @@ describe("handleHotspotTap: puzzle", () => {
     const onRoomChanged = vi.fn();
     puzzleMocks.openDialPuzzle.mockImplementation((_cfg: unknown, onSolved: () => void) => onSolved());
 
-    handleHotspotTap(baseHotspot({ interaction: { type: "puzzle", puzzleId: "test-dial" } }), store, { "test-dial": config }, onRoomChanged);
+    handleHotspotTap(
+      baseHotspot({ interaction: { type: "puzzle", puzzleId: "test-dial" } }),
+      store,
+      { "test-dial": config },
+      onRoomChanged,
+      onTravel,
+    );
 
     expect(store.get().inventory).toContain("iron-key");
     expect(store.hasFlag("dial-solved")).toBe(true);
     expect(document.getElementById("clue-text")?.textContent).toBe("Solved!");
     expect(onRoomChanged).toHaveBeenCalledTimes(1);
+    expect(onTravel).not.toHaveBeenCalled();
   });
 
   it("does nothing if the referenced puzzle id is unknown", async () => {
     const store = await initGameState("castle", "great-hall");
     const onRoomChanged = vi.fn();
 
-    handleHotspotTap(baseHotspot({ interaction: { type: "puzzle", puzzleId: "missing" } }), store, {}, onRoomChanged);
+    handleHotspotTap(baseHotspot({ interaction: { type: "puzzle", puzzleId: "missing" } }), store, {}, onRoomChanged, onTravel);
 
     expect(puzzleMocks.openDialPuzzle).not.toHaveBeenCalled();
     expect(onRoomChanged).not.toHaveBeenCalled();
@@ -98,7 +109,13 @@ describe("handleHotspotTap: puzzle", () => {
       /* user closes without solving: onSolved is never called */
     });
 
-    handleHotspotTap(baseHotspot({ interaction: { type: "puzzle", puzzleId: "test-dial" } }), store, { "test-dial": config }, onRoomChanged);
+    handleHotspotTap(
+      baseHotspot({ interaction: { type: "puzzle", puzzleId: "test-dial" } }),
+      store,
+      { "test-dial": config },
+      onRoomChanged,
+      onTravel,
+    );
 
     expect(store.get().inventory).toEqual([]);
     expect(onRoomChanged).not.toHaveBeenCalled();
@@ -121,21 +138,63 @@ describe("handleHotspotTap: unlock", () => {
     });
     const onRoomChanged = vi.fn();
 
-    handleHotspotTap(baseHotspot({ interaction }), store, {}, onRoomChanged);
+    handleHotspotTap(baseHotspot({ interaction }), store, {}, onRoomChanged, onTravel);
 
     expect(document.getElementById("clue-text")?.textContent).toBe("Unlocked!");
     expect(store.hasFlag("door-open")).toBe(true);
     expect(onRoomChanged).toHaveBeenCalledTimes(1);
+    expect(onTravel).not.toHaveBeenCalled();
   });
 
   it("fails without changing state when the required item is missing", async () => {
     const store = await initGameState("castle", "great-hall");
     const onRoomChanged = vi.fn();
 
-    handleHotspotTap(baseHotspot({ interaction }), store, {}, onRoomChanged);
+    handleHotspotTap(baseHotspot({ interaction }), store, {}, onRoomChanged, onTravel);
 
     expect(document.getElementById("clue-text")?.textContent).toBe("Locked.");
     expect(store.hasFlag("door-open")).toBe(false);
     expect(onRoomChanged).not.toHaveBeenCalled();
+    expect(onTravel).not.toHaveBeenCalled();
+  });
+
+  it("travels instead of refreshing in-place when travelTo is set and the item is held", async () => {
+    const store = await initGameState("castle", "great-hall");
+    store.update((s) => {
+      s.inventory.push("iron-key");
+    });
+    const onRoomChanged = vi.fn();
+    const travelInteraction = { ...interaction, travelTo: "armory" };
+
+    handleHotspotTap(baseHotspot({ interaction: travelInteraction }), store, {}, onRoomChanged, onTravel);
+
+    expect(store.hasFlag("door-open")).toBe(true);
+    expect(onTravel).toHaveBeenCalledWith("armory");
+    expect(onRoomChanged).not.toHaveBeenCalled();
+  });
+
+  it("does not travel when the required item is missing, even with travelTo set", async () => {
+    const store = await initGameState("castle", "great-hall");
+    const onRoomChanged = vi.fn();
+    const travelInteraction = { ...interaction, travelTo: "armory" };
+
+    handleHotspotTap(baseHotspot({ interaction: travelInteraction }), store, {}, onRoomChanged, onTravel);
+
+    expect(onTravel).not.toHaveBeenCalled();
+    expect(onRoomChanged).not.toHaveBeenCalled();
+  });
+});
+
+describe("handleHotspotTap: travel", () => {
+  it("calls onTravel with the target room and does not touch state", async () => {
+    const store = await initGameState("castle", "great-hall");
+    const onRoomChanged = vi.fn();
+
+    handleHotspotTap(baseHotspot({ interaction: { type: "travel", toRoom: "great-hall" } }), store, {}, onRoomChanged, onTravel);
+
+    expect(onTravel).toHaveBeenCalledWith("great-hall");
+    expect(onTravel).toHaveBeenCalledTimes(1);
+    expect(onRoomChanged).not.toHaveBeenCalled();
+    expect(store.get().flags).toEqual({});
   });
 });

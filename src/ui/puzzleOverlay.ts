@@ -84,3 +84,7 @@ export function closeDialPuzzle(): void {
   overlay.classList.add("hidden");
   overlay.innerHTML = "";
 }
+
+export function isPuzzleOpen(): boolean {
+  return !(document.getElementById("puzzle-overlay")?.classList.contains("hidden") ?? true);
+}

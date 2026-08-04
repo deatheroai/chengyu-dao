@@ -15,7 +15,10 @@ export type HotspotInteraction =
       successText: string;
       setsFlag: string;
       failText: string;
-    };
+      /** If set, a successful unlock also moves the player to this room. */
+      travelTo?: string;
+    }
+  | { type: "travel"; toRoom: string };
 
 /**
  * Which decorative motif RoomScene draws for a hotspot. Purely visual —

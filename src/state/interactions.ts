@@ -9,6 +9,7 @@ export function handleHotspotTap(
   store: GameStateStore,
   puzzles: Record<string, DialPuzzleConfig>,
   onRoomChanged: () => void,
+  onTravel: (roomId: string) => void,
 ): void {
   const interaction = hotspot.interaction;
 
@@ -44,9 +45,18 @@ export function handleHotspotTap(
       store.update((state) => {
         state.flags[interaction.setsFlag] = true;
       });
-      onRoomChanged();
+      if (interaction.travelTo) {
+        onTravel(interaction.travelTo);
+      } else {
+        onRoomChanged();
+      }
     } else {
       showClueText(interaction.failText);
     }
+    return;
+  }
+
+  if (interaction.type === "travel") {
+    onTravel(interaction.toRoom);
   }
 }

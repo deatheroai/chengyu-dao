@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { openDialPuzzle, closeDialPuzzle } from "./puzzleOverlay";
+import { openDialPuzzle, closeDialPuzzle, isPuzzleOpen } from "./puzzleOverlay";
 import type { DialPuzzleConfig } from "../state/types";
 
 const config: DialPuzzleConfig = {
@@ -70,5 +70,19 @@ describe("closeDialPuzzle", () => {
     const overlay = document.getElementById("puzzle-overlay")!;
     expect(overlay.classList.contains("hidden")).toBe(true);
     expect(overlay.innerHTML).toBe("");
+  });
+});
+
+describe("isPuzzleOpen", () => {
+  it("is false before any puzzle has opened", () => {
+    expect(isPuzzleOpen()).toBe(false);
+  });
+
+  it("is true once a puzzle is open, and false again after closing", () => {
+    openDialPuzzle(config, () => {});
+    expect(isPuzzleOpen()).toBe(true);
+
+    closeDialPuzzle();
+    expect(isPuzzleOpen()).toBe(false);
   });
 });
