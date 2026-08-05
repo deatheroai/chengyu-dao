@@ -1,11 +1,14 @@
 # Castle Puzzle — Mobile Web Adventure
 
+**Live:** https://claudegameone.vercel.app (auto-deploys from
+`claude/mobile-web-game-project-prspfw` on every push)
+
 A mobile-first, touch-based exploration/puzzle game. See
 [`../GAME_DESIGN.md`](../GAME_DESIGN.md) for the full concept, mechanics,
 and roadmap.
 
-This is the MVP slice: one room (the castle's Great Hall) with a full
-examine → puzzle → inventory → unlock loop.
+Currently two connected rooms — the castle's Great Hall and Armory —
+each with a full examine → puzzle → inventory → unlock/travel loop.
 
 ## Stack
 
@@ -58,14 +61,28 @@ the game silently uses `localStorage` only — see `src/firebase/`.
 
 ## Deploy (Vercel, free tier)
 
+Already set up — live at https://claudegameone.vercel.app, Production
+Branch tracks `claude/mobile-web-game-project-prspfw` so it redeploys on
+every push. For reference, here's how it was configured:
+
 1. Push this repo to GitHub (already done if you're reading this from the
-   repo).
+   repo). The repo's default branch matters for Vercel's root-directory
+   picker in the import UI — ours is `main`.
 2. Go to https://vercel.com → New Project → import the repo.
 3. Set **Root Directory** to `game`.
 4. If using cloud saves, add the `VITE_FIREBASE_*` env vars from
    `.env.example` in the Vercel project settings.
 5. Deploy — `vercel.json` in this folder configures the build/output and
    SPA rewrites.
+6. Under **Settings → Git → Production Branch**, point it at whichever
+   branch you want live (here, the active working branch rather than
+   `main`, since that's what gets pushed to daily).
+
+Deployment Protection is currently on for this project (Vercel's
+password/SSO wall) — fine for a normal browser, but it blocks automated
+tools (including Claude's own) from fetching or testing the live URL
+directly. Disable it under Project Settings → Deployment Protection if
+you want that.
 
 GitHub Pages also works for a static-only deploy (no env vars/rewrites
 needed beyond what a plain SPA requires), but Vercel is recommended for
