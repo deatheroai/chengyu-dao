@@ -3,7 +3,16 @@ import { idioms, idiomsById } from "./idioms";
 
 const VALID_THEMES = new Set(["focus", "honesty", "kindness", "wisdom"]);
 const VALID_AGE_BANDS = new Set(["lower-primary", "upper-primary"]);
-const REQUIRED_TEXT_FIELDS = ["hanzi", "pinyin", "literalMeaning", "meaning", "dailyLifeScenario", "sourceNotes"] as const;
+const REQUIRED_TEXT_FIELDS = [
+  "hanzi",
+  "pinyin",
+  "literalMeaning",
+  "meaning",
+  "dailyLifeScenario",
+  "scenarioShort",
+  "sourceNotes",
+] as const;
+const SCENARIO_SHORT_MAX_LENGTH = 100;
 
 describe("idiom content integrity", () => {
   it("has the expected Snippet 1 count", () => {
@@ -62,5 +71,16 @@ describe("idiom content integrity", () => {
     for (const idiom of idioms) {
       expect(Array.from(idiom.hanzi).length, `${idiom.id}.hanzi`).toBe(4);
     }
+  });
+
+  it("every scenarioShort is actually short (quick to compare in a multiple-choice list)", () => {
+    for (const idiom of idioms) {
+      expect(idiom.scenarioShort.length, `${idiom.id}.scenarioShort`).toBeLessThanOrEqual(SCENARIO_SHORT_MAX_LENGTH);
+    }
+  });
+
+  it("every scenarioShort is distinct across idioms (no accidental duplicates)", () => {
+    const shorts = idioms.map((i) => i.scenarioShort);
+    expect(new Set(shorts).size).toBe(shorts.length);
   });
 });

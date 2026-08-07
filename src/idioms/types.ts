@@ -21,6 +21,14 @@ export interface IdiomContent {
   meaning: string;
   /** The most important field: a concrete scenario a 7-9 year old recognizes. */
   dailyLifeScenario: string;
+  /**
+   * One-line condensation of dailyLifeScenario for the Snippet 3
+   * application-check multiple choice, where reading 2-3 full paragraphs
+   * to compare would be a lot of cognitive load for this age group. Same
+   * scenario, shorter phrasing — not new content, so added without a
+   * fresh full content-review round (flagged for a quick look regardless).
+   */
+  scenarioShort: string;
   exampleSentence: IdiomExampleSentence;
   ageBand: "lower-primary" | "upper-primary";
   theme: IdiomTheme;
