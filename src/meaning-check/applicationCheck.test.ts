@@ -9,8 +9,7 @@ function stubIdiom(overrides: Partial<IdiomContent> & Pick<IdiomContent, "id" | 
     literalMeaning: "test",
     meaning: "test meaning",
     dailyLifeScenario: "a long scenario",
-    scenarioShort: { hanzi: `短句-${overrides.id}`, pinyin: `duǎnjù-${overrides.id}` },
-    exampleSentence: { hanzi: "測試", pinyin: "cè shì", english: "test" },
+    exampleSentence: { hanzi: `測試句子-${overrides.id}`, pinyin: `cèshì jùzi-${overrides.id}`, english: "test sentence" },
     ageBand: "lower-primary",
     sourceNotes: "",
     ...overrides,
@@ -63,10 +62,19 @@ describe("buildApplicationCheck", () => {
     expect(distractorIds.sort()).toEqual(["honesty-1", "other-focus-1"]);
   });
 
-  it("returns the correct option's hanzi/pinyin matching the target's scenarioShort", () => {
+  it("returns the correct option's hanzi/pinyin matching the target's own example sentence", () => {
     const options = buildApplicationCheck(target, pool, 2, fixedRng([0, 0.5, 0.99]));
     const correct = options.find((o) => o.isCorrect)!;
-    expect(correct.hanzi).toBe(target.scenarioShort.hanzi);
-    expect(correct.pinyin).toBe(target.scenarioShort.pinyin);
+    expect(correct.hanzi).toBe(target.exampleSentence.hanzi);
+    expect(correct.pinyin).toBe(target.exampleSentence.pinyin);
+  });
+
+  it("distractor options use their own idiom's example sentence, not the target's", () => {
+    const options = buildApplicationCheck(target, pool, 2, fixedRng([0, 0.5, 0.99]));
+    for (const option of options.filter((o) => !o.isCorrect)) {
+      const sourceIdiom = pool.find((i) => i.id === option.fromIdiomId)!;
+      expect(option.hanzi).toBe(sourceIdiom.exampleSentence.hanzi);
+      expect(option.hanzi).not.toBe(target.exampleSentence.hanzi);
+    }
   });
 });

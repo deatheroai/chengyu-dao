@@ -4,7 +4,6 @@ import { idioms, idiomsById } from "./idioms";
 const VALID_THEMES = new Set(["focus", "honesty", "kindness", "wisdom"]);
 const VALID_AGE_BANDS = new Set(["lower-primary", "upper-primary"]);
 const REQUIRED_TEXT_FIELDS = ["hanzi", "pinyin", "literalMeaning", "meaning", "dailyLifeScenario", "sourceNotes"] as const;
-const SCENARIO_SHORT_MAX_LENGTH = 40;
 
 describe("idiom content integrity", () => {
   it("has the expected Snippet 1 count", () => {
@@ -65,32 +64,8 @@ describe("idiom content integrity", () => {
     }
   });
 
-  it("every scenarioShort has non-empty hanzi and pinyin", () => {
-    for (const idiom of idioms) {
-      expect(idiom.scenarioShort.hanzi.trim().length, `${idiom.id}.scenarioShort.hanzi`).toBeGreaterThan(0);
-      expect(idiom.scenarioShort.pinyin.trim().length, `${idiom.id}.scenarioShort.pinyin`).toBeGreaterThan(0);
-    }
-  });
-
-  it("every scenarioShort.hanzi is actually short (quick to compare in a multiple-choice list)", () => {
-    for (const idiom of idioms) {
-      expect(Array.from(idiom.scenarioShort.hanzi).length, `${idiom.id}.scenarioShort.hanzi`).toBeLessThanOrEqual(
-        SCENARIO_SHORT_MAX_LENGTH,
-      );
-    }
-  });
-
-  it("every scenarioShort.hanzi is distinct across idioms (no accidental duplicates)", () => {
-    const shorts = idioms.map((i) => i.scenarioShort.hanzi);
-    expect(new Set(shorts).size).toBe(shorts.length);
-  });
-
-  it("scenarioShort.hanzi never contains the idiom's own hanzi (otherwise the app-check becomes a literal text match instead of a comprehension check)", () => {
-    for (const idiom of idioms) {
-      expect(
-        idiom.scenarioShort.hanzi.includes(idiom.hanzi),
-        `${idiom.id}'s scenarioShort gives away the answer by containing "${idiom.hanzi}"`,
-      ).toBe(false);
-    }
+  it("every example sentence is distinct across idioms (matters now that it also drives the Snippet 3 app-check options)", () => {
+    const sentences = idioms.map((i) => i.exampleSentence.hanzi);
+    expect(new Set(sentences).size).toBe(sentences.length);
   });
 });

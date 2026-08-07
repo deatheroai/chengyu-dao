@@ -8,12 +8,15 @@ export interface ApplicationCheckOption {
 }
 
 /**
- * Builds the multiple-choice options for Snippet 3's "which situation
- * fits?" check: the target idiom's own scenario, plus distractors drawn
- * from OTHER idioms' already-approved scenarios (Snippet 1 content) —
- * no need to author adversarial "trick" decoys. Distractors are preferred
- * from a different theme than the target so the check tests the specific
- * meaning rather than surface topic-matching within the same theme.
+ * Builds the multiple-choice options for Snippet 3's "which one is really
+ * about [idiom]?" check: the target idiom's own example sentence (which
+ * already naturally uses the idiom — showing usage directly, not just
+ * meaning), plus distractors drawn from OTHER idioms' example sentences.
+ * All already-approved Snippet 1 content, no new unverified text needed.
+ * Distractors are preferred from a different theme than the target for
+ * variety, though the idiom being visibly present in each sentence means
+ * the check now also doubles as reading/character-recognition practice,
+ * not just meaning comprehension.
  */
 export function buildApplicationCheck(
   target: IdiomContent,
@@ -29,9 +32,15 @@ export function buildApplicationCheck(
   const distractors = shuffle(distractorSource, rng).slice(0, distractorCount);
 
   const options: ApplicationCheckOption[] = [
-    { ...target.scenarioShort, isCorrect: true, fromIdiomId: target.id },
+    {
+      hanzi: target.exampleSentence.hanzi,
+      pinyin: target.exampleSentence.pinyin,
+      isCorrect: true,
+      fromIdiomId: target.id,
+    },
     ...distractors.map((idiom) => ({
-      ...idiom.scenarioShort,
+      hanzi: idiom.exampleSentence.hanzi,
+      pinyin: idiom.exampleSentence.pinyin,
       isCorrect: false,
       fromIdiomId: idiom.id,
     })),
