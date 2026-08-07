@@ -1,7 +1,8 @@
 import type { IdiomContent } from "../idioms/types";
 
 export interface ApplicationCheckOption {
-  text: string;
+  hanzi: string;
+  pinyin: string;
   isCorrect: boolean;
   fromIdiomId: string;
 }
@@ -28,9 +29,9 @@ export function buildApplicationCheck(
   const distractors = shuffle(distractorSource, rng).slice(0, distractorCount);
 
   const options: ApplicationCheckOption[] = [
-    { text: target.scenarioShort, isCorrect: true, fromIdiomId: target.id },
+    { ...target.scenarioShort, isCorrect: true, fromIdiomId: target.id },
     ...distractors.map((idiom) => ({
-      text: idiom.scenarioShort,
+      ...idiom.scenarioShort,
       isCorrect: false,
       fromIdiomId: idiom.id,
     })),

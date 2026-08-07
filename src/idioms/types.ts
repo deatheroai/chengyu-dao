@@ -11,6 +11,11 @@ export interface IdiomExampleSentence {
   english: string;
 }
 
+export interface ShortScenario {
+  hanzi: string;
+  pinyin: string;
+}
+
 export interface IdiomContent {
   id: string;
   hanzi: string;
@@ -24,11 +29,15 @@ export interface IdiomContent {
   /**
    * One-line condensation of dailyLifeScenario for the Snippet 3
    * application-check multiple choice, where reading 2-3 full paragraphs
-   * to compare would be a lot of cognitive load for this age group. Same
-   * scenario, shorter phrasing — not new content, so added without a
-   * fresh full content-review round (flagged for a quick look regardless).
+   * to compare would be a lot of cognitive load for this age group. In
+   * Mandarin (not English) per feedback that the app-check read as too
+   * English-heavy for a Chinese-learning game — deliberately doesn't
+   * contain the idiom's own hanzi, otherwise the "which one fits?"
+   * check would just become a literal text-match instead of a
+   * comprehension check. New wording I authored, not research-agent
+   * verified — flagged for a look.
    */
-  scenarioShort: string;
+  scenarioShort: ShortScenario;
   exampleSentence: IdiomExampleSentence;
   ageBand: "lower-primary" | "upper-primary";
   theme: IdiomTheme;

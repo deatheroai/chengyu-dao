@@ -107,7 +107,18 @@ function render(): void {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "option";
-      btn.textContent = option.text;
+
+      const hanziSpan = document.createElement("span");
+      hanziSpan.className = "option-hanzi";
+      hanziSpan.lang = "zh-Hans";
+      hanziSpan.textContent = option.hanzi;
+
+      const pinyinSpan = document.createElement("span");
+      pinyinSpan.className = "option-pinyin";
+      pinyinSpan.textContent = option.pinyin;
+
+      btn.appendChild(hanziSpan);
+      btn.appendChild(pinyinSpan);
       btn.dataset.index = String(index);
       btn.dataset.state = optionState(option, index);
       // Test-only hook (not styled on, not a visual cue) so E2E coverage

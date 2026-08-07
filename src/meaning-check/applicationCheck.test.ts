@@ -9,7 +9,7 @@ function stubIdiom(overrides: Partial<IdiomContent> & Pick<IdiomContent, "id" | 
     literalMeaning: "test",
     meaning: "test meaning",
     dailyLifeScenario: "a long scenario",
-    scenarioShort: `short scenario for ${overrides.id}`,
+    scenarioShort: { hanzi: `短句-${overrides.id}`, pinyin: `duǎnjù-${overrides.id}` },
     exampleSentence: { hanzi: "測試", pinyin: "cè shì", english: "test" },
     ageBand: "lower-primary",
     sourceNotes: "",
@@ -63,9 +63,10 @@ describe("buildApplicationCheck", () => {
     expect(distractorIds.sort()).toEqual(["honesty-1", "other-focus-1"]);
   });
 
-  it("returns the correct option's text matching the target's scenarioShort", () => {
+  it("returns the correct option's hanzi/pinyin matching the target's scenarioShort", () => {
     const options = buildApplicationCheck(target, pool, 2, fixedRng([0, 0.5, 0.99]));
     const correct = options.find((o) => o.isCorrect)!;
-    expect(correct.text).toBe(target.scenarioShort);
+    expect(correct.hanzi).toBe(target.scenarioShort.hanzi);
+    expect(correct.pinyin).toBe(target.scenarioShort.pinyin);
   });
 });
