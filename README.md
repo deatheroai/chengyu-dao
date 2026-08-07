@@ -1,11 +1,18 @@
 # Castle Puzzle — Mobile Web Adventure
 
-**Live:** https://claudegameone.vercel.app (auto-deploys from
-`claude/mobile-web-game-project-prspfw` on every push)
+> **Superseded (2026-08-06):** the project pivoted to a Chinese idiom
+> learning game for primary schoolers — see
+> [`../GAME_DESIGN.md`](../GAME_DESIGN.md) and
+> [`../DECISIONS.md`](../DECISIONS.md)'s 2026-08-06 entry. The code below
+> is still the castle prototype; it hasn't been replaced yet (see
+> `../BACKLOG.md`'s snippet plan), so this README still describes what's
+> actually in the repo today.
 
-A mobile-first, touch-based exploration/puzzle game. See
-[`../GAME_DESIGN.md`](../GAME_DESIGN.md) for the full concept, mechanics,
-and roadmap.
+**Live:** https://claudegameone.vercel.app (auto-deploys from
+`claude/mobile-web-game-project-prspfw` on every push) — still serving
+the castle content for now.
+
+A mobile-first, touch-based exploration/puzzle game.
 
 Currently two connected rooms — the castle's Great Hall and Armory —
 each with a full examine → puzzle → inventory → unlock/travel loop.
