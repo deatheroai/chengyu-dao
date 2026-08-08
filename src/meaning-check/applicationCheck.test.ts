@@ -1,20 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildApplicationCheck } from "./applicationCheck";
-import type { IdiomContent } from "../idioms/types";
-
-function stubIdiom(overrides: Partial<IdiomContent> & Pick<IdiomContent, "id" | "theme">): IdiomContent {
-  return {
-    hanzi: "測試測試",
-    pinyin: "cè shì",
-    literalMeaning: "test",
-    meaning: "test meaning",
-    dailyLifeScenario: "a long scenario",
-    exampleSentence: { hanzi: `測試句子-${overrides.id}`, pinyin: `cèshì jùzi-${overrides.id}`, english: "test sentence" },
-    ageBand: "lower-primary",
-    sourceNotes: "",
-    ...overrides,
-  };
-}
+import { buildApplicationCheck, spliceIdiomInto } from "./applicationCheck";
+import { idioms, idiomsById } from "../idioms/idioms";
 
 // Deterministic rng: cycles through a fixed sequence instead of Math.random.
 function fixedRng(sequence: number[]): () => number {
@@ -22,59 +8,81 @@ function fixedRng(sequence: number[]): () => number {
   return () => sequence[i++ % sequence.length];
 }
 
+describe("spliceIdiomInto", () => {
+  const source = idiomsById["zhi-cuo-jiu-gai"]; // "...弄坏了妹妹的玩具，知错就改，主动向她道歉。"
+  const replacement = idiomsById["zhu-ren-wei-le"];
+
+  it("replaces the source idiom's hanzi with the replacement's, keeping the rest of the sentence", () => {
+    const result = spliceIdiomInto(source, replacement);
+    expect(result.hanzi).not.toContain(source.hanzi);
+    expect(result.hanzi).toContain(replacement.hanzi);
+    // Surrounding sentence structure is untouched.
+    expect(result.hanzi).toContain("主动向她道歉");
+  });
+
+  it("replaces the embedded pinyin in step with the hanzi swap", () => {
+    const result = spliceIdiomInto(source, replacement);
+    expect(result.pinyin).not.toContain("zhīcuò-jiùgǎi");
+    expect(result.pinyin).toContain("zhùrén-wéilè");
+  });
+
+  it("throws if the substitution has no effect (data bug guard)", () => {
+    // A source spliced with itself is a no-op and should be caught, not
+    // silently returned as if nothing were wrong.
+    expect(() => spliceIdiomInto(source, source)).toThrow();
+  });
+});
+
 describe("buildApplicationCheck", () => {
-  const target = stubIdiom({ id: "target", theme: "focus" });
-  const pool = [
-    target,
-    stubIdiom({ id: "other-focus-1", theme: "focus" }),
-    stubIdiom({ id: "honesty-1", theme: "honesty" }),
-    stubIdiom({ id: "kindness-1", theme: "kindness" }),
-    stubIdiom({ id: "wisdom-1", theme: "wisdom" }),
-  ];
+  const target = idiomsById["zhu-ren-wei-le"];
 
   it("returns exactly one correct option plus the requested number of distractors", () => {
-    const options = buildApplicationCheck(target, pool, 2, fixedRng([0, 0.5, 0.99]));
+    const options = buildApplicationCheck(target, idioms, 2, fixedRng([0, 0.5, 0.99]));
     expect(options).toHaveLength(3);
     expect(options.filter((o) => o.isCorrect)).toHaveLength(1);
-    expect(options.find((o) => o.isCorrect)?.fromIdiomId).toBe("target");
+    expect(options.find((o) => o.isCorrect)?.fromIdiomId).toBe(target.id);
   });
 
-  it("never includes the target idiom as a distractor (no duplicate idiom ids)", () => {
-    const options = buildApplicationCheck(target, pool, 2, fixedRng([0, 0.5, 0.99]));
-    const ids = options.map((o) => o.fromIdiomId);
-    expect(new Set(ids).size).toBe(ids.length);
-  });
-
-  it("prefers distractors from a different theme than the target when enough exist", () => {
-    const options = buildApplicationCheck(target, pool, 2, fixedRng([0, 0.5, 0.99]));
-    const distractors = options.filter((o) => !o.isCorrect);
-    for (const d of distractors) {
-      const idiom = pool.find((i) => i.id === d.fromIdiomId)!;
-      expect(idiom.theme, `distractor ${d.fromIdiomId}`).not.toBe("focus");
+  it("every option's hanzi contains the target idiom's own characters (no giving away the answer via different characters)", () => {
+    const options = buildApplicationCheck(target, idioms, 2, fixedRng([0, 0.5, 0.99]));
+    for (const option of options) {
+      expect(option.hanzi, `option from ${option.fromIdiomId}`).toContain(target.hanzi);
     }
   });
 
-  it("falls back to same-theme distractors when there aren't enough different-theme options", () => {
-    const smallPool = [target, stubIdiom({ id: "other-focus-1", theme: "focus" }), stubIdiom({ id: "honesty-1", theme: "honesty" })];
-    const options = buildApplicationCheck(target, smallPool, 2, fixedRng([0, 0.5, 0.99]));
-    expect(options).toHaveLength(3);
-    const distractorIds = options.filter((o) => !o.isCorrect).map((o) => o.fromIdiomId);
-    expect(distractorIds.sort()).toEqual(["honesty-1", "other-focus-1"]);
-  });
-
-  it("returns the correct option's hanzi/pinyin matching the target's own example sentence", () => {
-    const options = buildApplicationCheck(target, pool, 2, fixedRng([0, 0.5, 0.99]));
+  it("the correct option is the target's own genuine example sentence, unmodified", () => {
+    const options = buildApplicationCheck(target, idioms, 2, fixedRng([0, 0.5, 0.99]));
     const correct = options.find((o) => o.isCorrect)!;
     expect(correct.hanzi).toBe(target.exampleSentence.hanzi);
     expect(correct.pinyin).toBe(target.exampleSentence.pinyin);
   });
 
-  it("distractor options use their own idiom's example sentence, not the target's", () => {
-    const options = buildApplicationCheck(target, pool, 2, fixedRng([0, 0.5, 0.99]));
+  it("distractor options are spliced (not the source idiom's own genuine sentence)", () => {
+    const options = buildApplicationCheck(target, idioms, 2, fixedRng([0, 0.5, 0.99]));
     for (const option of options.filter((o) => !o.isCorrect)) {
-      const sourceIdiom = pool.find((i) => i.id === option.fromIdiomId)!;
-      expect(option.hanzi).toBe(sourceIdiom.exampleSentence.hanzi);
-      expect(option.hanzi).not.toBe(target.exampleSentence.hanzi);
+      const sourceIdiom = idiomsById[option.fromIdiomId];
+      expect(option.hanzi).not.toBe(sourceIdiom.exampleSentence.hanzi);
+      expect(option.hanzi).not.toContain(sourceIdiom.hanzi);
+    }
+  });
+
+  it("never includes the target idiom's own id as a distractor source (no duplicate idiom ids)", () => {
+    const options = buildApplicationCheck(target, idioms, 2, fixedRng([0, 0.5, 0.99]));
+    const ids = options.map((o) => o.fromIdiomId);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("prefers distractor sources from a different theme than the target when enough exist", () => {
+    const options = buildApplicationCheck(target, idioms, 2, fixedRng([0, 0.5, 0.99]));
+    const distractors = options.filter((o) => !o.isCorrect);
+    for (const d of distractors) {
+      expect(idiomsById[d.fromIdiomId].theme, `distractor source ${d.fromIdiomId}`).not.toBe(target.theme);
+    }
+  });
+
+  it("works for every idiom in the real content set as the target (no missing EMBEDDED_PINYIN entries)", () => {
+    for (const t of idioms) {
+      expect(() => buildApplicationCheck(t, idioms, 2, fixedRng([0.1, 0.4, 0.7, 0.9]))).not.toThrow();
     }
   });
 });
