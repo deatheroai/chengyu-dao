@@ -8,17 +8,22 @@ export interface RevealSceneData {
 }
 
 /**
- * Warm placeholder palette — deliberately NOT the final Chinese folk-art
- * direction (that's Snippet 4). Only needs to read as "not the dark
- * castle" for this mechanic-only prototype.
+ * Snippet 4 folk-art palette: the explorable region reads as a paper
+ * lantern (lantern red body, gold rim/ribs/tassel) instead of Snippet 2's
+ * neutral warm blob. Corner cloud-swirl motifs add a light decorative
+ * frame. Same procedural/vector approach as the castle prototype (Phaser
+ * Graphics only, no raster art) — see DECISIONS.md for why.
  */
-const BG_TOP = 0xfff3e2;
-const BG_BOTTOM = 0xffe0b8;
-const BLOB_GLOW = 0xffe6bf;
-const BLOB_COLOR = 0xf8c07a;
-const SLOT_EMPTY = 0xffffff;
-const INK = 0x5b3a1f;
-const SPARK_COLOR = 0xffffff;
+const BG_TOP = 0xfff6e6;
+const BG_BOTTOM = 0xffdca0;
+const LANTERN_GLOW = 0xffcf9e;
+const LANTERN_BODY = 0xd1432b;
+const LANTERN_RIM = 0xf0b429;
+const SLOT_EMPTY_FILL = 0xfff1d6;
+const SLOT_TEXT_ON_LANTERN = "#fff6e0";
+const PINYIN_INK = "#7a5636";
+const MOTIF_COLOR = 0xc98a2e;
+const SPARK_COLOR = 0xffd76a;
 
 export class RevealScene extends Phaser.Scene {
   private idiom!: IdiomContent;
@@ -37,6 +42,17 @@ export class RevealScene extends Phaser.Scene {
   private visuals!: Phaser.GameObjects.Container;
   private zone!: Phaser.GameObjects.Zone;
 
+  /**
+   * Purely decorative corner motifs don't depend on reveal state, so
+   * they live outside `visuals` and only get redrawn on an actual
+   * resize — not on every tap. They used to be part of the per-tap
+   * teardown/rebuild, which added avoidable draw calls on every single
+   * tap for something that never changes; harmless on a real device, but
+   * this sandbox's software-rendered Chromium is sensitive enough to
+   * per-frame cost under parallel E2E load that it's worth trimming.
+   */
+  private staticDecor!: Phaser.GameObjects.Container;
+
   constructor() {
     super("RevealScene");
   }
@@ -49,13 +65,22 @@ export class RevealScene extends Phaser.Scene {
 
   create(): void {
     this.visuals = this.add.container(0, 0);
+    this.staticDecor = this.add.container(0, 0);
     this.createZone();
+    this.renderStaticDecor();
     this.renderVisuals(false);
 
     this.scale.on(Phaser.Scale.Events.RESIZE, () => {
       this.createZone();
+      this.renderStaticDecor();
       this.renderVisuals(false);
     });
+  }
+
+  private renderStaticDecor(): void {
+    this.staticDecor.removeAll(true);
+    const { width, height } = this.scale;
+    this.drawCornerMotifs(width, height);
   }
 
   private get characters(): string[] {
@@ -103,8 +128,8 @@ export class RevealScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     this.drawBackground(width, height);
-    const blobBounds = this.drawBlob(width, height);
-    this.drawSlots(blobBounds, animateNewest);
+    const lanternBounds = this.drawLantern(width, height);
+    this.drawSlots(lanternBounds, animateNewest);
   }
 
   private drawBackground(width: number, height: number): void {
@@ -114,25 +139,99 @@ export class RevealScene extends Phaser.Scene {
     this.visuals.add(bg);
   }
 
-  /** Draws the soft "explorable" region and returns its bounding box. */
-  private drawBlob(width: number, height: number): { cx: number; cy: number; radius: number } {
+  /** Faint gold "ruyi cloud" swirls in the top corners — a light
+   * decorative frame, kept low-opacity so it never competes with the
+   * tap region or reads as another interactive element. */
+  private drawCornerMotifs(width: number, height: number): void {
+    const motifs = this.add.graphics();
+    motifs.fillStyle(MOTIF_COLOR, 0.14);
+    const corners: Array<[number, number, number]> = [
+      [width * 0.08, height * 0.06, 1],
+      [width * 0.92, height * 0.06, -1],
+    ];
+    for (const [x, y, dir] of corners) {
+      motifs.fillCircle(x, y, 14);
+      motifs.fillCircle(x + 13 * dir, y + 6, 10);
+      motifs.fillCircle(x + 23 * dir, y - 3, 7);
+    }
+    this.staticDecor.add(motifs);
+  }
+
+  /**
+   * Draws the explorable region as a paper lantern — body, cap rims,
+   * ribs, hanging string and tassel — and returns its bounding box for
+   * `drawSlots` to lay characters out against. Shapes are drawn in local
+   * space around (0, 0) and the whole graphics object is positioned at
+   * (cx, cy), so the idle sway/pulse tweens (which animate scale/angle)
+   * rotate and scale around the lantern's own center instead of the
+   * screen's top-left corner.
+   */
+  private drawLantern(width: number, height: number): { cx: number; cy: number; radius: number } {
     const cx = width / 2;
     const cy = height * 0.42;
     const radius = Math.min(width, height) * 0.34;
 
-    const blob = this.add.graphics();
-    blob.fillStyle(BLOB_GLOW, 0.55);
-    blob.fillCircle(cx, cy, radius * 1.25);
-    blob.fillStyle(BLOB_GLOW, 0.75);
-    blob.fillCircle(cx, cy, radius * 1.05);
-    blob.fillStyle(BLOB_COLOR, 0.9);
-    blob.fillCircle(cx, cy, radius);
-    this.visuals.add(blob);
+    const lantern = this.add.graphics();
+    lantern.setPosition(cx, cy);
+
+    lantern.fillStyle(LANTERN_GLOW, 0.5);
+    lantern.fillCircle(0, 0, radius * 1.3);
+    lantern.fillStyle(LANTERN_GLOW, 0.7);
+    lantern.fillCircle(0, 0, radius * 1.08);
+
+    lantern.lineStyle(2, LANTERN_RIM, 0.6);
+    lantern.lineBetween(0, -radius * 1.15, 0, -radius * 0.98);
+
+    lantern.fillStyle(LANTERN_RIM, 1);
+    lantern.fillEllipse(0, -radius * 0.92, radius * 0.55, radius * 0.16);
+
+    lantern.fillStyle(LANTERN_BODY, 0.95);
+    // Wide enough to comfortably contain all 4 character slots (see
+    // drawSlots) inside the round body, rather than letting the outer
+    // slots poke past its edge.
+    lantern.fillEllipse(0, 0, radius * 2.3, radius * 1.85);
+
+    // Rib x positions/heights follow the body ellipse's actual boundary
+    // (half-width 1.15r, half-height 0.925r to match the fillEllipse
+    // above) so they read as belonging to the wider body rather than
+    // looking bunched toward the center.
+    lantern.lineStyle(1.5, LANTERN_RIM, 0.35);
+    const bodyHalfWidth = radius * 1.15;
+    const bodyHalfHeight = radius * 0.925;
+    const ribCount = 5;
+    for (let i = 1; i < ribCount; i++) {
+      const t = i / ribCount - 0.5;
+      const rx = t * bodyHalfWidth * 1.8;
+      const norm = rx / bodyHalfWidth;
+      const ribHalfHeight = Math.sqrt(Math.max(0, 1 - norm * norm)) * bodyHalfHeight * 0.95;
+      lantern.lineBetween(rx, -ribHalfHeight, rx, ribHalfHeight);
+    }
+
+    lantern.fillStyle(LANTERN_RIM, 1);
+    lantern.fillEllipse(0, radius * 0.92, radius * 0.55, radius * 0.16);
+
+    lantern.lineStyle(2, LANTERN_RIM, 0.7);
+    lantern.lineBetween(0, radius * 1.0, 0, radius * 1.22);
+    lantern.fillStyle(LANTERN_RIM, 0.9);
+    lantern.fillCircle(0, radius * 1.28, radius * 0.05);
+
+    this.visuals.add(lantern);
 
     this.tweens.add({
-      targets: blob,
+      targets: lantern,
       scale: { from: 0.98, to: 1.02 },
       duration: 1600,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    // Gentle sway, on its own timing so it doesn't read as mechanical
+    // alongside the pulse — a lantern moving in a light breeze, not a
+    // pumping animation.
+    this.tweens.add({
+      targets: lantern,
+      angle: { from: -1.5, to: 1.5 },
+      duration: 2600,
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut",
@@ -141,25 +240,28 @@ export class RevealScene extends Phaser.Scene {
     return { cx, cy, radius };
   }
 
-  private drawSlots(blob: { cx: number; cy: number; radius: number }, animateNewest: boolean): void {
+  private drawSlots(lantern: { cx: number; cy: number; radius: number }, animateNewest: boolean): void {
     const { revealedCount, isComplete } = computeReveal(this.tapCount, this.characters.length, DEFAULT_TAPS_PER_CHARACTER);
     const count = this.characters.length;
-    const slotSize = blob.radius * 0.52;
-    const gap = slotSize * 0.3;
+    const slotSize = lantern.radius * 0.46;
+    const gap = slotSize * 0.25;
     const totalWidth = count * slotSize + (count - 1) * gap;
-    const startX = blob.cx - totalWidth / 2 + slotSize / 2;
+    const startX = lantern.cx - totalWidth / 2 + slotSize / 2;
 
     for (let i = 0; i < count; i++) {
       const x = startX + i * (slotSize + gap);
-      const y = blob.cy;
+      const y = lantern.cy;
       const revealed = i < revealedCount;
       const isNewest = animateNewest && i === revealedCount - 1;
 
       if (revealed) {
+        // Revealed characters sit on the lantern's red body, so they need
+        // a light, warm color (not the dark ink Snippet 2 used against a
+        // pale background) to stay readable.
         const text = this.add
           .text(x, y, this.characters[i], {
             fontSize: `${Math.round(slotSize * 0.62)}px`,
-            color: "#3a2612",
+            color: SLOT_TEXT_ON_LANTERN,
             fontFamily: "system-ui, sans-serif",
             fontStyle: "600",
           })
@@ -171,20 +273,24 @@ export class RevealScene extends Phaser.Scene {
           this.tweens.add({ targets: text, scale: 1, alpha: 1, duration: 420, ease: "Back.easeOut" });
         }
       } else {
+        // Empty slots read as small gold-trimmed paper tags against the
+        // lantern body, rather than a plain outline box.
         const outline = this.add.graphics();
-        outline.lineStyle(2, INK, 0.35);
+        outline.lineStyle(2, LANTERN_RIM, 0.7);
         outline.strokeRoundedRect(x - slotSize / 2, y - slotSize / 2, slotSize, slotSize, slotSize * 0.18);
-        outline.fillStyle(SLOT_EMPTY, 0.25);
+        outline.fillStyle(SLOT_EMPTY_FILL, 0.3);
         outline.fillRoundedRect(x - slotSize / 2, y - slotSize / 2, slotSize, slotSize, slotSize * 0.18);
         this.visuals.add(outline);
       }
     }
 
     if (isComplete) {
+      // Below the tassel, clear of the lantern body, so it sits on the
+      // plain background where the darker ink color reads well again.
       const pinyin = this.add
-        .text(blob.cx, blob.cy + slotSize * 0.85, this.idiom.pinyin, {
+        .text(lantern.cx, lantern.cy + lantern.radius * 1.55, this.idiom.pinyin, {
           fontSize: "16px",
-          color: "#7a5636",
+          color: PINYIN_INK,
           fontFamily: "system-ui, sans-serif",
           fontStyle: "italic",
         })
