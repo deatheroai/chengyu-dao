@@ -5,6 +5,12 @@ import { updateRevealStatus } from "./domStatus";
 
 export interface RevealSceneData {
   idiom: IdiomContent;
+  /** Fires once, the moment all characters become revealed (same trigger
+   * point as the completion flourish). Optional — the standalone
+   * Snippet 2 page doesn't need it (its own DOM status attributes are
+   * enough); Snippet 5's session flow uses it to know when to offer
+   * "Continue" into the meaning-check phase. */
+  onComplete?: () => void;
 }
 
 /**
@@ -29,6 +35,7 @@ export class RevealScene extends Phaser.Scene {
   private idiom!: IdiomContent;
   private tapCount = 0;
   private lastRevealedCount = 0;
+  private onComplete?: () => void;
 
   /**
    * Visual game objects (background/blob/slots) live in this container and
@@ -61,6 +68,7 @@ export class RevealScene extends Phaser.Scene {
     this.idiom = data.idiom;
     this.tapCount = 0;
     this.lastRevealedCount = 0;
+    this.onComplete = data.onComplete;
   }
 
   create(): void {
@@ -75,6 +83,21 @@ export class RevealScene extends Phaser.Scene {
       this.renderStaticDecor();
       this.renderVisuals(false);
     });
+  }
+
+  /**
+   * Synchronously stops this scene's zone from reacting to any further
+   * taps. Meant to be called by a host page (see session/main.ts) the
+   * instant it decides to leave the reveal phase — before hiding the
+   * canvas or starting a replacement scene, both of which only actually
+   * take effect on the next frame. Without this, a tap landing in that
+   * one-frame gap can hit this (about-to-be-replaced) zone and get
+   * silently wasted instead of counting toward whatever comes next — a
+   * real risk for a child tapping quickly right after "Continue"/"Next",
+   * not just a test timing issue.
+   */
+  disableInput(): void {
+    this.zone?.disableInteractive();
   }
 
   private renderStaticDecor(): void {
@@ -119,6 +142,7 @@ export class RevealScene extends Phaser.Scene {
 
     if (isComplete && justRevealed) {
       this.playCompleteFlourish();
+      this.onComplete?.();
     }
   }
 

@@ -1,0 +1,322 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: linear-gradient(180deg, #fff3e2 0%, #ffe0b8 100%);
+  color: #3a2612;
+  font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans SC", sans-serif;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Small persistent "Idiom X of 3" chip, visible across the reveal and
+   meaning-check phases; hidden once the session is complete since there's
+   no "next idiom" left to count toward. */
+#session-progress {
+  position: absolute;
+  top: calc(0.6rem + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a9691f;
+}
+
+/* --- Reveal phase (Snippet 2/4's lantern scene) --- */
+
+#reveal-phase {
+  position: absolute;
+  inset: 0;
+}
+
+#game-container {
+  position: absolute;
+  inset: 0;
+}
+
+#game-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+#reveal-ui-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.75rem calc(0.75rem + env(safe-area-inset-right)) calc(0.75rem + env(safe-area-inset-bottom))
+    calc(0.75rem + env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: none;
+}
+
+#reveal-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #7a5636;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+}
+
+#reveal-status {
+  font-size: 0.78rem;
+  color: #8a6a45;
+  min-height: 1.1em;
+}
+
+#continue-btn {
+  pointer-events: auto;
+  border: none;
+  background: #c1401f;
+  color: #fff8ef;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#continue-btn:hover {
+  background: #a83618;
+}
+#continue-btn:focus-visible {
+  outline: 2px solid #4a3420;
+  outline-offset: 2px;
+}
+
+/* --- Meaning-check and summary phases (Snippet 3's card) --- */
+
+#meaning-check-phase,
+#summary-phase {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  /* flex-start (not center) + top padding, not vertical centering:
+     centering a tall card (e.g. once the explanation box appears) can
+     overflow equally in both directions, pushing its top edge back up
+     underneath #session-progress's fixed pill despite the padding. This
+     way the card's top always starts below the padding line, and
+     overflow-y handles content taller than the viewport by scrolling
+     instead of clipping or overlapping. */
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: calc(3.25rem + env(safe-area-inset-top)) calc(1.25rem + env(safe-area-inset-right))
+    calc(1.25rem + env(safe-area-inset-bottom)) calc(1.25rem + env(safe-area-inset-left));
+  background: linear-gradient(180deg, #fff3e2 0%, #ffe0b8 100%);
+}
+
+.card {
+  width: 100%;
+  max-width: 460px;
+  background: #fffaf2;
+  border-radius: 20px;
+  padding: 1.75rem 1.5rem;
+  box-shadow: 0 1px 2px rgba(58, 38, 18, 0.06), 0 12px 32px -16px rgba(58, 38, 18, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.idiom-header {
+  text-align: center;
+}
+
+.hanzi {
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pinyin {
+  font-style: italic;
+  color: #a9691f;
+  font-size: 1rem;
+  margin-top: 0.15rem;
+}
+
+.meaning {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.5;
+  text-align: center;
+  color: #5b3a1f;
+}
+
+.prompt {
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.prompt-idiom {
+  color: #c1401f;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.option {
+  text-align: left;
+  border: 2px solid #ecdcc0;
+  background: #fffefb;
+  color: #3a2612;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.option-hanzi {
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.option-pinyin {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #a9691f;
+}
+.option:hover:not(:disabled) {
+  border-color: #d9a05f;
+}
+.option:focus-visible {
+  outline: 2px solid #c1401f;
+  outline-offset: 2px;
+}
+.option:disabled {
+  cursor: default;
+}
+
+.option[data-state="wrong"] {
+  border-color: #e0b98a;
+  background: #fbeed9;
+  color: #8a6a45;
+}
+
+.option[data-state="correct"] {
+  border-color: #6ea77f;
+  background: #e4f3e8;
+  color: #2f5d3f;
+  font-weight: 600;
+}
+
+.option[data-state="locked"] {
+  opacity: 0.55;
+}
+
+#check-status {
+  min-height: 1.2em;
+  margin: 0;
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #a9691f;
+}
+
+.explanation {
+  margin: 0;
+  background: #f1e6cc;
+  border-left: 3px solid #a97e2f;
+  border-radius: 0 10px 10px 0;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9rem;
+  color: #5b3a1f;
+  line-height: 1.5;
+}
+
+#next-btn {
+  border: none;
+  background: #c1401f;
+  color: #fff8ef;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#next-btn:hover {
+  background: #a83618;
+}
+#next-btn:focus-visible {
+  outline: 2px solid #3a2612;
+  outline-offset: 2px;
+}
+
+/* --- Session summary --- */
+
+.summary-title {
+  margin: 0;
+  text-align: center;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+#summary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.summary-idiom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  background: #fbeed9;
+  border-radius: 12px;
+  padding: 0.65rem 0.9rem;
+}
+
+.summary-idiom-hanzi {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.summary-idiom-meaning {
+  font-size: 0.82rem;
+  color: #5b3a1f;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.summary-message {
+  margin: 0;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #a9691f;
+}
