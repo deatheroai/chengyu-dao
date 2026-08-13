@@ -5,6 +5,7 @@ import { MeaningCheckController } from "../meaning-check/meaningCheckView";
 import { idioms, idiomsById } from "../idioms/idioms";
 import { createSession, completeReveal, completeMeaningCheck, currentIdiomId, pickSessionIdioms, SESSION_LENGTH } from "./sessionState";
 import type { SessionState } from "./sessionState";
+import { pickResurfaceIdiomId, recordCompletedSession, clearHistory, seedFakePriorSession } from "./sessionHistory";
 import type { IdiomContent } from "../idioms/types";
 
 function updateProgressDom(state: SessionState): void {
@@ -13,6 +14,7 @@ function updateProgressDom(state: SessionState): void {
   el.setAttribute("data-phase", state.phase);
   el.setAttribute("data-index", String(state.currentIndex));
   el.setAttribute("data-discovered-count", String(state.discoveredIds.length));
+  el.setAttribute("data-idiom-id", currentIdiomId(state));
 
   if (state.phase === "complete") {
     el.classList.add("hidden");
@@ -53,8 +55,57 @@ function renderSummary(state: SessionState): void {
   }
 }
 
+/** Renders the "Do you remember this one?" callback card. Deliberately
+ * has no quiz/check attached — SNIPPET_PLANS.md calls for a "brief,
+ * low-stakes callback," not a retest of the idiom just reintroduced by
+ * the meaning-check mechanic. */
+function renderResurfaceCard(idiom: IdiomContent): void {
+  document.getElementById("resurface-phase")?.setAttribute("data-idiom-id", idiom.id);
+  const hanziEl = document.getElementById("resurface-hanzi");
+  const pinyinEl = document.getElementById("resurface-pinyin");
+  const meaningEl = document.getElementById("resurface-meaning");
+  if (hanziEl) hanziEl.textContent = idiom.hanzi;
+  if (pinyinEl) pinyinEl.textContent = idiom.pinyin;
+  if (meaningEl) meaningEl.textContent = idiom.meaning;
+}
+
+function wireDevControls(): void {
+  document.getElementById("dev-seed-history-btn")?.addEventListener("click", () => {
+    const randomIdiom = idioms[Math.floor(Math.random() * idioms.length)];
+    seedFakePriorSession(randomIdiom.id);
+    location.reload();
+  });
+  document.getElementById("dev-clear-history-btn")?.addEventListener("click", () => {
+    clearHistory();
+    location.reload();
+  });
+}
+
 function bootstrap(): void {
-  let state = createSession(pickSessionIdioms(idioms).map((idiom) => idiom.id));
+  wireDevControls();
+
+  const resurfaceId = pickResurfaceIdiomId();
+  if (resurfaceId) {
+    document.getElementById("resurface-phase")?.classList.remove("hidden");
+    document.getElementById("reveal-phase")?.classList.add("hidden");
+    renderResurfaceCard(idiomsById[resurfaceId]);
+    document.getElementById("resurface-continue-btn")?.addEventListener(
+      "click",
+      () => {
+        document.getElementById("resurface-phase")?.classList.add("hidden");
+        // Exclude the just-resurfaced idiom from this sitting's "new" 3,
+        // so nothing is shown twice back-to-back in the same visit.
+        startSession(idioms.filter((idiom) => idiom.id !== resurfaceId));
+      },
+      { once: true },
+    );
+  } else {
+    startSession(idioms);
+  }
+}
+
+function startSession(pool: IdiomContent[]): void {
+  let state = createSession(pickSessionIdioms(pool).map((idiom) => idiom.id));
   const meaningCheck = new MeaningCheckController(idioms);
   const continueBtn = document.getElementById("continue-btn");
 
@@ -113,6 +164,7 @@ function bootstrap(): void {
       if (state.phase === "complete") {
         showPhaseUI("complete");
         renderSummary(state);
+        recordCompletedSession(state.idiomIds);
       } else {
         startRevealPhase(idiomsById[currentIdiomId(state)]);
       }

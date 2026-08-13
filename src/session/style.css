@@ -110,7 +110,8 @@ body {
 /* --- Meaning-check and summary phases (Snippet 3's card) --- */
 
 #meaning-check-phase,
-#summary-phase {
+#summary-phase,
+#resurface-phase {
   position: absolute;
   inset: 0;
   display: flex;
@@ -319,4 +320,70 @@ body {
   font-size: 1rem;
   font-weight: 600;
   color: #a9691f;
+}
+
+/* --- Resurface phase (Snippet 6) --- */
+
+.resurface-eyebrow {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a9691f;
+}
+
+.resurface-title {
+  margin: 0;
+  text-align: center;
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+
+#resurface-continue-btn {
+  border: none;
+  background: #c1401f;
+  color: #fff8ef;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#resurface-continue-btn:hover {
+  background: #a83618;
+}
+#resurface-continue-btn:focus-visible {
+  outline: 2px solid #3a2612;
+  outline-offset: 2px;
+}
+
+/* --- Dev-only prototype controls (Snippet 6) --- */
+
+#dev-controls {
+  position: absolute;
+  /* Clears #session-progress's centered chip vertically (rather than
+     trying to dodge it horizontally too) - on a narrow mobile viewport
+     the chip's width can reach close enough to the right edge that a
+     same-row right-aligned panel collides with it. */
+  top: calc(2.5rem + env(safe-area-inset-top));
+  right: calc(0.5rem + env(safe-area-inset-right));
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+#dev-controls button {
+  border: 1px dashed #b98a55;
+  background: rgba(255, 255, 255, 0.7);
+  color: #7a5636;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+#dev-controls button:hover {
+  background: rgba(255, 255, 255, 0.95);
 }
