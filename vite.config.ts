@@ -9,8 +9,10 @@ const rootDir = fileURLToPath(new URL(".", import.meta.url));
 
 // Multi-page build: the castle game (index.html) and each snippet
 // prototype (idiom-reveal.html for Snippet 2, meaning-check.html for
-// Snippet 3, session.html for Snippet 5) are separate standalone pages
-// while snippets are being validated independently, per SNIPPET_PLANS.md.
+// Snippet 3, session.html for Snippet 5, catch-meaning.html for the
+// Phase 0 catch-mechanic spike) are separate standalone pages while
+// snippets are being validated independently, per SNIPPET_PLANS.md /
+// CATCH_MECHANIC_PLAN.md.
 export default defineConfig({
   build: {
     rollupOptions: {
@@ -19,6 +21,7 @@ export default defineConfig({
         idiomReveal: resolve(rootDir, "idiom-reveal.html"),
         meaningCheck: resolve(rootDir, "meaning-check.html"),
         session: resolve(rootDir, "session.html"),
+        catchMeaning: resolve(rootDir, "catch-meaning.html"),
       },
     },
   },
