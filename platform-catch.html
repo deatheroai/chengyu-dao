@@ -15,7 +15,7 @@
     <div id="app">
       <div id="game-container"></div>
       <div id="catch-ui-layer">
-        <p id="catch-hint">Walk and jump to the kids who show 一心一意 — leave the distracted ones alone!</p>
+        <p id="catch-hint">Walk over to a kid, then press GRAB to catch the ones who show 一心一意 — skip the distracted ones!</p>
         <div id="catch-status" aria-live="polite" data-revealed-count="0" data-total="4" data-complete="false"></div>
       </div>
       <!-- Test-only hook mirroring the character's x position (Phase 2's
@@ -29,7 +29,10 @@
           <button id="move-left-btn" class="ctrl-btn" type="button" aria-label="Move left">◀</button>
           <button id="move-right-btn" class="ctrl-btn" type="button" aria-label="Move right">▶</button>
         </div>
-        <button id="jump-btn" type="button" aria-label="Jump">JUMP</button>
+        <div class="action-buttons">
+          <button id="jump-btn" class="action-btn" type="button" aria-label="Jump">JUMP</button>
+          <button id="grab-btn" class="action-btn grab" type="button" aria-label="Grab">GRAB</button>
+        </div>
       </div>
       <div id="catch-complete-card">
         <div class="card">

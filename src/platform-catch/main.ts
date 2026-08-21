@@ -67,6 +67,10 @@ function bootstrap(): void {
     e.preventDefault();
     scene()?.requestJump();
   });
+  document.getElementById("grab-btn")?.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    scene()?.requestGrab();
+  });
 }
 
 bootstrap();

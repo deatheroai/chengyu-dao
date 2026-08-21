@@ -27,21 +27,26 @@ const CHAR_SIZE = 64;
 const ITEM_SIZE = 60;
 const FOOT_OFFSET = CHAR_SIZE * 0.4;
 const ITEM_VISUAL_OFFSET = ITEM_SIZE * 0.35;
-// Fraction of scene width, not a fixed pixel value — item positions in
-// placedItems.ts are xFracs too, so a fixed-pixel radius would eat a
-// much bigger share of the gap between adjacent items on a narrow
-// (mobile) viewport than on a wide (desktop) one. Found the hard way:
-// at a fixed 50px, "phone" and "book" (about 49px apart on a 412px-wide
-// mobile viewport) had overlapping catch zones, so walking between them
-// could catch both in the same frame, with the second catch's status
-// message silently overwriting the first's.
-const CATCH_RADIUS_X_FRAC = 0.04;
-const CATCH_RADIUS_Y = 62;
+// Fraction of *world* width (see WORLD_WIDTH_MULTIPLIER below), not a
+// fixed pixel value — item positions in placedItems.ts are xFracs too,
+// so a fixed-pixel radius would eat a much bigger share of the gap
+// between adjacent items on a narrow (mobile) viewport than on a wide
+// (desktop) one. Found the hard way: at a fixed 50px, "phone" and
+// "book" (about 49px apart on a 412px-wide mobile viewport) had
+// overlapping catch zones. Now purely a *grab* reach radius (see the
+// 2026-08-22 revision below) rather than an auto-catch-on-touch radius,
+// so it can afford to be a bit more generous without risking accidents.
+const CATCH_RADIUS_X_FRAC = 0.045;
+const CATCH_RADIUS_Y = 70;
 // Kept well clear of every ground item's xFrac in placedItems.ts (by
 // more than the catch radius, as a fraction of width, at any supported
-// viewport) so the child never spawns already overlapping — and so
-// "catching" — something before touching a control.
-const PLAYER_START_XFRAC = 0.04;
+// viewport) so the child never spawns already overlapping something.
+const PLAYER_START_XFRAC = 0.03;
+// The playable world is wider than the viewport — the camera scrolls to
+// follow the character — so items have real breathing room between them
+// instead of being crammed into a single screen. Added in response to
+// your 2026-08-22 feedback that Phase 2's first cut felt crowded.
+const WORLD_WIDTH_MULTIPLIER = 2;
 
 interface RuntimeItem {
   def: PlacedItem;
@@ -70,12 +75,15 @@ export class PlatformCatchScene extends Phaser.Scene {
   private platformATop = 0;
   private platformBTop = 0;
   private catchRadiusX = 0;
+  private worldWidth = 0;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private spaceKey!: Phaser.Input.Keyboard.Key;
+  private grabKey!: Phaser.Input.Keyboard.Key;
   private buttonLeft = false;
   private buttonRight = false;
   private jumpRequested = false;
+  private grabRequested = false;
 
   constructor() {
     super("PlatformCatchScene");
@@ -89,6 +97,7 @@ export class PlatformCatchScene extends Phaser.Scene {
     this.buttonLeft = false;
     this.buttonRight = false;
     this.jumpRequested = false;
+    this.grabRequested = false;
   }
 
   private get characters(): string[] {
@@ -97,6 +106,9 @@ export class PlatformCatchScene extends Phaser.Scene {
 
   create(): void {
     this.slotsLayer = this.add.container(0, 0);
+    // Progress chip stays pinned to the top of the screen like a HUD,
+    // regardless of how far the camera has scrolled into the world.
+    this.slotsLayer.setScrollFactor(0);
     this.groundLayer = this.add.container(0, 0);
     this.itemsLayer = this.add.container(0, 0);
 
@@ -130,6 +142,9 @@ export class PlatformCatchScene extends Phaser.Scene {
   requestJump(): void {
     this.jumpRequested = true;
   }
+  requestGrab(): void {
+    this.grabRequested = true;
+  }
 
   private renderBackground(): void {
     this.bg?.destroy();
@@ -137,23 +152,28 @@ export class PlatformCatchScene extends Phaser.Scene {
     this.bg = this.add.graphics();
     this.bg.fillGradientStyle(BG_TOP, BG_TOP, BG_BOTTOM, BG_BOTTOM, 1);
     this.bg.fillRect(0, 0, width, height);
+    // Pinned to the camera regardless of scroll — it only needs to cover
+    // the visible viewport, not the whole (wider) scrolling world.
+    this.bg.setScrollFactor(0);
     this.children.sendToBack(this.bg);
   }
 
   private setupSurfaces(): void {
     const { width, height } = this.scale;
-    this.catchRadiusX = width * CATCH_RADIUS_X_FRAC;
+    this.worldWidth = width * WORLD_WIDTH_MULTIPLIER;
+    this.catchRadiusX = this.worldWidth * CATCH_RADIUS_X_FRAC;
     this.groundY = height * 0.78;
     this.platformATop = this.groundY - 110;
     this.platformBTop = this.groundY - 150;
 
-    const platformAX = { min: width * 0.44, max: width * 0.44 + width * 0.16 };
-    const platformBX = { min: width * 0.72, max: width * 0.72 + width * 0.16 };
+    const w = this.worldWidth;
+    const platformAX = { min: w * 0.44, max: w * 0.44 + w * 0.16 };
+    const platformBX = { min: w * 0.72, max: w * 0.72 + w * 0.16 };
     this.platformAX = platformAX;
     this.platformBX = platformBX;
 
     this.surfaces = [
-      { xMin: 0, xMax: width, y: this.groundY },
+      { xMin: 0, xMax: w, y: this.groundY },
       { xMin: platformAX.min, xMax: platformAX.max, y: this.platformATop },
       { xMin: platformBX.min, xMax: platformBX.max, y: this.platformBTop },
     ];
@@ -163,7 +183,7 @@ export class PlatformCatchScene extends Phaser.Scene {
       moveSpeed: 180,
       jumpVelocity: -720,
       minX: 24,
-      maxX: width - 24,
+      maxX: w - 24,
     };
   }
   private platformAX!: { min: number; max: number };
@@ -171,21 +191,21 @@ export class PlatformCatchScene extends Phaser.Scene {
 
   private renderGround(): void {
     this.groundLayer.removeAll(true);
-    const { width } = this.scale;
+    const w = this.worldWidth;
     const gfx = this.add.graphics();
 
     gfx.fillStyle(GROUND_COLOR, 0.9);
-    gfx.fillRect(0, this.groundY, width, 6);
+    gfx.fillRect(0, this.groundY, w, 6);
 
     for (const [x, y] of [
       [this.platformAX.min, this.platformATop],
       [this.platformBX.min, this.platformBTop],
     ] as const) {
-      const w = width * 0.16;
+      const platformW = w * 0.16;
       gfx.fillStyle(PLATFORM_COLOR, 0.95);
-      gfx.fillRoundedRect(x, y, w, 14, 6);
+      gfx.fillRoundedRect(x, y, platformW, 14, 6);
       gfx.lineStyle(2, PLATFORM_RIM, 0.8);
-      gfx.strokeRoundedRect(x, y, w, 14, 6);
+      gfx.strokeRoundedRect(x, y, platformW, 14, 6);
     }
     this.groundLayer.add(gfx);
   }
@@ -207,18 +227,16 @@ export class PlatformCatchScene extends Phaser.Scene {
   }
 
   private layoutItems(): void {
-    const { width } = this.scale;
     for (const item of this.items) {
       if (item.caught) continue;
-      item.x = item.def.xFrac * width;
+      item.x = item.def.xFrac * this.worldWidth;
       item.y = this.surfaceY(item.def.surface);
       item.container.setPosition(item.x, item.y - ITEM_VISUAL_OFFSET);
     }
   }
 
   private setupCharacter(): void {
-    const { width } = this.scale;
-    this.character = { x: width * PLAYER_START_XFRAC, y: this.groundY, vy: 0, grounded: true };
+    this.character = { x: this.worldWidth * PLAYER_START_XFRAC, y: this.groundY, vy: 0, grounded: true };
     this.characterContainer = this.add.container(this.character.x, this.character.y - FOOT_OFFSET);
     const kid = buildFocusSceneIcon(this, "book", "correct", CHAR_SIZE);
     // The player's own character isn't "correct" or "decoy" — it's just
@@ -253,6 +271,12 @@ export class PlatformCatchScene extends Phaser.Scene {
   private setupInput(): void {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    // "Z" is a common action-button convention (bottom-left of a
+    // keyboard, easy to reach alongside arrow keys); Down/Shift are
+    // added too since "press down to grab" is also a reasonably
+    // intuitive guess. The on-screen GRAB button is the primary input
+    // for the actual (touch) target audience either way.
+    this.grabKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
   }
 
   private renderSlots(animateNewest = false): void {
@@ -308,38 +332,54 @@ export class PlatformCatchScene extends Phaser.Scene {
     const jumpPressed = keyboardJump || this.jumpRequested;
     this.jumpRequested = false;
 
+    const keyboardGrab =
+      Phaser.Input.Keyboard.JustDown(this.grabKey) ||
+      Phaser.Input.Keyboard.JustDown(this.cursors.down!) ||
+      Phaser.Input.Keyboard.JustDown(this.cursors.shift!);
+    const grabPressed = keyboardGrab || this.grabRequested;
+    this.grabRequested = false;
+
     if (!this.catchState.isComplete) {
-      const prevChar = this.character;
       this.character = stepPhysics(this.character, { moveDir, jumpPressed }, this.surfaces, dt, this.physicsCfg);
       this.characterContainer.setPosition(this.character.x, this.character.y - FOOT_OFFSET);
-      this.checkCatches(prevChar);
+      if (grabPressed) this.attemptGrab();
+
+      const { width } = this.scale;
+      this.cameras.main.scrollX = Phaser.Math.Clamp(this.character.x - width / 2, 0, Math.max(0, this.worldWidth - width));
     }
     updatePlayerPosition(this.character.x);
   }
 
   /**
-   * Checking only the character's *current* position each frame is a
-   * point sample: a big-enough frame delta (real device jank, or this
-   * sandbox's known parallel-test contention) can make a fast-moving
-   * character's step skip clean past an item's catch radius between one
-   * frame and the next, missing it entirely. Same bug class already
-   * fixed twice elsewhere in this project (RevealScene's tap-drop,
-   * CatchScene's falling-item skip) — the fix is the same shape too: a
-   * swept check against the whole frame's movement segment, not just
-   * where it ended up.
+   * Catching used to happen automatically the instant the character's
+   * position overlapped an item — but that made walking through a
+   * cluster of items feel like bumping into things you couldn't avoid,
+   * per your 2026-08-22 feedback ("hard to choose the selection...
+   * accidentally bump into a lot of things"). Catching is now a
+   * deliberate action instead: walking near something does nothing by
+   * itself, and pressing GRAB catches only the single nearest uncaught
+   * item within reach — so a decoy sitting right next to a correct item
+   * is something you can walk straight past without it counting against
+   * (or for) you, and grabbing is always an unambiguous, one-at-a-time
+   * choice rather than whatever happens to be in range.
    */
-  private checkCatches(prevChar: PhysicsState): void {
-    const minX = Math.min(prevChar.x, this.character.x) - this.catchRadiusX;
-    const maxX = Math.max(prevChar.x, this.character.x) + this.catchRadiusX;
-    const minY = Math.min(prevChar.y, this.character.y) - CATCH_RADIUS_Y;
-    const maxY = Math.max(prevChar.y, this.character.y) + CATCH_RADIUS_Y;
+  private attemptGrab(): void {
+    let nearest: RuntimeItem | undefined;
+    let nearestDist = Infinity;
 
     for (const item of this.items) {
       if (item.caught) continue;
-      if (item.x >= minX && item.x <= maxX && item.y >= minY && item.y <= maxY) {
-        this.handleCatch(item);
+      const dx = Math.abs(this.character.x - item.x);
+      const dy = Math.abs(this.character.y - item.y);
+      if (dx > this.catchRadiusX || dy > CATCH_RADIUS_Y) continue;
+      const dist = dx * dx + dy * dy;
+      if (dist < nearestDist) {
+        nearest = item;
+        nearestDist = dist;
       }
     }
+
+    if (nearest) this.handleCatch(nearest);
   }
 
   private handleCatch(item: RuntimeItem): void {
@@ -382,13 +422,17 @@ export class PlatformCatchScene extends Phaser.Scene {
   }
 
   private playCompleteFlourish(): void {
+    // Centered on the character's actual (world) position, not the
+    // viewport's center — with a scrolling camera those aren't the same
+    // point, and the celebration should happen where the child is.
     const { width } = this.scale;
+    const cx = this.character.x;
     const cy = this.groundY - 80;
     for (let i = 0; i < 16; i++) {
       const angle = Math.random() * Math.PI * 2;
       const dist = Math.random() * (width * 0.25);
       this.time.delayedCall(i * 20, () => {
-        this.spawnSparkBurst(width / 2 + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, 4);
+        this.spawnSparkBurst(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, 4);
       });
     }
   }

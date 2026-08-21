@@ -96,19 +96,37 @@ body {
   background: #a83618;
 }
 
-#jump-btn {
+.action-buttons {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+.action-btn {
   width: 4.2rem;
   height: 4.2rem;
   border-radius: 999px;
   border: none;
   background: rgba(240, 180, 41, 0.9);
   color: #4a3420;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   touch-action: none;
+  user-select: none;
 }
-#jump-btn:active {
+.action-btn:active {
   background: #d99e1f;
+}
+
+/* GRAB is the primary action (that's what actually catches something),
+   so it gets the game's accent color to stand out from JUMP — a
+   deliberate visual cue that this is the "make a choice" button. */
+.action-btn.grab {
+  background: rgba(193, 64, 31, 0.9);
+  color: #fff8ef;
+}
+.action-btn.grab:active {
+  background: #a83618;
 }
 
 #catch-complete-card {
