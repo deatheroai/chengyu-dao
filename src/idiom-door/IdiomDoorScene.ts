@@ -43,6 +43,14 @@ const CATCH_RADIUS_Y = 80;
 // unchanged; a faster run just covers more ground per second, both
 // approaching a tile and during the jump arc itself.
 const RUN_SPEED = 320;
+// Once the idiom is solved, the child shouldn't have to keep running
+// (and possibly jumping) through however much unsolved track happens
+// to remain — per your feedback, the win should feel immediate. This
+// is a *fixed* duration regardless of how far the door actually is
+// (see startFastForwardToDoor), so reaching the door after solving
+// always feels like a short, satisfying dash rather than a wait that
+// scales with how early in the track the puzzle happened to complete.
+const FAST_FORWARD_DASH_MS = 700;
 const PLAYER_START_X = 30;
 // Camera sits the character roughly a third of the way from the left
 // edge rather than centered — a runner needs more preview room ahead
@@ -78,6 +86,7 @@ export class IdiomDoorScene extends Phaser.Scene {
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private jumpRequested = false;
   private doorTriggered = false;
+  private fastForwarding = false;
 
   constructor() {
     super("IdiomDoorScene");
@@ -90,6 +99,7 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.tiles = [];
     this.jumpRequested = false;
     this.doorTriggered = false;
+    this.fastForwarding = false;
   }
 
   private get characters(): string[] {
@@ -303,6 +313,15 @@ export class IdiomDoorScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    // While dashing to the door (see startFastForwardToDoor), the
+    // character's x is driven entirely by that tween — normal run/jump
+    // physics are suspended so the two don't fight over its position.
+    if (this.fastForwarding) {
+      this.jumpRequested = false;
+      this.syncCameraAndPositionHook();
+      return;
+    }
+
     const dt = delta / 1000;
 
     const jumpPressed =
@@ -316,6 +335,10 @@ export class IdiomDoorScene extends Phaser.Scene {
     if (!this.orderedState.isComplete) this.checkCatches(prevChar);
     this.checkDoor();
 
+    this.syncCameraAndPositionHook();
+  }
+
+  private syncCameraAndPositionHook(): void {
     const { width } = this.scale;
     const maxScroll = Math.max(0, this.level.length + 200 - width);
     this.cameras.main.scrollX = Phaser.Math.Clamp(this.character.x - width * CAMERA_LEAD_FRACTION, 0, maxScroll);
@@ -371,7 +394,41 @@ export class IdiomDoorScene extends Phaser.Scene {
     if (this.orderedState.isComplete) {
       this.playCompleteFlourish();
       this.drawDoor(true);
+      this.startFastForwardToDoor();
     }
+  }
+
+  /**
+   * Dashes the character straight to the door over a fixed, short
+   * duration — per your 2026-08-24 feedback, once the idiom is solved
+   * the child shouldn't have to keep running (or jumping) through
+   * whatever unsolved track happens to remain. Deliberately a *duration*
+   * tween rather than just a much faster run speed: a fixed duration
+   * means reaching the door after solving always takes roughly the same
+   * short moment regardless of whether the puzzle happened to complete
+   * near the start or near the end of the track, rather than a wait
+   * that scales with remaining distance.
+   */
+  private startFastForwardToDoor(): void {
+    if (this.fastForwarding) return;
+    this.fastForwarding = true;
+
+    const from = { x: this.character.x };
+    const targetX = Math.max(from.x, this.level.length);
+    this.tweens.add({
+      targets: from,
+      x: targetX,
+      duration: FAST_FORWARD_DASH_MS,
+      ease: "Cubic.easeIn",
+      onUpdate: () => {
+        this.character = { x: from.x, y: this.groundY, vy: 0, grounded: true };
+        this.characterContainer.setPosition(this.character.x, this.character.y - FOOT_OFFSET);
+      },
+      onComplete: () => {
+        this.fastForwarding = false;
+        this.checkDoor();
+      },
+    });
   }
 
   /**
