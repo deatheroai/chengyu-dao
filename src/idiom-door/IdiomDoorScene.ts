@@ -28,12 +28,13 @@ const DOOR_RIM = 0xf0b429;
 const CHAR_SIZE = 64;
 const TILE_SIZE = 60;
 const FOOT_OFFSET = CHAR_SIZE * 0.4;
-// How far above the ground every collectible floats — reachable only
-// by jumping, never by simply running underneath. Kept comfortably
-// inside the jump arc's max height (jumpVelocity²/(2·gravity) ≈ 185px
-// with the constants below) so there's real hangtime near it, not just
-// a single instant.
-const FLOAT_HEIGHT = 130;
+// Each tile floats at its own height (levelContent.ts's HEIGHT_MIN..
+// HEIGHT_MAX, ≈90-160px) rather than one uniform line — per your
+// 2026-08-23 feedback that a single fixed height felt too neatly
+// arranged. That whole range stays comfortably inside the jump arc's
+// max height (jumpVelocity²/(2·gravity) ≈ 175px with the physics
+// constants below), and CATCH_RADIUS_Y is generous enough to still
+// catch comfortably at any height in the range.
 const CATCH_RADIUS_X = 70;
 const CATCH_RADIUS_Y = 80;
 const PLAYER_START_X = 30;
@@ -147,7 +148,8 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.tilesLayer.removeAll(true);
     this.tiles = this.level.tiles.map((def) => {
       const container = this.buildTile(def.char);
-      container.setPosition(def.x, this.groundY - FLOAT_HEIGHT);
+      container.setPosition(def.x, this.groundY - def.height);
+      container.setAngle(def.angle);
       this.tilesLayer.add(container);
       return { def, container, caught: false };
     });
@@ -157,7 +159,7 @@ export class IdiomDoorScene extends Phaser.Scene {
   private layoutTiles(): void {
     for (const tile of this.tiles) {
       if (tile.caught) continue;
-      tile.container.setPosition(tile.def.x, this.groundY - FLOAT_HEIGHT);
+      tile.container.setPosition(tile.def.x, this.groundY - tile.def.height);
     }
     this.renderGround();
   }
@@ -182,7 +184,7 @@ export class IdiomDoorScene extends Phaser.Scene {
     container.add(text);
     // A gentle bob so floating tiles read as "in the air" rather than
     // pasted-on decorations — purely cosmetic, doesn't affect the
-    // logical catch position (that's tracked via `def.x`/FLOAT_HEIGHT,
+    // logical catch position (that's tracked via `def.x`/`def.height`,
     // not this tween).
     this.tweens.add({ targets: container, y: "+=8", duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     return container;
@@ -315,10 +317,10 @@ export class IdiomDoorScene extends Phaser.Scene {
     const maxX = Math.max(prevChar.x, this.character.x) + CATCH_RADIUS_X;
     const minY = Math.min(prevChar.y, this.character.y) - CATCH_RADIUS_Y;
     const maxY = Math.max(prevChar.y, this.character.y) + CATCH_RADIUS_Y;
-    const tileY = this.groundY - FLOAT_HEIGHT;
 
     for (const tile of this.tiles) {
       if (tile.caught) continue;
+      const tileY = this.groundY - tile.def.height;
       if (tile.def.x < minX || tile.def.x > maxX || tileY < minY || tileY > maxY) continue;
       // Stop at the first match, even a "wrong" one — same reasoning as
       // PlatformCatchScene's nearest-only grab: one catch per frame,
@@ -334,13 +336,13 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.orderedState = state;
 
     if (outcome !== "advanced") {
-      this.spawnSparkBurst(tile.def.x, this.groundY - FLOAT_HEIGHT, 3);
+      this.spawnSparkBurst(tile.def.x, this.groundY - tile.def.height, 3);
       updateDoorStatus(this.orderedState.nextIndex, this.characters.length, false, this.characters[this.orderedState.nextIndex], "wrong");
       return;
     }
 
     tile.caught = true;
-    this.spawnSparkBurst(tile.def.x, this.groundY - FLOAT_HEIGHT, 8);
+    this.spawnSparkBurst(tile.def.x, this.groundY - tile.def.height, 8);
     this.tweens.add({ targets: tile.container, alpha: 0, scale: 0.6, duration: 260, onComplete: () => tile.container.destroy() });
 
     this.renderSlots();

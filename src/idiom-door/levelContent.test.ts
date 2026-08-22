@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { doorLevels } from "./levelContent";
+import { doorLevels, HEIGHT_MIN, HEIGHT_MAX, ANGLE_MAX_DEG } from "./levelContent";
+import { attemptGrab, initialOrderedCatchState } from "./orderedCatchProgress";
 
 describe("doorLevels data integrity", () => {
   it("has at least one level", () => {
@@ -26,6 +27,11 @@ describe("doorLevels data integrity", () => {
         }
       });
 
+      it("uses a good variety of distinct decoy characters, not just the same couple repeated", () => {
+        const decoyChars = new Set(level.tiles.filter((t) => t.correctIndex === undefined).map((t) => t.char));
+        expect(decoyChars.size).toBeGreaterThanOrEqual(8);
+      });
+
       it("has no duplicate tile ids", () => {
         const ids = level.tiles.map((t) => t.id);
         expect(new Set(ids).size).toBe(ids.length);
@@ -38,18 +44,45 @@ describe("doorLevels data integrity", () => {
         }
       });
 
-      it("correct tiles appear in non-decreasing character-index order along the track — the auto-runner never needs to backtrack for one it's already passed", () => {
-        const correctTiles = level.tiles.filter((t) => t.correctIndex !== undefined).sort((a, b) => a.x - b.x);
-        let lastIndex = -1;
-        for (const tile of correctTiles) {
-          expect(tile.correctIndex!).toBeGreaterThanOrEqual(lastIndex);
-          lastIndex = tile.correctIndex!;
+      it("every tile's height is within the jump-reachable range", () => {
+        for (const tile of level.tiles) {
+          expect(tile.height).toBeGreaterThanOrEqual(HEIGHT_MIN);
+          expect(tile.height).toBeLessThanOrEqual(HEIGHT_MAX);
+        }
+      });
+
+      it("every tile's angle is within the modest, legible-glyph range", () => {
+        for (const tile of level.tiles) {
+          expect(Math.abs(tile.angle)).toBeLessThanOrEqual(ANGLE_MAX_DEG);
         }
       });
 
       it("the door (at level.length) comes after every tile", () => {
         const maxTileX = Math.max(...level.tiles.map((t) => t.x));
         expect(level.length).toBeGreaterThan(maxTileX);
+      });
+
+      // The jumbled, overlapping-window layout means correct tiles are
+      // *not* in strict x order any more (that was the old, "boring"
+      // neat-sequential-blocks layout's invariant, and it no longer
+      // holds by design). What actually matters is that the level is
+      // still solvable: simulating a player who always catches the
+      // earliest reachable copy of whatever character they need next
+      // (ignoring everything else, exactly like a real catch that
+      // doesn't match `nextIndex` does) must be able to complete it.
+      // This exercises the same `attemptGrab` transition the real game
+      // uses, against the real generated content, rather than testing a
+      // proxy invariant.
+      it("is solvable: a greedy playthrough (always catching the earliest reachable correct-next tile) completes it", () => {
+        const chars = Array.from(level.idiom.hanzi);
+        const sortedByX = [...level.tiles].sort((a, b) => a.x - b.x);
+        let state = initialOrderedCatchState();
+        for (const tile of sortedByX) {
+          if (state.isComplete) break;
+          if (tile.correctIndex !== state.nextIndex) continue;
+          state = attemptGrab(state, tile.correctIndex, chars.length).state;
+        }
+        expect(state.isComplete).toBe(true);
       });
     });
   }

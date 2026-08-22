@@ -32,6 +32,17 @@
           <button id="play-again-btn" type="button">🔁 Play again</button>
         </div>
       </div>
+      <!-- Shown before each level starts, so the child has time to read
+           and think about the meaning before the run begins — per your
+           2026-08-23 feedback. The run doesn't start until Start is
+           pressed (see main.ts's beginLevel/startLevelWithIntro). -->
+      <div id="level-intro-card">
+        <div class="card">
+          <p class="eyebrow">Which idiom means...</p>
+          <p data-intro-meaning class="intro-meaning"></p>
+          <button id="start-level-btn" type="button">▶ Start</button>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/idiom-door/main.ts"></script>
   </body>
