@@ -34,7 +34,7 @@ describe("updateDoorStatus", () => {
     updateDoorStatus(4, 4, true, undefined, "advanced");
     const el = document.getElementById("door-status")!;
     expect(el.getAttribute("data-complete")).toBe("true");
-    expect(el.textContent).toBe("You found it! Walk to the door →");
+    expect(el.textContent).toBe("You found it! Keep running to the door →");
   });
 
   it("does nothing (and does not throw) if the element is missing", () => {

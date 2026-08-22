@@ -15,20 +15,6 @@ function showSummary(completedHanzi: string[]): void {
   card.classList.add("visible");
 }
 
-function bindHoldButton(id: string, onChange: (held: boolean) => void): void {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const press = (e: Event) => {
-    e.preventDefault();
-    onChange(true);
-  };
-  const release = () => onChange(false);
-  el.addEventListener("pointerdown", press);
-  el.addEventListener("pointerup", release);
-  el.addEventListener("pointerleave", release);
-  el.addEventListener("pointercancel", release);
-}
-
 function bootstrap(): void {
   // Chains all 3 currently-defined levels, then stops with a warm
   // summary — same "3 idioms, then a soft stop" bounded pacing as the
@@ -75,15 +61,9 @@ function bootstrap(): void {
 
   startLevel(levelIndex);
 
-  bindHoldButton("move-left-btn", (held) => scene()?.setButtonLeft(held));
-  bindHoldButton("move-right-btn", (held) => scene()?.setButtonRight(held));
   document.getElementById("jump-btn")?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     scene()?.requestJump();
-  });
-  document.getElementById("grab-btn")?.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    scene()?.requestGrab();
   });
 
   document.getElementById("play-again-btn")?.addEventListener("click", () => {

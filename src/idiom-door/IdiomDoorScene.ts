@@ -1,10 +1,10 @@
 import Phaser from "phaser";
 import { attemptGrab, initialOrderedCatchState, type OrderedCatchState } from "./orderedCatchProgress";
 import { updateDoorStatus } from "./doorStatus";
-import { PLATFORM_XFRAC_RANGES, type DoorLevel, type LevelCharacterTile } from "./levelContent";
+import type { DoorLevel, LevelCharacterTile } from "./levelContent";
 import { drawPlayerFigure } from "../shared/playerFigure";
 import { updatePlayerPosition } from "../platform-catch/positionStatus";
-import { stepPhysics, type PhysicsState, type PhysicsConfig, type Surface } from "../platform-catch/platformPhysics";
+import { stepRun, type RunState, type RunConfig } from "./runPhysics";
 
 export interface IdiomDoorSceneData {
   level: DoorLevel;
@@ -14,8 +14,6 @@ export interface IdiomDoorSceneData {
 const BG_TOP = 0xfff6e6;
 const BG_BOTTOM = 0xffdca0;
 const GROUND_COLOR = 0xd9a15b;
-const PLATFORM_COLOR = 0xc1401f;
-const PLATFORM_RIM = 0xf0b429;
 const TILE_FILL = 0xfff1d6;
 const TILE_BORDER = 0xf0b429;
 const TILE_TEXT = "#7a5636";
@@ -23,23 +21,30 @@ const SLOT_EMPTY_FILL = 0xfff1d6;
 const SLOT_BORDER = 0xf0b429;
 const SLOT_TEXT = "#7a5636";
 const SPARK_COLOR = 0xffd76a;
-const DOOR_COLOR = 0x6b4a2f;
+const DOOR_COLOR_CLOSED = 0x8a7360;
+const DOOR_COLOR_OPEN = 0x6b4a2f;
 const DOOR_RIM = 0xf0b429;
 
 const CHAR_SIZE = 64;
 const TILE_SIZE = 60;
 const FOOT_OFFSET = CHAR_SIZE * 0.4;
-const CATCH_RADIUS_X_FRAC = 0.045;
-const CATCH_RADIUS_Y = 70;
-const PLAYER_START_XFRAC = 0.03;
-const WORLD_WIDTH_MULTIPLIER = 2;
-const DOOR_XFRAC = 0.98;
+// How far above the ground every collectible floats — reachable only
+// by jumping, never by simply running underneath. Kept comfortably
+// inside the jump arc's max height (jumpVelocity²/(2·gravity) ≈ 185px
+// with the constants below) so there's real hangtime near it, not just
+// a single instant.
+const FLOAT_HEIGHT = 130;
+const CATCH_RADIUS_X = 70;
+const CATCH_RADIUS_Y = 80;
+const PLAYER_START_X = 30;
+// Camera sits the character roughly a third of the way from the left
+// edge rather than centered — a runner needs more preview room ahead
+// than behind, so the child can see what's coming in time to jump.
+const CAMERA_LEAD_FRACTION = 0.32;
 const DOOR_TRIGGER_RADIUS = 60;
 
 interface RuntimeTile {
   def: LevelCharacterTile;
-  x: number;
-  y: number;
   container: Phaser.GameObjects.Container;
   caught: boolean;
 }
@@ -53,28 +58,18 @@ export class IdiomDoorScene extends Phaser.Scene {
   private slotsLayer!: Phaser.GameObjects.Container;
   private groundLayer!: Phaser.GameObjects.Container;
   private tilesLayer!: Phaser.GameObjects.Container;
-  private doorContainer?: Phaser.GameObjects.Container;
+  private doorContainer!: Phaser.GameObjects.Container;
+  private doorGfx!: Phaser.GameObjects.Graphics;
   private tiles: RuntimeTile[] = [];
 
-  private character!: PhysicsState;
+  private character!: RunState;
   private characterContainer!: Phaser.GameObjects.Container;
-  private surfaces: Surface[] = [];
-  private physicsCfg!: PhysicsConfig;
+  private runConfig!: RunConfig;
   private groundY = 0;
-  private platformATop = 0;
-  private platformBTop = 0;
-  private catchRadiusX = 0;
-  private worldWidth = 0;
-  private platformAX!: { min: number; max: number };
-  private platformBX!: { min: number; max: number };
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private spaceKey!: Phaser.Input.Keyboard.Key;
-  private grabKey!: Phaser.Input.Keyboard.Key;
-  private buttonLeft = false;
-  private buttonRight = false;
   private jumpRequested = false;
-  private grabRequested = false;
   private doorTriggered = false;
 
   constructor() {
@@ -86,11 +81,7 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.onDoorReached = data.onDoorReached;
     this.orderedState = initialOrderedCatchState();
     this.tiles = [];
-    this.doorContainer = undefined;
-    this.buttonLeft = false;
-    this.buttonRight = false;
     this.jumpRequested = false;
-    this.grabRequested = false;
     this.doorTriggered = false;
   }
 
@@ -105,9 +96,9 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.tilesLayer = this.add.container(0, 0);
 
     this.renderBackground();
-    this.setupSurfaces();
-    this.renderGround();
+    this.setupGround();
     this.spawnTiles();
+    this.buildDoor();
     this.renderSlots();
     this.setupCharacter();
     this.setupInput();
@@ -116,26 +107,16 @@ export class IdiomDoorScene extends Phaser.Scene {
 
     this.scale.on(Phaser.Scale.Events.RESIZE, () => {
       this.renderBackground();
-      this.setupSurfaces();
-      this.renderGround();
+      this.setupGround();
       this.layoutTiles();
+      this.doorContainer.setPosition(this.level.length, this.groundY);
       this.renderSlots();
-      this.character.x = Phaser.Math.Clamp(this.character.x, this.physicsCfg.minX, this.physicsCfg.maxX);
     });
   }
 
-  // --- Public methods for the on-screen touch controls (main.ts) ---
-  setButtonLeft(held: boolean): void {
-    this.buttonLeft = held;
-  }
-  setButtonRight(held: boolean): void {
-    this.buttonRight = held;
-  }
+  // --- Public method for the on-screen touch control (main.ts) ---
   requestJump(): void {
     this.jumpRequested = true;
-  }
-  requestGrab(): void {
-    this.grabRequested = true;
   }
 
   private renderBackground(): void {
@@ -148,68 +129,37 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.children.sendToBack(this.bg);
   }
 
-  private setupSurfaces(): void {
-    const { width, height } = this.scale;
-    this.worldWidth = width * WORLD_WIDTH_MULTIPLIER;
-    this.catchRadiusX = this.worldWidth * CATCH_RADIUS_X_FRAC;
+  private setupGround(): void {
+    const { height } = this.scale;
     this.groundY = height * 0.78;
-    this.platformATop = this.groundY - 110;
-    this.platformBTop = this.groundY - 150;
-
-    const w = this.worldWidth;
-    this.platformAX = { min: w * PLATFORM_XFRAC_RANGES.platformA.min, max: w * PLATFORM_XFRAC_RANGES.platformA.max };
-    this.platformBX = { min: w * PLATFORM_XFRAC_RANGES.platformB.min, max: w * PLATFORM_XFRAC_RANGES.platformB.max };
-
-    this.surfaces = [
-      { xMin: 0, xMax: w, y: this.groundY },
-      { xMin: this.platformAX.min, xMax: this.platformAX.max, y: this.platformATop },
-      { xMin: this.platformBX.min, xMax: this.platformBX.max, y: this.platformBTop },
-    ];
-
-    this.physicsCfg = {
-      gravity: 1400,
-      moveSpeed: 180,
-      jumpVelocity: -720,
-      minX: 24,
-      maxX: w - 24,
-    };
+    this.runConfig = { runSpeed: 200, gravity: 1400, jumpVelocity: -700, groundY: this.groundY };
   }
 
   private renderGround(): void {
     this.groundLayer.removeAll(true);
-    const w = this.worldWidth;
     const gfx = this.add.graphics();
-
     gfx.fillStyle(GROUND_COLOR, 0.9);
-    gfx.fillRect(0, this.groundY, w, 6);
-
-    for (const [x, xMax, y] of [
-      [this.platformAX.min, this.platformAX.max, this.platformATop],
-      [this.platformBX.min, this.platformBX.max, this.platformBTop],
-    ] as const) {
-      const platformW = xMax - x;
-      gfx.fillStyle(PLATFORM_COLOR, 0.95);
-      gfx.fillRoundedRect(x, y, platformW, 14, 6);
-      gfx.lineStyle(2, PLATFORM_RIM, 0.8);
-      gfx.strokeRoundedRect(x, y, platformW, 14, 6);
-    }
+    gfx.fillRect(0, this.groundY, this.level.length + 200, 6);
     this.groundLayer.add(gfx);
-  }
-
-  private surfaceY(surface: LevelCharacterTile["surface"]): number {
-    if (surface === "ground") return this.groundY;
-    if (surface === "platformA") return this.platformATop;
-    return this.platformBTop;
   }
 
   private spawnTiles(): void {
     this.tilesLayer.removeAll(true);
     this.tiles = this.level.tiles.map((def) => {
       const container = this.buildTile(def.char);
+      container.setPosition(def.x, this.groundY - FLOAT_HEIGHT);
       this.tilesLayer.add(container);
-      return { def, x: 0, y: 0, container, caught: false };
+      return { def, container, caught: false };
     });
-    this.layoutTiles();
+    this.renderGround();
+  }
+
+  private layoutTiles(): void {
+    for (const tile of this.tiles) {
+      if (tile.caught) continue;
+      tile.container.setPosition(tile.def.x, this.groundY - FLOAT_HEIGHT);
+    }
+    this.renderGround();
   }
 
   private buildTile(char: string): Phaser.GameObjects.Container {
@@ -230,20 +180,35 @@ export class IdiomDoorScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     container.add(text);
+    // A gentle bob so floating tiles read as "in the air" rather than
+    // pasted-on decorations — purely cosmetic, doesn't affect the
+    // logical catch position (that's tracked via `def.x`/FLOAT_HEIGHT,
+    // not this tween).
+    this.tweens.add({ targets: container, y: "+=8", duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     return container;
   }
 
-  private layoutTiles(): void {
-    for (const tile of this.tiles) {
-      if (tile.caught) continue;
-      tile.x = tile.def.xFrac * this.worldWidth;
-      tile.y = this.surfaceY(tile.def.surface) - TILE_SIZE * 0.62;
-      tile.container.setPosition(tile.x, tile.y);
+  private buildDoor(): void {
+    this.doorContainer = this.add.container(this.level.length, this.groundY);
+    this.doorGfx = this.add.graphics();
+    this.drawDoor(false);
+    this.doorContainer.add(this.doorGfx);
+  }
+
+  private drawDoor(open: boolean): void {
+    this.doorGfx.clear();
+    this.doorGfx.fillStyle(open ? DOOR_COLOR_OPEN : DOOR_COLOR_CLOSED, open ? 0.95 : 0.55);
+    this.doorGfx.fillRoundedRect(-26, -80, 52, 80, { tl: 26, tr: 26, bl: 0, br: 0 });
+    this.doorGfx.lineStyle(3, DOOR_RIM, open ? 0.9 : 0.5);
+    this.doorGfx.strokeRoundedRect(-26, -80, 52, 80, { tl: 26, tr: 26, bl: 0, br: 0 });
+    if (open) {
+      this.doorGfx.fillStyle(DOOR_RIM, 0.9);
+      this.doorGfx.fillCircle(14, -40, 3);
     }
   }
 
   private setupCharacter(): void {
-    this.character = { x: this.worldWidth * PLAYER_START_XFRAC, y: this.groundY, vy: 0, grounded: true };
+    this.character = { x: PLAYER_START_X, y: this.groundY, vy: 0, grounded: true };
     this.characterContainer = this.add.container(this.character.x, this.character.y - FOOT_OFFSET);
     const gfx = this.add.graphics();
     drawPlayerFigure(gfx, CHAR_SIZE);
@@ -253,7 +218,6 @@ export class IdiomDoorScene extends Phaser.Scene {
   private setupInput(): void {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.spaceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    this.grabKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
   }
 
   private renderSlots(): void {
@@ -264,9 +228,8 @@ export class IdiomDoorScene extends Phaser.Scene {
     const gap = slotSize * 0.25;
     const totalWidth = count * slotSize + (count - 1) * gap;
     const startX = width / 2 - totalWidth / 2 + slotSize / 2;
-    // Well below the DOM meaning-prompt + status chip: unlike every
-    // earlier snippet's short one-line hint, the idiom's full English
-    // meaning routinely wraps to 2-3 lines (found by screenshot-
+    // Well below the DOM meaning-prompt + status chip: the idiom's full
+    // English meaning routinely wraps to 2-3 lines (found by screenshot
     // checking — see DECISIONS.md), and these slots are canvas-drawn at
     // a fixed position with no way to react to the DOM text's actual
     // wrapped height.
@@ -301,8 +264,7 @@ export class IdiomDoorScene extends Phaser.Scene {
       if (isNext) {
         // The one hint the child gets: which character to look for next
         // — shown as a soft, ghosted preview so it reads as "the target
-        // to search for" rather than an already-found answer. Gently
-        // pulses to draw the eye without being distracting.
+        // to search for" rather than an already-found answer.
         const ghost = this.add
           .text(x, y, this.characters[i], {
             fontSize: `${Math.round(slotSize * 0.62)}px`,
@@ -320,123 +282,107 @@ export class IdiomDoorScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     const dt = delta / 1000;
-    const left = this.cursors.left.isDown || this.buttonLeft;
-    const right = this.cursors.right.isDown || this.buttonRight;
-    const moveDir: -1 | 0 | 1 = right && !left ? 1 : left && !right ? -1 : 0;
 
-    const keyboardJump =
-      Phaser.Input.Keyboard.JustDown(this.cursors.up!) ||
-      Phaser.Input.Keyboard.JustDown(this.cursors.space!) ||
-      Phaser.Input.Keyboard.JustDown(this.spaceKey);
-    const jumpPressed = keyboardJump || this.jumpRequested;
+    const jumpPressed =
+      Phaser.Input.Keyboard.JustDown(this.cursors.up!) || Phaser.Input.Keyboard.JustDown(this.cursors.space!) || Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.jumpRequested;
     this.jumpRequested = false;
 
-    const keyboardGrab =
-      Phaser.Input.Keyboard.JustDown(this.grabKey) ||
-      Phaser.Input.Keyboard.JustDown(this.cursors.down!) ||
-      Phaser.Input.Keyboard.JustDown(this.cursors.shift!);
-    const grabPressed = keyboardGrab || this.grabRequested;
-    this.grabRequested = false;
-
-    this.character = stepPhysics(this.character, { moveDir, jumpPressed }, this.surfaces, dt, this.physicsCfg);
+    const prevChar = this.character;
+    this.character = stepRun(this.character, jumpPressed, dt, this.runConfig);
     this.characterContainer.setPosition(this.character.x, this.character.y - FOOT_OFFSET);
-    if (grabPressed && !this.orderedState.isComplete) this.attemptTileGrab();
 
-    if (this.orderedState.isComplete) this.checkDoor();
+    if (!this.orderedState.isComplete) this.checkCatches(prevChar);
+    this.checkDoor();
 
     const { width } = this.scale;
-    this.cameras.main.scrollX = Phaser.Math.Clamp(this.character.x - width / 2, 0, Math.max(0, this.worldWidth - width));
+    const maxScroll = Math.max(0, this.level.length + 200 - width);
+    this.cameras.main.scrollX = Phaser.Math.Clamp(this.character.x - width * CAMERA_LEAD_FRACTION, 0, maxScroll);
     updatePlayerPosition(this.character.x);
   }
 
   /**
-   * Same deliberate-action, nearest-in-reach shape as
-   * PlatformCatchScene.attemptGrab — but nothing is ever removed on a
-   * "wrong" grab here. A character grabbed out of turn is often a
-   * *legitimate* future answer (just not needed yet), so destroying it
-   * would make the puzzle unsolvable once its real turn came around.
-   * Only the tile that actually matches the current expected index
-   * disappears.
+   * Auto-catch on touch, not a deliberate button press — per your
+   * 2026-08-23 feedback that walking backward to press GRAB felt
+   * clunky. Jumping is the one action left; reaching a tile's height at
+   * its x is what catches it. Still a swept check against the frame's
+   * whole movement segment (not just the current position) for the
+   * same reason as everywhere else in this project: a big frame delta
+   * could otherwise let the character's fall/rise skip clean past a
+   * tile's height window between one frame and the next.
    */
-  private attemptTileGrab(): void {
-    let nearest: RuntimeTile | undefined;
-    let nearestDist = Infinity;
+  private checkCatches(prevChar: RunState): void {
+    const minX = Math.min(prevChar.x, this.character.x) - CATCH_RADIUS_X;
+    const maxX = Math.max(prevChar.x, this.character.x) + CATCH_RADIUS_X;
+    const minY = Math.min(prevChar.y, this.character.y) - CATCH_RADIUS_Y;
+    const maxY = Math.max(prevChar.y, this.character.y) + CATCH_RADIUS_Y;
+    const tileY = this.groundY - FLOAT_HEIGHT;
 
     for (const tile of this.tiles) {
       if (tile.caught) continue;
-      const dx = Math.abs(this.character.x - tile.x);
-      const dy = Math.abs(this.character.y - this.surfaceY(tile.def.surface));
-      if (dx > this.catchRadiusX || dy > CATCH_RADIUS_Y) continue;
-      const dist = dx * dx + dy * dy;
-      if (dist < nearestDist) {
-        nearest = tile;
-        nearestDist = dist;
-      }
-    }
-
-    if (!nearest) return;
-
-    const { state, outcome } = attemptGrab(this.orderedState, nearest.def.correctIndex, this.characters.length);
-    this.orderedState = state;
-
-    if (outcome === "advanced") {
-      this.handleAdvance(nearest);
-    } else {
-      this.spawnSparkBurst(nearest.x, nearest.y, 3);
-      updateDoorStatus(this.orderedState.nextIndex, this.characters.length, false, this.characters[this.orderedState.nextIndex], "wrong");
+      if (tile.def.x < minX || tile.def.x > maxX || tileY < minY || tileY > maxY) continue;
+      // Stop at the first match, even a "wrong" one — same reasoning as
+      // PlatformCatchScene's nearest-only grab: one catch per frame,
+      // never two tiles resolved in the same frame with the second
+      // silently overwriting the first's status.
+      this.handleCatch(tile);
+      return;
     }
   }
 
-  private handleAdvance(tile: RuntimeTile): void {
+  private handleCatch(tile: RuntimeTile): void {
+    const { state, outcome } = attemptGrab(this.orderedState, tile.def.correctIndex, this.characters.length);
+    this.orderedState = state;
+
+    if (outcome !== "advanced") {
+      this.spawnSparkBurst(tile.def.x, this.groundY - FLOAT_HEIGHT, 3);
+      updateDoorStatus(this.orderedState.nextIndex, this.characters.length, false, this.characters[this.orderedState.nextIndex], "wrong");
+      return;
+    }
+
     tile.caught = true;
-    this.spawnSparkBurst(tile.x, tile.y, 8);
-    this.tweens.add({
-      targets: tile.container,
-      alpha: 0,
-      scale: 0.6,
-      duration: 260,
-      onComplete: () => tile.container.destroy(),
-    });
+    this.spawnSparkBurst(tile.def.x, this.groundY - FLOAT_HEIGHT, 8);
+    this.tweens.add({ targets: tile.container, alpha: 0, scale: 0.6, duration: 260, onComplete: () => tile.container.destroy() });
 
     this.renderSlots();
-    updateDoorStatus(
-      this.orderedState.nextIndex,
-      this.characters.length,
-      this.orderedState.isComplete,
-      this.characters[this.orderedState.nextIndex],
-      "advanced",
-    );
+    updateDoorStatus(this.orderedState.nextIndex, this.characters.length, this.orderedState.isComplete, this.characters[this.orderedState.nextIndex], "advanced");
 
     if (this.orderedState.isComplete) {
       this.playCompleteFlourish();
-      this.spawnDoor();
+      this.drawDoor(true);
     }
   }
 
-  private spawnDoor(): void {
-    const x = this.worldWidth * DOOR_XFRAC;
-    const y = this.groundY;
-    const container = this.add.container(x, y);
-    const gfx = this.add.graphics();
-    gfx.fillStyle(DOOR_COLOR, 0.95);
-    gfx.fillRoundedRect(-26, -80, 52, 80, { tl: 26, tr: 26, bl: 0, br: 0 });
-    gfx.lineStyle(3, DOOR_RIM, 0.9);
-    gfx.strokeRoundedRect(-26, -80, 52, 80, { tl: 26, tr: 26, bl: 0, br: 0 });
-    gfx.fillStyle(DOOR_RIM, 0.9);
-    gfx.fillCircle(14, -40, 3);
-    container.add(gfx);
-    container.setAlpha(0);
-    this.tweens.add({ targets: container, alpha: 1, duration: 500 });
-    this.doorContainer = container;
-  }
-
+  /**
+   * The door sits at the end of the (fixed-length, pre-authored) track.
+   * Reaching it having solved the level moves on to the next idiom;
+   * reaching it *without* solving — always possible in principle, if
+   * every repeat of some character got missed — gently restarts this
+   * same level from the top rather than dead-ending the child with
+   * nothing left to do. No fail state, same ethos as every other
+   * snippet in this project; it just means "try again" instead of
+   * "stuck."
+   */
   private checkDoor(): void {
-    if (!this.doorContainer || this.doorTriggered) return;
-    const doorX = this.worldWidth * DOOR_XFRAC;
-    if (Math.abs(this.character.x - doorX) < DOOR_TRIGGER_RADIUS) {
-      this.doorTriggered = true;
+    if (this.doorTriggered) return;
+    if (Math.abs(this.character.x - this.level.length) >= DOOR_TRIGGER_RADIUS) return;
+
+    this.doorTriggered = true;
+    if (this.orderedState.isComplete) {
       this.onDoorReached?.();
+    } else {
+      this.restartLevel();
     }
+  }
+
+  private restartLevel(): void {
+    this.orderedState = initialOrderedCatchState();
+    this.character = { x: PLAYER_START_X, y: this.groundY, vy: 0, grounded: true };
+    this.characterContainer.setPosition(this.character.x, this.character.y - FOOT_OFFSET);
+    this.doorTriggered = false;
+    this.drawDoor(false);
+    this.spawnTiles();
+    this.renderSlots();
+    updateDoorStatus(0, this.characters.length, false, this.characters[0]);
   }
 
   private spawnSparkBurst(x: number, y: number, count: number): void {

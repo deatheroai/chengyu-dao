@@ -63,69 +63,34 @@ body {
   min-height: 1.1em;
 }
 
+/* A single centered action: the child no longer steers left/right or
+   presses a separate grab button (2026-08-23 redesign, per your
+   feedback that walking backward to press GRAB felt clunky) — running
+   is automatic, jumping is the one thing left to control. */
 #controls-layer {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0 calc(0.9rem + env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom))
-    calc(0.9rem + env(safe-area-inset-left));
+  padding: 0 0 calc(1.25rem + env(safe-area-inset-bottom));
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.dpad {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.ctrl-btn {
-  width: 3.4rem;
-  height: 3.4rem;
-  border-radius: 999px;
-  border: none;
-  background: rgba(193, 64, 31, 0.85);
-  color: #fff8ef;
-  font-size: 1.4rem;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  user-select: none;
-  touch-action: none;
-}
-.ctrl-btn:active {
-  background: #a83618;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 0.6rem;
-  align-items: flex-end;
 }
 
 .action-btn {
-  width: 4.2rem;
-  height: 4.2rem;
+  width: 4.6rem;
+  height: 4.6rem;
   border-radius: 999px;
   border: none;
   background: rgba(240, 180, 41, 0.9);
   color: #4a3420;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   touch-action: none;
   user-select: none;
 }
 .action-btn:active {
   background: #d99e1f;
-}
-
-.action-btn.grab {
-  background: rgba(193, 64, 31, 0.9);
-  color: #fff8ef;
-}
-.action-btn.grab:active {
-  background: #a83618;
 }
 
 #session-summary-card {

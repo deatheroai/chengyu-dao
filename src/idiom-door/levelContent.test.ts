@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { doorLevels, PLATFORM_XFRAC_RANGES } from "./levelContent";
+import { doorLevels } from "./levelContent";
 
 describe("doorLevels data integrity", () => {
   it("has at least one level", () => {
@@ -8,18 +8,12 @@ describe("doorLevels data integrity", () => {
 
   for (const level of doorLevels) {
     describe(level.idiom.id, () => {
-      it("has exactly one correct tile per character, indices 0..N-1", () => {
-        const correctIndices = level.tiles.filter((t) => t.correctIndex !== undefined).map((t) => t.correctIndex);
-        const expected = Array.from(level.idiom.hanzi).map((_, i) => i);
-        expect(correctIndices.slice().sort((a, b) => a! - b!)).toEqual(expected);
-      });
-
-      it("every correct tile's glyph matches the idiom's hanzi at that index", () => {
+      it("has REPEATS_PER_CHARACTER correct tiles for every character index, each with the right glyph", () => {
         const chars = Array.from(level.idiom.hanzi);
-        for (const tile of level.tiles) {
-          if (tile.correctIndex !== undefined) {
-            expect(tile.char).toBe(chars[tile.correctIndex]);
-          }
+        for (let i = 0; i < chars.length; i++) {
+          const matching = level.tiles.filter((t) => t.correctIndex === i);
+          expect(matching.length).toBeGreaterThan(1); // real redundancy, not just one shot
+          for (const tile of matching) expect(tile.char).toBe(chars[i]);
         }
       });
 
@@ -37,27 +31,25 @@ describe("doorLevels data integrity", () => {
         expect(new Set(ids).size).toBe(ids.length);
       });
 
-      it("every tile has a valid xFrac in (0, 1)", () => {
+      it("every tile sits within the track (0, length)", () => {
         for (const tile of level.tiles) {
-          expect(tile.xFrac).toBeGreaterThan(0);
-          expect(tile.xFrac).toBeLessThan(1);
+          expect(tile.x).toBeGreaterThan(0);
+          expect(tile.x).toBeLessThan(level.length);
         }
       });
 
-      // A tile tagged "platformA"/"platformB" but placed at an xFrac
-      // outside that platform's actual footprint is unreachable no
-      // matter how the character jumps — found exactly this way in
-      // shu-neng-sheng-qiao's level (熟 and 巧 both placed off their
-      // tagged platform). This is a real playability bug, not just data
-      // hygiene, so it's asserted generically rather than trusted to
-      // manual review.
-      it("every platform tile sits within its platform's actual footprint", () => {
-        for (const tile of level.tiles) {
-          if (tile.surface === "ground") continue;
-          const range = PLATFORM_XFRAC_RANGES[tile.surface];
-          expect(tile.xFrac).toBeGreaterThanOrEqual(range.min);
-          expect(tile.xFrac).toBeLessThanOrEqual(range.max);
+      it("correct tiles appear in non-decreasing character-index order along the track — the auto-runner never needs to backtrack for one it's already passed", () => {
+        const correctTiles = level.tiles.filter((t) => t.correctIndex !== undefined).sort((a, b) => a.x - b.x);
+        let lastIndex = -1;
+        for (const tile of correctTiles) {
+          expect(tile.correctIndex!).toBeGreaterThanOrEqual(lastIndex);
+          lastIndex = tile.correctIndex!;
         }
+      });
+
+      it("the door (at level.length) comes after every tile", () => {
+        const maxTileX = Math.max(...level.tiles.map((t) => t.x));
+        expect(level.length).toBeGreaterThan(maxTileX);
       });
     });
   }

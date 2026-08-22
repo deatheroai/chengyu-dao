@@ -26,7 +26,7 @@ export function updateDoorStatus(nextIndex: number, total: number, isComplete: b
   else el.removeAttribute("data-next-char");
 
   if (isComplete) {
-    el.textContent = "You found it! Walk to the door →";
+    el.textContent = "You found it! Keep running to the door →";
   } else if (outcome === "wrong") {
     el.textContent = `Not that one — look for ${nextChar ?? "the next character"}!`;
   } else if (outcome === "advanced") {
