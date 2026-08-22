@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { doorLevels } from "../src/idiom-door/levelContent";
+import { balloonLevels } from "../src/idiom-door/balloonLevelContent";
 
 /**
  * Auto-runner puzzle (CATCH_MECHANIC_PLAN.md's 2026-08-23 revision):
@@ -93,6 +94,49 @@ async function spamJumpUntil(page: Page, predicate: () => Promise<boolean>, maxM
   throw new Error("spamJumpUntil timed out");
 }
 
+/** Asserts the balloon-sentence stage (2026-08-25: a stage after each
+ * idiom's door) is showing for a given level, naming that idiom in the
+ * prompt and starting unresolved. */
+async function expectBalloonStageShowing(page: Page, levelIndex: number): Promise<void> {
+  const idiom = balloonLevels[levelIndex].idiom;
+  await expect(page.locator("#balloon-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: DOOR_REACH_TIMEOUT_MS });
+  await expect(page.locator("#balloon-prompt")).toContainText(idiom.hanzi);
+  await expect(page.locator("#balloon-status")).toHaveAttribute("data-resolved", "false");
+}
+
+/** Balloon positions depend on rendered text measurement (word-wrapped
+ * sentence bounding boxes), not just content, so — unlike the door
+ * puzzle's tiles — a test can't fly straight to a known x/y. Instead
+ * this sweeps a small zigzag pattern repeatedly, which reliably crosses
+ * every balloon in the (compact, roughly-square) grid within a few
+ * loops, same "don't need pixel-precise aim, just keep trying" spirit
+ * as spamJumpUntil. */
+async function flyUntilResolved(page: Page, maxMs = 60000): Promise<void> {
+  const moves: Array<"ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight"> = [
+    "ArrowUp",
+    "ArrowRight",
+    "ArrowDown",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowLeft",
+    "ArrowUp",
+    "ArrowUp",
+    "ArrowRight",
+    "ArrowRight",
+  ];
+  const deadline = Date.now() + maxMs;
+  let i = 0;
+  while (Date.now() < deadline) {
+    const key = moves[i % moves.length];
+    i++;
+    await page.keyboard.down(key);
+    await page.waitForTimeout(220);
+    await page.keyboard.up(key);
+    if ((await page.locator("#balloon-status").getAttribute("data-resolved")) === "true") return;
+  }
+  throw new Error("flyUntilResolved timed out");
+}
+
 test("shows a full-screen intro with the meaning before the level starts, and nothing moves until Start is pressed", async ({ page }) => {
   await page.goto("/idiom-door.html");
   await expect(page.locator("#game-container canvas")).toBeVisible();
@@ -177,12 +221,15 @@ test("reaching the door without completing the level gently restarts it from the
   await expect(page.locator("#level-intro-card")).not.toHaveClass(/visible/); // same-level restart, no intro re-shown
 });
 
-test("solving a level opens the door and running into it shows the next level's intro; Start begins it", async ({ page }) => {
-  test.setTimeout(150000);
+test("solving a level opens the door into the balloon stage, and resolving that shows the next level's intro; Start begins it", async ({ page }) => {
+  test.setTimeout(210000);
   await page.goto("/idiom-door.html");
   await startPlaying(page);
 
   await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+
+  await expectBalloonStageShowing(page, 0);
+  await flyUntilResolved(page);
 
   await expectIntroShowing(page, 1);
 
@@ -192,25 +239,58 @@ test("solving a level opens the door and running into it shows the next level's 
   expect(s).toEqual({ nextIndex: "0", complete: "false" });
 });
 
+test("the balloon stage shows the idiom-specific prompt, and flying around eventually resolves it", async ({ page }) => {
+  test.setTimeout(150000);
+  await page.goto("/idiom-door.html");
+  await startPlaying(page);
+  await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+
+  await expectBalloonStageShowing(page, 0);
+  await flyUntilResolved(page);
+
+  await expect(page.locator("#balloon-status")).toHaveAttribute("data-resolved", "true");
+  await expect(page.locator("#balloon-status")).toHaveText("That's the one! Great reading. 🎈");
+});
+
+test("the on-screen flight d-pad moves the avatar the same as the keyboard", async ({ page }) => {
+  test.setTimeout(150000);
+  await page.goto("/idiom-door.html");
+  await startPlaying(page);
+  await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+  await expectBalloonStageShowing(page, 0);
+
+  const x1 = Number(await page.locator("#balloon-position").getAttribute("data-x"));
+  const btn = page.locator("#fly-right-btn");
+  for (let i = 0; i < 6; i++) {
+    await btn.dispatchEvent("pointerdown");
+    await page.waitForTimeout(150);
+    await btn.dispatchEvent("pointerup");
+  }
+  const x2 = Number(await page.locator("#balloon-position").getAttribute("data-x"));
+  expect(x2).toBeGreaterThan(x1);
+});
+
 test("solving all 3 levels shows the session summary, and Play again shows the first level's intro again", async ({ page }) => {
-  test.setTimeout(480000);
+  test.setTimeout(600000);
   await page.goto("/idiom-door.html");
   const summary = page.locator("#session-summary-card");
   await expect(summary).not.toBeVisible();
   await startPlaying(page);
 
   for (let i = 0; i < doorLevels.length; i++) {
+    await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+    await expectBalloonStageShowing(page, i);
+    await flyUntilResolved(page);
+
     const isLast = i === doorLevels.length - 1;
     if (isLast) {
-      await spamJumpUntil(page, async () => (await summary.isVisible()) || (await status(page)).complete === "true");
+      await expect(summary).toBeVisible({ timeout: DOOR_REACH_TIMEOUT_MS });
     } else {
-      await spamJumpUntil(page, async () => (await status(page)).complete === "true");
       await expectIntroShowing(page, i + 1);
       await startPlaying(page);
     }
   }
 
-  await expect(summary).toBeVisible({ timeout: DOOR_REACH_TIMEOUT_MS });
   const hanziList = doorLevels.map((l) => l.idiom.hanzi).join(" · ");
   await expect(summary.locator("[data-summary-list]")).toHaveText(hanziList);
 

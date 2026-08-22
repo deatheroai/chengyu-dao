@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { IdiomDoorScene } from "./IdiomDoorScene";
 import { doorLevels } from "./levelContent";
+import { BalloonSentenceScene } from "./BalloonSentenceScene";
+import { balloonLevels } from "./balloonLevelContent";
 
 function showMeaning(index: number): void {
   const el = document.getElementById("meaning-prompt");
@@ -31,11 +33,40 @@ function showIntroMeaning(index: number): void {
   }
 }
 
+/** 2026-08-25 addition: names the idiom being practiced in this stage —
+ * `#balloon-status` (balloonStatus.ts) handles the dynamic found/wrong
+ * feedback below this, same relationship as `#meaning-prompt` and
+ * `#door-status` have in the door stage. */
+function showBalloonPrompt(index: number): void {
+  const el = document.getElementById("balloon-prompt");
+  if (!el) return;
+  const idiom = balloonLevels[index].idiom;
+  el.textContent = `Catch the balloon that uses ${idiom.hanzi} (${idiom.pinyin}) correctly!`;
+}
+
 function showSummary(completedHanzi: string[]): void {
   const card = document.getElementById("session-summary-card");
   if (!card) return;
   card.querySelector<HTMLElement>("[data-summary-list]")!.textContent = completedHanzi.join(" · ");
   card.classList.add("visible");
+}
+
+/** Toggles which stage's DOM chrome (prompt/status chip + on-screen
+ * controls) is visible — the door puzzle and balloon stage share the
+ * same page/canvas rather than being separate HTML files, so only one
+ * stage's controls should ever be interactable at a time. */
+function showDoorStageUI(): void {
+  document.getElementById("catch-ui-layer")?.classList.remove("stage-hidden");
+  document.getElementById("controls-layer")?.classList.remove("stage-hidden");
+  document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("flight-controls-layer")?.classList.add("stage-hidden");
+}
+
+function showBalloonStageUI(): void {
+  document.getElementById("catch-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("controls-layer")?.classList.add("stage-hidden");
+  document.getElementById("balloon-ui-layer")?.classList.remove("stage-hidden");
+  document.getElementById("flight-controls-layer")?.classList.remove("stage-hidden");
 }
 
 function bootstrap(): void {
@@ -64,7 +95,11 @@ function bootstrap(): void {
 
   const game = new Phaser.Game(config);
   game.scene.add("IdiomDoorScene", IdiomDoorScene, false);
-  const scene = () => game.scene.getScene("IdiomDoorScene") as import("./IdiomDoorScene").IdiomDoorScene | null;
+  game.scene.add("BalloonSentenceScene", BalloonSentenceScene, false);
+  const doorScene = () => game.scene.getScene("IdiomDoorScene") as import("./IdiomDoorScene").IdiomDoorScene | null;
+  const balloonScene = () => game.scene.getScene("BalloonSentenceScene") as import("./BalloonSentenceScene").BalloonSentenceScene | null;
+
+  showDoorStageUI();
 
   // Actually starts the Phaser scene running (the character begins
   // auto-running immediately). Called once the child has dismissed that
@@ -72,10 +107,26 @@ function bootstrap(): void {
   // there's always reading/thinking time first (2026-08-23 feedback).
   const beginLevel = (index: number): void => {
     document.getElementById("session-summary-card")?.classList.remove("visible");
+    showDoorStageUI();
     showMeaning(index);
     game.scene.start("IdiomDoorScene", {
       level: doorLevels[index],
       onDoorReached: () => handleDoorReached(index),
+    });
+  };
+
+  // 2026-08-25: a stage after each idiom's door — catch the balloon
+  // that uses the idiom correctly among decoys that use it wrong (your
+  // idea; content reuses meaning-check.html's already-approved
+  // spliceIdiomInto distractors, no new unverified content). Runs
+  // *before* moving on to the next idiom, right after solving this
+  // one's door — the sentence example lands while the idiom is fresh.
+  const beginBalloonStage = (index: number): void => {
+    showBalloonStageUI();
+    showBalloonPrompt(index);
+    game.scene.start("BalloonSentenceScene", {
+      level: balloonLevels[index],
+      onResolved: () => afterBalloonStage(index),
     });
   };
 
@@ -113,6 +164,10 @@ function bootstrap(): void {
   };
 
   const handleDoorReached = (finishedIndex: number): void => {
+    beginBalloonStage(finishedIndex);
+  };
+
+  const afterBalloonStage = (finishedIndex: number): void => {
     completedHanzi.push(doorLevels[finishedIndex].idiom.hanzi);
     const next = finishedIndex + 1;
     if (next < doorLevels.length) {
@@ -127,7 +182,7 @@ function bootstrap(): void {
 
   document.getElementById("jump-btn")?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    scene()?.requestJump();
+    doorScene()?.requestJump();
   });
 
   // Same button/element persists across every level's intro (only its
@@ -136,6 +191,23 @@ function bootstrap(): void {
   document.getElementById("reveal-english-btn")?.addEventListener("click", () => {
     document.querySelector("[data-intro-meaning-en]")?.classList.remove("hidden");
   });
+
+  const wireFlightButton = (btnId: string, direction: "left" | "right" | "up" | "down"): void => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    const setPressed = (pressed: boolean) => balloonScene()?.setFlightInput(direction, pressed);
+    btn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      setPressed(true);
+    });
+    btn.addEventListener("pointerup", () => setPressed(false));
+    btn.addEventListener("pointerleave", () => setPressed(false));
+    btn.addEventListener("pointercancel", () => setPressed(false));
+  };
+  wireFlightButton("fly-up-btn", "up");
+  wireFlightButton("fly-down-btn", "down");
+  wireFlightButton("fly-left-btn", "left");
+  wireFlightButton("fly-right-btn", "right");
 
   document.getElementById("play-again-btn")?.addEventListener("click", () => {
     completedHanzi.length = 0;
