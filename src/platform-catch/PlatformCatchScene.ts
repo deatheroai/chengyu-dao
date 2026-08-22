@@ -6,6 +6,7 @@ import { updatePlayerPosition } from "./positionStatus";
 import { placedItems, type PlacedItem } from "./placedItems";
 import { buildFocusSceneIcon } from "./kidScene";
 import { stepPhysics, type PhysicsState, type PhysicsConfig, type Surface } from "./platformPhysics";
+import { drawPlayerFigure } from "../shared/playerFigure";
 
 export interface PlatformCatchSceneData {
   idiom: IdiomContent;
@@ -21,7 +22,6 @@ const SLOT_EMPTY_FILL = 0xfff1d6;
 const SLOT_BORDER = 0xf0b429;
 const SLOT_TEXT = "#7a5636";
 const SPARK_COLOR = 0xffd76a;
-const PLAYER_SHIRT = 0x3d8f6f;
 
 const CHAR_SIZE = 64;
 const ITEM_SIZE = 60;
@@ -238,34 +238,9 @@ export class PlatformCatchScene extends Phaser.Scene {
   private setupCharacter(): void {
     this.character = { x: this.worldWidth * PLAYER_START_XFRAC, y: this.groundY, vy: 0, grounded: true };
     this.characterContainer = this.add.container(this.character.x, this.character.y - FOOT_OFFSET);
-    const kid = buildFocusSceneIcon(this, "book", "correct", CHAR_SIZE);
-    // The player's own character isn't "correct" or "decoy" — it's just
-    // the kid the child is controlling — so drop the prop icon that
-    // buildFocusSceneIcon adds for the catchable items and keep only the
-    // figure, recolored to a neutral shirt so it doesn't read as either
-    // catch category.
-    kid.list[1]?.destroy();
-    (kid.list[0] as Phaser.GameObjects.Graphics).clear();
-    this.drawPlayerFigure(kid.list[0] as Phaser.GameObjects.Graphics);
-    this.characterContainer.add(kid);
-  }
-
-  private drawPlayerFigure(gfx: Phaser.GameObjects.Graphics): void {
-    const s = CHAR_SIZE;
-    gfx.lineStyle(Math.max(2, s * 0.05), PLAYER_SHIRT, 1);
-    gfx.lineBetween(-s * 0.08, s * 0.22, -s * 0.1, s * 0.4);
-    gfx.lineBetween(s * 0.08, s * 0.22, s * 0.1, s * 0.4);
-    gfx.fillStyle(PLAYER_SHIRT, 1);
-    gfx.fillRoundedRect(-s * 0.16, -s * 0.06, s * 0.32, s * 0.3, s * 0.08);
-    gfx.lineStyle(Math.max(2, s * 0.045), 0xf3c88f, 1);
-    gfx.lineBetween(s * 0.12, s * 0.04, s * 0.2, s * 0.16);
-    gfx.lineBetween(-s * 0.12, s * 0.04, -s * 0.2, s * 0.16);
-    gfx.fillStyle(0xf3c88f, 1);
-    gfx.fillCircle(0, -s * 0.18, s * 0.16);
-    gfx.fillStyle(0x4a3420, 1);
-    gfx.beginPath();
-    gfx.slice(0, -s * 0.18, s * 0.17, Phaser.Math.DegToRad(195), Phaser.Math.DegToRad(345), false);
-    gfx.fillPath();
+    const gfx = this.add.graphics();
+    drawPlayerFigure(gfx, CHAR_SIZE);
+    this.characterContainer.add(gfx);
   }
 
   private setupInput(): void {

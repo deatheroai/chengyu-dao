@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#ffe0b8" />
+    <title>Idiom Door — Meaning-First Puzzle Spike</title>
+    <link rel="stylesheet" href="/src/idiom-door/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="game-container"></div>
+      <div id="catch-ui-layer">
+        <p id="meaning-prompt"></p>
+        <div id="door-status" aria-live="polite" data-next-index="0" data-total="4" data-complete="false"></div>
+      </div>
+      <!-- Test-only hook mirroring the character's x position, same as
+           platform-catch's — not part of the child-facing UI. -->
+      <div id="player-position" data-x="0" style="display: none" aria-hidden="true"></div>
+      <div id="controls-layer">
+        <div class="dpad">
+          <button id="move-left-btn" class="ctrl-btn" type="button" aria-label="Move left">◀</button>
+          <button id="move-right-btn" class="ctrl-btn" type="button" aria-label="Move right">▶</button>
+        </div>
+        <div class="action-buttons">
+          <button id="jump-btn" class="action-btn" type="button" aria-label="Jump">JUMP</button>
+          <button id="grab-btn" class="action-btn grab" type="button" aria-label="Grab">GRAB</button>
+        </div>
+      </div>
+      <div id="session-summary-card">
+        <div class="card">
+          <p class="headline">You solved 3 idioms today! 🎉</p>
+          <p data-summary-list class="hanzi-list"></p>
+          <p class="subline">Come back tomorrow for more!</p>
+          <button id="play-again-btn" type="button">🔁 Play again</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/idiom-door/main.ts"></script>
+  </body>
+</html>

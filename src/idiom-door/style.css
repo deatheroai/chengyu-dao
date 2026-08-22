@@ -1,0 +1,190 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #fff3e2;
+  color: #4a3420;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+#game-container {
+  position: absolute;
+  inset: 0;
+}
+
+#game-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  touch-action: none;
+}
+
+#catch-ui-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+
+#meaning-prompt {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #7a5636;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.4rem 0.9rem;
+  border-radius: 14px;
+  text-align: center;
+  max-width: 32rem;
+  line-height: 1.35;
+}
+
+#door-status {
+  font-size: 0.78rem;
+  color: #8a6a45;
+  min-height: 1.1em;
+}
+
+#controls-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 calc(0.9rem + env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom))
+    calc(0.9rem + env(safe-area-inset-left));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.dpad {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.ctrl-btn {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 999px;
+  border: none;
+  background: rgba(193, 64, 31, 0.85);
+  color: #fff8ef;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  touch-action: none;
+}
+.ctrl-btn:active {
+  background: #a83618;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+.action-btn {
+  width: 4.2rem;
+  height: 4.2rem;
+  border-radius: 999px;
+  border: none;
+  background: rgba(240, 180, 41, 0.9);
+  color: #4a3420;
+  font-size: 1.05rem;
+  font-weight: 700;
+  touch-action: none;
+  user-select: none;
+}
+.action-btn:active {
+  background: #d99e1f;
+}
+
+.action-btn.grab {
+  background: rgba(193, 64, 31, 0.9);
+  color: #fff8ef;
+}
+.action-btn.grab:active {
+  background: #a83618;
+}
+
+#session-summary-card {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(74, 52, 32, 0.45);
+  padding: 1rem;
+}
+#session-summary-card.visible {
+  display: flex;
+}
+
+#session-summary-card .card {
+  background: #fff8ef;
+  border-radius: 20px;
+  padding: 1.75rem 1.5rem;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(74, 52, 32, 0.25);
+}
+
+#session-summary-card .headline {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+#session-summary-card .hanzi-list {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #c1401f;
+  margin: 0.5rem 0;
+}
+
+#session-summary-card .subline {
+  font-size: 0.9rem;
+  color: #7a5636;
+  margin: 0.5rem 0 0;
+}
+
+#play-again-btn {
+  margin-top: 1.25rem;
+  border: none;
+  background: #c1401f;
+  color: #fff8ef;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#play-again-btn:hover {
+  background: #a83618;
+}
+#play-again-btn:focus-visible {
+  outline: 2px solid #4a3420;
+  outline-offset: 2px;
+}
