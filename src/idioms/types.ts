@@ -11,6 +11,11 @@ export interface IdiomExampleSentence {
   english: string;
 }
 
+export interface IdiomMeaningZh {
+  hanzi: string;
+  pinyin: string;
+}
+
 export interface IdiomContent {
   id: string;
   hanzi: string;
@@ -19,6 +24,17 @@ export interface IdiomContent {
   literalMeaning: string;
   /** Plain-English meaning. */
   meaning: string;
+  /**
+   * A Mandarin paraphrase of `meaning` (with pinyin) — deliberately
+   * *not* the idiom's own hanzi, and phrased differently enough not to
+   * hand the puzzle's answer to a child reading it (idiom-door.html's
+   * intro screen shows this as the primary clue, since the game is
+   * Mandarin-first; English is a click-to-reveal fallback for a child
+   * who doesn't yet read the Mandarin). New content, same "needs your
+   * review before treated as fully vetted" status as the rest of this
+   * project's authored Chinese text — see DECISIONS.md.
+   */
+  meaningZh: IdiomMeaningZh;
   /** The most important field: a concrete scenario a 7-9 year old recognizes. */
   dailyLifeScenario: string;
   /**

@@ -17,6 +17,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "yī xīn yī yì",
     literalMeaning: "一 (one) 心 (heart) 一 (one) 意 (mind) — one heart, one mind.",
     meaning: "To focus completely on one thing, without letting your attention wander to other things.",
+    meaningZh: {
+      hanzi: "做事的时候只专心做这一件事，不去想别的事情。",
+      pinyin: "Zuò shì de shíhou zhǐ zhuānxīn zuò zhè yí jiàn shì, bú qù xiǎng bié de shìqing.",
+    },
     dailyLifeScenario:
       "You're doing your spelling homework at the kitchen table, but the TV is on and your toys are nearby. If you put everything else aside and give your homework your full attention until it's done, you are being 一心一意.",
     exampleSentence: {
@@ -35,6 +39,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "yǒu shǐ yǒu zhōng",
     literalMeaning: "有 (have) 始 (a beginning) 有 (have) 终 (an end) — to have both a start and a finish.",
     meaning: "To carry a task all the way through to completion instead of stopping partway.",
+    meaningZh: {
+      hanzi: "开始做一件事以后，一定要好好地做到完成，不能半路停下来。",
+      pinyin: "Kāishǐ zuò yí jiàn shì yǐhòu, yídìng yào hǎohāo de zuò dào wánchéng, bù néng bànlù tíng xiàlái.",
+    },
     dailyLifeScenario:
       "You signed up for a school swimming course. After two lessons it feels hard and you want to quit — but you decide to keep going until you finish the whole course. That's 有始有终.",
     exampleSentence: {
@@ -52,6 +60,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "bàn tú ér fèi",
     literalMeaning: "半 (half) 途 (the road) 而 (and) 废 (abandon) — to abandon something halfway along the road.",
     meaning: "To give up on something before finishing it. Paired with 有始有终 as its cautionary opposite.",
+    meaningZh: {
+      hanzi: "事情才做到一半，就没有耐心，不想再做下去了。",
+      pinyin: "Shìqing cái zuò dào yíbàn, jiù méiyǒu nàixīn, bù xiǎng zài zuò xiàqù le.",
+    },
     dailyLifeScenario:
       "You and a friend start building a big LEGO set together, but halfway through your friend wants to stop and play something else instead of finishing it. You can gently remind them not to 半途而废.",
     exampleSentence: {
@@ -69,6 +81,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "shú néng shēng qiǎo",
     literalMeaning: "熟 (skilled/familiar) 能 (can) 生 (give rise to) 巧 (skill) — familiarity gives rise to skill.",
     meaning: "The more you practise something, the better and easier it becomes — practice makes perfect.",
+    meaningZh: {
+      hanzi: "一件事情做的次数多了，自然就会做得又快又好。",
+      pinyin: "Yí jiàn shìqing zuò de cìshù duō le, zìrán jiù huì zuò de yòu kuài yòu hǎo.",
+    },
     dailyLifeScenario:
       "You keep dropping the ball the first few times you try basketball, but after practising every week, shooting hoops becomes easy. That's 熟能生巧.",
     exampleSentence: {
@@ -86,6 +102,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "mó chǔ chéng zhēn",
     literalMeaning: "磨 (grind) 杵 (an iron rod) 成 (into) 针 (a needle) — grinding an iron rod into a sewing needle.",
     meaning: "With enough patience and persistence, even something that seems impossibly hard can be achieved.",
+    meaningZh: {
+      hanzi: "只要有耐心，肯不断努力，再困难的事情也能够做成。",
+      pinyin: "Zhǐyào yǒu nàixīn, kěn búduàn nǔlì, zài kùnnán de shìqing yě nénggòu zuò chéng.",
+    },
     dailyLifeScenario:
       "You've been trying to master a difficult piece on the recorder for weeks and want to quit — a parent might tell you the story of 磨杵成针 to encourage you that persistence pays off.",
     exampleSentence: {
@@ -105,6 +125,10 @@ export const idioms: IdiomContent[] = [
     literalMeaning: "拔 (pull up) 苗 (a seedling) 助 (help) 长 (grow) — pulling up seedlings to 'help' them grow.",
     meaning:
       "Trying to rush or force progress instead of letting it happen naturally ends up doing more harm than good.",
+    meaningZh: {
+      hanzi: "为了让事情快点完成而着急乱来，结果反而把事情弄得更糟。",
+      pinyin: "Wèile ràng shìqing kuài diǎn wánchéng ér zháojí luàn lái, jiéguǒ fǎn'ér bǎ shìqing nòng de gèng zāo.",
+    },
     dailyLifeScenario:
       "You want to learn to ride a bicycle without training wheels right away, without practising the basics first, and keep falling. A parent might explain that rushing it is like 拔苗助长.",
     exampleSentence: {
@@ -125,6 +149,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "yán ér yǒu xìn",
     literalMeaning: "言 (words) 而 (and) 有 (have) 信 (trust) — your words come with trustworthiness.",
     meaning: "Keeping your promises; being someone whose word can be trusted.",
+    meaningZh: {
+      hanzi: "答应别人的事情，一定会做到，是个说话算话的人。",
+      pinyin: "Dāying biérén de shìqing, yídìng huì zuò dào, shì ge shuōhuà suànhuà de rén.",
+    },
     dailyLifeScenario:
       "You promise your friend you'll bring your favourite storybook to school to lend them tomorrow — and you actually remember to bring it. That's being 言而有信.",
     exampleSentence: {
@@ -143,6 +171,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "zhī cuò jiù gǎi",
     literalMeaning: "知 (know) 错 (mistake) 就 (then) 改 (correct) — knowing your mistake, and correcting it right away.",
     meaning: "Admitting when you've made a mistake and fixing it, instead of hiding it or making excuses.",
+    meaningZh: {
+      hanzi: "发现自己做错了事，马上承认并且改正，不找借口。",
+      pinyin: "Fāxiàn zìjǐ zuò cuò le shì, mǎshàng chéngrèn bìngqiě gǎizhèng, bù zhǎo jièkǒu.",
+    },
     dailyLifeScenario:
       "You accidentally knock over your sister's block tower while running around the house. Instead of blaming her or walking away, you say sorry and help rebuild it — that's 知错就改.",
     exampleSentence: {
@@ -163,6 +195,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "zhù rén wéi lè",
     literalMeaning: "助 (help) 人 (people) 为 (is) 乐 (joy) — helping people is a source of joy.",
     meaning: "Finding happiness in helping others, and doing so willingly.",
+    meaningZh: {
+      hanzi: "看到别人需要帮忙的时候，很乐意伸出手去帮助他。",
+      pinyin: "Kàndào biérén xūyào bāngmáng de shíhou, hěn lèyì shēnchū shǒu qù bāngzhù tā.",
+    },
     dailyLifeScenario:
       "At recess, you see a classmate trip and drop all their books. Instead of walking past, you stop to help pick them up — that's living out 助人为乐.",
     exampleSentence: {
@@ -180,6 +216,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "qí xīn xié lì",
     literalMeaning: "齐 (together) 心 (hearts) 协 (join) 力 (strength) — hearts aligned, strength joined together.",
     meaning: "Working together as a team toward the same goal.",
+    meaningZh: {
+      hanzi: "大家一起合作，共同努力，去完成同一个目标。",
+      pinyin: "Dàjiā yìqǐ hézuò, gòngtóng nǔlì, qù wánchéng tóng yí ge mùbiāo.",
+    },
     dailyLifeScenario:
       "Your class needs to build a model volcano for a science project. If everyone in the group pitches in instead of arguing over who does what, you're showing 齐心协力.",
     exampleSentence: {
@@ -197,6 +237,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "xiāng qīn xiāng ài",
     literalMeaning: "相 (mutually) 亲 (be close) 相 (mutually) 爱 (love) — being mutually close and loving toward one another.",
     meaning: "People who care deeply for each other and treat each other with love — especially family.",
+    meaningZh: {
+      hanzi: "家人之间互相关心，互相疼爱，感情非常好。",
+      pinyin: "Jiārén zhījiān hùxiāng guānxīn, hùxiāng téng'ài, gǎnqíng fēicháng hǎo.",
+    },
     dailyLifeScenario:
       "On the weekend, your whole family cooks a meal together and shares stories at the dinner table, looking out for one another. That warm feeling is 相亲相爱.",
     exampleSentence: {
@@ -217,6 +261,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "wēn gù zhī xīn",
     literalMeaning: "温 (review) 故 (the old) 知 (understand) 新 (the new) — review the old, and thereby understand the new.",
     meaning: "Going back over what you've already learned helps you understand new things better.",
+    meaningZh: {
+      hanzi: "把以前学过的东西再复习一遍，可以帮助自己更好地理解新的知识。",
+      pinyin: "Bǎ yǐqián xuéguò de dōngxi zài fùxí yí biàn, kěyǐ bāngzhù zìjǐ gèng hǎo de lǐjiě xīn de zhīshi.",
+    },
     dailyLifeScenario:
       "Before a spelling test, you flip back through last month's word lists to review them — this helps the new words make more sense too. That's 温故知新.",
     exampleSentence: {
@@ -234,6 +282,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "shǒu zhū dài tù",
     literalMeaning: "守 (guard) 株 (a tree stump) 待 (wait for) 兔 (a rabbit) — guarding a tree stump, waiting for a rabbit.",
     meaning: "Hoping good things will happen by luck alone, instead of working for them.",
+    meaningZh: {
+      hanzi: "什么都不努力去做，只是傻傻地等着好运气自己出现。",
+      pinyin: "Shénme dōu bù nǔlì qù zuò, zhǐshì shǎshǎ de děng zhe hǎo yùnqi zìjǐ chūxiàn.",
+    },
     dailyLifeScenario:
       "You hope to do well in your spelling test just by 'getting lucky,' instead of studying the word list. A friend might remind you that you can't just 守株待兔.",
     exampleSentence: {
@@ -251,6 +303,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "jǐng dǐ zhī wā",
     literalMeaning: "井 (a well) 底 (the bottom) 之 (of) 蛙 (a frog) — a frog at the bottom of a well.",
     meaning: "Someone who thinks their small world is all there is, not realising how much bigger the world really is.",
+    meaningZh: {
+      hanzi: "以为自己知道的东西就是全部，不知道外面的世界其实更大更精彩。",
+      pinyin: "Yǐwéi zìjǐ zhīdào de dōngxi jiùshì quánbù, bù zhīdào wàimiàn de shìjiè qíshí gèng dà gèng jīngcǎi.",
+    },
     dailyLifeScenario:
       "You think you're the best drawer in your class — until you visit an art exhibition and see how many amazing styles of drawing exist. Realising there's always more to learn is the opposite of being a 井底之蛙.",
     exampleSentence: {
@@ -268,6 +324,10 @@ export const idioms: IdiomContent[] = [
     pinyin: "yī jǔ liǎng dé",
     literalMeaning: "一 (one) 举 (action, cf. 举手 'raise hand') 两 (two) 得 (gains) — one action, two gains.",
     meaning: "Doing one thing that gives you two benefits at once.",
+    meaningZh: {
+      hanzi: "只做一件事情，却同时得到了两种好处。",
+      pinyin: "Zhǐ zuò yí jiàn shìqing, què tóngshí dédào le liǎng zhǒng hǎochù.",
+    },
     dailyLifeScenario:
       "You walk to school with your dad instead of taking the car — you get to school and also get exercise and chat with him along the way. That's 一举两得.",
     exampleSentence: {

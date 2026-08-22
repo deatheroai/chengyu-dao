@@ -128,12 +128,56 @@ body {
   color: #b98a4a;
 }
 
-#level-intro-card .intro-meaning {
-  margin: 0.6rem 0 1.5rem;
-  font-size: 1.15rem;
-  font-weight: 600;
-  line-height: 1.45;
+#level-intro-card .intro-meaning-zh {
+  margin: 0.6rem 0 0.3rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.5;
   color: #4a3420;
+}
+
+#level-intro-card .intro-meaning-pinyin {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #8a6a45;
+  line-height: 1.4;
+}
+
+.icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0 auto 1rem;
+  border: none;
+  background: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
+.icon-btn .icon-btn-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #b98a4a;
+}
+.icon-btn:focus-visible {
+  outline: 2px solid #4a3420;
+  outline-offset: 2px;
+}
+
+#level-intro-card .intro-meaning-en {
+  margin: -0.4rem 0 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #4a3420;
+  background: rgba(240, 180, 41, 0.18);
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+}
+#level-intro-card .intro-meaning-en.hidden {
+  display: none;
 }
 
 #start-level-btn {

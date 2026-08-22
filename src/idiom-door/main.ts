@@ -8,14 +8,27 @@ function showMeaning(index: number): void {
   el.textContent = `Which idiom means: "${doorLevels[index].idiom.meaning}"`;
 }
 
+/**
+ * 2026-08-24 feedback: this game is Mandarin-first, so the intro clue
+ * should be too — a Mandarin paraphrase of the meaning (with pinyin),
+ * not the idiom's own hanzi (`meaningZh` is deliberately new/different
+ * text from the idiom itself, so it doesn't just hand the puzzle's
+ * answer to a child who can read it). A child who can't read the
+ * Mandarin yet can tap the 🤔 icon to reveal the English version
+ * instead — reset to hidden here so a new level doesn't inherit the
+ * previous one's already-revealed state.
+ */
 function showIntroMeaning(index: number): void {
-  const el = document.querySelector<HTMLElement>("[data-intro-meaning]");
-  if (!el) return;
-  // The card's own "Which idiom means..." eyebrow already frames this,
-  // so the meaning itself is shown plain rather than repeating that
-  // phrase (the in-game `#meaning-prompt` chip is the one that needs
-  // the full sentence, since it has no eyebrow of its own).
-  el.textContent = `"${doorLevels[index].idiom.meaning}"`;
+  const idiom = doorLevels[index].idiom;
+  const zhEl = document.querySelector<HTMLElement>("[data-intro-meaning-zh]");
+  const pinyinEl = document.querySelector<HTMLElement>("[data-intro-meaning-pinyin]");
+  const enEl = document.querySelector<HTMLElement>("[data-intro-meaning-en]");
+  if (zhEl) zhEl.textContent = idiom.meaningZh.hanzi;
+  if (pinyinEl) pinyinEl.textContent = idiom.meaningZh.pinyin;
+  if (enEl) {
+    enEl.textContent = `"${idiom.meaning}"`;
+    enEl.classList.add("hidden");
+  }
 }
 
 function showSummary(completedHanzi: string[]): void {
@@ -115,6 +128,13 @@ function bootstrap(): void {
   document.getElementById("jump-btn")?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     scene()?.requestJump();
+  });
+
+  // Same button/element persists across every level's intro (only its
+  // text content changes via showIntroMeaning), so this is wired once
+  // rather than per-level like the Start button's onStart handoff.
+  document.getElementById("reveal-english-btn")?.addEventListener("click", () => {
+    document.querySelector("[data-intro-meaning-en]")?.classList.remove("hidden");
   });
 
   document.getElementById("play-again-btn")?.addEventListener("click", () => {

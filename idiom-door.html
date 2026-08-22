@@ -35,11 +35,19 @@
       <!-- Shown before each level starts, so the child has time to read
            and think about the meaning before the run begins — per your
            2026-08-23 feedback. The run doesn't start until Start is
-           pressed (see main.ts's beginLevel/startLevelWithIntro). -->
+           pressed (see main.ts's beginLevel/startLevelWithIntro).
+           2026-08-24: the clue is shown Mandarin-first (hanzi + pinyin),
+           since this is a Mandarin-learning game — a child who can't
+           read it yet can tap the icon to reveal the English version. -->
       <div id="level-intro-card">
         <div class="card">
           <p class="eyebrow">Which idiom means...</p>
-          <p data-intro-meaning class="intro-meaning"></p>
+          <p data-intro-meaning-zh class="intro-meaning-zh"></p>
+          <p data-intro-meaning-pinyin class="intro-meaning-pinyin"></p>
+          <button id="reveal-english-btn" class="icon-btn" type="button" aria-label="I don't understand — show English">
+            🤔<span class="icon-btn-label">Don't understand?</span>
+          </button>
+          <p data-intro-meaning-en class="intro-meaning-en hidden"></p>
           <button id="start-level-btn" type="button">▶ Start</button>
         </div>
       </div>

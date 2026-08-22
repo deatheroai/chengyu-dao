@@ -54,59 +54,63 @@ interface DecoySpec {
   sourceIdiomId: string;
 }
 
-const REPEATS_PER_CHARACTER = 4;
+export const MIN_REPEATS_PER_CHARACTER = 5;
+export const MAX_REPEATS_PER_CHARACTER = 9;
 const DECOYS_PER_CHARACTER = 3;
 
-// Each idiom character gets a wide "window" of track it can appear
-// within, and those windows overlap heavily with their neighbors — so
-// copies of character i and character i+1 (and their decoys) end up
-// genuinely mixed together along the track, rather than the old
-// "four-in-a-row, then a gap, then the next four" layout your
-// 2026-08-23 feedback called boring.
-const WINDOW_STEP = 650;
-const WINDOW_LENGTH = 1400;
-// The previous character's window ends at (this window's start +
-// WINDOW_LENGTH - WINDOW_STEP) at the very latest, since window i+1
-// starts WINDOW_STEP after window i. Reserving this tail slice (width
-// WINDOW_STEP, with a small safety margin) for one guaranteed copy of
-// every character (after the first) means that copy always lands
-// strictly after every possible position of the *previous* character's
-// copies — so the level is provably solvable no matter how the rest of
-// that character's copies and all the decoys happen to land. See
-// levelContent.test.ts's greedy-playthrough solvability check, and
-// DECISIONS.md for the reasoning this replaced (a probabilistic
-// argument that turned out to have a real, if small, failure chance).
-const GUARANTEED_TAIL_MARGIN = 30;
-const GUARANTEED_TAIL_WIDTH = WINDOW_STEP - GUARANTEED_TAIL_MARGIN;
+// --- Track layout: a fixed-width "slot" grid -------------------------
+//
+// 2026-08-24 feedback found two real problems with the previous
+// (window-based, purely-random-x) layout: decoy tiles could end up
+// close enough to visually overlap, and the correct next character
+// didn't come around often enough. This version fixes both at once by
+// building the track as a sequence of evenly-spaced slots (so no two
+// tiles can ever land close enough to overlap — guaranteed by
+// construction, not by hopeful rejection-sampling) and by giving each
+// character a randomized 5-9 repeats (up from a flat 4), so the
+// correct next character shows up more often no matter how the shuffle
+// falls.
+//
+// The *order* tiles are assigned to slots (which is what actually
+// creates the jumbled look) comes from sorting every tile by a
+// "sortKey" centered on its own character's index, plus random jitter
+// that deliberately overlaps into neighboring characters' territory.
+// Solvability doesn't depend on that shuffle at all: for every
+// character after the first, exactly one of its copies (the "anchor")
+// gets sortKey === charIndex with no jitter, and since anchor keys are
+// spaced exactly 1 apart in strictly increasing character order, the
+// anchors alone always sort into a valid, complete, in-order path
+// through the level — regardless of where every other (freely
+// jittered) tile and decoy ends up. See levelContent.test.ts's
+// greedy-playthrough solvability check, which exercises this directly
+// against the real generated content rather than trusting the proof.
+const SLOT_WIDTH = 180;
+const SLOT_JITTER = 35;
+// Worst-case gap between two adjacent tiles' centers once jitter is
+// applied — used by the test suite to confirm the no-overlap guarantee
+// actually holds against the real generated content, not just in
+// theory.
+export const MIN_SLOT_GAP = SLOT_WIDTH - 2 * SLOT_JITTER;
+// How far (in character-index units) a non-anchor tile's sortKey can
+// drift from its own character's index — large enough to mix solidly
+// into both neighbors' territory (this is what makes the layout feel
+// jumbled rather than neatly sequential) without needing to reach a
+// second character away.
+const SORT_JITTER = 1.3;
 
 const START_OFFSET = 260;
 const END_PADDING = 500;
-// Minimum gap (px) enforced between any two tile centers, so a jumbled
-// layout never accidentally stacks tiles close enough to look like one
-// blob or make a single jump ambiguous about which tile it caught.
-const MIN_GAP = 130;
-const MIN_GAP_RETRIES = 25;
 
 export const HEIGHT_MIN = 90;
 export const HEIGHT_MAX = 160;
 export const ANGLE_MAX_DEG = 10;
 
-function windowFor(charIndex: number): { start: number; end: number } {
-  const start = START_OFFSET + charIndex * WINDOW_STEP;
-  return { start, end: start + WINDOW_LENGTH };
-}
-
-/** Picks an x within [rangeMin, rangeMax) that's at least MIN_GAP away
- * from every already-placed tile, retrying a bounded number of times.
- * A rare near-overlap after exhausting retries is an acceptable, purely
- * cosmetic trade for never failing level generation outright. */
-function pickX(rng: () => number, placed: number[], rangeMin: number, rangeMax: number): number {
-  let candidate = randRange(rng, rangeMin, rangeMax);
-  for (let attempt = 0; attempt < MIN_GAP_RETRIES; attempt++) {
-    if (placed.every((p) => Math.abs(p - candidate) >= MIN_GAP)) return candidate;
-    candidate = randRange(rng, rangeMin, rangeMax);
-  }
-  return candidate;
+interface Obligation {
+  char: string;
+  correctIndex?: number;
+  sourceIdiomId: string;
+  sortKey: number;
+  id: string;
 }
 
 function fisherYatesShuffle<T>(items: T[], rng: () => number): T[] {
@@ -119,18 +123,21 @@ function fisherYatesShuffle<T>(items: T[], rng: () => number): T[] {
 }
 
 /**
- * Builds one auto-runner level: for each of the idiom's characters (in
- * order), REPEATS_PER_CHARACTER copies scattered across that
- * character's window (one guaranteed to land in the always-safe tail
- * slice; the rest placed freely across the whole window, which is what
- * actually creates the jumbled look), plus DECOYS_PER_CHARACTER decoys
- * drawn from other idioms scattered across the same window. Positions,
- * heights and rotation angles are all driven by a PRNG seeded from the
- * idiom's own id — so the layout looks organic and jumbled but is still
- * exactly reproducible, same "author real content, don't procedurally
- * generate it at runtime" approach as the rest of this project (a fixed
- * seed *is* the authored content here, same as a fixed number would
- * be), which also keeps E2E/unit tests exact.
+ * Builds one auto-runner level. For each of the idiom's characters (in
+ * order), a randomized 5-9 repeats plus DECOYS_PER_CHARACTER decoys
+ * drawn from other idioms are generated as "obligations," each given a
+ * sortKey centered on that character's index (jittered, except for one
+ * guaranteed "anchor" repeat per character). Sorting all obligations by
+ * that key and then laying them out on evenly-spaced track slots (in
+ * that sorted order) produces a track that's genuinely jumbled and
+ * mixed together, provably solvable, and physically non-overlapping —
+ * all from one pass, rather than random placement plus after-the-fact
+ * rejection sampling. Positions/heights/angles are all driven by a PRNG
+ * seeded from the idiom's own id, so the layout looks organic but is
+ * still exactly reproducible — same "author real content, don't
+ * procedurally generate it at runtime" approach as the rest of this
+ * project (a fixed seed *is* the authored content here, same as a fixed
+ * number would be), which also keeps unit/E2E tests exact.
  */
 function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
   const idiom = getIdiom(idiomId);
@@ -148,46 +155,55 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
   const rng = createRng(seedFromString(idiom.id));
   const shuffledDecoys = fisherYatesShuffle(validDecoys, rng);
 
-  const tiles: LevelCharacterTile[] = [];
-  const placedX: number[] = [];
+  const obligations: Obligation[] = [];
   let decoyCursor = 0;
 
   chars.forEach((char, correctIndex) => {
-    const win = windowFor(correctIndex);
-
-    for (let r = 0; r < REPEATS_PER_CHARACTER; r++) {
-      const isGuaranteedCopy = r === 0 && correctIndex > 0;
-      const rangeMin = isGuaranteedCopy ? win.end - GUARANTEED_TAIL_WIDTH : win.start;
-      const x = pickX(rng, placedX, rangeMin, win.end);
-      placedX.push(x);
-      tiles.push({
-        id: `${idiom.id}-${correctIndex}-${r}`,
+    const repeatCount = randInt(rng, MIN_REPEATS_PER_CHARACTER, MAX_REPEATS_PER_CHARACTER);
+    for (let r = 0; r < repeatCount; r++) {
+      const isAnchor = r === 0;
+      obligations.push({
         char,
         correctIndex,
         sourceIdiomId: idiom.id,
-        x,
-        height: randRange(rng, HEIGHT_MIN, HEIGHT_MAX),
-        angle: randRange(rng, -ANGLE_MAX_DEG, ANGLE_MAX_DEG),
+        // The anchor's sortKey is exactly correctIndex — no jitter —
+        // so anchors always sort in strict character order regardless
+        // of anything else. Every other repeat is free to drift.
+        sortKey: isAnchor ? correctIndex : correctIndex + randRange(rng, -SORT_JITTER, SORT_JITTER),
+        id: `${idiom.id}-${correctIndex}-${r}`,
       });
     }
 
     for (let d = 0; d < DECOYS_PER_CHARACTER; d++) {
       const decoy = shuffledDecoys[decoyCursor % shuffledDecoys.length];
       decoyCursor++;
-      const x = pickX(rng, placedX, win.start, win.end);
-      placedX.push(x);
-      tiles.push({
-        id: `decoy-${idiom.id}-${correctIndex}-${d}`,
+      obligations.push({
         char: decoy.char,
         sourceIdiomId: decoy.sourceIdiomId,
-        x,
-        height: randRange(rng, HEIGHT_MIN, HEIGHT_MAX),
-        angle: randRange(rng, -ANGLE_MAX_DEG, ANGLE_MAX_DEG),
+        sortKey: correctIndex + randRange(rng, -SORT_JITTER, SORT_JITTER),
+        id: `decoy-${idiom.id}-${correctIndex}-${d}`,
       });
     }
   });
 
-  const length = windowFor(chars.length - 1).end + END_PADDING;
+  // This is the whole "jumbling" step: sort by the (mostly-jittered)
+  // key, then lay the result out left-to-right onto the slot grid.
+  obligations.sort((a, b) => a.sortKey - b.sortKey);
+
+  const tiles: LevelCharacterTile[] = obligations.map((ob, slotIndex) => {
+    const slotCenter = START_OFFSET + slotIndex * SLOT_WIDTH;
+    return {
+      id: ob.id,
+      char: ob.char,
+      correctIndex: ob.correctIndex,
+      sourceIdiomId: ob.sourceIdiomId,
+      x: slotCenter + randRange(rng, -SLOT_JITTER, SLOT_JITTER),
+      height: randRange(rng, HEIGHT_MIN, HEIGHT_MAX),
+      angle: randRange(rng, -ANGLE_MAX_DEG, ANGLE_MAX_DEG),
+    };
+  });
+
+  const length = START_OFFSET + obligations.length * SLOT_WIDTH + END_PADDING;
   return { idiom, tiles, length };
 }
 

@@ -36,6 +36,29 @@ async function status(page: Page) {
   }));
 }
 
+// Once `nextIndex`/`complete` flips true, the character still has to
+// physically *run* to the door before anything past that point (the
+// next intro, or the session summary) appears — and since 2026-08-24's
+// randomized 5-9 repeats per character (up from a flat 4), a level's
+// track can run up to ~9400px long (levelContent.ts's
+// MAX_REPEATS_PER_CHARACTER), which at this mechanic's 200px/s runSpeed
+// is up to ~47s of running if the puzzle happens to complete right at
+// the start of the track. This timeout covers that worst case with
+// headroom, rather than a fixed guess sized for the old, much shorter
+// tracks (which is exactly what broke here once tracks got longer).
+const DOOR_REACH_TIMEOUT_MS = 70000;
+
+/** Asserts the level-intro card is showing a given level's Mandarin
+ * clue (hanzi + pinyin), with the English fallback still hidden. */
+async function expectIntroShowing(page: Page, levelIndex: number): Promise<void> {
+  const idiom = doorLevels[levelIndex].idiom;
+  const intro = page.locator("#level-intro-card");
+  await expect(intro).toHaveClass(/visible/, { timeout: DOOR_REACH_TIMEOUT_MS });
+  await expect(intro.locator("[data-intro-meaning-zh]")).toHaveText(idiom.meaningZh.hanzi);
+  await expect(intro.locator("[data-intro-meaning-pinyin]")).toHaveText(idiom.meaningZh.pinyin);
+  await expect(intro.locator("[data-intro-meaning-en]")).toBeHidden();
+}
+
 /** Dismisses the level-intro screen (reading/thinking pause) so the
  * run actually starts. Every test needs this right after `page.goto()`,
  * and again after every level transition — each new level shows its
@@ -73,9 +96,7 @@ test("shows a full-screen intro with the meaning before the level starts, and no
   await page.goto("/idiom-door.html");
   await expect(page.locator("#game-container canvas")).toBeVisible();
 
-  const intro = page.locator("#level-intro-card");
-  await expect(intro).toHaveClass(/visible/);
-  await expect(intro.locator("[data-intro-meaning]")).toHaveText(`"${doorLevels[0].idiom.meaning}"`);
+  await expectIntroShowing(page, 0);
 
   const x1 = await getPlayerX(page);
   await page.waitForTimeout(500);
@@ -91,6 +112,17 @@ test("shows a full-screen intro with the meaning before the level starts, and no
   await page.waitForTimeout(500);
   const x4 = await getPlayerX(page);
   expect(x4).toBeGreaterThan(x3); // now running forward on its own, no input needed
+});
+
+test("the intro's English explanation stays hidden until the 🤔 icon is tapped", async ({ page }) => {
+  await page.goto("/idiom-door.html");
+  const intro = page.locator("#level-intro-card");
+  const englishEl = intro.locator("[data-intro-meaning-en]");
+  await expect(englishEl).toBeHidden();
+
+  await page.click("#reveal-english-btn");
+  await expect(englishEl).toBeVisible();
+  await expect(englishEl).toHaveText(`"${doorLevels[0].idiom.meaning}"`);
 });
 
 test("running without ever jumping never catches anything", async ({ page }) => {
@@ -145,15 +177,13 @@ test("reaching the door without completing the level gently restarts it from the
 });
 
 test("solving a level opens the door and running into it shows the next level's intro; Start begins it", async ({ page }) => {
-  test.setTimeout(90000);
+  test.setTimeout(150000);
   await page.goto("/idiom-door.html");
   await startPlaying(page);
 
   await spamJumpUntil(page, async () => (await status(page)).complete === "true");
 
-  const intro = page.locator("#level-intro-card");
-  await expect(intro).toHaveClass(/visible/, { timeout: 30000 });
-  await expect(intro.locator("[data-intro-meaning]")).toHaveText(`"${doorLevels[1].idiom.meaning}"`);
+  await expectIntroShowing(page, 1);
 
   await startPlaying(page);
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${doorLevels[1].idiom.meaning}"`);
@@ -162,7 +192,7 @@ test("solving a level opens the door and running into it shows the next level's 
 });
 
 test("solving all 3 levels shows the session summary, and Play again shows the first level's intro again", async ({ page }) => {
-  test.setTimeout(240000);
+  test.setTimeout(480000);
   await page.goto("/idiom-door.html");
   const summary = page.locator("#session-summary-card");
   await expect(summary).not.toBeVisible();
@@ -174,22 +204,18 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
       await spamJumpUntil(page, async () => (await summary.isVisible()) || (await status(page)).complete === "true");
     } else {
       await spamJumpUntil(page, async () => (await status(page)).complete === "true");
-      const intro = page.locator("#level-intro-card");
-      await expect(intro).toHaveClass(/visible/, { timeout: 30000 });
-      await expect(intro.locator("[data-intro-meaning]")).toHaveText(`"${doorLevels[i + 1].idiom.meaning}"`);
+      await expectIntroShowing(page, i + 1);
       await startPlaying(page);
     }
   }
 
-  await expect(summary).toBeVisible({ timeout: 15000 });
+  await expect(summary).toBeVisible({ timeout: DOOR_REACH_TIMEOUT_MS });
   const hanziList = doorLevels.map((l) => l.idiom.hanzi).join(" · ");
   await expect(summary.locator("[data-summary-list]")).toHaveText(hanziList);
 
   await page.click("#play-again-btn");
   await expect(summary).not.toBeVisible();
-  const intro = page.locator("#level-intro-card");
-  await expect(intro).toHaveClass(/visible/);
-  await expect(intro.locator("[data-intro-meaning]")).toHaveText(`"${doorLevels[0].idiom.meaning}"`);
+  await expectIntroShowing(page, 0);
 
   await startPlaying(page);
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${doorLevels[0].idiom.meaning}"`);
