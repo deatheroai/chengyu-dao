@@ -27,6 +27,21 @@ describe("doorLevels data integrity", () => {
         }
       });
 
+      it("every real (non-decoy) tile's pinyin matches this idiom's own pinyin at that character's position", () => {
+        const syllables = level.idiom.pinyin.split(" ");
+        for (const tile of level.tiles) {
+          if (tile.correctIndex === undefined) continue;
+          expect(tile.pinyin).toBe(syllables[tile.correctIndex]);
+        }
+      });
+
+      it("every decoy tile's pinyin is a real, non-empty syllable", () => {
+        for (const tile of level.tiles) {
+          if (tile.correctIndex !== undefined) continue;
+          expect(tile.pinyin.length).toBeGreaterThan(0);
+        }
+      });
+
       it("no decoy glyph collides with one of this idiom's own characters", () => {
         const ownChars = new Set(Array.from(level.idiom.hanzi));
         for (const tile of level.tiles) {

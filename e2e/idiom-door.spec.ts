@@ -41,10 +41,11 @@ async function status(page: Page) {
 // next intro, or the session summary) appears — and since 2026-08-24's
 // randomized 5-9 repeats per character (up from a flat 4), a level's
 // track can run up to ~9400px long (levelContent.ts's
-// MAX_REPEATS_PER_CHARACTER), which at this mechanic's 200px/s runSpeed
-// is up to ~47s of running if the puzzle happens to complete right at
-// the start of the track. This timeout covers that worst case with
-// headroom, rather than a fixed guess sized for the old, much shorter
+// MAX_REPEATS_PER_CHARACTER), which even at this mechanic's (also
+// bumped, same feedback round) 320px/s runSpeed is still up to ~30s of
+// running if the puzzle happens to complete right at the start of the
+// track. This timeout covers that worst case with real headroom,
+// rather than a fixed guess sized for the old, much shorter/slower
 // tracks (which is exactly what broke here once tracks got longer).
 const DOOR_REACH_TIMEOUT_MS = 70000;
 

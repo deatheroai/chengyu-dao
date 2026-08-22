@@ -37,6 +37,12 @@ const FOOT_OFFSET = CHAR_SIZE * 0.4;
 // catch comfortably at any height in the range.
 const CATCH_RADIUS_X = 70;
 const CATCH_RADIUS_Y = 80;
+// 2026-08-24 feedback: 200px/s read as "way too slow." Bumped 60% —
+// the jump arc's shape (and therefore how forgiving catching is)
+// doesn't depend on run speed at all, since gravity/jumpVelocity are
+// unchanged; a faster run just covers more ground per second, both
+// approaching a tile and during the jump arc itself.
+const RUN_SPEED = 320;
 const PLAYER_START_X = 30;
 // Camera sits the character roughly a third of the way from the left
 // edge rather than centered — a runner needs more preview room ahead
@@ -133,7 +139,7 @@ export class IdiomDoorScene extends Phaser.Scene {
   private setupGround(): void {
     const { height } = this.scale;
     this.groundY = height * 0.78;
-    this.runConfig = { runSpeed: 200, gravity: 1400, jumpVelocity: -700, groundY: this.groundY };
+    this.runConfig = { runSpeed: RUN_SPEED, gravity: 1400, jumpVelocity: -700, groundY: this.groundY };
   }
 
   private renderGround(): void {
@@ -147,7 +153,7 @@ export class IdiomDoorScene extends Phaser.Scene {
   private spawnTiles(): void {
     this.tilesLayer.removeAll(true);
     this.tiles = this.level.tiles.map((def) => {
-      const container = this.buildTile(def.char);
+      const container = this.buildTile(def);
       container.setPosition(def.x, this.groundY - def.height);
       container.setAngle(def.angle);
       this.tilesLayer.add(container);
@@ -164,7 +170,7 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.renderGround();
   }
 
-  private buildTile(char: string): Phaser.GameObjects.Container {
+  private buildTile(def: LevelCharacterTile): Phaser.GameObjects.Container {
     const container = this.add.container(0, 0);
     const gfx = this.add.graphics();
     const half = TILE_SIZE / 2;
@@ -174,14 +180,28 @@ export class IdiomDoorScene extends Phaser.Scene {
     gfx.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, TILE_SIZE * 0.16);
     container.add(gfx);
     const text = this.add
-      .text(0, 0, char, {
-        fontSize: `${Math.round(TILE_SIZE * 0.56)}px`,
+      .text(0, -half * 0.15, def.char, {
+        fontSize: `${Math.round(TILE_SIZE * 0.5)}px`,
         color: TILE_TEXT,
         fontFamily: "system-ui, sans-serif",
         fontStyle: "600",
       })
       .setOrigin(0.5);
     container.add(text);
+    // 2026-08-24 feedback: show each tile's own pinyin right below its
+    // glyph, so the reading is right there rather than only in the
+    // intro screen's whole-idiom clue. Nudged slightly up into the box
+    // (rather than below it) to keep it visually attached even with
+    // the tile's rotation and the neighboring tiles' own labels.
+    const pinyinText = this.add
+      .text(0, half * 0.62, def.pinyin, {
+        fontSize: `${Math.round(TILE_SIZE * 0.2)}px`,
+        color: TILE_TEXT,
+        fontFamily: "system-ui, sans-serif",
+        fontStyle: "italic",
+      })
+      .setOrigin(0.5);
+    container.add(pinyinText);
     // A gentle bob so floating tiles read as "in the air" rather than
     // pasted-on decorations — purely cosmetic, doesn't affect the
     // logical catch position (that's tracked via `def.x`/`def.height`,

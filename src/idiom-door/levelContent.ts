@@ -24,6 +24,12 @@ export interface LevelCharacterTile {
    * camera just pans a viewport-sized window over however long the
    * track actually is. */
   x: number;
+  /** This glyph's own pinyin syllable (with tone marks), shown right
+   * below it on the tile per your 2026-08-24 feedback — looked up from
+   * its source idiom's `pinyin` string (space-separated, one syllable
+   * per character, same order as `hanzi`), so it's always the correct
+   * reading for *this* character, not a guess. */
+  pinyin: string;
   /** How far above the ground (px) this tile floats. Varied per tile
    * (2026-08-23 feedback: "a little more natural at different heights
    * instead of being so neatly arranged in a line") but always kept
@@ -52,6 +58,15 @@ function getIdiom(id: string): IdiomContent {
 interface DecoySpec {
   char: string;
   sourceIdiomId: string;
+}
+
+/** Looks up a single character's own pinyin syllable from its source
+ * idiom's space-separated `pinyin` string. Used for decoys, whose
+ * position within their own idiom isn't otherwise tracked. */
+function pinyinForChar(sourceIdiomId: string, char: string): string {
+  const sourceIdiom = getIdiom(sourceIdiomId);
+  const index = Array.from(sourceIdiom.hanzi).indexOf(char);
+  return sourceIdiom.pinyin.split(" ")[index] ?? "";
 }
 
 export const MIN_REPEATS_PER_CHARACTER = 5;
@@ -107,6 +122,7 @@ export const ANGLE_MAX_DEG = 10;
 
 interface Obligation {
   char: string;
+  pinyin: string;
   correctIndex?: number;
   sourceIdiomId: string;
   sortKey: number;
@@ -154,6 +170,7 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
 
   const rng = createRng(seedFromString(idiom.id));
   const shuffledDecoys = fisherYatesShuffle(validDecoys, rng);
+  const idiomSyllables = idiom.pinyin.split(" ");
 
   const obligations: Obligation[] = [];
   let decoyCursor = 0;
@@ -164,6 +181,7 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
       const isAnchor = r === 0;
       obligations.push({
         char,
+        pinyin: idiomSyllables[correctIndex] ?? "",
         correctIndex,
         sourceIdiomId: idiom.id,
         // The anchor's sortKey is exactly correctIndex — no jitter —
@@ -179,6 +197,7 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
       decoyCursor++;
       obligations.push({
         char: decoy.char,
+        pinyin: pinyinForChar(decoy.sourceIdiomId, decoy.char),
         sourceIdiomId: decoy.sourceIdiomId,
         sortKey: correctIndex + randRange(rng, -SORT_JITTER, SORT_JITTER),
         id: `decoy-${idiom.id}-${correctIndex}-${d}`,
@@ -195,6 +214,7 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
     return {
       id: ob.id,
       char: ob.char,
+      pinyin: ob.pinyin,
       correctIndex: ob.correctIndex,
       sourceIdiomId: ob.sourceIdiomId,
       x: slotCenter + randRange(rng, -SLOT_JITTER, SLOT_JITTER),
