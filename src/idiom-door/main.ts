@@ -3,6 +3,7 @@ import { IdiomDoorScene } from "./IdiomDoorScene";
 import { doorLevels } from "./levelContent";
 import { BalloonSentenceScene } from "./BalloonSentenceScene";
 import { balloonLevels } from "./balloonLevelContent";
+import { updateSessionProgress } from "./sessionProgressStatus";
 
 function showMeaning(index: number): void {
   const el = document.getElementById("meaning-prompt");
@@ -186,6 +187,10 @@ function bootstrap(): void {
   };
 
   const startLevelWithIntro = (index: number): void => {
+    // Updates the "1/3, 2/3, ..." corner badge the moment this idiom
+    // becomes current — covers its intro, door, and balloon stages all
+    // at once, since all three share the same session index.
+    updateSessionProgress(index, doorLevels.length);
     showLevelIntro(index, () => beginLevel(index));
   };
 
@@ -213,6 +218,9 @@ function bootstrap(): void {
       levelIndex = next;
       startLevelWithIntro(next);
     } else {
+      // currentIndex === total is updateSessionProgress's "fully
+      // complete" signal — every dot done, none marked current.
+      updateSessionProgress(doorLevels.length, doorLevels.length);
       showSummary(completedHanzi);
     }
   };

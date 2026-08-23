@@ -40,6 +40,49 @@ body {
   display: none !important;
 }
 
+/* Overall session progress ("1/3, 2/3, ...") — a whole-session
+   indicator distinct from #door-status/#balloon-status's per-level
+   progress, so it lives outside the per-stage toggling and stays
+   visible throughout (intro, door, balloon, and summary alike). */
+#session-progress {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #7a5636;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.progress-dots {
+  display: flex;
+  gap: 0.28rem;
+}
+
+.progress-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 2px solid #d9a15b;
+  box-sizing: border-box;
+}
+.progress-dot.done {
+  background: #f0b429;
+  border-color: #f0b429;
+}
+.progress-dot.current {
+  border-color: #c1401f;
+  background: #ffdca0;
+}
+
 #catch-ui-layer {
   position: absolute;
   left: 0;

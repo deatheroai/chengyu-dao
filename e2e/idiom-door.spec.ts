@@ -285,6 +285,7 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
   const summary = page.locator("#session-summary-card");
   await expect(summary).not.toBeVisible();
   await startPlaying(page);
+  await expect(page.locator("[data-progress-fraction]")).toHaveText("1/3");
 
   for (let i = 0; i < doorLevels.length; i++) {
     await spamJumpUntil(page, async () => (await status(page)).complete === "true");
@@ -294,8 +295,14 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
     const isLast = i === doorLevels.length - 1;
     if (isLast) {
       await expect(summary).toBeVisible({ timeout: DOOR_REACH_TIMEOUT_MS });
+      // 2026-08-27: the "1/3, 2/3, ..." session-progress badge — every
+      // dot done, none current, once the whole session is complete.
+      await expect(page.locator("[data-progress-fraction]")).toHaveText("3/3");
+      await expect(page.locator(".progress-dot.done")).toHaveCount(doorLevels.length);
+      await expect(page.locator(".progress-dot.current")).toHaveCount(0);
     } else {
       await expectIntroShowing(page, i + 1);
+      await expect(page.locator("[data-progress-fraction]")).toHaveText(`${i + 2}/${doorLevels.length}`);
       await startPlaying(page);
     }
   }
@@ -306,6 +313,7 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
   await page.click("#play-again-btn");
   await expect(summary).not.toBeVisible();
   await expectIntroShowing(page, 0);
+  await expect(page.locator("[data-progress-fraction]")).toHaveText("1/3");
 
   await startPlaying(page);
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${doorLevels[0].idiom.meaning}"`);
