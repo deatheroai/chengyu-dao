@@ -27,8 +27,11 @@
       <!-- 2026-08-25: the balloon-sentence stage that follows each idiom's
            door — its own DOM chrome, shown/hidden in lockstep with the
            door stage's (main.ts's showDoorStageUI/showBalloonStageUI) so
-           only one stage's prompt/controls are visible+interactable at a
-           time, even though both stages share this one page/canvas. -->
+           only one stage's prompt is visible at a time, even though both
+           stages share this one page/canvas. 2026-08-26: no on-screen
+           movement buttons — dragging the avatar directly (handled
+           entirely inside BalloonSentenceScene via Phaser's own pointer
+           input on the canvas) replaced the earlier fixed d-pad. -->
       <div id="balloon-ui-layer" class="stage-hidden">
         <p id="balloon-prompt"></p>
         <div id="balloon-status" aria-live="polite" data-resolved="false"></div>
@@ -36,14 +39,6 @@
       <!-- Test-only hook mirroring the free-drift avatar's position,
            same purpose as #player-position above. -->
       <div id="balloon-position" data-x="0" data-y="0" style="display: none" aria-hidden="true"></div>
-      <div id="flight-controls-layer" class="stage-hidden">
-        <div class="dpad">
-          <button id="fly-up-btn" class="dpad-btn dpad-up" type="button" aria-label="Fly up">▲</button>
-          <button id="fly-left-btn" class="dpad-btn dpad-left" type="button" aria-label="Fly left">◀</button>
-          <button id="fly-right-btn" class="dpad-btn dpad-right" type="button" aria-label="Fly right">▶</button>
-          <button id="fly-down-btn" class="dpad-btn dpad-down" type="button" aria-label="Fly down">▼</button>
-        </div>
-      </div>
       <div id="session-summary-card">
         <div class="card">
           <p class="headline">You solved 3 idioms today! 🎉</p>

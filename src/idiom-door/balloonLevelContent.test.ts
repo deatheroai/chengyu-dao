@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { balloonLevels, buildBalloonLevel, DISTRACTOR_COUNT, CELL_JITTER_FRACTION } from "./balloonLevelContent";
+import { BALLOON_COLORWAYS } from "./balloonColors";
 
 describe("balloonLevels data integrity", () => {
   it("has one level per door-puzzle idiom", () => {
@@ -55,6 +56,15 @@ describe("balloonLevels data integrity", () => {
           expect(balloon.bobPhase).toBeGreaterThanOrEqual(0);
           expect(balloon.bobPhase).toBeLessThan(Math.PI * 2);
         }
+      });
+
+      it("every balloon gets a distinct, valid colorway index — color never repeats within a level and never hints at the answer", () => {
+        for (const balloon of level.balloons) {
+          expect(balloon.colorIndex).toBeGreaterThanOrEqual(0);
+          expect(balloon.colorIndex).toBeLessThan(BALLOON_COLORWAYS.length);
+        }
+        const colorIndices = level.balloons.map((b) => b.colorIndex);
+        expect(new Set(colorIndices).size).toBe(colorIndices.length);
       });
     });
   }

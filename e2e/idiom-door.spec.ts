@@ -252,7 +252,7 @@ test("the balloon stage shows the idiom-specific prompt, and flying around event
   await expect(page.locator("#balloon-status")).toHaveText("That's the one! Great reading. 🎈");
 });
 
-test("the on-screen flight d-pad moves the avatar the same as the keyboard", async ({ page }) => {
+test("dragging the pointer steers the avatar toward it (2026-08-26: replaced the on-screen d-pad)", async ({ page }) => {
   test.setTimeout(150000);
   await page.goto("/idiom-door.html");
   await startPlaying(page);
@@ -260,12 +260,21 @@ test("the on-screen flight d-pad moves the avatar the same as the keyboard", asy
   await expectBalloonStageShowing(page, 0);
 
   const x1 = Number(await page.locator("#balloon-position").getAttribute("data-x"));
-  const btn = page.locator("#fly-right-btn");
-  for (let i = 0; i < 6; i++) {
-    await btn.dispatchEvent("pointerdown");
-    await page.waitForTimeout(150);
-    await btn.dispatchEvent("pointerup");
-  }
+  const canvas = page.locator("#game-container canvas");
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("canvas has no bounding box");
+
+  // Press down roughly where the avatar starts (center), then drag
+  // toward the right edge — the avatar should steer toward wherever the
+  // pointer currently is, same physics as a held keyboard direction.
+  const startX = box.x + box.width / 2;
+  const startY = box.y + box.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 20, startY, { steps: 5 });
+  await page.waitForTimeout(700);
+  await page.mouse.up();
+
   const x2 = Number(await page.locator("#balloon-position").getAttribute("data-x"));
   expect(x2).toBeGreaterThan(x1);
 });

@@ -51,22 +51,22 @@ function showSummary(completedHanzi: string[]): void {
   card.classList.add("visible");
 }
 
-/** Toggles which stage's DOM chrome (prompt/status chip + on-screen
- * controls) is visible — the door puzzle and balloon stage share the
- * same page/canvas rather than being separate HTML files, so only one
- * stage's controls should ever be interactable at a time. */
+/** Toggles which stage's DOM chrome (prompt/status chip) is visible —
+ * the door puzzle and balloon stage share the same page/canvas rather
+ * than being separate HTML files. The balloon stage has no on-screen
+ * movement controls to toggle (2026-08-26: dragging the avatar
+ * directly replaced the on-screen d-pad, handled entirely inside
+ * BalloonSentenceScene via Phaser's own pointer input). */
 function showDoorStageUI(): void {
   document.getElementById("catch-ui-layer")?.classList.remove("stage-hidden");
   document.getElementById("controls-layer")?.classList.remove("stage-hidden");
   document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
-  document.getElementById("flight-controls-layer")?.classList.add("stage-hidden");
 }
 
 function showBalloonStageUI(): void {
   document.getElementById("catch-ui-layer")?.classList.add("stage-hidden");
   document.getElementById("controls-layer")?.classList.add("stage-hidden");
   document.getElementById("balloon-ui-layer")?.classList.remove("stage-hidden");
-  document.getElementById("flight-controls-layer")?.classList.remove("stage-hidden");
 }
 
 function bootstrap(): void {
@@ -97,7 +97,6 @@ function bootstrap(): void {
   game.scene.add("IdiomDoorScene", IdiomDoorScene, false);
   game.scene.add("BalloonSentenceScene", BalloonSentenceScene, false);
   const doorScene = () => game.scene.getScene("IdiomDoorScene") as import("./IdiomDoorScene").IdiomDoorScene | null;
-  const balloonScene = () => game.scene.getScene("BalloonSentenceScene") as import("./BalloonSentenceScene").BalloonSentenceScene | null;
 
   showDoorStageUI();
 
@@ -191,23 +190,6 @@ function bootstrap(): void {
   document.getElementById("reveal-english-btn")?.addEventListener("click", () => {
     document.querySelector("[data-intro-meaning-en]")?.classList.remove("hidden");
   });
-
-  const wireFlightButton = (btnId: string, direction: "left" | "right" | "up" | "down"): void => {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    const setPressed = (pressed: boolean) => balloonScene()?.setFlightInput(direction, pressed);
-    btn.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      setPressed(true);
-    });
-    btn.addEventListener("pointerup", () => setPressed(false));
-    btn.addEventListener("pointerleave", () => setPressed(false));
-    btn.addEventListener("pointercancel", () => setPressed(false));
-  };
-  wireFlightButton("fly-up-btn", "up");
-  wireFlightButton("fly-down-btn", "down");
-  wireFlightButton("fly-left-btn", "left");
-  wireFlightButton("fly-right-btn", "right");
 
   document.getElementById("play-again-btn")?.addEventListener("click", () => {
     completedHanzi.length = 0;

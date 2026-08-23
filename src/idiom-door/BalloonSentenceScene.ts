@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { attemptBalloonCatch, initialBalloonCatchState, type BalloonCatchState } from "./balloonCatchProgress";
 import { updateBalloonStatus } from "./balloonStatus";
 import { CELL_JITTER_FRACTION, type BalloonLevel, type BalloonDef } from "./balloonLevelContent";
+import { BALLOON_COLORWAYS } from "./balloonColors";
 import { drawPlayerFigure } from "../shared/playerFigure";
 import { updateBalloonPosition } from "./balloonPositionStatus";
 import { stepFlight, type FlightState, type FlightConfig } from "./balloonPhysics";
@@ -14,9 +15,7 @@ export interface BalloonSentenceSceneData {
 const SKY_TOP = 0xbfe6ff;
 const SKY_BOTTOM = 0xeef9ff;
 const CLOUD_COLOR = 0xffffff;
-const BALLOON_FILL = 0xfff1d6;
-const BALLOON_BORDER = 0xf0b429;
-const BALLOON_TEXT = "#5b4636";
+const BALLOON_TEXT = "#4a3420";
 const SPARK_COLOR = 0xffd76a;
 
 const CHAR_SIZE = 60;
@@ -64,6 +63,10 @@ const AVATAR_MARGIN = 70;
 const AVATAR_ACCEL = 900;
 const AVATAR_MAX_SPEED = 260;
 const AVATAR_DRAG = 2.4;
+// World px — how close the avatar has to be to a dragged pointer target
+// before it's treated as "arrived" rather than still steering toward
+// it, avoiding a jittery divide-by-near-zero direction right at the end.
+const POINTER_DEADZONE = 6;
 
 interface RuntimeBalloon {
   def: BalloonDef;
@@ -93,7 +96,14 @@ export class BalloonSentenceScene extends Phaser.Scene {
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: { w: Phaser.Input.Keyboard.Key; a: Phaser.Input.Keyboard.Key; s: Phaser.Input.Keyboard.Key; d: Phaser.Input.Keyboard.Key };
-  private touchInput = { left: false, right: false, up: false, down: false };
+  // Dragging the avatar directly (per your 2026-08-26 feedback,
+  // replacing a fixed on-screen d-pad): while the pointer is down,
+  // the avatar steers toward wherever it currently is, using the same
+  // floaty acceleration physics as keyboard input — not an instant
+  // teleport to the pointer, which would undercut the "weighty" feel.
+  private pointerActive = false;
+  private pointerTargetX = 0;
+  private pointerTargetY = 0;
   private resolved = false;
 
   constructor() {
@@ -105,7 +115,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
     this.onResolved = data.onResolved;
     this.catchState = initialBalloonCatchState();
     this.balloons = [];
-    this.touchInput = { left: false, right: false, up: false, down: false };
+    this.pointerActive = false;
     this.resolved = false;
   }
 
@@ -130,11 +140,6 @@ export class BalloonSentenceScene extends Phaser.Scene {
       this.renderBackground();
       this.updateCameraScroll();
     });
-  }
-
-  // --- Public methods for the on-screen touch controls (main.ts) ---
-  setFlightInput(direction: "left" | "right" | "up" | "down", pressed: boolean): void {
-    this.touchInput[direction] = pressed;
   }
 
   private renderBackground(): void {
@@ -271,19 +276,20 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const gfx = this.add.graphics();
     // A rounded "balloon card" (body) plus a thin string and knot below
     // it — reads as a balloon while giving a wrapped sentence proper
-    // square corners to use. Every balloon (correct or decoy) is styled
-    // identically: the child has to judge the *sentence*, not spot a
-    // different color.
-    gfx.fillStyle(BALLOON_FILL, 0.97);
+    // square corners to use. Color is randomized per balloon (never
+    // tied to isCorrect — see balloonLevelContent.ts's colorIndex): the
+    // child has to judge the *sentence*, not learn to spot a color.
+    const colorway = BALLOON_COLORWAYS[def.colorIndex % BALLOON_COLORWAYS.length];
+    gfx.fillStyle(colorway.fill, 0.97);
     gfx.fillRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
-    gfx.lineStyle(3, BALLOON_BORDER, 0.9);
+    gfx.lineStyle(3, colorway.border, 0.9);
     gfx.strokeRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
-    gfx.lineStyle(2, BALLOON_BORDER, 0.7);
+    gfx.lineStyle(2, colorway.border, 0.7);
     gfx.beginPath();
     gfx.moveTo(0, halfH - 2);
     gfx.lineTo(0, halfH + 14);
     gfx.strokePath();
-    gfx.fillStyle(BALLOON_BORDER, 0.8);
+    gfx.fillStyle(colorway.border, 0.8);
     gfx.fillTriangle(-5, halfH + 14, 5, halfH + 14, 0, halfH + 22);
     container.add(gfx);
 
@@ -320,21 +326,51 @@ export class BalloonSentenceScene extends Phaser.Scene {
     // up with the lowercase field names on `wasdKeys` above, rather
     // than silently returning `undefined` for `.w`/`.a`/`.s`/`.d`.
     this.wasdKeys = this.input.keyboard!.addKeys("w,a,s,d") as typeof this.wasdKeys;
+
+    // Drag anywhere to steer the avatar directly (per your 2026-08-26
+    // feedback, replacing a fixed on-screen d-pad) — `pointer.worldX/Y`
+    // already accounts for the camera's current scroll, so this tracks
+    // correctly regardless of where in the (content-sized) world the
+    // camera happens to be looking.
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      this.pointerActive = true;
+      this.pointerTargetX = pointer.worldX;
+      this.pointerTargetY = pointer.worldY;
+    });
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (!this.pointerActive) return;
+      this.pointerTargetX = pointer.worldX;
+      this.pointerTargetY = pointer.worldY;
+    });
+    this.input.on("pointerup", () => {
+      this.pointerActive = false;
+    });
   }
 
   update(_time: number, delta: number): void {
     if (this.resolved) return;
     const dt = delta / 1000;
 
-    const input = {
-      left: this.cursors.left!.isDown || this.wasdKeys.a.isDown || this.touchInput.left,
-      right: this.cursors.right!.isDown || this.wasdKeys.d.isDown || this.touchInput.right,
-      up: this.cursors.up!.isDown || this.wasdKeys.w.isDown || this.touchInput.up,
-      down: this.cursors.down!.isDown || this.wasdKeys.s.isDown || this.touchInput.down,
-    };
+    let ax = 0;
+    let ay = 0;
+    if (this.pointerActive) {
+      const dx = this.pointerTargetX - this.avatar.x;
+      const dy = this.pointerTargetY - this.avatar.y;
+      const dist = Math.hypot(dx, dy);
+      // Below the deadzone, treat as "arrived" rather than dividing by
+      // a near-zero distance — avoids jittering in place once the
+      // avatar reaches wherever it was dragged toward.
+      if (dist > POINTER_DEADZONE) {
+        ax = dx / dist;
+        ay = dy / dist;
+      }
+    } else {
+      ax = (this.cursors.right!.isDown || this.wasdKeys.d.isDown ? 1 : 0) - (this.cursors.left!.isDown || this.wasdKeys.a.isDown ? 1 : 0);
+      ay = (this.cursors.down!.isDown || this.wasdKeys.s.isDown ? 1 : 0) - (this.cursors.up!.isDown || this.wasdKeys.w.isDown ? 1 : 0);
+    }
 
     const prevAvatar = this.avatar;
-    this.avatar = stepFlight(this.avatar, input, dt, this.flightConfig);
+    this.avatar = stepFlight(this.avatar, { ax, ay }, dt, this.flightConfig);
     this.avatarContainer.setPosition(this.avatar.x, this.avatar.y);
 
     this.checkCatches(prevAvatar);

@@ -2,6 +2,7 @@ import type { IdiomContent } from "../idioms/types";
 import { idioms } from "../idioms/idioms";
 import { buildApplicationCheck, type ApplicationCheckOption } from "../meaning-check/applicationCheck";
 import { createRng, seedFromString, randRange } from "./seededRandom";
+import { BALLOON_COLORWAYS } from "./balloonColors";
 
 export interface BalloonDef {
   id: string;
@@ -35,6 +36,11 @@ export interface BalloonDef {
   /** Radians — random per-balloon phase offset so every balloon's bob
    * animation isn't perfectly synchronized. */
   bobPhase: number;
+  /** Index into BALLOON_COLORWAYS — randomized per balloon (never tied
+   * to `isCorrect`, so color never hints at the answer), and guaranteed
+   * distinct within a level as long as there are at least as many
+   * colorways as balloons, for a proper rainbow-of-balloons look. */
+  colorIndex: number;
 }
 
 export interface BalloonLevel {
@@ -98,6 +104,14 @@ export function buildBalloonLevel(idiomId: string): BalloonLevel {
     options.map((_, i) => i),
     rng,
   );
+  // Shuffled once per level and sliced to `total` — guarantees every
+  // balloon in a level gets a *distinct* color (as long as there are at
+  // least as many colorways as balloons), rather than risking two
+  // colors repeating by chance.
+  const colorOrder = fisherYatesShuffle(
+    BALLOON_COLORWAYS.map((_, i) => i),
+    rng,
+  );
 
   const balloons: BalloonDef[] = options.map((opt, i) => ({
     id: `balloon-${idiom.id}-${i}`,
@@ -109,6 +123,7 @@ export function buildBalloonLevel(idiomId: string): BalloonLevel {
     jitterX: randRange(rng, -CELL_JITTER_FRACTION, CELL_JITTER_FRACTION),
     jitterY: randRange(rng, -CELL_JITTER_FRACTION, CELL_JITTER_FRACTION),
     bobPhase: randRange(rng, 0, Math.PI * 2),
+    colorIndex: colorOrder[i % colorOrder.length],
   }));
 
   return { idiom, balloons };

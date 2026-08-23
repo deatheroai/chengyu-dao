@@ -33,16 +33,31 @@ export interface FlightConfig {
   bounds: FlightBounds;
 }
 
+/**
+ * A continuous direction, not four booleans — per your 2026-08-26
+ * feedback, movement is driven by dragging the avatar directly (or
+ * steering toward wherever the pointer is) rather than pressing
+ * discrete up/down/left/right buttons, so the input itself needs to
+ * support any angle, not just the 8 a button-based scheme allows.
+ * Keyboard arrows/WASD still work too — the Scene just maps them to
+ * `ax`/`ay` of exactly -1, 0, or 1. Each axis should stay within
+ * [-1, 1]; `stepFlight` defensively re-normalizes if the combined
+ * magnitude exceeds 1 (e.g. an unnormalized "toward the pointer"
+ * vector), so callers don't have to get that exactly right themselves.
+ */
 export interface FlightInput {
-  left: boolean;
-  right: boolean;
-  up: boolean;
-  down: boolean;
+  ax: number;
+  ay: number;
 }
 
 export function stepFlight(state: FlightState, input: FlightInput, dt: number, cfg: FlightConfig): FlightState {
-  const ax = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-  const ay = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+  let ax = input.ax;
+  let ay = input.ay;
+  const inputMagnitude = Math.hypot(ax, ay);
+  if (inputMagnitude > 1) {
+    ax /= inputMagnitude;
+    ay /= inputMagnitude;
+  }
 
   let vx = state.vx + ax * cfg.accel * dt;
   let vy = state.vy + ay * cfg.accel * dt;

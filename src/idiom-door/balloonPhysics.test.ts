@@ -8,7 +8,7 @@ const cfg: FlightConfig = {
   bounds: { minX: 0, maxX: 900, minY: 0, maxY: 500 },
 };
 
-const noInput: FlightInput = { left: false, right: false, up: false, down: false };
+const noInput: FlightInput = { ax: 0, ay: 0 };
 const start: FlightState = { x: 400, y: 250, vx: 0, vy: 0 };
 
 describe("stepFlight", () => {
@@ -20,28 +20,40 @@ describe("stepFlight", () => {
     expect(next.vy).toBe(0);
   });
 
-  it("accelerates in the pressed direction", () => {
-    const next = stepFlight(start, { ...noInput, right: true }, 1 / 60, cfg);
+  it("accelerates in the input direction", () => {
+    const next = stepFlight(start, { ax: 1, ay: 0 }, 1 / 60, cfg);
     expect(next.vx).toBeGreaterThan(0);
     expect(next.x).toBeGreaterThan(start.x);
   });
 
-  it("opposite-direction inputs cancel out", () => {
-    const next = stepFlight(start, { ...noInput, left: true, right: true }, 1 / 60, cfg);
-    expect(next.vx).toBe(0);
+  it("supports any angle, not just the 8 a button-based scheme would allow", () => {
+    // A diagonal-ish but not-45-degree direction, as "steer toward the
+    // pointer" naturally produces.
+    const next = stepFlight(start, { ax: 0.6, ay: -0.8 }, 1 / 60, cfg);
+    expect(next.vx).toBeGreaterThan(0);
+    expect(next.vy).toBeLessThan(0);
+    // Ratio of the resulting velocity components should match the
+    // input direction's ratio (both start from zero velocity).
+    expect(next.vx / -next.vy).toBeCloseTo(0.6 / 0.8, 5);
+  });
+
+  it("re-normalizes an input whose combined magnitude exceeds 1, rather than trusting the caller", () => {
+    const next = stepFlight(start, { ax: 3, ay: 4 }, 1 / 60, cfg); // magnitude 5
+    const normalized = stepFlight(start, { ax: 3 / 5, ay: 4 / 5 }, 1 / 60, cfg);
+    expect(next).toEqual(normalized);
   });
 
   it("never exceeds maxSpeed even after sustained acceleration", () => {
     let state = start;
     for (let i = 0; i < 300; i++) {
-      state = stepFlight(state, { ...noInput, right: true, down: true }, 1 / 60, cfg);
+      state = stepFlight(state, { ax: 1, ay: 1 }, 1 / 60, cfg);
     }
     const speed = Math.hypot(state.vx, state.vy);
     expect(speed).toBeLessThanOrEqual(cfg.maxSpeed + 1e-6);
   });
 
   it("decays velocity toward zero once input stops (drag)", () => {
-    let state = stepFlight(start, { ...noInput, right: true }, 1 / 60, cfg);
+    let state = stepFlight(start, { ax: 1, ay: 0 }, 1 / 60, cfg);
     const movingSpeed = Math.hypot(state.vx, state.vy);
     expect(movingSpeed).toBeGreaterThan(0);
     for (let i = 0; i < 120; i++) {
@@ -75,8 +87,8 @@ describe("stepFlight", () => {
   });
 
   it("is deterministic: same state/input/dt/config always produces the same result", () => {
-    const a = stepFlight(start, { ...noInput, up: true, left: true }, 1 / 60, cfg);
-    const b = stepFlight(start, { ...noInput, up: true, left: true }, 1 / 60, cfg);
+    const a = stepFlight(start, { ax: -1, ay: -1 }, 1 / 60, cfg);
+    const b = stepFlight(start, { ax: -1, ay: -1 }, 1 / 60, cfg);
     expect(a).toEqual(b);
   });
 });

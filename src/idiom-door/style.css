@@ -135,52 +135,6 @@ body {
   min-height: 1.1em;
 }
 
-#flight-controls-layer {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 0 0 calc(1.25rem + env(safe-area-inset-bottom));
-  display: flex;
-  justify-content: center;
-}
-
-.dpad {
-  display: grid;
-  grid-template-columns: repeat(3, 3.1rem);
-  grid-template-rows: repeat(3, 3.1rem);
-  gap: 0.3rem;
-}
-
-.dpad-btn {
-  border: none;
-  border-radius: 14px;
-  background: rgba(120, 175, 225, 0.9);
-  color: #1e3a52;
-  font-size: 1.15rem;
-  font-weight: 700;
-  touch-action: none;
-  user-select: none;
-}
-.dpad-btn:active {
-  background: #4f86b8;
-}
-.dpad-up {
-  grid-column: 2;
-  grid-row: 1;
-}
-.dpad-left {
-  grid-column: 1;
-  grid-row: 2;
-}
-.dpad-right {
-  grid-column: 3;
-  grid-row: 2;
-}
-.dpad-down {
-  grid-column: 2;
-  grid-row: 3;
-}
 
 #session-summary-card,
 #level-intro-card {
