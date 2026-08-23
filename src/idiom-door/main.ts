@@ -98,6 +98,33 @@ function bootstrap(): void {
   game.scene.add("BalloonSentenceScene", BalloonSentenceScene, false);
   const doorScene = () => game.scene.getScene("IdiomDoorScene") as import("./IdiomDoorScene").IdiomDoorScene | null;
 
+  // Starting one of these two gameplay scenes never automatically stops
+  // the other — Phaser happily runs both concurrently unless told
+  // otherwise. 2026-08-27 feedback: the balloon stage's sky (still
+  // animating its bobbing tweens) stayed visible/distracting behind the
+  // next level's intro card. Fixed by stopping a scene the moment we
+  // know we're *leaving* it (handleDoorReached/afterBalloonStage below)
+  // rather than only whenever the next scene happens to actually start
+  // — the intro card can sit on screen for as long as the child takes
+  // to press Start, so waiting until then left the outgoing scene
+  // running (and rendering) the whole time.
+  //
+  // Deferred a tick (setTimeout 0), not called immediately: both call
+  // sites fire *from inside* the scene being stopped's own frame step
+  // (IdiomDoorScene's fast-forward-dash tween callback, and
+  // BalloonSentenceScene's resolve `time.delayedCall`) — stopping a
+  // scene synchronously from within its own still-in-progress step
+  // tears down its camera/systems before Phaser's per-frame loop is
+  // done using them, crashing with "Cannot set properties of undefined
+  // (setting 'scrollX')" the moment that scene's `update()` is reached
+  // later in the same step. Breaking out to a fresh task lets the
+  // current step finish cleanly first.
+  const stopGameplayScene = (key: "IdiomDoorScene" | "BalloonSentenceScene"): void => {
+    setTimeout(() => {
+      if (game.scene.isActive(key)) game.scene.stop(key);
+    }, 0);
+  };
+
   showDoorStageUI();
 
   // Actually starts the Phaser scene running (the character begins
@@ -163,10 +190,23 @@ function bootstrap(): void {
   };
 
   const handleDoorReached = (finishedIndex: number): void => {
+    stopGameplayScene("IdiomDoorScene");
+    // Hide the door stage's own chrome immediately too, not just its
+    // Phaser scene — otherwise its prompt/status text kept showing
+    // (behind the balloon stage's own, now-doubled-up) until the
+    // *next* door level actually began.
+    document.getElementById("catch-ui-layer")?.classList.add("stage-hidden");
+    document.getElementById("controls-layer")?.classList.add("stage-hidden");
     beginBalloonStage(finishedIndex);
   };
 
   const afterBalloonStage = (finishedIndex: number): void => {
+    stopGameplayScene("BalloonSentenceScene");
+    // Same reasoning as handleDoorReached above: hide this stage's own
+    // chrome the moment we're leaving it, not just its Phaser scene —
+    // otherwise its prompt/status text kept showing behind the next
+    // level's intro card until Start was pressed.
+    document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
     completedHanzi.push(doorLevels[finishedIndex].idiom.hanzi);
     const next = finishedIndex + 1;
     if (next < doorLevels.length) {
