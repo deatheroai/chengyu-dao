@@ -86,19 +86,33 @@ const DECOYS_PER_CHARACTER = 3;
 // correct next character shows up more often no matter how the shuffle
 // falls.
 //
-// The *order* tiles are assigned to slots (which is what actually
-// creates the jumbled look) comes from sorting every tile by a
-// "sortKey" centered on its own character's index, plus random jitter
-// that deliberately overlaps into neighboring characters' territory.
-// Solvability doesn't depend on that shuffle at all: for every
-// character after the first, exactly one of its copies (the "anchor")
-// gets sortKey === charIndex with no jitter, and since anchor keys are
-// spaced exactly 1 apart in strictly increasing character order, the
-// anchors alone always sort into a valid, complete, in-order path
-// through the level — regardless of where every other (freely
-// jittered) tile and decoy ends up. See levelContent.test.ts's
-// greedy-playthrough solvability check, which exercises this directly
-// against the real generated content rather than trusting the proof.
+// 2026-08-23 (later) feedback: an earlier version of this layout
+// jittered each tile's slot around its own character's index (±1.3
+// slots), which unintentionally made the track *harder to predict but
+// easier to pace* — since a character's tiles mostly stayed near their
+// own neighborhood, each successive character ended up structurally
+// farther out than the last (more accumulated repeats+decoys sort
+// ahead of it the later its index is), so the 3rd/4th characters could
+// take noticeably longer to reach than the 1st/2nd, purely as a side
+// effect of the layout, not by design. Confirmed via a Monte Carlo run
+// of the old formula: average distance-to-catch climbed steadily
+// (~90px → ~980px → ~1620px → ~1790px across the four characters).
+//
+// This version removes that correlation entirely per your "all four
+// jumbled up, even 3rd/4th next to 1st/2nd" request: every tile except
+// one guaranteed "anchor" per character is placed by a single flat
+// Fisher-Yates shuffle across the *entire* track, with zero regard for
+// which character it belongs to or when it was generated — a
+// character's repeats can land anywhere from the very first slot to
+// the very last. Solvability still doesn't depend on that shuffle: one
+// anchor tile per character is reserved and dropped into a random slot
+// within that character's own quarter of the track (so anchors alone
+// still sort into a valid, complete, in-order path — just a much more
+// loosely-spaced one than the old "exactly 1 apart" jitter allowed),
+// and every other tile (extra repeats + all decoys, from every
+// character) is shuffled freely into whatever slots are left. See
+// levelContent.test.ts's greedy-playthrough solvability check, which
+// exercises this directly against the real generated content.
 const SLOT_WIDTH = 180;
 const SLOT_JITTER = 35;
 // Worst-case gap between two adjacent tiles' centers once jitter is
@@ -106,12 +120,6 @@ const SLOT_JITTER = 35;
 // actually holds against the real generated content, not just in
 // theory.
 export const MIN_SLOT_GAP = SLOT_WIDTH - 2 * SLOT_JITTER;
-// How far (in character-index units) a non-anchor tile's sortKey can
-// drift from its own character's index — large enough to mix solidly
-// into both neighbors' territory (this is what makes the layout feel
-// jumbled rather than neatly sequential) without needing to reach a
-// second character away.
-const SORT_JITTER = 1.3;
 
 const START_OFFSET = 260;
 const END_PADDING = 500;
@@ -125,7 +133,6 @@ interface Obligation {
   pinyin: string;
   correctIndex?: number;
   sourceIdiomId: string;
-  sortKey: number;
   id: string;
 }
 
@@ -141,19 +148,20 @@ function fisherYatesShuffle<T>(items: T[], rng: () => number): T[] {
 /**
  * Builds one auto-runner level. For each of the idiom's characters (in
  * order), a randomized 5-9 repeats plus DECOYS_PER_CHARACTER decoys
- * drawn from other idioms are generated as "obligations," each given a
- * sortKey centered on that character's index (jittered, except for one
- * guaranteed "anchor" repeat per character). Sorting all obligations by
- * that key and then laying them out on evenly-spaced track slots (in
- * that sorted order) produces a track that's genuinely jumbled and
- * mixed together, provably solvable, and physically non-overlapping —
- * all from one pass, rather than random placement plus after-the-fact
- * rejection sampling. Positions/heights/angles are all driven by a PRNG
- * seeded from the idiom's own id, so the layout looks organic but is
- * still exactly reproducible — same "author real content, don't
- * procedurally generate it at runtime" approach as the rest of this
- * project (a fixed seed *is* the authored content here, same as a fixed
- * number would be), which also keeps unit/E2E tests exact.
+ * drawn from other idioms are generated. One repeat per character is
+ * held out as its "anchor" and dropped into a random slot within that
+ * character's own quarter of the track — since the four quarters are
+ * strictly increasing ranges, the four anchors alone always form a
+ * valid, complete, in-order path through the level, regardless of
+ * where anything else lands. Every other tile (the remaining repeats
+ * *and* every decoy, pooled together across all four characters) is
+ * shuffled with one flat Fisher-Yates pass and dropped into whatever
+ * slots are left — so a given character's tiles are otherwise
+ * completely uncorrelated with track position: the 3rd or 4th
+ * character's repeats can land right at the start, next to the 1st
+ * and 2nd's, and vice versa. See levelContent.test.ts's
+ * greedy-playthrough solvability check, which exercises this directly
+ * against the real generated content rather than trusting the proof.
  */
 function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
   const idiom = getIdiom(idiomId);
@@ -172,44 +180,62 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
   const shuffledDecoys = fisherYatesShuffle(validDecoys, rng);
   const idiomSyllables = idiom.pinyin.split(" ");
 
-  const obligations: Obligation[] = [];
+  const anchors: Obligation[] = [];
+  const free: Obligation[] = [];
   let decoyCursor = 0;
 
   chars.forEach((char, correctIndex) => {
     const repeatCount = randInt(rng, MIN_REPEATS_PER_CHARACTER, MAX_REPEATS_PER_CHARACTER);
     for (let r = 0; r < repeatCount; r++) {
-      const isAnchor = r === 0;
-      obligations.push({
+      const tile: Obligation = {
         char,
         pinyin: idiomSyllables[correctIndex] ?? "",
         correctIndex,
         sourceIdiomId: idiom.id,
-        // The anchor's sortKey is exactly correctIndex — no jitter —
-        // so anchors always sort in strict character order regardless
-        // of anything else. Every other repeat is free to drift.
-        sortKey: isAnchor ? correctIndex : correctIndex + randRange(rng, -SORT_JITTER, SORT_JITTER),
         id: `${idiom.id}-${correctIndex}-${r}`,
-      });
+      };
+      // Exactly one repeat per character is reserved as its anchor
+      // (see buildLevel's doc comment above); every other repeat is
+      // free to land anywhere on the track.
+      (r === 0 ? anchors : free).push(tile);
     }
 
     for (let d = 0; d < DECOYS_PER_CHARACTER; d++) {
       const decoy = shuffledDecoys[decoyCursor % shuffledDecoys.length];
       decoyCursor++;
-      obligations.push({
+      free.push({
         char: decoy.char,
         pinyin: pinyinForChar(decoy.sourceIdiomId, decoy.char),
         sourceIdiomId: decoy.sourceIdiomId,
-        sortKey: correctIndex + randRange(rng, -SORT_JITTER, SORT_JITTER),
         id: `decoy-${idiom.id}-${correctIndex}-${d}`,
       });
     }
   });
 
-  // This is the whole "jumbling" step: sort by the (mostly-jittered)
-  // key, then lay the result out left-to-right onto the slot grid.
-  obligations.sort((a, b) => a.sortKey - b.sortKey);
+  const total = anchors.length + free.length;
+  const shuffledFree = fisherYatesShuffle(free, rng);
 
-  const tiles: LevelCharacterTile[] = obligations.map((ob, slotIndex) => {
+  // Split the track into as many equal quarters as there are anchors
+  // and give each anchor a random slot inside its own quarter — this
+  // is the only thing keeping the four characters in a solvable order;
+  // everything else is placed with zero regard for character identity.
+  const bySlot: (Obligation | undefined)[] = new Array(total).fill(undefined);
+  anchors.forEach((anchor, i) => {
+    const quarterStart = Math.round((total * i) / anchors.length);
+    const quarterEnd = Math.round((total * (i + 1)) / anchors.length);
+    const slot = randInt(rng, quarterStart, quarterEnd - 1);
+    bySlot[slot] = anchor;
+  });
+  let freeCursor = 0;
+  for (let slot = 0; slot < total; slot++) {
+    if (bySlot[slot] === undefined) {
+      bySlot[slot] = shuffledFree[freeCursor];
+      freeCursor++;
+    }
+  }
+
+  const tiles: LevelCharacterTile[] = bySlot.map((ob, slotIndex) => {
+    if (!ob) throw new Error(`${idiom.id}: slot ${slotIndex} was never filled`);
     const slotCenter = START_OFFSET + slotIndex * SLOT_WIDTH;
     return {
       id: ob.id,
@@ -223,7 +249,7 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
     };
   });
 
-  const length = START_OFFSET + obligations.length * SLOT_WIDTH + END_PADDING;
+  const length = START_OFFSET + total * SLOT_WIDTH + END_PADDING;
   return { idiom, tiles, length };
 }
 
