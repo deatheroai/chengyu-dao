@@ -51,10 +51,12 @@ describe("balloonLevels data integrity", () => {
         }
       });
 
-      it("every balloon's bob phase is a valid radian offset", () => {
+      it("every balloon's drift/string phases are valid radian offsets", () => {
         for (const balloon of level.balloons) {
-          expect(balloon.bobPhase).toBeGreaterThanOrEqual(0);
-          expect(balloon.bobPhase).toBeLessThan(Math.PI * 2);
+          for (const phase of [balloon.driftPhaseX, balloon.driftPhaseY, balloon.stringPhase]) {
+            expect(phase).toBeGreaterThanOrEqual(0);
+            expect(phase).toBeLessThan(Math.PI * 2);
+          }
         }
       });
 

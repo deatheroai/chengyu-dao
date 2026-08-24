@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { attemptBalloonCatch, initialBalloonCatchState, type BalloonCatchState } from "./balloonCatchProgress";
 import { updateBalloonStatus } from "./balloonStatus";
 import { CELL_JITTER_FRACTION, type BalloonLevel, type BalloonDef } from "./balloonLevelContent";
-import { BALLOON_COLORWAYS } from "./balloonColors";
+import { BALLOON_COLORWAYS, type BalloonColorway } from "./balloonColors";
 import { drawPlayerFigure } from "../shared/playerFigure";
 import { updateBalloonPosition } from "./balloonPositionStatus";
 import { stepFlight, type FlightState, type FlightConfig } from "./balloonPhysics";
@@ -33,6 +33,41 @@ const TEXT_GAP = 4;
 // is "did you fly into roughly the right balloon," not a pixel-precise
 // hitbox.
 const CATCH_RADIUS_SLOP = 20;
+
+// 2026-08-28 feedback: the balloons should feel like they're drifting
+// in a light wind, not just gently bobbing up and down — each balloon
+// now wanders in a slow ellipse around its grid slot (independent x/y
+// sine waves, phase-offset per balloon via driftPhaseX/Y so nothing
+// moves in lockstep) rather than a single fixed-amplitude vertical
+// tween. Wide enough to actually read as "wind," not just a wobble.
+const WIND_DRIFT_RADIUS_X = 22;
+const WIND_DRIFT_RADIUS_Y = 26;
+const WIND_DRIFT_FREQ_X = 0.5; // radians/sec
+const WIND_DRIFT_FREQ_Y = 0.38;
+
+// The string dangling below each balloon: a soft curve (not a straight
+// line + arrowhead — that read as a directional pointer, which this
+// isn't) ending in a small knot. It sways with its *own* independent
+// phase (stringPhase, a different random draw from the body's
+// driftPhaseX/Y) per your "let the string float freely, independently
+// of the balloon" request, so it flutters on its own timing layered on
+// top of whatever the body itself is doing.
+const STRING_LENGTH = 30;
+const STRING_LENGTH_SWAY = 6;
+const STRING_SWAY_RADIUS_X = 10;
+const STRING_SWAY_FREQ = 0.9;
+const STRING_KNOT_RADIUS = 4;
+
+// The avatar's outstretched reaching hand/arm — replaces "fly the whole
+// body into the balloon" with "reach a hand out toward it," per your
+// feedback. Points wherever the avatar is currently heading; below
+// REACH_SPEED_THRESHOLD (near-stationary) it holds a default up-and-
+// forward reach, like reaching for a balloon overhead, rather than
+// snapping to whatever tiny residual drift the physics have.
+const REACH_LENGTH = CHAR_SIZE * 0.62;
+const HAND_RADIUS = CHAR_SIZE * 0.1;
+const REACH_SPEED_THRESHOLD = 15;
+const DEFAULT_REACH_ANGLE = -Math.PI / 2.3;
 
 // Extra breathing room between grid cells beyond a balloon's own
 // measured half-extent, on top of balloonLevelContent.ts's jitter.
@@ -77,6 +112,16 @@ interface RuntimeBalloon {
    * the world's grid so every balloon actually fits its cell. */
   halfW: number;
   halfH: number;
+  /** The grid slot position (layoutBalloons) that the body's wind drift
+   * wanders around each frame — the container's actual position is
+   * this plus the current drift offset, recomputed in update(). */
+  baseX: number;
+  baseY: number;
+  /** Redrawn every frame (its curve depends on time) — kept separate
+   * from the balloon's own static body graphics so the string can sway
+   * independently without needing to redraw/reflow the body or text. */
+  stringGfx: Phaser.GameObjects.Graphics;
+  colorway: BalloonColorway;
 }
 
 export class BalloonSentenceScene extends Phaser.Scene {
@@ -92,6 +137,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
 
   private avatar!: FlightState;
   private avatarContainer!: Phaser.GameObjects.Container;
+  private armGfx!: Phaser.GameObjects.Graphics;
   private flightConfig!: FlightConfig;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -129,6 +175,9 @@ export class BalloonSentenceScene extends Phaser.Scene {
     this.setupFlightConfig();
     this.setupAvatar();
     this.setupInput();
+    // So the strings are already drawn (not blank) on the very first
+    // rendered frame, before update() has run once.
+    this.updateBalloonDrift(0);
 
     updateBalloonStatus(false);
     this.updateCameraScroll();
@@ -181,9 +230,9 @@ export class BalloonSentenceScene extends Phaser.Scene {
   private spawnBalloons(): void {
     this.balloonsLayer.removeAll(true);
     this.balloons = this.level.balloons.map((def) => {
-      const { container, halfW, halfH } = this.buildBalloon(def);
+      const { container, halfW, halfH, stringGfx, colorway } = this.buildBalloon(def);
       this.balloonsLayer.add(container);
-      return { def, container, touching: false, halfW, halfH };
+      return { def, container, touching: false, halfW, halfH, baseX: 0, baseY: 0, stringGfx, colorway };
     });
     this.layoutBalloons();
   }
@@ -204,9 +253,14 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const maxHalfH = Math.max(...this.balloons.map((b) => b.halfH));
     // Every cell is sized for this level's *largest* balloon, and to
     // guarantee no overlap even if two neighbors' jitter both happen to
-    // point toward each other — see JITTER_SAFE_FRACTION above.
-    const cellW = (maxHalfW * 2 + CELL_PADDING) / JITTER_SAFE_FRACTION;
-    const cellH = (maxHalfH * 2 + CELL_PADDING) / JITTER_SAFE_FRACTION;
+    // point toward each other — see JITTER_SAFE_FRACTION above. Also
+    // reserves room for the wind drift itself (WIND_DRIFT_RADIUS_X/Y):
+    // two adjacent balloons could in the worst case drift toward each
+    // other by their full radius at the same moment, so that has to be
+    // baked into the cell size the same way the static jitter is,
+    // rather than just hoping it stays clear in practice.
+    const cellW = (maxHalfW * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_X) / JITTER_SAFE_FRACTION;
+    const cellH = (maxHalfH * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_Y) / JITTER_SAFE_FRACTION;
 
     const cols = Math.ceil(Math.sqrt(total));
     const rows = Math.ceil(total / cols);
@@ -221,7 +275,12 @@ export class BalloonSentenceScene extends Phaser.Scene {
       const row = Math.floor(balloon.def.slotIndex / cols);
       const centerX = skyX0 + (col + 0.5) * cellW;
       const centerY = skyY0 + (row + 0.5) * cellH;
-      balloon.container.setPosition(centerX + balloon.def.jitterX * cellW, centerY + balloon.def.jitterY * cellH);
+      balloon.baseX = centerX + balloon.def.jitterX * cellW;
+      balloon.baseY = centerY + balloon.def.jitterY * cellH;
+      // update() overwrites this with base + drift every frame once
+      // running, but this keeps the very first rendered frame (before
+      // update() has run) in the right place rather than at (0, 0).
+      balloon.container.setPosition(balloon.baseX, balloon.baseY);
     }
   }
 
@@ -236,7 +295,13 @@ export class BalloonSentenceScene extends Phaser.Scene {
    * wrapped multi-line sentence actually has square corners to use
    * rather than an oval's curved ones cutting into it.
    */
-  private buildBalloon(def: BalloonDef): { container: Phaser.GameObjects.Container; halfW: number; halfH: number } {
+  private buildBalloon(def: BalloonDef): {
+    container: Phaser.GameObjects.Container;
+    halfW: number;
+    halfH: number;
+    stringGfx: Phaser.GameObjects.Graphics;
+    colorway: BalloonColorway;
+  } {
     const container = this.add.container(0, 0);
 
     // Word-wrap alone only breaks on whitespace by default, which never
@@ -274,23 +339,18 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const halfH = contentHeight / 2 + BALLOON_PAD_Y;
 
     const gfx = this.add.graphics();
-    // A rounded "balloon card" (body) plus a thin string and knot below
-    // it — reads as a balloon while giving a wrapped sentence proper
-    // square corners to use. Color is randomized per balloon (never
-    // tied to isCorrect — see balloonLevelContent.ts's colorIndex): the
-    // child has to judge the *sentence*, not learn to spot a color.
+    // A rounded "balloon card" body — reads as a balloon while giving a
+    // wrapped sentence proper square corners to use. Color is
+    // randomized per balloon (never tied to isCorrect — see
+    // balloonLevelContent.ts's colorIndex): the child has to judge the
+    // *sentence*, not learn to spot a color. The dangling string is a
+    // separate graphics object (below) since — unlike this body — it's
+    // redrawn every frame to sway independently.
     const colorway = BALLOON_COLORWAYS[def.colorIndex % BALLOON_COLORWAYS.length];
     gfx.fillStyle(colorway.fill, 0.97);
     gfx.fillRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
     gfx.lineStyle(3, colorway.border, 0.9);
     gfx.strokeRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
-    gfx.lineStyle(2, colorway.border, 0.7);
-    gfx.beginPath();
-    gfx.moveTo(0, halfH - 2);
-    gfx.lineTo(0, halfH + 14);
-    gfx.strokePath();
-    gfx.fillStyle(colorway.border, 0.8);
-    gfx.fillTriangle(-5, halfH + 14, 5, halfH + 14, 0, halfH + 22);
     container.add(gfx);
 
     hanziText.setPosition(0, -contentHeight / 2);
@@ -298,16 +358,10 @@ export class BalloonSentenceScene extends Phaser.Scene {
     container.add(hanziText);
     container.add(pinyinText);
 
-    this.tweens.add({
-      targets: container,
-      y: `+=${10 + Math.round(def.bobPhase * 2)}`,
-      duration: 1400 + Math.round(def.bobPhase * 200),
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
+    const stringGfx = this.add.graphics();
+    container.add(stringGfx);
 
-    return { container, halfW, halfH };
+    return { container, halfW, halfH, stringGfx, colorway };
   }
 
   private setupAvatar(): void {
@@ -317,6 +371,15 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const gfx = this.add.graphics();
     drawPlayerFigure(gfx, CHAR_SIZE);
     this.avatarContainer.add(gfx);
+    // The outstretched reaching hand — a separate graphics object,
+    // redrawn every frame (see updateReachingArm) since its direction
+    // follows wherever the avatar is currently heading. Kept out of
+    // the shared drawPlayerFigure so IdiomDoorScene's running figure
+    // is unaffected — this reach is specific to "flying toward a
+    // balloon's string," not the runner pose.
+    this.armGfx = this.add.graphics();
+    this.avatarContainer.add(this.armGfx);
+    this.updateReachingArm();
   }
 
   private setupInput(): void {
@@ -347,9 +410,12 @@ export class BalloonSentenceScene extends Phaser.Scene {
     });
   }
 
-  update(_time: number, delta: number): void {
+  update(time: number, delta: number): void {
     if (this.resolved) return;
     const dt = delta / 1000;
+    const t = time / 1000;
+
+    this.updateBalloonDrift(t);
 
     let ax = 0;
     let ay = 0;
@@ -372,6 +438,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const prevAvatar = this.avatar;
     this.avatar = stepFlight(this.avatar, { ax, ay }, dt, this.flightConfig);
     this.avatarContainer.setPosition(this.avatar.x, this.avatar.y);
+    this.updateReachingArm();
 
     this.checkCatches(prevAvatar);
     this.updateCameraScroll();
@@ -389,6 +456,80 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const maxScrollY = Math.max(0, this.worldH - height);
     this.cameras.main.scrollX = Phaser.Math.Clamp(this.avatar.x - width / 2, 0, maxScrollX);
     this.cameras.main.scrollY = Phaser.Math.Clamp(this.avatar.y - height / 2, 0, maxScrollY);
+  }
+
+  /**
+   * Moves every balloon's body along its own slow elliptical wind-drift
+   * path around its grid slot, then redraws its string swaying with a
+   * separate, independent phase — see the WIND_DRIFT_ and STRING_
+   * constants' comments above for why these are deliberately two uncoupled motions
+   * rather than one. `t` is scene time in seconds (not delta), so the
+   * motion is a pure function of time rather than something that could
+   * drift from accumulated per-frame rounding.
+   */
+  private updateBalloonDrift(t: number): void {
+    for (const balloon of this.balloons) {
+      const driftX = Math.sin(t * WIND_DRIFT_FREQ_X + balloon.def.driftPhaseX) * WIND_DRIFT_RADIUS_X;
+      const driftY = Math.sin(t * WIND_DRIFT_FREQ_Y + balloon.def.driftPhaseY) * WIND_DRIFT_RADIUS_Y;
+      balloon.container.setPosition(balloon.baseX + driftX, balloon.baseY + driftY);
+      this.redrawString(balloon, t);
+    }
+  }
+
+  /** Draws the string as a soft quadratic curve (sampled into short
+   * line segments — Phaser's Graphics has no direct curve-stroke call)
+   * from the balloon's bottom edge down to a small knot, both swaying
+   * with the balloon's own stringPhase. Coordinates are local to the
+   * balloon's container, so this sway is on top of (not instead of)
+   * whatever the body itself is doing via updateBalloonDrift. */
+  private redrawString(balloon: RuntimeBalloon, t: number): void {
+    const { stringGfx, halfH, def, colorway } = balloon;
+    const sway = t * STRING_SWAY_FREQ + def.stringPhase;
+    const swayX = Math.sin(sway) * STRING_SWAY_RADIUS_X;
+    const swayLen = STRING_LENGTH + Math.sin(sway * 0.7 + def.stringPhase) * STRING_LENGTH_SWAY;
+
+    const startX = 0;
+    const startY = halfH - 2;
+    const tipX = swayX;
+    const tipY = halfH + swayLen;
+    const ctrlX = swayX * 0.5;
+    const ctrlY = halfH + swayLen * 0.5;
+
+    stringGfx.clear();
+    stringGfx.lineStyle(2.5, colorway.border, 0.75);
+    stringGfx.beginPath();
+    stringGfx.moveTo(startX, startY);
+    const STEPS = 8;
+    for (let i = 1; i <= STEPS; i++) {
+      const u = i / STEPS;
+      const x = (1 - u) * (1 - u) * startX + 2 * (1 - u) * u * ctrlX + u * u * tipX;
+      const y = (1 - u) * (1 - u) * startY + 2 * (1 - u) * u * ctrlY + u * u * tipY;
+      stringGfx.lineTo(x, y);
+    }
+    stringGfx.strokePath();
+    stringGfx.lineStyle(2, colorway.border, 0.8);
+    stringGfx.strokeCircle(tipX, tipY, STRING_KNOT_RADIUS);
+  }
+
+  /** Points the avatar's outstretched hand wherever it's currently
+   * heading — reaching toward whatever balloon it's flying at, correct
+   * or not, so (like every other visual in this stage) it can't hint
+   * at the answer. Near-stationary, it holds a default up-and-forward
+   * reach rather than snapping toward whatever tiny residual drift the
+   * flight physics leave in `avatar.vx/vy`. */
+  private updateReachingArm(): void {
+    const speed = Math.hypot(this.avatar.vx, this.avatar.vy);
+    const angle = speed > REACH_SPEED_THRESHOLD ? Math.atan2(this.avatar.vy, this.avatar.vx) : DEFAULT_REACH_ANGLE;
+    const shoulderX = CHAR_SIZE * 0.1;
+    const shoulderY = -CHAR_SIZE * 0.02;
+    const handX = shoulderX + Math.cos(angle) * REACH_LENGTH;
+    const handY = shoulderY + Math.sin(angle) * REACH_LENGTH;
+
+    this.armGfx.clear();
+    this.armGfx.lineStyle(Math.max(2, CHAR_SIZE * 0.045), 0xf3c88f, 1);
+    this.armGfx.lineBetween(shoulderX, shoulderY, handX, handY);
+    this.armGfx.fillStyle(0xf3c88f, 1);
+    this.armGfx.fillCircle(handX, handY, HAND_RADIUS);
   }
 
   /**

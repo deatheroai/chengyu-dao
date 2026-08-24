@@ -33,9 +33,19 @@ export interface BalloonDef {
    * (see levelContent.ts's 2026-08-24 DECISIONS.md entry). */
   jitterX: number;
   jitterY: number;
-  /** Radians — random per-balloon phase offset so every balloon's bob
-   * animation isn't perfectly synchronized. */
-  bobPhase: number;
+  /** Radians — random per-balloon phase offsets for the body's own
+   * wind-drift wander (2026-08-28: replaced the old simple up-down bob
+   * per your "wider floating radius, like a light wind" feedback).
+   * Separate x/y phases give each balloon an elliptical, not just
+   * up-down, drift, and no two balloons move in lockstep. */
+  driftPhaseX: number;
+  driftPhaseY: number;
+  /** Radians — the dangling string's own phase offset, deliberately
+   * independent from driftPhaseX/Y (a different random draw, not
+   * derived from them) per your "let the string float freely,
+   * independently of the balloon" request — the string sways on its
+   * own timing rather than rigidly following the body's drift. */
+  stringPhase: number;
   /** Index into BALLOON_COLORWAYS — randomized per balloon (never tied
    * to `isCorrect`, so color never hints at the answer), and guaranteed
    * distinct within a level as long as there are at least as many
@@ -122,7 +132,9 @@ export function buildBalloonLevel(idiomId: string): BalloonLevel {
     slotIndex: slotOrder[i],
     jitterX: randRange(rng, -CELL_JITTER_FRACTION, CELL_JITTER_FRACTION),
     jitterY: randRange(rng, -CELL_JITTER_FRACTION, CELL_JITTER_FRACTION),
-    bobPhase: randRange(rng, 0, Math.PI * 2),
+    driftPhaseX: randRange(rng, 0, Math.PI * 2),
+    driftPhaseY: randRange(rng, 0, Math.PI * 2),
+    stringPhase: randRange(rng, 0, Math.PI * 2),
     colorIndex: colorOrder[i % colorOrder.length],
   }));
 
