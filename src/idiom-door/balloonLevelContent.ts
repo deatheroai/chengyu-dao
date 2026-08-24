@@ -142,9 +142,12 @@ export function buildBalloonLevel(idiomId: string): BalloonLevel {
 }
 
 // Same 3 idioms as levelContent.ts's doorLevels — this stage follows
-// each of those idiom's door, not a separate/different set.
+// each of those idiom's door, not a separate/different set. (2026-08-28:
+// swapped to a different trio per your "bored testing the same idioms"
+// feedback — see levelContent.ts's DECOY_POOL comment for which ones
+// and why.)
 export const balloonLevels: BalloonLevel[] = [
-  buildBalloonLevel("ba-miao-zhu-zhang"),
-  buildBalloonLevel("shu-neng-sheng-qiao"),
-  buildBalloonLevel("zhi-cuo-jiu-gai"),
+  buildBalloonLevel("yan-er-you-xin"),
+  buildBalloonLevel("zhu-ren-wei-le"),
+  buildBalloonLevel("wen-gu-zhi-xin"),
 ];

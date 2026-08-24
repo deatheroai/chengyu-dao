@@ -261,10 +261,26 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
  * question worth its own pass before extending this mechanic to the
  * rest of the 15 approved idioms, not something to guess at silently.
  *
+ * 2026-08-28: swapped from the original ba-miao-zhu-zhang/
+ * shu-neng-sheng-qiao/zhi-cuo-jiu-gai trio to this one per your "bored
+ * repeatedly testing on these same idioms" feedback — picked to keep
+ * the same "4 distinct characters" constraint while spreading across
+ * three different theme tags (honesty/kindness/wisdom, vs. the old
+ * set's focus/focus/honesty) for more thematic variety. The old trio
+ * stays in the decoy pool below rather than disappearing.
+ *
  * Drawn from the other 12 approved idioms' own characters (one entry
- * per distinct glyph) — expanded well past the original 3-character
- * pool per your 2026-08-23 "mixed with more decoy characters" feedback,
- * so a level's decoys don't feel like the same 2-3 glyphs on repeat.
+ * per distinct glyph, de-duplicated across the *whole* pool even
+ * across idioms — e.g. 有 appears in both you-shi-you-zhong and this
+ * set's yan-er-you-xin, so it's only listed once here, sourced from
+ * whichever idiom isn't one of the three below) — expanded well past
+ * the original 3-character pool per your 2026-08-23 "mixed with more
+ * decoy characters" feedback, so a level's decoys don't feel like the
+ * same 2-3 glyphs on repeat. A chosen idiom's own characters get
+ * filtered back out per-level regardless (see `validDecoys` below) —
+ * e.g. zhu-ren-wei-le itself contains 助, which is also here via
+ * ba-miao-zhu-zhang, the same kind of collision the original pool's
+ * comment already called out for the previous trio.
  */
 const DECOY_POOL: DecoySpec[] = [
   { char: "一", sourceIdiomId: "yi-xin-yi-yi" },
@@ -277,25 +293,28 @@ const DECOY_POOL: DecoySpec[] = [
   { char: "途", sourceIdiomId: "ban-tu-er-fei" },
   { char: "而", sourceIdiomId: "ban-tu-er-fei" },
   { char: "废", sourceIdiomId: "ban-tu-er-fei" },
+  { char: "熟", sourceIdiomId: "shu-neng-sheng-qiao" },
+  { char: "能", sourceIdiomId: "shu-neng-sheng-qiao" },
+  { char: "生", sourceIdiomId: "shu-neng-sheng-qiao" },
+  { char: "巧", sourceIdiomId: "shu-neng-sheng-qiao" },
   { char: "磨", sourceIdiomId: "mo-chu-cheng-zhen" },
   { char: "杵", sourceIdiomId: "mo-chu-cheng-zhen" },
   { char: "成", sourceIdiomId: "mo-chu-cheng-zhen" },
   { char: "针", sourceIdiomId: "mo-chu-cheng-zhen" },
-  { char: "言", sourceIdiomId: "yan-er-you-xin" },
-  { char: "信", sourceIdiomId: "yan-er-you-xin" },
-  { char: "助", sourceIdiomId: "zhu-ren-wei-le" },
-  { char: "人", sourceIdiomId: "zhu-ren-wei-le" },
-  { char: "为", sourceIdiomId: "zhu-ren-wei-le" },
-  { char: "乐", sourceIdiomId: "zhu-ren-wei-le" },
+  { char: "拔", sourceIdiomId: "ba-miao-zhu-zhang" },
+  { char: "苗", sourceIdiomId: "ba-miao-zhu-zhang" },
+  { char: "助", sourceIdiomId: "ba-miao-zhu-zhang" },
+  { char: "长", sourceIdiomId: "ba-miao-zhu-zhang" },
+  { char: "知", sourceIdiomId: "zhi-cuo-jiu-gai" },
+  { char: "错", sourceIdiomId: "zhi-cuo-jiu-gai" },
+  { char: "就", sourceIdiomId: "zhi-cuo-jiu-gai" },
+  { char: "改", sourceIdiomId: "zhi-cuo-jiu-gai" },
   { char: "齐", sourceIdiomId: "qi-xin-xie-li" },
   { char: "协", sourceIdiomId: "qi-xin-xie-li" },
   { char: "力", sourceIdiomId: "qi-xin-xie-li" },
   { char: "相", sourceIdiomId: "xiang-qin-xiang-ai" },
   { char: "亲", sourceIdiomId: "xiang-qin-xiang-ai" },
   { char: "爱", sourceIdiomId: "xiang-qin-xiang-ai" },
-  { char: "温", sourceIdiomId: "wen-gu-zhi-xin" },
-  { char: "故", sourceIdiomId: "wen-gu-zhi-xin" },
-  { char: "新", sourceIdiomId: "wen-gu-zhi-xin" },
   { char: "守", sourceIdiomId: "shou-zhu-dai-tu" },
   { char: "株", sourceIdiomId: "shou-zhu-dai-tu" },
   { char: "待", sourceIdiomId: "shou-zhu-dai-tu" },
@@ -310,7 +329,7 @@ const DECOY_POOL: DecoySpec[] = [
 ];
 
 export const doorLevels: DoorLevel[] = [
-  buildLevel("ba-miao-zhu-zhang", DECOY_POOL), // 拔苗助长
-  buildLevel("shu-neng-sheng-qiao", DECOY_POOL), // 熟能生巧
-  buildLevel("zhi-cuo-jiu-gai", DECOY_POOL), // 知错就改
+  buildLevel("yan-er-you-xin", DECOY_POOL), // 言而有信
+  buildLevel("zhu-ren-wei-le", DECOY_POOL), // 助人为乐
+  buildLevel("wen-gu-zhi-xin", DECOY_POOL), // 温故知新
 ];
