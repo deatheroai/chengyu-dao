@@ -68,4 +68,40 @@ describe("idiom content integrity", () => {
     const sentences = idioms.map((i) => i.exampleSentence.hanzi);
     expect(new Set(sentences).size).toBe(sentences.length);
   });
+
+  // 2026-08-28: charPinyin (per-character pinyin, for ruby-annotation
+  // display — see types.ts's comment) has to line up 1:1 with
+  // Array.from(hanzi), or the wrong syllable ends up over the wrong
+  // character. Hand-derived, so this is the guard against a miscount
+  // slipping through, not just a nice-to-have.
+  it("meaningZh.charPinyin has exactly one entry per meaningZh.hanzi character", () => {
+    for (const idiom of idioms) {
+      const chars = Array.from(idiom.meaningZh.hanzi);
+      expect(idiom.meaningZh.charPinyin.length, `${idiom.id}.meaningZh`).toBe(chars.length);
+    }
+  });
+
+  it("exampleSentence.charPinyin has exactly one entry per exampleSentence.hanzi character", () => {
+    for (const idiom of idioms) {
+      const chars = Array.from(idiom.exampleSentence.hanzi);
+      expect(idiom.exampleSentence.charPinyin.length, `${idiom.id}.exampleSentence`).toBe(chars.length);
+    }
+  });
+
+  it("charPinyin marks punctuation characters (and only punctuation) with an empty string", () => {
+    const PUNCTUATION = new Set(["，", "。", "！", "？"]);
+    for (const idiom of idioms) {
+      for (const field of ["meaningZh", "exampleSentence"] as const) {
+        const chars = Array.from(idiom[field].hanzi);
+        const charPinyin = idiom[field].charPinyin;
+        chars.forEach((char, i) => {
+          if (PUNCTUATION.has(char)) {
+            expect(charPinyin[i], `${idiom.id}.${field}[${i}] ("${char}")`).toBe("");
+          } else {
+            expect(charPinyin[i], `${idiom.id}.${field}[${i}] ("${char}")`).not.toBe("");
+          }
+        });
+      }
+    }
+  });
 });

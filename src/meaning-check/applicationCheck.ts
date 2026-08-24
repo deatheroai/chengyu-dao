@@ -5,6 +5,13 @@ export interface ApplicationCheckOption {
   pinyin: string;
   isCorrect: boolean;
   fromIdiomId: string;
+  /** Per-character pinyin, one entry per `Array.from(hanzi)` character
+   * (empty string for punctuation) — see IdiomExampleSentence.charPinyin
+   * in idioms/types.ts for why this exists alongside `pinyin` rather
+   * than replacing it. Added 2026-08-28 for BalloonSentenceScene's
+   * ruby-annotation rendering; Snippet 3's own view (meaningCheckView.ts)
+   * keeps using the flat `pinyin` string unchanged. */
+  charPinyin: string[];
 }
 
 /**
@@ -33,6 +40,18 @@ const EMBEDDED_PINYIN: Record<string, string> = {
   "yi-ju-liang-de": "yìjǔ-liǎngdé",
 };
 
+/** Finds the start index of `needle` as a contiguous run within
+ * `haystack`, or -1 if it doesn't occur — array equivalent of
+ * `string.indexOf` for a substring, used below to locate where a
+ * source idiom's own characters sit inside its example sentence so
+ * the matching charPinyin entries can be spliced out alongside them. */
+function indexOfSubarray(haystack: string[], needle: string[]): number {
+  for (let i = 0; i + needle.length <= haystack.length; i++) {
+    if (needle.every((ch, j) => haystack[i + j] === ch)) return i;
+  }
+  return -1;
+}
+
 /**
  * Swaps `replacement`'s idiom into `source`'s example sentence in place
  * of `source`'s own idiom — same sentence structure, wrong idiom for the
@@ -42,8 +61,22 @@ const EMBEDDED_PINYIN: Record<string, string> = {
  * could answer by spotting which option contains the same characters
  * shown at the top of the card, rather than judging whether the idiom
  * actually fits.
+ *
+ * Returns both the original flat `hanzi`/`pinyin` splice (string-based,
+ * via the hyphenated EMBEDDED_PINYIN map — unchanged, still what
+ * Snippet 3's own view displays) and a `charPinyin` splice (array-based,
+ * via each idiom's own per-character `exampleSentence.charPinyin`/
+ * `pinyin.split(" ")` — added 2026-08-28 for ruby-annotation display,
+ * see ApplicationCheckOption's comment). Both splices swap the same
+ * span, computed independently, so a mismatch between them would be a
+ * real bug — the "no effect" guard below checks the string version,
+ * same as before; the array version has no separate guard since it
+ * would already have thrown via indexOfSubarray finding nothing.
  */
-export function spliceIdiomInto(source: IdiomContent, replacement: IdiomContent): { hanzi: string; pinyin: string } {
+export function spliceIdiomInto(
+  source: IdiomContent,
+  replacement: IdiomContent,
+): { hanzi: string; pinyin: string; charPinyin: string[] } {
   const sourceEmbeddedPinyin = EMBEDDED_PINYIN[source.id];
   const replacementEmbeddedPinyin = EMBEDDED_PINYIN[replacement.id];
   if (!sourceEmbeddedPinyin || !replacementEmbeddedPinyin) {
@@ -57,7 +90,20 @@ export function spliceIdiomInto(source: IdiomContent, replacement: IdiomContent)
     throw new Error(`spliceIdiomInto: substitution had no effect for "${source.id}" -> "${replacement.id}"`);
   }
 
-  return { hanzi, pinyin };
+  const sourceChars = Array.from(source.exampleSentence.hanzi);
+  const sourceIdiomChars = Array.from(source.hanzi);
+  const replacementCharPinyin = replacement.pinyin.split(" ");
+  const spliceAt = indexOfSubarray(sourceChars, sourceIdiomChars);
+  if (spliceAt === -1) {
+    throw new Error(`spliceIdiomInto: "${source.id}"'s own hanzi not found in its exampleSentence — charPinyin can't be spliced`);
+  }
+  const charPinyin = [
+    ...source.exampleSentence.charPinyin.slice(0, spliceAt),
+    ...replacementCharPinyin,
+    ...source.exampleSentence.charPinyin.slice(spliceAt + sourceIdiomChars.length),
+  ];
+
+  return { hanzi, pinyin, charPinyin };
 }
 
 /**
@@ -88,6 +134,7 @@ export function buildApplicationCheck(
     {
       hanzi: target.exampleSentence.hanzi,
       pinyin: target.exampleSentence.pinyin,
+      charPinyin: target.exampleSentence.charPinyin,
       isCorrect: true,
       fromIdiomId: target.id,
     },

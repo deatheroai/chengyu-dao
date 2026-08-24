@@ -9,11 +9,30 @@ export interface IdiomExampleSentence {
   hanzi: string;
   pinyin: string;
   english: string;
+  /**
+   * `pinyin` above is natural word-grouped prose (multi-character words
+   * share one romanized token, e.g. "shíhou" for 时候, and punctuation
+   * has no token at all) — good for reading aloud, but useless for
+   * lining pinyin up against individual characters. `charPinyin` is a
+   * parallel array, one entry per `Array.from(hanzi)` character in
+   * the same order (empty string for punctuation, which has no
+   * reading) — added 2026-08-28 per your "very hard for the child to
+   * learn if the pinyin is on a separate paragraph" feedback, so the
+   * UI can render pinyin directly over/under each character (ruby
+   * annotation) instead. Hand-derived from the same already-approved
+   * `pinyin` (cross-checked token-by-token against it for tone
+   * accuracy, not guessed from scratch) — same "needs your review
+   * before treated as fully vetted" status as the rest of this
+   * project's authored Chinese text.
+   */
+  charPinyin: string[];
 }
 
 export interface IdiomMeaningZh {
   hanzi: string;
   pinyin: string;
+  /** Same purpose/provenance as IdiomExampleSentence.charPinyin above. */
+  charPinyin: string[];
 }
 
 export interface IdiomContent {

@@ -29,6 +29,12 @@ const MAX_TEXT_WIDTH = 190;
 const BALLOON_PAD_X = 16;
 const BALLOON_PAD_Y = 14;
 const TEXT_GAP = 4;
+// 2026-08-28: horizontal/vertical spacing for the per-character ruby
+// layout (buildBalloon) — a small gap between adjacent character
+// columns, and a slightly larger one between wrapped lines so two
+// lines' pinyin/hanzi rows don't read as touching.
+const CHAR_GAP = 2;
+const LINE_GAP = 6;
 // A little slop beyond the balloon's own measured half-extents — this
 // is "did you fly into roughly the right balloon," not a pixel-precise
 // hitbox.
@@ -289,11 +295,20 @@ export class BalloonSentenceScene extends Phaser.Scene {
    * run anywhere from ~14 to 35+ characters once spliced into a
    * decoy's structure, and a single fixed size either clipped the long
    * ones or wasted space around the short ones (found by screenshot).
-   * The hanzi/pinyin text is measured *after* being laid out (with
-   * word-wrap capped at MAX_TEXT_WIDTH), then the balloon body is drawn
-   * to fit that — a rounded rectangle rather than an ellipse, so a
-   * wrapped multi-line sentence actually has square corners to use
-   * rather than an oval's curved ones cutting into it.
+   *
+   * 2026-08-28: pinyin used to render as one whole block below one
+   * whole hanzi block — per your "very hard for the child to learn if
+   * the pinyin is on a separate paragraph" feedback, each character now
+   * gets its own {pinyin, hanzi} Text pair, pinyin directly above its
+   * own character (ruby-style). Phaser has no built-in ruby/furigana
+   * layout, so this hand-rolls one: it's word-wrap where the "word"
+   * unit is always exactly one character, wrapping to a new line
+   * whenever the next character wouldn't fit within MAX_TEXT_WIDTH —
+   * the same content-driven-sizing principle as before, just applied
+   * per character-unit instead of per whole-text-block. Each completed
+   * line is then re-centered against the widest line (contentWidth),
+   * same as Phaser's own `align: "center"` would have done for the old
+   * single block, so a short last line doesn't sit flush-left.
    */
   private buildBalloon(def: BalloonDef): {
     container: Phaser.GameObjects.Container;
@@ -303,38 +318,62 @@ export class BalloonSentenceScene extends Phaser.Scene {
     colorway: BalloonColorway;
   } {
     const container = this.add.container(0, 0);
+    const chars = Array.from(def.hanzi);
 
-    // Word-wrap alone only breaks on whitespace by default, which never
-    // fires for hanzi (no spaces between characters) — without
-    // useAdvancedWrap, a long sentence just ran straight past the
-    // balloon's edge instead of wrapping at all (also found by
-    // screenshot). Pinyin has spaces/hyphens already, but the same flag
-    // is harmless there and guards the same failure mode if a syllable
-    // run is ever too long to fit on one line.
-    const hanziText = this.add
-      .text(0, 0, def.hanzi, {
+    interface CharUnit {
+      hanziText: Phaser.GameObjects.Text;
+      pinyinText: Phaser.GameObjects.Text;
+      centerX: number;
+      line: number;
+    }
+    const units: CharUnit[] = [];
+    const lineWidths: number[] = [0];
+    let cursorX = 0;
+    let line = 0;
+
+    chars.forEach((char, i) => {
+      const pinyin = def.charPinyin[i] ?? "";
+      const hanziText = this.add.text(0, 0, char, {
         fontSize: "15px",
         color: BALLOON_TEXT,
         fontFamily: "system-ui, sans-serif",
         fontStyle: "600",
-        align: "center",
-        wordWrap: { width: MAX_TEXT_WIDTH, useAdvancedWrap: true },
-      })
-      .setOrigin(0.5, 0);
-
-    const pinyinText = this.add
-      .text(0, 0, def.pinyin, {
+      });
+      const pinyinText = this.add.text(0, 0, pinyin, {
         fontSize: "9px",
         color: BALLOON_TEXT,
         fontFamily: "system-ui, sans-serif",
         fontStyle: "italic",
-        align: "center",
-        wordWrap: { width: MAX_TEXT_WIDTH, useAdvancedWrap: true },
-      })
-      .setOrigin(0.5, 0);
+      });
+      const unitWidth = Math.max(hanziText.width, pinyinText.width);
 
-    const contentWidth = Math.max(hanziText.width, pinyinText.width);
-    const contentHeight = hanziText.height + TEXT_GAP + pinyinText.height;
+      // Wrap before placing this unit if it wouldn't fit — `cursorX > 0`
+      // guards against wrapping on the very first character of a line
+      // even if that one character alone exceeds MAX_TEXT_WIDTH (rare,
+      // but would otherwise wrap forever without ever placing anything).
+      if (cursorX > 0 && cursorX + unitWidth > MAX_TEXT_WIDTH) {
+        line++;
+        cursorX = 0;
+        lineWidths.push(0);
+      }
+
+      units.push({ hanziText, pinyinText, centerX: cursorX + unitWidth / 2, line });
+      cursorX += unitWidth + CHAR_GAP;
+      lineWidths[line] = cursorX - CHAR_GAP;
+    });
+
+    // A single shared row height for every unit (rather than each
+    // unit's own pinyinText.height) so a punctuation mark's empty-string
+    // pinyin — which Phaser measures as shorter than a real syllable —
+    // doesn't pull its hanzi character up out of alignment with its
+    // neighbors on the same line.
+    const pinyinRowHeight = Math.max(...units.map((u) => u.pinyinText.height));
+    const hanziRowHeight = Math.max(...units.map((u) => u.hanziText.height));
+    const unitHeight = pinyinRowHeight + TEXT_GAP + hanziRowHeight;
+
+    const numLines = line + 1;
+    const contentWidth = Math.max(...lineWidths);
+    const contentHeight = numLines * unitHeight + (numLines - 1) * LINE_GAP;
     const halfW = contentWidth / 2 + BALLOON_PAD_X;
     const halfH = contentHeight / 2 + BALLOON_PAD_Y;
 
@@ -343,9 +382,8 @@ export class BalloonSentenceScene extends Phaser.Scene {
     // wrapped sentence proper square corners to use. Color is
     // randomized per balloon (never tied to isCorrect — see
     // balloonLevelContent.ts's colorIndex): the child has to judge the
-    // *sentence*, not learn to spot a color. The dangling string is a
-    // separate graphics object (below) since — unlike this body — it's
-    // redrawn every frame to sway independently.
+    // *sentence*, not learn to spot a color. Added to the container
+    // first so every character sits on top of it, not behind.
     const colorway = BALLOON_COLORWAYS[def.colorIndex % BALLOON_COLORWAYS.length];
     gfx.fillStyle(colorway.fill, 0.97);
     gfx.fillRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
@@ -353,11 +391,19 @@ export class BalloonSentenceScene extends Phaser.Scene {
     gfx.strokeRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
     container.add(gfx);
 
-    hanziText.setPosition(0, -contentHeight / 2);
-    pinyinText.setPosition(0, -contentHeight / 2 + hanziText.height + TEXT_GAP);
-    container.add(hanziText);
-    container.add(pinyinText);
+    for (const unit of units) {
+      const lineCenterOffset = (contentWidth - lineWidths[unit.line]) / 2;
+      const x = unit.centerX + lineCenterOffset - contentWidth / 2;
+      const y = unit.line * (unitHeight + LINE_GAP) - contentHeight / 2;
+      unit.pinyinText.setOrigin(0.5, 0).setPosition(x, y);
+      unit.hanziText.setOrigin(0.5, 0).setPosition(x, y + pinyinRowHeight + TEXT_GAP);
+      container.add(unit.pinyinText);
+      container.add(unit.hanziText);
+    }
 
+    // The dangling string is a separate graphics object — unlike the
+    // body above, it's redrawn every frame to sway independently (see
+    // updateBalloonDrift/redrawString).
     const stringGfx = this.add.graphics();
     container.add(stringGfx);
 

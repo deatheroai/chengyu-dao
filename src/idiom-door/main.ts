@@ -4,6 +4,7 @@ import { doorLevels } from "./levelContent";
 import { BalloonSentenceScene } from "./BalloonSentenceScene";
 import { balloonLevels } from "./balloonLevelContent";
 import { updateSessionProgress } from "./sessionProgressStatus";
+import { renderRubyText } from "../shared/rubyText";
 
 function showMeaning(index: number): void {
   const el = document.getElementById("meaning-prompt");
@@ -20,14 +21,18 @@ function showMeaning(index: number): void {
  * Mandarin yet can tap the 🤔 icon to reveal the English version
  * instead — reset to hidden here so a new level doesn't inherit the
  * previous one's already-revealed state.
+ *
+ * 2026-08-28: pinyin used to sit in its own paragraph below the hanzi
+ * — per your "very hard for the child to learn if the pinyin is on a
+ * separate paragraph" feedback, it's now rendered directly over each
+ * character (ruby annotation, see rubyText.ts) instead, so there's no
+ * separate `data-intro-meaning-pinyin` element to populate any more.
  */
 function showIntroMeaning(index: number): void {
   const idiom = doorLevels[index].idiom;
   const zhEl = document.querySelector<HTMLElement>("[data-intro-meaning-zh]");
-  const pinyinEl = document.querySelector<HTMLElement>("[data-intro-meaning-pinyin]");
   const enEl = document.querySelector<HTMLElement>("[data-intro-meaning-en]");
-  if (zhEl) zhEl.textContent = idiom.meaningZh.hanzi;
-  if (pinyinEl) pinyinEl.textContent = idiom.meaningZh.pinyin;
+  if (zhEl) renderRubyText(zhEl, idiom.meaningZh.hanzi, idiom.meaningZh.charPinyin);
   if (enEl) {
     enEl.textContent = `"${idiom.meaning}"`;
     enEl.classList.add("hidden");
@@ -37,12 +42,19 @@ function showIntroMeaning(index: number): void {
 /** 2026-08-25 addition: names the idiom being practiced in this stage —
  * `#balloon-status` (balloonStatus.ts) handles the dynamic found/wrong
  * feedback below this, same relationship as `#meaning-prompt` and
- * `#door-status` have in the door stage. */
+ * `#door-status` have in the door stage. 2026-08-28: the idiom's hanzi
+ * is now ruby-annotated inline (built from text nodes + a ruby span,
+ * not one textContent string) rather than a plain "(pinyin)"
+ * parenthetical, for the same per-character-alignment reason as
+ * showIntroMeaning above. */
 function showBalloonPrompt(index: number): void {
   const el = document.getElementById("balloon-prompt");
   if (!el) return;
   const idiom = balloonLevels[index].idiom;
-  el.textContent = `Catch the balloon that uses ${idiom.hanzi} (${idiom.pinyin}) correctly!`;
+  el.replaceChildren("Catch the balloon that uses ");
+  const idiomSpan = document.createElement("span");
+  renderRubyText(idiomSpan, idiom.hanzi, idiom.pinyin.split(" "));
+  el.append(idiomSpan, " correctly!");
 }
 
 /**
@@ -54,6 +66,11 @@ function showBalloonPrompt(index: number): void {
  * level-intro card asked "which idiom means...?" with (closing that
  * loop) and the correct-usage sentence just caught — all
  * already-approved content, nothing new to write.
+ *
+ * 2026-08-28 (later): each hanzi line is now ruby-annotated (pinyin
+ * per character, see rubyText.ts) instead of pairing with its own
+ * separate pinyin paragraph below it — the `data-success-*-pinyin`
+ * elements this used to populate are gone from the markup.
  */
 function showBalloonSuccessCard(index: number, onContinue: () => void): void {
   const idiom = balloonLevels[index].idiom;
@@ -63,16 +80,13 @@ function showBalloonSuccessCard(index: number, onContinue: () => void): void {
     return;
   }
 
-  const set = (selector: string, text: string): void => {
+  const ruby = (selector: string, hanzi: string, charPinyin: string[]): void => {
     const el = card.querySelector<HTMLElement>(selector);
-    if (el) el.textContent = text;
+    if (el) renderRubyText(el, hanzi, charPinyin);
   };
-  set("[data-success-hanzi]", idiom.hanzi);
-  set("[data-success-pinyin]", idiom.pinyin);
-  set("[data-success-meaning-zh]", idiom.meaningZh.hanzi);
-  set("[data-success-meaning-pinyin]", idiom.meaningZh.pinyin);
-  set("[data-success-sentence]", idiom.exampleSentence.hanzi);
-  set("[data-success-sentence-pinyin]", idiom.exampleSentence.pinyin);
+  ruby("[data-success-hanzi]", idiom.hanzi, idiom.pinyin.split(" "));
+  ruby("[data-success-meaning-zh]", idiom.meaningZh.hanzi, idiom.meaningZh.charPinyin);
+  ruby("[data-success-sentence]", idiom.exampleSentence.hanzi, idiom.exampleSentence.charPinyin);
   card.classList.add("visible");
 
   const continueBtn = document.getElementById("balloon-continue-btn");

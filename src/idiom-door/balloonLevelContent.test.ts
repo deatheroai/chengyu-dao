@@ -44,6 +44,12 @@ describe("balloonLevels data integrity", () => {
         expect(slots).toEqual(level.balloons.map((_, i) => i));
       });
 
+      it("every balloon's charPinyin has exactly one entry per hanzi character (ruby-annotation alignment)", () => {
+        for (const balloon of level.balloons) {
+          expect(balloon.charPinyin.length, balloon.id).toBe(Array.from(balloon.hanzi).length);
+        }
+      });
+
       it("every balloon's jitter stays within CELL_JITTER_FRACTION on both axes", () => {
         for (const balloon of level.balloons) {
           expect(Math.abs(balloon.jitterX)).toBeLessThanOrEqual(CELL_JITTER_FRACTION);

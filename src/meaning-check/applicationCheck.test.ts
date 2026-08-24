@@ -31,6 +31,32 @@ describe("spliceIdiomInto", () => {
     // silently returned as if nothing were wrong.
     expect(() => spliceIdiomInto(source, source)).toThrow();
   });
+
+  // 2026-08-28: charPinyin is spliced independently of the flat
+  // hanzi/pinyin strings above (array-based, via each idiom's own
+  // per-character data, not the hyphenated EMBEDDED_PINYIN map) — so
+  // it needs its own coverage that the two splices actually agree.
+  it("charPinyin has exactly one entry per resulting hanzi character", () => {
+    const result = spliceIdiomInto(source, replacement);
+    expect(result.charPinyin.length).toBe(Array.from(result.hanzi).length);
+  });
+
+  it("charPinyin's spliced-in span matches the replacement idiom's own per-character pinyin", () => {
+    const result = spliceIdiomInto(source, replacement);
+    const chars = Array.from(result.hanzi);
+    const spliceAt = chars.join("").indexOf(replacement.hanzi);
+    const splicedSpan = result.charPinyin.slice(spliceAt, spliceAt + Array.from(replacement.hanzi).length);
+    expect(splicedSpan).toEqual(replacement.pinyin.split(" "));
+  });
+
+  it("works for every idiom pair in the real content set (charPinyin splice never throws)", () => {
+    for (const s of idioms) {
+      for (const r of idioms) {
+        if (s.id === r.id) continue;
+        expect(() => spliceIdiomInto(s, r), `${s.id} -> ${r.id}`).not.toThrow();
+      }
+    }
+  });
 });
 
 describe("buildApplicationCheck", () => {

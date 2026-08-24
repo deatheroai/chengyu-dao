@@ -53,12 +53,17 @@
            pressed (see main.ts's beginLevel/startLevelWithIntro).
            2026-08-24: the clue is shown Mandarin-first (hanzi + pinyin),
            since this is a Mandarin-learning game — a child who can't
-           read it yet can tap the icon to reveal the English version. -->
+           read it yet can tap the icon to reveal the English version.
+           2026-08-28: pinyin is now rendered directly over each
+           character (ruby annotation — see main.ts's showIntroMeaning
+           and shared/rubyText.ts) instead of as its own paragraph below
+           the hanzi, per your "very hard for the child to learn if the
+           pinyin is on a separate paragraph" feedback — there's no
+           longer a separate pinyin element here. -->
       <div id="level-intro-card">
         <div class="card">
           <p class="eyebrow">Which idiom means...</p>
           <p data-intro-meaning-zh class="intro-meaning-zh"></p>
-          <p data-intro-meaning-pinyin class="intro-meaning-pinyin"></p>
           <button id="reveal-english-btn" class="icon-btn" type="button" aria-label="I don't understand — show English">
             🤔<span class="icon-btn-label">Don't understand?</span>
           </button>
@@ -74,18 +79,18 @@
            with, closing that loop) plus the correct-usage sentence just
            caught, so the lesson doesn't just vanish with the pop.
            Gated behind a Continue tap, not a timer — same "the child
-           sets the pace" philosophy as level-intro-card's Start button. -->
+           sets the pace" philosophy as level-intro-card's Start button.
+           2026-08-28 (later): same ruby-annotation change as the intro
+           card above — each hanzi line carries its own pinyin now, no
+           more separate pinyin paragraphs. -->
       <div id="balloon-success-card">
         <div class="card">
           <p class="eyebrow">🎉 答对了! (dá duì le) — Correct!</p>
           <p data-success-hanzi class="success-hanzi"></p>
-          <p data-success-pinyin class="success-pinyin"></p>
           <p class="success-label">This means:</p>
           <p data-success-meaning-zh class="success-meaning-zh"></p>
-          <p data-success-meaning-pinyin class="success-meaning-pinyin"></p>
           <p class="success-label">Used correctly:</p>
           <p data-success-sentence class="success-sentence"></p>
-          <p data-success-sentence-pinyin class="success-sentence-pinyin"></p>
           <button id="balloon-continue-btn" type="button">▶ Continue</button>
         </div>
       </div>

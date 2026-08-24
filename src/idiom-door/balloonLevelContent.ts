@@ -8,6 +8,15 @@ export interface BalloonDef {
   id: string;
   hanzi: string;
   pinyin: string;
+  /** Per-character pinyin, one entry per `Array.from(hanzi)` character
+   * (empty string for punctuation) — same shape/provenance as
+   * ApplicationCheckOption.charPinyin (this is just that field renamed
+   * onto the balloon). Lets BalloonSentenceScene render pinyin directly
+   * over each character (ruby-style) instead of as a separate text
+   * block below the whole sentence, per your 2026-08-28 "very hard for
+   * the child to learn if the pinyin is on a separate paragraph"
+   * feedback. */
+  charPinyin: string[];
   isCorrect: boolean;
   /** Which idiom this sentence's structure actually comes from — the
    * target idiom itself for the correct balloon, or whichever other
@@ -127,6 +136,7 @@ export function buildBalloonLevel(idiomId: string): BalloonLevel {
     id: `balloon-${idiom.id}-${i}`,
     hanzi: opt.hanzi,
     pinyin: opt.pinyin,
+    charPinyin: opt.charPinyin,
     isCorrect: opt.isCorrect,
     sourceIdiomId: opt.fromIdiomId,
     slotIndex: slotOrder[i],

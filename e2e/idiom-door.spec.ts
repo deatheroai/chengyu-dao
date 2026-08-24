@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "@playwright/test";
 import { doorLevels } from "../src/idiom-door/levelContent";
 import { balloonLevels } from "../src/idiom-door/balloonLevelContent";
 
@@ -30,6 +30,22 @@ async function getPlayerX(page: Page): Promise<number> {
   return Number(attr ?? "0");
 }
 
+/** 2026-08-28: hanzi+pinyin throughout this game is now rendered as
+ * ruby annotation (rubyText.ts) — pinyin lives in `<rt>` elements
+ * *inside* the hanzi container, so a raw `.textContent`/`toHaveText`
+ * check picks up interleaved pinyin syllables along with the hanzi,
+ * not just the hanzi. This strips `<rt>` content from a clone (never
+ * mutating the real page) to recover just the base hanzi text, so
+ * assertions can still check "does this element show idiom X" without
+ * having to spell out every character's pinyin inline. */
+async function rubyBaseText(locator: Locator): Promise<string> {
+  return locator.evaluate((el) => {
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("rt").forEach((rt) => rt.remove());
+    return clone.textContent ?? "";
+  });
+}
+
 async function status(page: Page) {
   return page.locator("#door-status").evaluate((el) => ({
     nextIndex: el.getAttribute("data-next-index"),
@@ -51,13 +67,18 @@ async function status(page: Page) {
 const DOOR_REACH_TIMEOUT_MS = 70000;
 
 /** Asserts the level-intro card is showing a given level's Mandarin
- * clue (hanzi + pinyin), with the English fallback still hidden. */
+ * clue (hanzi, each character ruby-annotated with its own pinyin —
+ * see rubyText.ts), with the English fallback still hidden. */
 async function expectIntroShowing(page: Page, levelIndex: number): Promise<void> {
   const idiom = doorLevels[levelIndex].idiom;
   const intro = page.locator("#level-intro-card");
+  const zhEl = intro.locator("[data-intro-meaning-zh]");
   await expect(intro).toHaveClass(/visible/, { timeout: DOOR_REACH_TIMEOUT_MS });
-  await expect(intro.locator("[data-intro-meaning-zh]")).toHaveText(idiom.meaningZh.hanzi);
-  await expect(intro.locator("[data-intro-meaning-pinyin]")).toHaveText(idiom.meaningZh.pinyin);
+  await expect.poll(() => rubyBaseText(zhEl)).toBe(idiom.meaningZh.hanzi);
+  // At least one character actually got a pinyin annotation, not just
+  // the bare hanzi — confirms renderRubyText ran, not only that the
+  // (harder to get wrong) plain-text fallback would have looked right.
+  await expect(zhEl.locator("rt").first()).not.toHaveText("");
   await expect(intro.locator("[data-intro-meaning-en]")).toBeHidden();
 }
 
@@ -99,8 +120,9 @@ async function spamJumpUntil(page: Page, predicate: () => Promise<boolean>, maxM
  * prompt and starting unresolved. */
 async function expectBalloonStageShowing(page: Page, levelIndex: number): Promise<void> {
   const idiom = balloonLevels[levelIndex].idiom;
+  const prompt = page.locator("#balloon-prompt");
   await expect(page.locator("#balloon-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: DOOR_REACH_TIMEOUT_MS });
-  await expect(page.locator("#balloon-prompt")).toContainText(idiom.hanzi);
+  await expect.poll(() => rubyBaseText(prompt)).toContain(idiom.hanzi);
   await expect(page.locator("#balloon-status")).toHaveAttribute("data-resolved", "false");
 }
 
@@ -144,10 +166,11 @@ async function expectBalloonSuccessCardShowing(page: Page, levelIndex: number): 
   const idiom = balloonLevels[levelIndex].idiom;
   const card = page.locator("#balloon-success-card");
   await expect(card).toHaveClass(/visible/, { timeout: DOOR_REACH_TIMEOUT_MS });
-  await expect(card.locator("[data-success-hanzi]")).toHaveText(idiom.hanzi);
-  await expect(card.locator("[data-success-pinyin]")).toHaveText(idiom.pinyin);
-  await expect(card.locator("[data-success-meaning-zh]")).toHaveText(idiom.meaningZh.hanzi);
-  await expect(card.locator("[data-success-sentence]")).toHaveText(idiom.exampleSentence.hanzi);
+  await expect.poll(() => rubyBaseText(card.locator("[data-success-hanzi]"))).toBe(idiom.hanzi);
+  await expect.poll(() => rubyBaseText(card.locator("[data-success-meaning-zh]"))).toBe(idiom.meaningZh.hanzi);
+  await expect.poll(() => rubyBaseText(card.locator("[data-success-sentence]"))).toBe(idiom.exampleSentence.hanzi);
+  // Each hanzi line actually got ruby-annotated, not just left plain.
+  await expect(card.locator("[data-success-hanzi] rt").first()).not.toHaveText("");
 }
 
 /** Dismisses the success card so the session actually advances — the
