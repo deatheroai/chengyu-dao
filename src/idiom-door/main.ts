@@ -3,6 +3,8 @@ import { IdiomDoorScene } from "./IdiomDoorScene";
 import { doorLevels } from "./levelContent";
 import { BalloonSentenceScene } from "./BalloonSentenceScene";
 import { balloonLevels } from "./balloonLevelContent";
+import { IdiomMatchScene } from "./IdiomMatchScene";
+import { matchLevel } from "./matchLevelContent";
 import { updateSessionProgress } from "./sessionProgressStatus";
 import { renderRubyText } from "../shared/rubyText";
 
@@ -106,21 +108,32 @@ function showSummary(completedHanzi: string[]): void {
 }
 
 /** Toggles which stage's DOM chrome (prompt/status chip) is visible —
- * the door puzzle and balloon stage share the same page/canvas rather
- * than being separate HTML files. The balloon stage has no on-screen
- * movement controls to toggle (2026-08-26: dragging the avatar
- * directly replaced the on-screen d-pad, handled entirely inside
- * BalloonSentenceScene via Phaser's own pointer input). */
+ * the match warm-up, door puzzle, and balloon stage all share this one
+ * page/canvas rather than being separate HTML files. The match and
+ * balloon stages have no on-screen movement controls to toggle
+ * (2026-08-26: dragging the avatar directly replaced the on-screen
+ * d-pad for the balloon stage, handled entirely inside
+ * BalloonSentenceScene via Phaser's own pointer input; the match
+ * stage never had any — its interaction is tapping tiles directly). */
 function showDoorStageUI(): void {
   document.getElementById("catch-ui-layer")?.classList.remove("stage-hidden");
   document.getElementById("controls-layer")?.classList.remove("stage-hidden");
   document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("match-ui-layer")?.classList.add("stage-hidden");
 }
 
 function showBalloonStageUI(): void {
   document.getElementById("catch-ui-layer")?.classList.add("stage-hidden");
   document.getElementById("controls-layer")?.classList.add("stage-hidden");
   document.getElementById("balloon-ui-layer")?.classList.remove("stage-hidden");
+  document.getElementById("match-ui-layer")?.classList.add("stage-hidden");
+}
+
+function showMatchStageUI(): void {
+  document.getElementById("catch-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("controls-layer")?.classList.add("stage-hidden");
+  document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("match-ui-layer")?.classList.remove("stage-hidden");
 }
 
 function bootstrap(): void {
@@ -129,7 +142,6 @@ function bootstrap(): void {
   // existing session design (SNIPPET_PLANS.md's Snippet 5), per your
   // 2026-08-22 decision to keep that intact while this new mechanic is
   // being tried out.
-  let levelIndex = 0;
   const completedHanzi: string[] = [];
 
   const config: Phaser.Types.Core.GameConfig = {
@@ -150,6 +162,7 @@ function bootstrap(): void {
   const game = new Phaser.Game(config);
   game.scene.add("IdiomDoorScene", IdiomDoorScene, false);
   game.scene.add("BalloonSentenceScene", BalloonSentenceScene, false);
+  game.scene.add("IdiomMatchScene", IdiomMatchScene, false);
   const doorScene = () => game.scene.getScene("IdiomDoorScene") as import("./IdiomDoorScene").IdiomDoorScene | null;
 
   // Starting one of these two gameplay scenes never automatically stops
@@ -173,13 +186,52 @@ function bootstrap(): void {
   // (setting 'scrollX')" the moment that scene's `update()` is reached
   // later in the same step. Breaking out to a fresh task lets the
   // current step finish cleanly first.
-  const stopGameplayScene = (key: "IdiomDoorScene" | "BalloonSentenceScene"): void => {
+  const stopGameplayScene = (key: "IdiomDoorScene" | "BalloonSentenceScene" | "IdiomMatchScene"): void => {
     setTimeout(() => {
       if (game.scene.isActive(key)) game.scene.stop(key);
     }, 0);
   };
 
-  showDoorStageUI();
+  // The match warm-up runs first, before any door level — its own UI
+  // layer is the one that should be showing underneath the match-intro
+  // overlay the moment this page loads (see showMatchIntro/
+  // beginMatchStage below), same "underlying stage UI is already
+  // correct before its intro overlay is dismissed" pattern
+  // startLevelWithIntro/beginLevel use for every door level after it.
+  showMatchStageUI();
+
+  // 2026-08-24: a one-time warm-up before the very first idiom's
+  // intro — splits each of this session's idioms into two tiles (its
+  // first two characters, its last two) and has the child tap-match
+  // them back together, a gentler on-ramp than the door puzzle's
+  // ordered, per-character precision. Runs once per session, on the
+  // whole idiom set at once, not per idiom like the door/balloon
+  // stages that follow it.
+  const beginMatchStage = (): void => {
+    showMatchStageUI();
+    game.scene.start("IdiomMatchScene", {
+      level: matchLevel,
+      onComplete: afterMatchStage,
+    });
+  };
+
+  const afterMatchStage = (): void => {
+    stopGameplayScene("IdiomMatchScene");
+    document.getElementById("match-ui-layer")?.classList.add("stage-hidden");
+    startLevelWithIntro(0);
+  };
+
+  const showMatchIntro = (onStart: () => void): void => {
+    const card = document.getElementById("match-intro-card");
+    card?.classList.add("visible");
+    const startBtn = document.getElementById("start-match-btn");
+    const onClick = (): void => {
+      card?.classList.remove("visible");
+      startBtn?.removeEventListener("click", onClick);
+      onStart();
+    };
+    startBtn?.addEventListener("click", onClick);
+  };
 
   // Actually starts the Phaser scene running (the character begins
   // auto-running immediately). Called once the child has dismissed that
@@ -284,7 +336,6 @@ function bootstrap(): void {
     completedHanzi.push(doorLevels[finishedIndex].idiom.hanzi);
     const next = finishedIndex + 1;
     if (next < doorLevels.length) {
-      levelIndex = next;
       startLevelWithIntro(next);
     } else {
       // currentIndex === total is updateSessionProgress's "fully
@@ -294,7 +345,13 @@ function bootstrap(): void {
     }
   };
 
-  startLevelWithIntro(levelIndex);
+  // The session opens with the match warm-up (once), not straight into
+  // the first door level — startLevelWithIntro(0) only runs afterward,
+  // from afterMatchStage above. "Play again" (below) skips back past
+  // this and goes straight to level 0's intro — the warm-up is a
+  // once-per-session on-ramp, not something worth replaying every time
+  // a child replays the same 3 idioms.
+  showMatchIntro(() => beginMatchStage());
 
   document.getElementById("jump-btn")?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
@@ -310,7 +367,6 @@ function bootstrap(): void {
 
   document.getElementById("play-again-btn")?.addEventListener("click", () => {
     completedHanzi.length = 0;
-    levelIndex = 0;
     startLevelWithIntro(0);
   });
 }

@@ -14,6 +14,16 @@
   <body>
     <div id="app">
       <div id="game-container"></div>
+      <!-- 2026-08-24: the "join the two halves" warm-up stage — runs
+           once, before the first idiom's door/balloon sequence, on the
+           same 3-idiom set (main.ts's bootstrap → showMatchIntro →
+           beginMatchStage). Own UI layer + status chip, same
+           show/hide-in-lockstep pattern as catch-ui-layer/
+           balloon-ui-layer. -->
+      <div id="match-ui-layer" class="stage-hidden">
+        <p id="match-prompt">Tap the first half of an idiom, then tap the half that finishes it!</p>
+        <div id="match-status" aria-live="polite" data-matched-pairs="0" data-total-pairs="3" data-complete="false"></div>
+      </div>
       <div id="catch-ui-layer">
         <p id="meaning-prompt"></p>
         <div id="door-status" aria-live="polite" data-next-index="0" data-total="4" data-complete="false"></div>
@@ -39,6 +49,13 @@
       <!-- Test-only hook mirroring the free-drift avatar's position,
            same purpose as #player-position above. -->
       <div id="balloon-position" data-x="0" data-y="0" style="display: none" aria-hidden="true"></div>
+      <!-- Test-only hook mirroring every match-stage tile's current
+           canvas-local position (one <span data-tile-id data-x data-y>
+           per tile) — same purpose as #player-position/#balloon-position
+           above, but per-tile rather than a single avatar, since an E2E
+           test has no other way to know where to click a given tile
+           (IdiomMatchScene.syncTilePositionsToDom). -->
+      <div id="match-tile-positions" style="display: none" aria-hidden="true"></div>
       <div id="session-summary-card">
         <div class="card">
           <p class="headline">You solved 3 idioms today! 🎉</p>
@@ -60,6 +77,18 @@
            the hanzi, per your "very hard for the child to learn if the
            pinyin is on a separate paragraph" feedback — there's no
            longer a separate pinyin element here. -->
+      <!-- 2026-08-24: shown once, before anything else in the session —
+           explains the warm-up mechanic before the first tile is
+           tappable, same "reading/thinking time before the run begins"
+           philosophy as level-intro-card below, just for the match
+           stage instead of a door level. -->
+      <div id="match-intro-card">
+        <div class="card">
+          <p class="eyebrow">Warm-up</p>
+          <p class="match-intro-text">Every idiom below has been split into two halves. Tap one half, then tap the half that completes it!</p>
+          <button id="start-match-btn" type="button">▶ Start</button>
+        </div>
+      </div>
       <div id="level-intro-card">
         <div class="card">
           <p class="eyebrow">Which idiom means...</p>

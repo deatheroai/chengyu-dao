@@ -1,6 +1,7 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { doorLevels } from "../src/idiom-door/levelContent";
 import { balloonLevels } from "../src/idiom-door/balloonLevelContent";
+import { completeMatchStage } from "./helpers/idiomMatch";
 
 /**
  * Auto-runner puzzle (CATCH_MECHANIC_PLAN.md's 2026-08-23 revision):
@@ -24,6 +25,13 @@ import { balloonLevels } from "../src/idiom-door/balloonLevelContent";
  * levelContent) already cover precisely — this suite's job is
  * confirming the pieces are wired together correctly, not re-proving
  * the logic.
+ *
+ * 2026-08-24: the session now opens with a one-time "join the two
+ * halves" match warm-up *before* the first level's own intro (see
+ * IdiomMatchScene / matchLevelContent.ts) — every test here calls
+ * `completeMatchStage` (e2e/helpers/idiomMatch.ts) right after
+ * `page.goto` to get past it quickly, since this suite's job is the
+ * door/balloon stages; idiom-match.spec.ts tests the warm-up itself.
  */
 async function getPlayerX(page: Page): Promise<number> {
   const attr = await page.locator("#player-position").getAttribute("data-x");
@@ -183,6 +191,7 @@ async function continueFromBalloonSuccess(page: Page): Promise<void> {
 
 test("shows a full-screen intro with the meaning before the level starts, and nothing moves until Start is pressed", async ({ page }) => {
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   await expect(page.locator("#game-container canvas")).toBeVisible();
 
   await expectIntroShowing(page, 0);
@@ -205,6 +214,7 @@ test("shows a full-screen intro with the meaning before the level starts, and no
 
 test("the intro's English explanation stays hidden until the 🤔 icon is tapped", async ({ page }) => {
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   const intro = page.locator("#level-intro-card");
   const englishEl = intro.locator("[data-intro-meaning-en]");
   await expect(englishEl).toBeHidden();
@@ -216,6 +226,7 @@ test("the intro's English explanation stays hidden until the 🤔 icon is tapped
 
 test("running without ever jumping never catches anything", async ({ page }) => {
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   await startPlaying(page);
   await page.waitForTimeout(4000); // several floating characters would have been run past by now
   const s = await status(page);
@@ -224,6 +235,7 @@ test("running without ever jumping never catches anything", async ({ page }) => 
 
 test("jumping repeatedly eventually catches the correct next character", async ({ page }) => {
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   await startPlaying(page);
   await spamJumpUntil(page, async () => (await status(page)).nextIndex !== "0");
 });
@@ -231,6 +243,7 @@ test("jumping repeatedly eventually catches the correct next character", async (
 test("reaching the door without completing the level gently restarts it from the start, without re-showing the intro", async ({ page }) => {
   test.setTimeout(120000);
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   await startPlaying(page);
   const level = doorLevels[0];
 
@@ -268,6 +281,7 @@ test("reaching the door without completing the level gently restarts it from the
 test("solving a level opens the door into the balloon stage, and resolving that shows the next level's intro; Start begins it", async ({ page }) => {
   test.setTimeout(210000);
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   await startPlaying(page);
 
   await spamJumpUntil(page, async () => (await status(page)).complete === "true");
@@ -289,6 +303,7 @@ test("solving a level opens the door into the balloon stage, and resolving that 
 test("the balloon stage shows the idiom-specific prompt, and flying around eventually resolves it", async ({ page }) => {
   test.setTimeout(150000);
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   await startPlaying(page);
   await spamJumpUntil(page, async () => (await status(page)).complete === "true");
 
@@ -302,6 +317,7 @@ test("the balloon stage shows the idiom-specific prompt, and flying around event
 test("dragging the pointer steers the avatar toward it (2026-08-26: replaced the on-screen d-pad)", async ({ page }) => {
   test.setTimeout(150000);
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   await startPlaying(page);
   await spamJumpUntil(page, async () => (await status(page)).complete === "true");
   await expectBalloonStageShowing(page, 0);
@@ -329,6 +345,7 @@ test("dragging the pointer steers the avatar toward it (2026-08-26: replaced the
 test("solving all 3 levels shows the session summary, and Play again shows the first level's intro again", async ({ page }) => {
   test.setTimeout(600000);
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   const summary = page.locator("#session-summary-card");
   await expect(summary).not.toBeVisible();
   await startPlaying(page);
@@ -373,6 +390,7 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
 
 test("the on-screen JUMP button works the same as the keyboard", async ({ page }) => {
   await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
   await startPlaying(page);
   const btn = page.locator("#jump-btn");
 

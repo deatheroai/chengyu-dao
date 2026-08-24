@@ -135,6 +135,40 @@ rt {
   min-height: 1.1em;
 }
 
+/* Match stage — a green/teal accent, distinct from the door puzzle's
+   warm tones and the balloon stage's blue, matching
+   IdiomMatchScene's own green/teal background. */
+#match-ui-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+
+#match-prompt {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #2f7a52;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.4rem 0.9rem;
+  border-radius: 14px;
+  text-align: center;
+  max-width: 32rem;
+  line-height: 1.35;
+}
+
+#match-status {
+  font-size: 0.78rem;
+  color: #3c8a63;
+  min-height: 1.1em;
+}
+
 /* A single centered action: the child no longer steers left/right or
    presses a separate grab button (2026-08-23 redesign, per your
    feedback that walking backward to press GRAB felt clunky) — running
@@ -206,7 +240,8 @@ rt {
 
 #session-summary-card,
 #level-intro-card,
-#balloon-success-card {
+#balloon-success-card,
+#match-intro-card {
   position: absolute;
   inset: 0;
   display: none;
@@ -217,13 +252,15 @@ rt {
 }
 #session-summary-card.visible,
 #level-intro-card.visible,
-#balloon-success-card.visible {
+#balloon-success-card.visible,
+#match-intro-card.visible {
   display: flex;
 }
 
 #session-summary-card .card,
 #level-intro-card .card,
-#balloon-success-card .card {
+#balloon-success-card .card,
+#match-intro-card .card {
   background: #fff8ef;
   border-radius: 20px;
   padding: 1.75rem 1.5rem;
@@ -233,13 +270,21 @@ rt {
   box-shadow: 0 12px 30px rgba(74, 52, 32, 0.25);
 }
 
-#level-intro-card .eyebrow {
+#level-intro-card .eyebrow,
+#match-intro-card .eyebrow {
   margin: 0;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: #b98a4a;
+}
+
+#match-intro-card .match-intro-text {
+  margin: 1.1rem 0 1.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #4a3420;
 }
 
 #level-intro-card .intro-meaning-zh {
@@ -292,7 +337,8 @@ rt {
 }
 
 #start-level-btn,
-#balloon-continue-btn {
+#balloon-continue-btn,
+#start-match-btn {
   border: none;
   background: #c1401f;
   color: #fff8ef;
@@ -303,11 +349,13 @@ rt {
   cursor: pointer;
 }
 #start-level-btn:hover,
-#balloon-continue-btn:hover {
+#balloon-continue-btn:hover,
+#start-match-btn:hover {
   background: #a83618;
 }
 #start-level-btn:focus-visible,
-#balloon-continue-btn:focus-visible {
+#balloon-continue-btn:focus-visible,
+#start-match-btn:focus-visible {
   outline: 2px solid #4a3420;
   outline-offset: 2px;
 }
