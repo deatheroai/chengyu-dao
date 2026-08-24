@@ -180,7 +180,8 @@ body {
 
 
 #session-summary-card,
-#level-intro-card {
+#level-intro-card,
+#balloon-success-card {
   position: absolute;
   inset: 0;
   display: none;
@@ -190,12 +191,14 @@ body {
   padding: 1rem;
 }
 #session-summary-card.visible,
-#level-intro-card.visible {
+#level-intro-card.visible,
+#balloon-success-card.visible {
   display: flex;
 }
 
 #session-summary-card .card,
-#level-intro-card .card {
+#level-intro-card .card,
+#balloon-success-card .card {
   background: #fff8ef;
   border-radius: 20px;
   padding: 1.75rem 1.5rem;
@@ -266,7 +269,8 @@ body {
   display: none;
 }
 
-#start-level-btn {
+#start-level-btn,
+#balloon-continue-btn {
   border: none;
   background: #c1401f;
   color: #fff8ef;
@@ -276,12 +280,66 @@ body {
   border-radius: 999px;
   cursor: pointer;
 }
-#start-level-btn:hover {
+#start-level-btn:hover,
+#balloon-continue-btn:hover {
   background: #a83618;
 }
-#start-level-btn:focus-visible {
+#start-level-btn:focus-visible,
+#balloon-continue-btn:focus-visible {
   outline: 2px solid #4a3420;
   outline-offset: 2px;
+}
+
+#balloon-success-card .eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2f8f5b;
+}
+
+#balloon-success-card .success-hanzi {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4a3420;
+}
+
+#balloon-success-card .success-pinyin {
+  margin: 0.15rem 0 1rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #8a6a45;
+}
+
+#balloon-success-card .success-label {
+  margin: 0.7rem 0 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #b98a4a;
+}
+
+#balloon-success-card .success-meaning-zh,
+#balloon-success-card .success-sentence {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #4a3420;
+}
+
+#balloon-success-card .success-meaning-pinyin,
+#balloon-success-card .success-sentence-pinyin {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #8a6a45;
+  line-height: 1.35;
+}
+
+#balloon-continue-btn {
+  margin-top: 1.25rem;
 }
 
 #session-summary-card .headline {

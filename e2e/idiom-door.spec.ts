@@ -137,6 +137,27 @@ async function flyUntilResolved(page: Page, maxMs = 60000): Promise<void> {
   throw new Error("flyUntilResolved timed out");
 }
 
+/** Asserts the 2026-08-28 success card (congratulations + meaning/
+ * example recap, shown after a correct balloon catch, before advancing)
+ * is showing the right idiom's content. */
+async function expectBalloonSuccessCardShowing(page: Page, levelIndex: number): Promise<void> {
+  const idiom = balloonLevels[levelIndex].idiom;
+  const card = page.locator("#balloon-success-card");
+  await expect(card).toHaveClass(/visible/, { timeout: DOOR_REACH_TIMEOUT_MS });
+  await expect(card.locator("[data-success-hanzi]")).toHaveText(idiom.hanzi);
+  await expect(card.locator("[data-success-pinyin]")).toHaveText(idiom.pinyin);
+  await expect(card.locator("[data-success-meaning-zh]")).toHaveText(idiom.meaningZh.hanzi);
+  await expect(card.locator("[data-success-sentence]")).toHaveText(idiom.exampleSentence.hanzi);
+}
+
+/** Dismisses the success card so the session actually advances — the
+ * card gates that the same way level-intro-card's Start button gates
+ * a level beginning (2026-08-28: tap to continue, not a timer). */
+async function continueFromBalloonSuccess(page: Page): Promise<void> {
+  await page.click("#balloon-continue-btn");
+  await expect(page.locator("#balloon-success-card")).not.toHaveClass(/visible/);
+}
+
 test("shows a full-screen intro with the meaning before the level starts, and nothing moves until Start is pressed", async ({ page }) => {
   await page.goto("/idiom-door.html");
   await expect(page.locator("#game-container canvas")).toBeVisible();
@@ -231,6 +252,9 @@ test("solving a level opens the door into the balloon stage, and resolving that 
   await expectBalloonStageShowing(page, 0);
   await flyUntilResolved(page);
 
+  await expectBalloonSuccessCardShowing(page, 0);
+  await continueFromBalloonSuccess(page);
+
   await expectIntroShowing(page, 1);
 
   await startPlaying(page);
@@ -291,6 +315,9 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
     await spamJumpUntil(page, async () => (await status(page)).complete === "true");
     await expectBalloonStageShowing(page, i);
     await flyUntilResolved(page);
+
+    await expectBalloonSuccessCardShowing(page, i);
+    await continueFromBalloonSuccess(page);
 
     const isLast = i === doorLevels.length - 1;
     if (isLast) {

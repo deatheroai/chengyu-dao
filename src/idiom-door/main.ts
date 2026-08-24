@@ -45,6 +45,45 @@ function showBalloonPrompt(index: number): void {
   el.textContent = `Catch the balloon that uses ${idiom.hanzi} (${idiom.pinyin}) correctly!`;
 }
 
+/**
+ * 2026-08-28 addition: your "give a congratulations message and
+ * reinforce the learning" feedback — shown right after a correct
+ * balloon catch, gating the advance to the next idiom's intro (or the
+ * session summary) behind a Continue tap rather than firing
+ * immediately. Restates the idiom + the same meaning paraphrase the
+ * level-intro card asked "which idiom means...?" with (closing that
+ * loop) and the correct-usage sentence just caught — all
+ * already-approved content, nothing new to write.
+ */
+function showBalloonSuccessCard(index: number, onContinue: () => void): void {
+  const idiom = balloonLevels[index].idiom;
+  const card = document.getElementById("balloon-success-card");
+  if (!card) {
+    onContinue();
+    return;
+  }
+
+  const set = (selector: string, text: string): void => {
+    const el = card.querySelector<HTMLElement>(selector);
+    if (el) el.textContent = text;
+  };
+  set("[data-success-hanzi]", idiom.hanzi);
+  set("[data-success-pinyin]", idiom.pinyin);
+  set("[data-success-meaning-zh]", idiom.meaningZh.hanzi);
+  set("[data-success-meaning-pinyin]", idiom.meaningZh.pinyin);
+  set("[data-success-sentence]", idiom.exampleSentence.hanzi);
+  set("[data-success-sentence-pinyin]", idiom.exampleSentence.pinyin);
+  card.classList.add("visible");
+
+  const continueBtn = document.getElementById("balloon-continue-btn");
+  const onClick = (): void => {
+    card.classList.remove("visible");
+    continueBtn?.removeEventListener("click", onClick);
+    onContinue();
+  };
+  continueBtn?.addEventListener("click", onClick);
+}
+
 function showSummary(completedHanzi: string[]): void {
   const card = document.getElementById("session-summary-card");
   if (!card) return;
@@ -157,6 +196,13 @@ function bootstrap(): void {
     });
   };
 
+  // Split in two per the 2026-08-28 success-card addition: the moment
+  // the catch resolves, we still want to immediately stop the scene and
+  // hide this stage's own chrome (same "leave the stage the instant we
+  // know we're leaving it" lesson as handleDoorReached below), but
+  // actually *advancing* to the next idiom now waits on the child
+  // tapping Continue on the success card rather than firing right away.
+
   // Shows the full-screen "big screen" intro (per your 2026-08-23
   // feedback: "show the question at the beginning ... let the child
   // have some time to read and think") and wires the Start button to
@@ -209,9 +255,18 @@ function bootstrap(): void {
     stopGameplayScene("BalloonSentenceScene");
     // Same reasoning as handleDoorReached above: hide this stage's own
     // chrome the moment we're leaving it, not just its Phaser scene —
-    // otherwise its prompt/status text kept showing behind the next
-    // level's intro card until Start was pressed.
+    // otherwise its prompt/status text kept showing behind the success
+    // card until Continue was pressed.
     document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
+    showBalloonSuccessCard(finishedIndex, () => advanceAfterBalloonStage(finishedIndex));
+  };
+
+  // The part of "finishing a balloon stage" that used to fire
+  // immediately now waits behind the success card's Continue tap (see
+  // showBalloonSuccessCard/afterBalloonStage above) — advances the
+  // session index and moves on to the next idiom's intro, or the
+  // session summary if this was the last one.
+  const advanceAfterBalloonStage = (finishedIndex: number): void => {
     completedHanzi.push(doorLevels[finishedIndex].idiom.hanzi);
     const next = finishedIndex + 1;
     if (next < doorLevels.length) {

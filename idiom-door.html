@@ -66,6 +66,29 @@
           <button id="start-level-btn" type="button">▶ Start</button>
         </div>
       </div>
+      <!-- 2026-08-28: shown right after a correct balloon catch, before
+           advancing to the next idiom's intro (or the session summary)
+           — per your "give a congratulations message and reinforce the
+           learning" feedback. Restates the idiom's meaning (the same
+           paraphrase the level-intro card asked "which idiom means...?"
+           with, closing that loop) plus the correct-usage sentence just
+           caught, so the lesson doesn't just vanish with the pop.
+           Gated behind a Continue tap, not a timer — same "the child
+           sets the pace" philosophy as level-intro-card's Start button. -->
+      <div id="balloon-success-card">
+        <div class="card">
+          <p class="eyebrow">🎉 答对了! (dá duì le) — Correct!</p>
+          <p data-success-hanzi class="success-hanzi"></p>
+          <p data-success-pinyin class="success-pinyin"></p>
+          <p class="success-label">This means:</p>
+          <p data-success-meaning-zh class="success-meaning-zh"></p>
+          <p data-success-meaning-pinyin class="success-meaning-pinyin"></p>
+          <p class="success-label">Used correctly:</p>
+          <p data-success-sentence class="success-sentence"></p>
+          <p data-success-sentence-pinyin class="success-sentence-pinyin"></p>
+          <button id="balloon-continue-btn" type="button">▶ Continue</button>
+        </div>
+      </div>
       <!-- 2026-08-27: overall session progress ("1/3, 2/3, ...") — a
            whole-session indicator, distinct from any one level's own
            door/balloon progress, so it's a persistent corner badge
