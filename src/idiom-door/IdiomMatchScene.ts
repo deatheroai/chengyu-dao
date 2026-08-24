@@ -35,10 +35,26 @@ const TEXT_GAP = 4;
 const PAD_X = 20;
 const PAD_Y = 16;
 const CORNER_RADIUS = 16;
-const GRID_GAP = 22;
-const GRID_TOP_MARGIN = 90;
 
-// How long a wrong pair stays flashed red before reverting to idle,
+// Two fixed columns — first halves on the left, second halves on the
+// right (2026-08-24 redesign, replacing an earlier "one shuffled grid,
+// tap one then its partner" version: your feedback was that tapping
+// didn't work well, and a scattered single-tap-twice layout is also a
+// less standard shape for a matching exercise than the classic
+// worksheet layout this now mirrors). Columns sit at a fraction of the
+// viewport width, clamped so a wide tile never clips off a narrow
+// screen.
+const COLUMN_X_FRACTION = 0.22;
+const COLUMN_SIDE_MARGIN = 16;
+const COLUMN_ROW_GAP = 22;
+const COLUMN_TOP_MARGIN = 90;
+
+const LINE_WIDTH = 5;
+const DRAG_LINE_COLOR = TILE_COLORS.selected.border;
+const MATCH_LINE_COLOR = TILE_COLORS.matched.border;
+const WRONG_LINE_COLOR = TILE_COLORS.wrong.border;
+
+// How long a wrong pair's line/flash stays up before reverting to idle,
 // giving the "not quite" feedback (matchStatus's wrong text, and this
 // visual) time to actually register before the tiles are tappable
 // again.
@@ -58,11 +74,12 @@ interface RuntimeTile {
 
 /**
  * The warm-up matching stage: each idiom in `level` has been split into
- * two tiles (its first two characters, its last two), scattered
- * face-up, and the child taps one then its partner to join them —
- * closer to a classic memory-match game than the door/balloon stages'
- * catch-based mechanics. No fail state, same ethos as the rest of this
- * project: a wrong pair just flashes and un-selects, nothing is lost.
+ * two tiles (its first two characters, its last two) — first halves
+ * laid out in a column on the left, second halves in a column on the
+ * right — and the child drags a line from one half to its partner to
+ * join them, like a classic worksheet matching exercise. No fail state,
+ * same ethos as the rest of this project: a wrong pair just flashes and
+ * un-connects, nothing is lost.
  */
 export class IdiomMatchScene extends Phaser.Scene {
   private level!: MatchLevel;
@@ -73,6 +90,18 @@ export class IdiomMatchScene extends Phaser.Scene {
 
   private bg?: Phaser.GameObjects.Graphics;
   private gridLayer!: Phaser.GameObjects.Container;
+  // Permanent lines for already-matched pairs — kept as tile-id pairs
+  // (not fixed pixel coordinates) and redrawn from current tile
+  // positions, so a resize (which re-lays-out the columns) doesn't
+  // leave old lines pointing at stale positions.
+  private matchLinesLayer!: Phaser.GameObjects.Graphics;
+  private matchedLines: Array<[string, string]> = [];
+  // The in-progress drag's rubber-band line, and (briefly) a
+  // just-resolved wrong pair's line — both ephemeral, cleared/redrawn
+  // rather than accumulated.
+  private dragLine!: Phaser.GameObjects.Graphics;
+  private dragOriginId: string | null = null;
+  private dragHoverId: string | null = null;
 
   constructor() {
     super("IdiomMatchScene");
@@ -83,14 +112,26 @@ export class IdiomMatchScene extends Phaser.Scene {
     this.onComplete = data.onComplete;
     this.progressState = initialMatchProgressState();
     this.runtimeTiles = new Map();
+    this.matchedLines = [];
+    this.dragOriginId = null;
+    this.dragHoverId = null;
     this.resolved = false;
   }
 
   create(): void {
     this.gridLayer = this.add.container(0, 0);
+    this.matchLinesLayer = this.add.graphics();
+    this.dragLine = this.add.graphics();
     this.renderBackground();
     this.spawnTiles();
+    // Tiles render above both line layers regardless of add order, so a
+    // connecting line runs visually *behind* the cards it joins rather
+    // than crossing over their text.
+    this.children.bringToTop(this.gridLayer);
     updateMatchStatus(0, this.totalPairs(), false);
+
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => this.updateDrag(pointer));
+    this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => this.endDrag(pointer));
 
     this.scale.on(Phaser.Scale.Events.RESIZE, () => {
       this.renderBackground();
@@ -116,16 +157,18 @@ export class IdiomMatchScene extends Phaser.Scene {
     this.gridLayer.removeAll(true);
     this.runtimeTiles = new Map();
 
-    // Display order is just `level.tiles`' own order — already shuffled
-    // once at content-build time (matchLevelContent.ts), so no separate
-    // layout shuffle is needed here.
+    // Column order is just each half's own slice of `level.tiles`,
+    // which was already shuffled once at content-build time
+    // (matchLevelContent.ts) — restricting a uniformly shuffled array
+    // to the elements of one half is itself a uniformly random order,
+    // so no separate per-column shuffle is needed here.
     for (const tile of this.level.tiles) {
       const { container, bg, halfW, halfH } = this.buildTileVisual(tile);
       const rt: RuntimeTile = { tile, container, bg, halfW, halfH, state: "idle" };
       this.redrawTileBg(rt);
       container.setSize(halfW * 2, halfH * 2);
       container.setInteractive(new Phaser.Geom.Rectangle(-halfW, -halfH, halfW * 2, halfH * 2), Phaser.Geom.Rectangle.Contains);
-      container.on("pointerdown", () => this.handleTileTap(tile));
+      container.on("pointerdown", (pointer: Phaser.Input.Pointer) => this.startDrag(tile, pointer));
       this.gridLayer.add(container);
       this.runtimeTiles.set(tile.id, rt);
     }
@@ -181,34 +224,41 @@ export class IdiomMatchScene extends Phaser.Scene {
     rt.bg.strokeRoundedRect(-rt.halfW, -rt.halfH, rt.halfW * 2, rt.halfH * 2, CORNER_RADIUS);
   }
 
-  /** Arranges tiles into a roughly-square grid centered in the current
-   * viewport — same "content-sized cells, no overlap" idea as
-   * BalloonSentenceScene's layoutBalloons, but static (no camera pan or
-   * drift): this is a small, fixed set of cards, not a world to roam. */
+  /** Lays out the two columns — first halves on the left, second halves
+   * on the right, each independently top-to-bottom in its own (already
+   * shuffled) order — centered in the current viewport. Column x is a
+   * fraction of viewport width, clamped so the widest tile can't clip
+   * off a narrow screen. */
   private layoutTiles(): void {
     const tiles = [...this.runtimeTiles.values()];
     if (tiles.length === 0) return;
 
     const maxHalfW = Math.max(...tiles.map((t) => t.halfW));
     const maxHalfH = Math.max(...tiles.map((t) => t.halfH));
-    const cellW = maxHalfW * 2 + GRID_GAP;
-    const cellH = maxHalfH * 2 + GRID_GAP;
-    const cols = Math.ceil(Math.sqrt(tiles.length));
-    const rows = Math.ceil(tiles.length / cols);
+    const rowH = maxHalfH * 2 + COLUMN_ROW_GAP;
 
     const { width, height } = this.scale;
-    const gridW = cols * cellW;
-    const gridH = rows * cellH;
-    const originX = width / 2 - gridW / 2;
-    const originY = Math.max(GRID_TOP_MARGIN, height / 2 - gridH / 2);
+    const minX = maxHalfW + COLUMN_SIDE_MARGIN;
+    const leftX = Math.max(minX, width * COLUMN_X_FRACTION);
+    const rightX = Math.min(width - minX, width * (1 - COLUMN_X_FRACTION));
 
-    tiles.forEach((rt, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      rt.container.setPosition(originX + (col + 0.5) * cellW, originY + (row + 0.5) * cellH);
-    });
+    const layoutColumn = (column: RuntimeTile[], x: number): void => {
+      const totalH = column.length * rowH;
+      const startY = Math.max(COLUMN_TOP_MARGIN, height / 2 - totalH / 2) + rowH / 2;
+      column.forEach((rt, i) => rt.container.setPosition(x, startY + i * rowH));
+    };
+
+    layoutColumn(
+      tiles.filter((t) => t.tile.half === "first"),
+      leftX,
+    );
+    layoutColumn(
+      tiles.filter((t) => t.tile.half === "second"),
+      rightX,
+    );
 
     this.syncTilePositionsToDom();
+    this.redrawMatchedLines();
   }
 
   /** Test-only hook mirroring each tile's current canvas-local position
@@ -233,52 +283,134 @@ export class IdiomMatchScene extends Phaser.Scene {
     }
   }
 
-  private handleTileTap(tile: MatchTile): void {
+  private startDrag(tile: MatchTile, pointer: Phaser.Input.Pointer): void {
     if (this.resolved) return;
+    const rt = this.runtimeTiles.get(tile.id);
+    if (!rt || rt.state === "matched") return;
+    this.dragOriginId = tile.id;
+    this.dragHoverId = null;
+    this.setTileVisualState(tile.id, "selected");
+    this.updateDrag(pointer);
+  }
 
-    const result = selectTile(this.progressState, tile.id, this.level.tiles);
+  private updateDrag(pointer: Phaser.Input.Pointer): void {
+    if (!this.dragOriginId) return;
+    const origin = this.runtimeTiles.get(this.dragOriginId);
+    if (!origin) return;
+
+    this.drawLine(this.dragLine, origin.container.x, origin.container.y, pointer.worldX, pointer.worldY, DRAG_LINE_COLOR);
+
+    // Highlights whichever tile the pointer is currently over, so a
+    // child can see where a release will connect to before letting go
+    // — reverted the moment the pointer moves off it.
+    const hoverId = this.tileAt(pointer.worldX, pointer.worldY, this.dragOriginId);
+    if (hoverId !== this.dragHoverId) {
+      if (this.dragHoverId) this.setTileVisualState(this.dragHoverId, "idle");
+      if (hoverId) this.setTileVisualState(hoverId, "selected");
+      this.dragHoverId = hoverId ?? null;
+    }
+  }
+
+  private endDrag(pointer: Phaser.Input.Pointer): void {
+    if (!this.dragOriginId) return;
+    const originId = this.dragOriginId;
+    this.dragOriginId = null;
+    this.dragHoverId = null;
+    this.dragLine.clear();
+
+    const targetId = this.tileAt(pointer.worldX, pointer.worldY, originId);
+    if (!targetId) {
+      // Released on empty space (or back over the origin tile itself) —
+      // cancel, no state change, same "nothing lost" ethos as a wrong
+      // pair, just without even the flash since no pair was attempted.
+      this.setTileVisualState(originId, "idle");
+      return;
+    }
+
+    this.resolvePair(originId, targetId);
+  }
+
+  /** Finds the tile (if any) whose card contains the given scene-space
+   * point, excluding `excludeId` and any tile already matched. Used
+   * both for live hover feedback during a drag and to resolve what a
+   * release landed on. */
+  private tileAt(x: number, y: number, excludeId: string): string | undefined {
+    for (const rt of this.runtimeTiles.values()) {
+      if (rt.tile.id === excludeId || rt.state === "matched") continue;
+      if (x >= rt.container.x - rt.halfW && x <= rt.container.x + rt.halfW && y >= rt.container.y - rt.halfH && y <= rt.container.y + rt.halfH) {
+        return rt.tile.id;
+      }
+    }
+    return undefined;
+  }
+
+  /** A drag that connects two *different*, currently-unmatched tiles
+   * always resolves to "matched" or "wrong" — see matchProgress.ts's
+   * selectTile: the first call always yields "selected" (state starts
+   * clean, since this scene never leaves a selection pending outside of
+   * this one synchronous resolution), and the second call, given a
+   * different unmatched target, can only land on those two outcomes. */
+  private resolvePair(originId: string, targetId: string): void {
+    const picked = selectTile(this.progressState, originId, this.level.tiles);
+    const result = selectTile(picked.state, targetId, this.level.tiles);
     this.progressState = result.state;
     const matchedPairs = this.progressState.matchedTileIds.length / 2;
     const totalPairs = this.totalPairs();
 
-    switch (result.outcome) {
-      case "ignored":
-        return;
-      case "selected":
-        this.setTileVisualState(tile.id, "selected");
-        updateMatchStatus(matchedPairs, totalPairs, false);
-        return;
-      case "deselected":
-        this.setTileVisualState(tile.id, "idle");
-        updateMatchStatus(matchedPairs, totalPairs, false);
-        return;
-      case "matched": {
-        const [aId, bId] = result.pair!;
-        this.setTileVisualState(aId, "matched");
-        this.setTileVisualState(bId, "matched");
-        updateMatchStatus(matchedPairs, totalPairs, false, "matched");
+    if (result.outcome === "matched") {
+      const [aId, bId] = result.pair!;
+      this.setTileVisualState(aId, "matched");
+      this.setTileVisualState(bId, "matched");
+      this.matchedLines.push([aId, bId]);
+      this.redrawMatchedLines();
+      updateMatchStatus(matchedPairs, totalPairs, false, "matched");
 
-        if (matchedPairs === totalPairs) {
-          this.resolved = true;
-          updateMatchStatus(matchedPairs, totalPairs, true);
-          this.time.delayedCall(COMPLETE_HANDOFF_MS, () => this.onComplete?.());
-        }
-        return;
+      if (matchedPairs === totalPairs) {
+        this.resolved = true;
+        updateMatchStatus(matchedPairs, totalPairs, true);
+        this.time.delayedCall(COMPLETE_HANDOFF_MS, () => this.onComplete?.());
       }
-      case "wrong": {
-        const [aId, bId] = result.pair!;
-        this.setTileVisualState(aId, "wrong");
-        this.setTileVisualState(bId, "wrong");
-        this.shakeTile(aId);
-        this.shakeTile(bId);
-        updateMatchStatus(matchedPairs, totalPairs, false, "wrong");
-        this.time.delayedCall(WRONG_REVERT_MS, () => {
-          this.setTileVisualState(aId, "idle");
-          this.setTileVisualState(bId, "idle");
-        });
-        return;
-      }
+      return;
     }
+
+    // Only "wrong" is reachable here (see doc comment above).
+    const [aId, bId] = result.pair!;
+    this.setTileVisualState(aId, "wrong");
+    this.setTileVisualState(bId, "wrong");
+    this.drawTileLine(this.dragLine, aId, bId, WRONG_LINE_COLOR);
+    updateMatchStatus(matchedPairs, totalPairs, false, "wrong");
+    this.time.delayedCall(WRONG_REVERT_MS, () => {
+      this.setTileVisualState(aId, "idle");
+      this.setTileVisualState(bId, "idle");
+      this.dragLine.clear();
+    });
+  }
+
+  /** Redraws every already-matched pair's connecting line from the
+   * tiles' *current* positions — called after layout changes (a resize
+   * re-lays-out both columns) as well as right after a fresh match, so
+   * lines never point at stale coordinates. */
+  private redrawMatchedLines(): void {
+    this.matchLinesLayer.clear();
+    for (const [aId, bId] of this.matchedLines) {
+      this.drawTileLine(this.matchLinesLayer, aId, bId, MATCH_LINE_COLOR);
+    }
+  }
+
+  private drawTileLine(gfx: Phaser.GameObjects.Graphics, aId: string, bId: string, color: number): void {
+    const a = this.runtimeTiles.get(aId);
+    const b = this.runtimeTiles.get(bId);
+    if (!a || !b) return;
+    this.drawLine(gfx, a.container.x, a.container.y, b.container.x, b.container.y, color, false);
+  }
+
+  private drawLine(gfx: Phaser.GameObjects.Graphics, x1: number, y1: number, x2: number, y2: number, color: number, clearFirst = true): void {
+    if (clearFirst) gfx.clear();
+    gfx.lineStyle(LINE_WIDTH, color, 0.9);
+    gfx.beginPath();
+    gfx.moveTo(x1, y1);
+    gfx.lineTo(x2, y2);
+    gfx.strokePath();
   }
 
   private setTileVisualState(tileId: string, state: TileVisualState): void {
@@ -290,19 +422,5 @@ export class IdiomMatchScene extends Phaser.Scene {
       rt.container.disableInteractive();
       this.tweens.add({ targets: rt.container, scale: { from: 1, to: 1.12 }, yoyo: true, duration: 220, ease: "Quad.easeOut" });
     }
-  }
-
-  private shakeTile(tileId: string): void {
-    const rt = this.runtimeTiles.get(tileId);
-    if (!rt) return;
-    const baseX = rt.container.x;
-    this.tweens.add({
-      targets: rt.container,
-      x: { from: baseX - 6, to: baseX + 6 },
-      duration: 55,
-      yoyo: true,
-      repeat: 3,
-      onComplete: () => rt.container.setX(baseX),
-    });
   }
 }

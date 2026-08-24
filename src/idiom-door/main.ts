@@ -202,8 +202,9 @@ function bootstrap(): void {
 
   // 2026-08-24: a one-time warm-up before the very first idiom's
   // intro — splits each of this session's idioms into two tiles (its
-  // first two characters, its last two) and has the child tap-match
-  // them back together, a gentler on-ramp than the door puzzle's
+  // first two characters, its last two), laid out in two columns, and
+  // has the child drag a line from one half to its partner to join
+  // them back together — a gentler on-ramp than the door puzzle's
   // ordered, per-character precision. Runs once per session, on the
   // whole idiom set at once, not per idiom like the door/balloon
   // stages that follow it.
