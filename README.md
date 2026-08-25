@@ -69,7 +69,14 @@ etc.). `vercel.json` is included for a Vercel deploy:
 ## History
 
 This game started as a castle escape-room prototype inside a larger
-monorepo, then pivoted (2026-08-06) to the Chinese idiom learning concept
-described above. That monorepo's design docs (`GAME_DESIGN.md`,
-`DECISIONS.md`, `BACKLOG.md`) aren't included here; this repo carries the
-code and its git history from that point forward.
+monorepo (`TestAI`), then pivoted (2026-08-06) to the Chinese idiom
+learning concept described above. This repo carries the code and its git
+history from that point forward; the pre-pivot castle prototype itself was
+removed on 2026-08-25 (see `DECISIONS.md`).
+
+`TestAI`'s own design docs (`GAME_DESIGN.md`, `SNIPPET_PLANS.md`,
+`CATCH_MECHANIC_PLAN.md`) and its full decision/backlog history aren't
+included here. This repo has its own `AUTONOMY.md` / `DECISIONS.md` /
+`BACKLOG.md`, adapted from `TestAI`'s to this repo's standalone structure,
+starting fresh from the split rather than carrying the monorepo's full
+history over.
