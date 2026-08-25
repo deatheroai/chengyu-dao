@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#ffe0b8" />
+    <title>Idiom Session — Snippets 5+6 Prototype</title>
+    <link rel="stylesheet" href="/src/session/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div
+        id="session-progress"
+        aria-live="polite"
+        data-phase="reveal"
+        data-index="0"
+        data-discovered-count="0"
+      ></div>
+
+      <div id="resurface-phase" class="hidden">
+        <main class="card">
+          <p class="resurface-eyebrow">Welcome back! 👋</p>
+          <h1 class="resurface-title">Do you remember this one?</h1>
+          <div class="idiom-header">
+            <div class="hanzi" id="resurface-hanzi" lang="zh-Hans"></div>
+            <div class="pinyin" id="resurface-pinyin"></div>
+          </div>
+          <p class="meaning" id="resurface-meaning"></p>
+          <button id="resurface-continue-btn" type="button">Continue →</button>
+        </main>
+      </div>
+
+      <div id="reveal-phase">
+        <div id="game-container"></div>
+        <div id="reveal-ui-layer">
+          <p id="reveal-hint">Tap and explore the glow to reveal the idiom.</p>
+          <div id="reveal-status" aria-live="polite" data-revealed-count="0" data-total="4" data-complete="false"></div>
+          <button id="continue-btn" class="hidden" type="button">Continue →</button>
+        </div>
+      </div>
+
+      <div id="meaning-check-phase" class="hidden">
+        <main class="card">
+          <div class="idiom-header">
+            <div class="hanzi" id="idiom-hanzi" lang="zh-Hans"></div>
+            <div class="pinyin" id="idiom-pinyin"></div>
+          </div>
+          <p class="meaning" id="idiom-meaning"></p>
+
+          <h2 class="prompt">
+            Which one of these is really about
+            <span class="prompt-idiom" id="prompt-idiom" lang="zh-Hans"></span>?
+          </h2>
+          <div class="options" id="options"></div>
+
+          <p id="check-status" aria-live="polite" data-status="choosing" data-attempts="0"></p>
+          <p id="explanation" class="explanation hidden"></p>
+
+          <button id="next-btn" class="hidden" type="button">Next idiom →</button>
+        </main>
+      </div>
+
+      <div id="summary-phase" class="hidden">
+        <main class="card">
+          <h1 class="summary-title">You discovered 3 idioms today! 🎉</h1>
+          <ul id="summary-list"></ul>
+          <p class="summary-message">Come back tomorrow for more!</p>
+        </main>
+      </div>
+
+      <!-- Dev-only prototype controls (Snippet 6): stand in for "actually
+           waiting a day" so the resurfacing flow can be tried without
+           playing a full real session first. Not part of the intended
+           child-facing product — see DECISIONS.md. -->
+      <div id="dev-controls">
+        <button id="dev-seed-history-btn" type="button">🔧 Simulate: I've played before</button>
+        <button id="dev-clear-history-btn" type="button">🔧 Clear history (start fresh)</button>
+      </div>
+    </div>
+    <script type="module" src="/src/session/main.ts"></script>
+  </body>
+</html>

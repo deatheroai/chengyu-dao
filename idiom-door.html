@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#ffe0b8" />
+    <title>Idiom Door — Meaning-First Puzzle Spike</title>
+    <link rel="stylesheet" href="/src/idiom-door/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="game-container"></div>
+      <!-- 2026-08-24: the "join the two halves" warm-up stage — runs
+           once, before the first idiom's door/balloon sequence, on the
+           same 3-idiom set (main.ts's bootstrap → showMatchIntro →
+           beginMatchStage). Own UI layer + status chip, same
+           show/hide-in-lockstep pattern as catch-ui-layer/
+           balloon-ui-layer. -->
+      <div id="match-ui-layer" class="stage-hidden">
+        <p id="match-prompt">Drag a line from each idiom's first half to its second half!</p>
+        <div id="match-status" aria-live="polite" data-matched-pairs="0" data-total-pairs="3" data-complete="false"></div>
+      </div>
+      <div id="catch-ui-layer">
+        <p id="meaning-prompt"></p>
+        <div id="door-status" aria-live="polite" data-next-index="0" data-total="4" data-complete="false"></div>
+      </div>
+      <!-- Test-only hook mirroring the character's x position, same as
+           platform-catch's — not part of the child-facing UI. -->
+      <div id="player-position" data-x="0" style="display: none" aria-hidden="true"></div>
+      <div id="controls-layer">
+        <button id="jump-btn" class="action-btn" type="button" aria-label="Jump">JUMP</button>
+      </div>
+      <!-- 2026-08-25: the balloon-sentence stage that follows each idiom's
+           door — its own DOM chrome, shown/hidden in lockstep with the
+           door stage's (main.ts's showDoorStageUI/showBalloonStageUI) so
+           only one stage's prompt is visible at a time, even though both
+           stages share this one page/canvas. 2026-08-26: no on-screen
+           movement buttons — dragging the avatar directly (handled
+           entirely inside BalloonSentenceScene via Phaser's own pointer
+           input on the canvas) replaced the earlier fixed d-pad. -->
+      <div id="balloon-ui-layer" class="stage-hidden">
+        <p id="balloon-prompt"></p>
+        <div id="balloon-status" aria-live="polite" data-resolved="false"></div>
+      </div>
+      <!-- Test-only hook mirroring the free-drift avatar's position,
+           same purpose as #player-position above. -->
+      <div id="balloon-position" data-x="0" data-y="0" style="display: none" aria-hidden="true"></div>
+      <!-- Test-only hook mirroring every match-stage tile's current
+           canvas-local position (one <span data-tile-id data-x data-y>
+           per tile) — same purpose as #player-position/#balloon-position
+           above, but per-tile rather than a single avatar, since an E2E
+           test has no other way to know where to click a given tile
+           (IdiomMatchScene.syncTilePositionsToDom). -->
+      <div id="match-tile-positions" style="display: none" aria-hidden="true"></div>
+      <div id="session-summary-card">
+        <div class="card">
+          <p class="headline">You solved 3 idioms today! 🎉</p>
+          <p data-summary-list class="hanzi-list"></p>
+          <p class="subline">Come back tomorrow for more!</p>
+          <button id="play-again-btn" type="button">🔁 Play again</button>
+        </div>
+      </div>
+      <!-- Shown before each level starts, so the child has time to read
+           and think about the meaning before the run begins — per your
+           2026-08-23 feedback. The run doesn't start until Start is
+           pressed (see main.ts's beginLevel/startLevelWithIntro).
+           2026-08-24: the clue is shown Mandarin-first (hanzi + pinyin),
+           since this is a Mandarin-learning game — a child who can't
+           read it yet can tap the icon to reveal the English version.
+           2026-08-28: pinyin is now rendered directly over each
+           character (ruby annotation — see main.ts's showIntroMeaning
+           and shared/rubyText.ts) instead of as its own paragraph below
+           the hanzi, per your "very hard for the child to learn if the
+           pinyin is on a separate paragraph" feedback — there's no
+           longer a separate pinyin element here. -->
+      <!-- 2026-08-24: shown once, before anything else in the session —
+           explains the warm-up mechanic before the first tile is
+           tappable, same "reading/thinking time before the run begins"
+           philosophy as level-intro-card below, just for the match
+           stage instead of a door level. -->
+      <div id="match-intro-card">
+        <div class="card">
+          <p class="eyebrow">Warm-up</p>
+          <p class="match-intro-text">Every idiom has been split into two halves — the first halves on the left, the second halves on the right. Drag a line from one to the other to join them!</p>
+          <button id="start-match-btn" type="button">▶ Start</button>
+        </div>
+      </div>
+      <div id="level-intro-card">
+        <div class="card">
+          <p class="eyebrow">Which idiom means...</p>
+          <p data-intro-meaning-zh class="intro-meaning-zh"></p>
+          <button id="reveal-english-btn" class="icon-btn" type="button" aria-label="I don't understand — show English">
+            🤔<span class="icon-btn-label">Don't understand?</span>
+          </button>
+          <p data-intro-meaning-en class="intro-meaning-en hidden"></p>
+          <button id="start-level-btn" type="button">▶ Start</button>
+        </div>
+      </div>
+      <!-- 2026-08-28: shown right after a correct balloon catch, before
+           advancing to the next idiom's intro (or the session summary)
+           — per your "give a congratulations message and reinforce the
+           learning" feedback. Restates the idiom's meaning (the same
+           paraphrase the level-intro card asked "which idiom means...?"
+           with, closing that loop) plus the correct-usage sentence just
+           caught, so the lesson doesn't just vanish with the pop.
+           Gated behind a Continue tap, not a timer — same "the child
+           sets the pace" philosophy as level-intro-card's Start button.
+           2026-08-28 (later): same ruby-annotation change as the intro
+           card above — each hanzi line carries its own pinyin now, no
+           more separate pinyin paragraphs. -->
+      <div id="balloon-success-card">
+        <div class="card">
+          <p class="eyebrow">🎉 答对了! (dá duì le) — Correct!</p>
+          <p data-success-hanzi class="success-hanzi"></p>
+          <p class="success-label">This means:</p>
+          <p data-success-meaning-zh class="success-meaning-zh"></p>
+          <p class="success-label">Used correctly:</p>
+          <p data-success-sentence class="success-sentence"></p>
+          <button id="balloon-continue-btn" type="button">▶ Continue</button>
+        </div>
+      </div>
+      <!-- 2026-08-27: overall session progress ("1/3, 2/3, ...") — a
+           whole-session indicator, distinct from any one level's own
+           door/balloon progress, so it's a persistent corner badge
+           rather than living inside catch-ui-layer/balloon-ui-layer
+           (which toggle per stage). Placed last so it stacks above the
+           full-screen intro/summary overlays too, and stays visible
+           throughout — main.ts's updateSessionProgress keeps it current. -->
+      <div id="session-progress" aria-live="polite">
+        <span data-progress-fraction></span>
+        <div class="progress-dots" data-progress-dots></div>
+      </div>
+    </div>
+    <script type="module" src="/src/idiom-door/main.ts"></script>
+  </body>
+</html>

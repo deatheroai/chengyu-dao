@@ -1,0 +1,439 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #fff3e2;
+  color: #4a3420;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+#game-container {
+  position: absolute;
+  inset: 0;
+}
+
+#game-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  touch-action: none;
+}
+
+/* 2026-08-25: the door puzzle and balloon-sentence stage share this one
+   page/canvas rather than being separate HTML files — only one stage's
+   prompt/status chip and on-screen controls should ever be visible and
+   interactable at a time (main.ts's showDoorStageUI/showBalloonStageUI). */
+.stage-hidden {
+  display: none !important;
+}
+
+/* 2026-08-28: every hanzi+pinyin pairing in this game (the level-intro
+   card, the balloon-stage prompt, the success card) is rendered as ruby
+   annotation (rubyText.ts) — pinyin sitting directly over each
+   character — rather than a whole hanzi phrase followed by a whole
+   pinyin phrase in a separate paragraph below it, per your "very hard
+   for the child to learn if the pinyin is on a separate paragraph"
+   feedback. One shared rule rather than repeating this per element.
+   `ruby-align: center` keeps a multi-syllable annotation (there isn't
+   one here — always exactly one syllable per character — but it's a
+   harmless, correct default) centered over its single character. */
+ruby {
+  ruby-align: center;
+}
+rt {
+  font-size: 0.55em;
+  font-style: italic;
+  font-weight: 400;
+  color: #8a6a45;
+  user-select: none;
+}
+
+/* Overall session progress ("1/3, 2/3, ...") — a whole-session
+   indicator distinct from #door-status/#balloon-status's per-level
+   progress, so it lives outside the per-stage toggling and stays
+   visible throughout (intro, door, balloon, and summary alike). */
+#session-progress {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #7a5636;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.progress-dots {
+  display: flex;
+  gap: 0.28rem;
+}
+
+.progress-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 2px solid #d9a15b;
+  box-sizing: border-box;
+}
+.progress-dot.done {
+  background: #f0b429;
+  border-color: #f0b429;
+}
+.progress-dot.current {
+  border-color: #c1401f;
+  background: #ffdca0;
+}
+
+#catch-ui-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+
+#meaning-prompt {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #7a5636;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.4rem 0.9rem;
+  border-radius: 14px;
+  text-align: center;
+  max-width: 32rem;
+  line-height: 1.35;
+}
+
+#door-status {
+  font-size: 0.78rem;
+  color: #8a6a45;
+  min-height: 1.1em;
+}
+
+/* Match stage — a green/teal accent, distinct from the door puzzle's
+   warm tones and the balloon stage's blue, matching
+   IdiomMatchScene's own green/teal background. */
+#match-ui-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+
+#match-prompt {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #2f7a52;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.4rem 0.9rem;
+  border-radius: 14px;
+  text-align: center;
+  max-width: 32rem;
+  line-height: 1.35;
+}
+
+#match-status {
+  font-size: 0.78rem;
+  color: #3c8a63;
+  min-height: 1.1em;
+}
+
+/* A single centered action: the child no longer steers left/right or
+   presses a separate grab button (2026-08-23 redesign, per your
+   feedback that walking backward to press GRAB felt clunky) — running
+   is automatic, jumping is the one thing left to control. */
+#controls-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 0 calc(1.25rem + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+}
+
+.action-btn {
+  width: 4.6rem;
+  height: 4.6rem;
+  border-radius: 999px;
+  border: none;
+  background: rgba(240, 180, 41, 0.9);
+  color: #4a3420;
+  font-size: 1.1rem;
+  font-weight: 700;
+  touch-action: none;
+  user-select: none;
+}
+.action-btn:active {
+  background: #d99e1f;
+}
+
+/* Balloon-sentence stage — a cooler blue palette (vs. the door puzzle's
+   warm one) to read as visually distinct, matching BalloonSentenceScene's
+   sky background. */
+#balloon-ui-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+
+#balloon-prompt {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #2b5578;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.4rem 0.9rem;
+  border-radius: 14px;
+  text-align: center;
+  max-width: 32rem;
+  /* Extra top padding, on top of line-height below: the idiom's ruby
+     pinyin annotation sits above its own line here, same reasoning as
+     the shared `ruby`/`rt` rule's comment further down. */
+  padding-top: 0.7rem;
+  line-height: 1.9;
+}
+
+#balloon-status {
+  font-size: 0.78rem;
+  color: #3c6a8c;
+  min-height: 1.1em;
+}
+
+
+#session-summary-card,
+#level-intro-card,
+#balloon-success-card,
+#match-intro-card {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(74, 52, 32, 0.45);
+  padding: 1rem;
+}
+#session-summary-card.visible,
+#level-intro-card.visible,
+#balloon-success-card.visible,
+#match-intro-card.visible {
+  display: flex;
+}
+
+#session-summary-card .card,
+#level-intro-card .card,
+#balloon-success-card .card,
+#match-intro-card .card {
+  background: #fff8ef;
+  border-radius: 20px;
+  padding: 1.75rem 1.5rem;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(74, 52, 32, 0.25);
+}
+
+#level-intro-card .eyebrow,
+#match-intro-card .eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #b98a4a;
+}
+
+#match-intro-card .match-intro-text {
+  margin: 1.1rem 0 1.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #4a3420;
+}
+
+#level-intro-card .intro-meaning-zh {
+  /* 2026-08-28: pinyin moved from its own paragraph below (removed)
+     to a ruby annotation over each character — extra margin-top and a
+     taller line-height give the annotation room without crowding the
+     eyebrow above or clipping on wrapped lines; see the shared
+     `ruby`/`rt` rule below for the annotation's own styling. */
+  margin: 1.1rem 0 1rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 2.1;
+  color: #4a3420;
+}
+
+.icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0 auto 1rem;
+  border: none;
+  background: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
+.icon-btn .icon-btn-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #b98a4a;
+}
+.icon-btn:focus-visible {
+  outline: 2px solid #4a3420;
+  outline-offset: 2px;
+}
+
+#level-intro-card .intro-meaning-en {
+  margin: -0.4rem 0 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #4a3420;
+  background: rgba(240, 180, 41, 0.18);
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+}
+#level-intro-card .intro-meaning-en.hidden {
+  display: none;
+}
+
+#start-level-btn,
+#balloon-continue-btn,
+#start-match-btn {
+  border: none;
+  background: #c1401f;
+  color: #fff8ef;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.65rem 1.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#start-level-btn:hover,
+#balloon-continue-btn:hover,
+#start-match-btn:hover {
+  background: #a83618;
+}
+#start-level-btn:focus-visible,
+#balloon-continue-btn:focus-visible,
+#start-match-btn:focus-visible {
+  outline: 2px solid #4a3420;
+  outline-offset: 2px;
+}
+
+#balloon-success-card .eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2f8f5b;
+}
+
+#balloon-success-card .success-hanzi {
+  /* 2026-08-28: pinyin moved from its own paragraph (removed) to a
+     ruby annotation over each character — see the shared `ruby`/`rt`
+     rule below. */
+  margin: 0.5rem 0 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 2.3;
+  color: #4a3420;
+}
+
+#balloon-success-card .success-label {
+  margin: 0.7rem 0 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #b98a4a;
+}
+
+#balloon-success-card .success-meaning-zh,
+#balloon-success-card .success-sentence {
+  margin: 0.4rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 2.1;
+  color: #4a3420;
+}
+
+#balloon-continue-btn {
+  margin-top: 1.25rem;
+}
+
+#session-summary-card .headline {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+#session-summary-card .hanzi-list {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #c1401f;
+  margin: 0.5rem 0;
+}
+
+#session-summary-card .subline {
+  font-size: 0.9rem;
+  color: #7a5636;
+  margin: 0.5rem 0 0;
+}
+
+#play-again-btn {
+  margin-top: 1.25rem;
+  border: none;
+  background: #c1401f;
+  color: #fff8ef;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#play-again-btn:hover {
+  background: #a83618;
+}
+#play-again-btn:focus-visible {
+  outline: 2px solid #4a3420;
+  outline-offset: 2px;
+}
