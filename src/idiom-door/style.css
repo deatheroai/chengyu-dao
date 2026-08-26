@@ -241,7 +241,8 @@ rt {
 #session-summary-card,
 #level-intro-card,
 #balloon-success-card,
-#match-intro-card {
+#match-intro-card,
+#resurface-card {
   position: absolute;
   inset: 0;
   display: none;
@@ -253,14 +254,16 @@ rt {
 #session-summary-card.visible,
 #level-intro-card.visible,
 #balloon-success-card.visible,
-#match-intro-card.visible {
+#match-intro-card.visible,
+#resurface-card.visible {
   display: flex;
 }
 
 #session-summary-card .card,
 #level-intro-card .card,
 #balloon-success-card .card,
-#match-intro-card .card {
+#match-intro-card .card,
+#resurface-card .card {
   background: #fff8ef;
   border-radius: 20px;
   padding: 1.75rem 1.5rem;
@@ -271,7 +274,8 @@ rt {
 }
 
 #level-intro-card .eyebrow,
-#match-intro-card .eyebrow {
+#match-intro-card .eyebrow,
+#resurface-card .eyebrow {
   margin: 0;
   font-size: 0.8rem;
   font-weight: 600;
@@ -338,7 +342,8 @@ rt {
 
 #start-level-btn,
 #balloon-continue-btn,
-#start-match-btn {
+#start-match-btn,
+#resurface-continue-btn {
   border: none;
   background: #c1401f;
   color: #fff8ef;
@@ -350,14 +355,66 @@ rt {
 }
 #start-level-btn:hover,
 #balloon-continue-btn:hover,
-#start-match-btn:hover {
+#start-match-btn:hover,
+#resurface-continue-btn:hover {
   background: #a83618;
 }
 #start-level-btn:focus-visible,
 #balloon-continue-btn:focus-visible,
-#start-match-btn:focus-visible {
+#start-match-btn:focus-visible,
+#resurface-continue-btn:focus-visible {
   outline: 2px solid #4a3420;
   outline-offset: 2px;
+}
+
+/* --- Resurface card (2026-08-26, ported from session.html) --- */
+
+#resurface-card .resurface-title {
+  margin: 0.6rem 0 1rem;
+  font-size: 1.15rem;
+  line-height: 1.4;
+  color: #4a3420;
+}
+
+#resurface-card .resurface-hanzi {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #4a3420;
+}
+
+#resurface-card .resurface-meaning {
+  margin: 0 0 1.1rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #7a5636;
+}
+
+/* --- Dev-only prototype controls (ported from session.html) --- */
+
+#dev-controls {
+  position: absolute;
+  top: calc(2.5rem + env(safe-area-inset-top));
+  right: calc(0.5rem + env(safe-area-inset-right));
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+#dev-controls button {
+  border: 1px dashed #b98a55;
+  background: rgba(255, 255, 255, 0.7);
+  color: #7a5636;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+#dev-controls button:hover {
+  background: rgba(255, 255, 255, 0.95);
 }
 
 #balloon-success-card .eyebrow {

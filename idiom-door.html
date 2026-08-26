@@ -134,6 +134,31 @@
         <span data-progress-fraction></span>
         <div class="progress-dots" data-progress-dots></div>
       </div>
+      <!-- 2026-08-26: shown before anything else, on a return visit only
+           — if at least one idiom has been discovered in a prior
+           completed session (shared/sessionHistory.ts), a brief,
+           low-stakes callback to something already learned before the
+           match warm-up begins. Not shown on a genuinely first-ever
+           visit (no prior history yet). Ported from the retired
+           session.html prototype's resurface-phase, same idea. -->
+      <div id="resurface-card">
+        <div class="card">
+          <p class="eyebrow">Welcome back! 👋</p>
+          <p class="resurface-title">Do you remember this one?</p>
+          <p data-resurface-hanzi class="resurface-hanzi" lang="zh-Hans"></p>
+          <p data-resurface-meaning class="resurface-meaning"></p>
+          <button id="resurface-continue-btn" type="button">Continue →</button>
+        </div>
+      </div>
+      <!-- Dev-only prototype controls: stand in for "actually waiting a
+           day" so the resurfacing flow above can be tried without
+           playing a full real session first. Not part of the intended
+           child-facing product — see DECISIONS.md. Ported from
+           session.html's identical dev-controls. -->
+      <div id="dev-controls">
+        <button id="dev-seed-history-btn" type="button">🔧 Simulate: I've played before</button>
+        <button id="dev-clear-history-btn" type="button">🔧 Clear history (start fresh)</button>
+      </div>
     </div>
     <script type="module" src="/src/idiom-door/main.ts"></script>
   </body>

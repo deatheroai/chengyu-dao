@@ -34,27 +34,26 @@ npm run test:e2e    # end-to-end tests (playwright)
 ## Project structure
 
 `index.html` (the site root) is a static redirect to `idiom-door.html`, the
-current default entry point. Each learning mechanic is otherwise its own
-entry point (`<name>.html` + `src/<name>/`):
+real game (2026-08-26 consolidation — see `DECISIONS.md`): a warm-up match
+stage, then each idiom's door-chase and balloon-catch stages in sequence,
+opening with a resurfacing callback on a return visit.
 
 ```
-idiom-reveal.html    # tap-to-uncover an idiom in an illustrated scene
-idiom-door.html       # balloon/door-based idiom matching mechanics
-meaning-check.html    # "does this fit?" application check
-catch-meaning.html    # catch-style meaning practice
-platform-catch.html   # platformer-style catch mechanic
-session.html          # session history / resurfacing flow
+idiom-door.html   # the game
 
 src/
-  idioms/         # idiom content data + types
-  idiom-reveal/    # idiom-reveal scene, progress, DOM status
-  idiom-door/      # idiom-door + balloon/match scenes and logic
-  meaning-check/   # application-check view + state
-  catch-meaning/   # catch-meaning scene + progress
-  platform-catch/  # platform-catch scene + physics
-  session/         # session state + history
-  shared/          # shared helpers (e.g. ruby text for pinyin)
+  idioms/      # idiom content data + types
+  idiom-door/  # match/door/balloon scenes, level content, session flow
+  shared/      # shared helpers: ruby text (pinyin), player-position DOM
+               # hook, application-check distractor builder, session
+               # history/resurfacing
 ```
+
+Five earlier standalone mechanic prototypes (`idiom-reveal`,
+`meaning-check`, `catch-meaning`, `platform-catch`, `session`) were
+archived/deleted on 2026-08-26 once `idiom-door` absorbed or superseded
+each of them — see `DECISIONS.md`'s 2026-08-26 entry and `BACKLOG.md` for
+what came from where.
 
 ## Deploy
 

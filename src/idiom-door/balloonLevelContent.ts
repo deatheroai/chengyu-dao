@@ -1,6 +1,6 @@
 import type { IdiomContent } from "../idioms/types";
 import { idioms } from "../idioms/idioms";
-import { buildApplicationCheck, type ApplicationCheckOption } from "../meaning-check/applicationCheck";
+import { buildApplicationCheck, type ApplicationCheckOption } from "../shared/applicationCheck";
 import { createRng, seedFromString, randRange } from "./seededRandom";
 import { BALLOON_COLORWAYS } from "./balloonColors";
 

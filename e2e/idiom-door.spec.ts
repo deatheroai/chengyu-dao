@@ -386,6 +386,18 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${doorLevels[0].idiom.meaning}"`);
   const s = await status(page);
   expect(s).toEqual({ nextIndex: "0", complete: "false" });
+
+  // 2026-08-26: finishing that first real session earlier in this test
+  // (before "Play again" restarted a fresh in-page run) should be enough
+  // on its own to trigger a resurface callback on a genuinely fresh page
+  // load - no dev control needed here, this exercises the real
+  // record/read path end to end. See idiom-door-resurface.spec.ts for
+  // the dev-control-based coverage of the resurface flow itself; this
+  // reuses the full completion already paid for above rather than
+  // repeating it in its own (expensive) test.
+  await page.goto("/idiom-door.html");
+  await expect(page.locator("#resurface-card")).toHaveClass(/visible/);
+  await expect(page.locator("[data-resurface-hanzi]")).not.toBeEmpty();
 });
 
 test("the on-screen JUMP button works the same as the keyboard", async ({ page }) => {
