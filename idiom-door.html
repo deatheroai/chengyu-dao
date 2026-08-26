@@ -41,14 +41,29 @@
            stages share this one page/canvas. 2026-08-26: no on-screen
            movement buttons — dragging the avatar directly (handled
            entirely inside BalloonSentenceScene via Phaser's own pointer
-           input on the canvas) replaced the earlier fixed d-pad. -->
+           input on the canvas) replaced the earlier fixed d-pad.
+           2026-08-26 (later) redesign: balloons used to each hold a
+           whole spliced example sentence (hard to read while flying, per
+           your feedback) — the sentence is now shown once, fixed, right
+           here with the idiom blanked out (main.ts's showBalloonPrompt),
+           and each balloon holds just one short candidate idiom instead. -->
       <div id="balloon-ui-layer" class="stage-hidden">
-        <p id="balloon-prompt"></p>
+        <p class="balloon-instruction">Catch the balloon with the idiom that completes the sentence:</p>
+        <p id="balloon-prompt" lang="zh-Hans"></p>
         <div id="balloon-status" aria-live="polite" data-resolved="false"></div>
       </div>
       <!-- Test-only hook mirroring the free-drift avatar's position,
            same purpose as #player-position above. -->
       <div id="balloon-position" data-x="0" data-y="0" style="display: none" aria-hidden="true"></div>
+      <!-- Test-only hooks (2026-08-26) letting a test steer directly to
+           the correct balloon instead of guessing a blind search pattern
+           across whatever size grid this level built: one
+           <span data-balloon-id data-correct data-x data-y> per balloon
+           (world position, same space #balloon-position uses), plus the
+           camera's current scroll offset needed to convert that into an
+           actual on-screen pixel — see balloonPositionStatus.ts. -->
+      <div id="balloon-target-positions" style="display: none" aria-hidden="true"></div>
+      <div id="balloon-camera-scroll" data-x="0" data-y="0" style="display: none" aria-hidden="true"></div>
       <!-- Test-only hook mirroring every match-stage tile's current
            canvas-local position (one <span data-tile-id data-x data-y>
            per tile) — same purpose as #player-position/#balloon-position

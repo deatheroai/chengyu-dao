@@ -22,8 +22,21 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       callback (ported from the retired `session.html`) before its match
       warm-up. The other five prototypes (`idiom-reveal`, `meaning-check`,
       `catch-meaning`, `platform-catch`, `session`) were archived/deleted;
-      their still-useful pieces moved to `src/shared/`
-      (`applicationCheck.ts`, `positionStatus.ts`, `sessionHistory.ts`).
+      their still-useful pieces moved to `src/shared/` (`positionStatus.ts`,
+      `sessionHistory.ts`) — `applicationCheck.ts` also moved there at
+      first, then removed once the balloon-stage redesign below made its
+      full-sentence-splicing approach unnecessary.
+- [x] `done` — **Redesign the balloon stage (2026-08-26).** Previously
+      each balloon held a whole spliced example sentence (14-35+
+      characters, cramped and hard to read while flying — the sentence's
+      *font* was ~15px inside a variably-sized balloon). Now the idiom's
+      example sentence is shown once, fixed and readable, with the idiom
+      itself blanked out (○○○○); each balloon holds just one short (4
+      character) candidate idiom at a much bigger font (34px), and the
+      child catches whichever idiom actually fills the blank.
+      `shared/applicationCheck.ts` (the old full-sentence distractor
+      builder) is gone; `idiom-door/balloonLevelContent.ts` now builds a
+      `MaskedSentence` plus simple idiom-candidate distractors directly.
 - [ ] `todo` — **Draw `idiom-door`'s session content from the full idiom
       pool instead of the fixed 3-idiom set.** `src/idioms/idioms.ts` has
       15 idioms; `idiom-door`'s puzzle needs 4 *distinct* characters per

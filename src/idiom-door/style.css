@@ -215,9 +215,28 @@ rt {
   pointer-events: none;
 }
 
+/* 2026-08-26 redesign: this used to be a short instruction line ("Catch
+   the balloon that uses [idiom] correctly!"); it now shows the idiom's
+   own example sentence with the idiom blanked out (○○○○) — the main
+   readable puzzle content for this stage, so a bit larger than the old
+   instruction-line size. `.balloon-instruction` (a plain, unchanging
+   line, styled the same as the old #balloon-prompt) now carries the
+   "catch the balloon..." framing instead. */
+.balloon-instruction {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #2b5578;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.35rem 0.9rem;
+  border-radius: 14px;
+  text-align: center;
+  max-width: 32rem;
+}
+
 #balloon-prompt {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 1.05rem;
+  font-weight: 700;
   color: #2b5578;
   background: rgba(255, 255, 255, 0.85);
   padding: 0.4rem 0.9rem;
@@ -394,7 +413,13 @@ rt {
 
 #dev-controls {
   position: absolute;
-  top: calc(2.5rem + env(safe-area-inset-top));
+  /* 2026-08-26: moved from top-right to bottom-right — the balloon
+     stage's redesigned (bigger, multi-line) sentence-with-blank prompt
+     now reaches far enough down that a top-right panel overlapped it on
+     narrow viewports. #controls-layer's jump button is bottom-*center*
+     (see its own rule above), so bottom-right stays clear across every
+     stage, not just this one. */
+  bottom: calc(0.5rem + env(safe-area-inset-bottom));
   right: calc(0.5rem + env(safe-area-inset-right));
   z-index: 6;
   display: flex;

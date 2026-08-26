@@ -1,59 +1,48 @@
 import type { IdiomContent } from "../idioms/types";
 import { idioms } from "../idioms/idioms";
-import { buildApplicationCheck, type ApplicationCheckOption } from "../shared/applicationCheck";
 import { createRng, seedFromString, randRange } from "./seededRandom";
 import { BALLOON_COLORWAYS } from "./balloonColors";
 
 export interface BalloonDef {
   id: string;
+  /** The candidate idiom's own hanzi — the target idiom itself for the
+   * correct balloon, or another idiom's hanzi for a decoy. 2026-08-26
+   * redesign: a balloon used to hold a whole spliced example sentence
+   * (14-35+ characters, cramped and hard to read while flying); it now
+   * holds just one short (4-character) idiom, with the sentence itself
+   * shown fixed/readable in the balloon-prompt UI instead — see
+   * `MaskedSentence` below. */
   hanzi: string;
   pinyin: string;
-  /** Per-character pinyin, one entry per `Array.from(hanzi)` character
-   * (empty string for punctuation) — same shape/provenance as
-   * ApplicationCheckOption.charPinyin (this is just that field renamed
-   * onto the balloon). Lets BalloonSentenceScene render pinyin directly
-   * over each character (ruby-style) instead of as a separate text
-   * block below the whole sentence, per your 2026-08-28 "very hard for
-   * the child to learn if the pinyin is on a separate paragraph"
-   * feedback. */
   charPinyin: string[];
   isCorrect: boolean;
-  /** Which idiom this sentence's structure actually comes from — the
-   * target idiom itself for the correct balloon, or whichever other
-   * idiom's sentence the target was spliced into for a decoy. Not
-   * shown to the child; kept for parity with the door puzzle's tiles
-   * and in case a future pass wants to credit/vary by source. */
+  /** Which idiom this candidate actually is — same as `hanzi`/`pinyin`
+   * already identify it, kept as an explicit id for parity with the
+   * door puzzle's tiles and easier test/debug reference. */
   sourceIdiomId: string;
   /** Position (0-based) in a shuffled draw order, *not* baked-in x/y —
-   * balloon size is content-driven (a spliced sentence can run 14-35+
-   * characters) and the actual viewport's aspect ratio varies a lot
-   * (phone portrait vs. desktop), so neither is known at content-gen
-   * time. BalloonSentenceScene lays slots 0..total-1 onto a row-major
-   * grid it sizes itself from the real rendered balloon dimensions and
-   * the real viewport, at render time — this only fixes the *order*,
-   * which is what needs to be deterministic/reproducible for tests,
-   * not the exact pixel geometry. */
+   * BalloonSentenceScene lays slots 0..total-1 onto a row-major grid it
+   * sizes itself from the real rendered balloon dimensions and the real
+   * viewport, at render time — this only fixes the *order*, which is
+   * what needs to be deterministic/reproducible for tests. */
   slotIndex: number;
   /** Jitter within whatever cell this slot ends up in, as a fraction of
    * that cell's width/height (each in [-CELL_JITTER_FRACTION,
    * +CELL_JITTER_FRACTION]) — keeps balloons from ever landing exactly
    * center-aligned in a row without needing rejection-sampling, same
-   * "guarantee by construction" lesson as the door puzzle's tile layout
-   * (see levelContent.ts's 2026-08-24 DECISIONS.md entry). */
+   * "guarantee by construction" lesson as the door puzzle's tile layout. */
   jitterX: number;
   jitterY: number;
   /** Radians — random per-balloon phase offsets for the body's own
-   * wind-drift wander (2026-08-28: replaced the old simple up-down bob
-   * per your "wider floating radius, like a light wind" feedback).
-   * Separate x/y phases give each balloon an elliptical, not just
-   * up-down, drift, and no two balloons move in lockstep. */
+   * wind-drift wander. Separate x/y phases give each balloon an
+   * elliptical, not just up-down, drift, and no two balloons move in
+   * lockstep. */
   driftPhaseX: number;
   driftPhaseY: number;
   /** Radians — the dangling string's own phase offset, deliberately
    * independent from driftPhaseX/Y (a different random draw, not
-   * derived from them) per your "let the string float freely,
-   * independently of the balloon" request — the string sways on its
-   * own timing rather than rigidly following the body's drift. */
+   * derived from them) — the string sways on its own timing rather than
+   * rigidly following the body's drift. */
   stringPhase: number;
   /** Index into BALLOON_COLORWAYS — randomized per balloon (never tied
    * to `isCorrect`, so color never hints at the answer), and guaranteed
@@ -62,26 +51,43 @@ export interface BalloonDef {
   colorIndex: number;
 }
 
+/** The idiom's own approved example sentence, with its own hanzi blanked
+ * out (see buildMaskedSentence) — shown fixed and readable in the
+ * balloon-prompt UI, not inside any one balloon. The child reads this
+ * once and judges which balloon's *idiom* (not sentence) fills the
+ * blank, rather than having to read a whole spliced sentence packed
+ * into every balloon. */
+export interface MaskedSentence {
+  hanzi: string;
+  /** Per-character pinyin, one entry per `Array.from(hanzi)` character —
+   * empty for the blanked-out run (no reading to show for a placeholder)
+   * and for punctuation, same shape/convention as
+   * IdiomExampleSentence.charPinyin. */
+  charPinyin: string[];
+}
+
 export interface BalloonLevel {
   idiom: IdiomContent;
+  maskedSentence: MaskedSentence;
   balloons: BalloonDef[];
 }
 
-// One correct usage + 3 wrong-usage decoys (via applicationCheck.ts's
-// already-approved spliceIdiomInto technique — no new/unverified
-// content). Kept deliberately smaller than it might look like it needs
-// to be: these are full sentences (some of the approved examples run
-// 30+ characters once spliced), not single characters like the door
-// puzzle's tiles, so each balloon needs real screen space to stay
-// readable — 4 total leaves room for that at typical phone/tablet
-// viewport sizes without crowding.
+// One correct idiom + 3 decoy idioms as balloon candidates. Kept
+// deliberately small (not "as many as fit"): more candidates means more
+// short 4-character idioms to visually tell apart while flying, which
+// works against the "easier to read while flying" point of this
+// redesign just as much as long sentences did.
 export const DISTRACTOR_COUNT = 3;
 
 // How far (as a fraction of its grid cell) a balloon's position can
-// jitter from the cell's center — kept tighter than the door puzzle's
-// equivalent since these balloons are large (full sentences) relative
-// to their grid cells, especially on narrow mobile viewports.
-export const CELL_JITTER_FRACTION = 0.15;
+// jitter from the cell's center. Balloons are now small and uniformly
+// sized (a single 4-character idiom, not a variable-length sentence),
+// so this can be looser than the old full-sentence balloons' jitter
+// without risking overlap — BalloonSentenceScene's cell sizing still
+// accounts for it exactly the same way.
+export const CELL_JITTER_FRACTION = 0.2;
+
+const BLANK_CHAR = "○";
 
 function fisherYatesShuffle<T>(items: T[], rng: () => number): T[] {
   const copy = [...items];
@@ -98,29 +104,73 @@ function getIdiom(id: string): IdiomContent {
   return idiom;
 }
 
+/** Finds the start index of `needle` as a contiguous run within
+ * `haystack`, or -1 if it doesn't occur. */
+function indexOfSubarray(haystack: string[], needle: string[]): number {
+  for (let i = 0; i + needle.length <= haystack.length; i++) {
+    if (needle.every((ch, j) => haystack[i + j] === ch)) return i;
+  }
+  return -1;
+}
+
 /**
- * Builds one balloon stage: `buildApplicationCheck` (Snippet 3's
- * already-approved content generator) supplies one correct-usage option
- * plus DISTRACTOR_COUNT wrong-usage options, each already shuffled;
- * this assigns each a shuffled slot index and a small per-axis jitter.
- * Deliberately does *not* decide the grid's actual shape (columns vs.
- * rows) or pixel positions — found by screenshot that baking a fixed
- * grid in here (e.g. always 2 columns) overlapped badly on a narrow
- * mobile viewport, since a 2-column cell is only ever as wide as
- * whatever fraction of *this* viewport that is, regardless of how wide
- * the actual balloon content needs to be. BalloonSentenceScene works
- * out columns/rows from the real rendered balloon sizes and the real
- * viewport at layout time instead. Seeded by the idiom's own id, same
- * "a fixed seed is the authored content" approach as `levelContent.ts`,
- * so a level's slot order/jitter is exactly reproducible for tests.
+ * Blanks out the idiom's own characters within its exampleSentence,
+ * replacing each with BLANK_CHAR (so the sentence's length/rhythm stays
+ * visually intact) and clearing their pinyin. Every approved idiom's
+ * exampleSentence is written to actually contain its own hanzi verbatim
+ * (the same assumption this project's application-check content used to
+ * rely on), so this throws rather than silently producing an unmasked
+ * sentence if that's ever not true.
+ */
+function buildMaskedSentence(idiom: IdiomContent): MaskedSentence {
+  const sentenceChars = Array.from(idiom.exampleSentence.hanzi);
+  const idiomChars = Array.from(idiom.hanzi);
+  const start = indexOfSubarray(sentenceChars, idiomChars);
+  if (start === -1) {
+    throw new Error(`buildMaskedSentence: "${idiom.id}"'s own hanzi not found in its exampleSentence`);
+  }
+  const hanzi = [...sentenceChars.slice(0, start), ...idiomChars.map(() => BLANK_CHAR), ...sentenceChars.slice(start + idiomChars.length)].join("");
+  const charPinyin = [
+    ...idiom.exampleSentence.charPinyin.slice(0, start),
+    ...idiomChars.map(() => ""),
+    ...idiom.exampleSentence.charPinyin.slice(start + idiomChars.length),
+  ];
+  return { hanzi, charPinyin };
+}
+
+/** Picks `count` other idioms as decoys, preferring a different theme
+ * from the target first (falling back to same-theme idioms only if
+ * there aren't enough) — same distractor-variety heuristic this
+ * project's retired application-check content generator used. */
+function pickDistractors(target: IdiomContent, pool: IdiomContent[], count: number, rng: () => number): IdiomContent[] {
+  const others = pool.filter((i) => i.id !== target.id);
+  const differentTheme = others.filter((i) => i.theme !== target.theme);
+  const sameTheme = others.filter((i) => i.theme === target.theme);
+  const source = differentTheme.length >= count ? differentTheme : [...differentTheme, ...sameTheme];
+  return fisherYatesShuffle(source, rng).slice(0, count);
+}
+
+/**
+ * Builds one balloon stage: one correct-idiom balloon (the target
+ * itself) plus DISTRACTOR_COUNT decoy-idiom balloons, alongside the
+ * fixed masked sentence the child reads to judge which idiom fits.
+ * Deliberately does *not* decide the grid's actual shape or pixel
+ * positions — BalloonSentenceScene works those out from the real
+ * rendered balloon sizes and the real viewport at layout time. Seeded
+ * by the idiom's own id, same "a fixed seed is the authored content"
+ * approach as `levelContent.ts`, so a level's slot order/jitter is
+ * exactly reproducible for tests.
  */
 export function buildBalloonLevel(idiomId: string): BalloonLevel {
   const idiom = getIdiom(idiomId);
   const rng = createRng(seedFromString(`balloon-${idiom.id}`));
 
-  const options: ApplicationCheckOption[] = buildApplicationCheck(idiom, idioms, DISTRACTOR_COUNT, rng);
+  const maskedSentence = buildMaskedSentence(idiom);
+  const distractors = pickDistractors(idiom, idioms, DISTRACTOR_COUNT, rng);
+  const candidates: IdiomContent[] = [idiom, ...distractors];
+
   const slotOrder = fisherYatesShuffle(
-    options.map((_, i) => i),
+    candidates.map((_, i) => i),
     rng,
   );
   // Shuffled once per level and sliced to `total` — guarantees every
@@ -132,13 +182,13 @@ export function buildBalloonLevel(idiomId: string): BalloonLevel {
     rng,
   );
 
-  const balloons: BalloonDef[] = options.map((opt, i) => ({
-    id: `balloon-${idiom.id}-${i}`,
-    hanzi: opt.hanzi,
-    pinyin: opt.pinyin,
-    charPinyin: opt.charPinyin,
-    isCorrect: opt.isCorrect,
-    sourceIdiomId: opt.fromIdiomId,
+  const balloons: BalloonDef[] = candidates.map((candidate, i) => ({
+    id: `balloon-${idiom.id}-${candidate.id}`,
+    hanzi: candidate.hanzi,
+    pinyin: candidate.pinyin,
+    charPinyin: candidate.pinyin.split(" "),
+    isCorrect: candidate.id === idiom.id,
+    sourceIdiomId: candidate.id,
     slotIndex: slotOrder[i],
     jitterX: randRange(rng, -CELL_JITTER_FRACTION, CELL_JITTER_FRACTION),
     jitterY: randRange(rng, -CELL_JITTER_FRACTION, CELL_JITTER_FRACTION),
@@ -148,14 +198,11 @@ export function buildBalloonLevel(idiomId: string): BalloonLevel {
     colorIndex: colorOrder[i % colorOrder.length],
   }));
 
-  return { idiom, balloons };
+  return { idiom, maskedSentence, balloons };
 }
 
 // Same 3 idioms as levelContent.ts's doorLevels — this stage follows
-// each of those idiom's door, not a separate/different set. (2026-08-28:
-// swapped to a different trio per your "bored testing the same idioms"
-// feedback — see levelContent.ts's DECOY_POOL comment for which ones
-// and why.)
+// each of those idiom's door, not a separate/different set.
 export const balloonLevels: BalloonLevel[] = [
   buildBalloonLevel("yan-er-you-xin"),
   buildBalloonLevel("zhu-ren-wei-le"),

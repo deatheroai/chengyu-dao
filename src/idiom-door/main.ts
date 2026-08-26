@@ -44,22 +44,21 @@ function showIntroMeaning(index: number): void {
   }
 }
 
-/** 2026-08-25 addition: names the idiom being practiced in this stage —
- * `#balloon-status` (balloonStatus.ts) handles the dynamic found/wrong
- * feedback below this, same relationship as `#meaning-prompt` and
- * `#door-status` have in the door stage. 2026-08-28: the idiom's hanzi
- * is now ruby-annotated inline (built from text nodes + a ruby span,
- * not one textContent string) rather than a plain "(pinyin)"
- * parenthetical, for the same per-character-alignment reason as
- * showIntroMeaning above. */
+/** 2026-08-25 addition, redesigned 2026-08-26: shows the idiom's own
+ * example sentence with the idiom itself blanked out (○○○○) — the
+ * fixed, readable puzzle content for this stage now, replacing the
+ * old "Catch the balloon that uses [idiom] correctly!" line (each
+ * balloon used to hold a whole spliced sentence instead; now every
+ * balloon holds just one short candidate idiom, see
+ * balloonLevelContent.ts's MaskedSentence). `#balloon-status`
+ * (balloonStatus.ts) handles the dynamic found/wrong feedback below
+ * this, same relationship as `#meaning-prompt`/`#door-status` have in
+ * the door stage. */
 function showBalloonPrompt(index: number): void {
   const el = document.getElementById("balloon-prompt");
   if (!el) return;
-  const idiom = balloonLevels[index].idiom;
-  el.replaceChildren("Catch the balloon that uses ");
-  const idiomSpan = document.createElement("span");
-  renderRubyText(idiomSpan, idiom.hanzi, idiom.pinyin.split(" "));
-  el.append(idiomSpan, " correctly!");
+  const { maskedSentence } = balloonLevels[index];
+  renderRubyText(el, maskedSentence.hanzi, maskedSentence.charPinyin);
 }
 
 /**
