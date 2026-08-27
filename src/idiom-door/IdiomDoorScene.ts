@@ -3,7 +3,7 @@ import { attemptGrab, initialOrderedCatchState, type OrderedCatchState } from ".
 import { updateDoorStatus } from "./doorStatus";
 import type { DoorLevel, LevelCharacterTile } from "./levelContent";
 import { drawPlayerFigure } from "../shared/playerFigure";
-import { updatePlayerPosition } from "../platform-catch/positionStatus";
+import { updatePlayerPosition } from "../shared/positionStatus";
 import { stepRun, type RunState, type RunConfig } from "./runPhysics";
 
 export interface IdiomDoorSceneData {

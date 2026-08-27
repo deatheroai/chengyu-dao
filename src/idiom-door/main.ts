@@ -7,6 +7,9 @@ import { IdiomMatchScene } from "./IdiomMatchScene";
 import { matchLevel } from "./matchLevelContent";
 import { updateSessionProgress } from "./sessionProgressStatus";
 import { renderRubyText } from "../shared/rubyText";
+import { pickResurfaceIdiomId, recordCompletedSession, clearHistory, seedFakePriorSession } from "../shared/sessionHistory";
+import { idiomsById } from "../idioms/idioms";
+import type { IdiomContent } from "../idioms/types";
 
 function showMeaning(index: number): void {
   const el = document.getElementById("meaning-prompt");
@@ -41,22 +44,21 @@ function showIntroMeaning(index: number): void {
   }
 }
 
-/** 2026-08-25 addition: names the idiom being practiced in this stage —
- * `#balloon-status` (balloonStatus.ts) handles the dynamic found/wrong
- * feedback below this, same relationship as `#meaning-prompt` and
- * `#door-status` have in the door stage. 2026-08-28: the idiom's hanzi
- * is now ruby-annotated inline (built from text nodes + a ruby span,
- * not one textContent string) rather than a plain "(pinyin)"
- * parenthetical, for the same per-character-alignment reason as
- * showIntroMeaning above. */
+/** 2026-08-25 addition, redesigned 2026-08-26: shows the idiom's own
+ * example sentence with the idiom itself blanked out (○○○○) — the
+ * fixed, readable puzzle content for this stage now, replacing the
+ * old "Catch the balloon that uses [idiom] correctly!" line (each
+ * balloon used to hold a whole spliced sentence instead; now every
+ * balloon holds just one short candidate idiom, see
+ * balloonLevelContent.ts's MaskedSentence). `#balloon-status`
+ * (balloonStatus.ts) handles the dynamic found/wrong feedback below
+ * this, same relationship as `#meaning-prompt`/`#door-status` have in
+ * the door stage. */
 function showBalloonPrompt(index: number): void {
   const el = document.getElementById("balloon-prompt");
   if (!el) return;
-  const idiom = balloonLevels[index].idiom;
-  el.replaceChildren("Catch the balloon that uses ");
-  const idiomSpan = document.createElement("span");
-  renderRubyText(idiomSpan, idiom.hanzi, idiom.pinyin.split(" "));
-  el.append(idiomSpan, " correctly!");
+  const { maskedSentence } = balloonLevels[index];
+  renderRubyText(el, maskedSentence.hanzi, maskedSentence.charPinyin);
 }
 
 /**
@@ -98,6 +100,34 @@ function showBalloonSuccessCard(index: number, onContinue: () => void): void {
     onContinue();
   };
   continueBtn?.addEventListener("click", onClick);
+}
+
+/** Fills in the "welcome back" callback card (2026-08-26, ported from
+ * the retired session.html prototype's resurface-phase) — a brief,
+ * low-stakes reminder of a previously-discovered idiom, shown once per
+ * page load before the match warm-up, on a return visit only. No quiz
+ * attached, same reasoning as the original: this isn't a retest. */
+function renderResurfaceCard(idiom: IdiomContent): void {
+  const hanziEl = document.querySelector<HTMLElement>("[data-resurface-hanzi]");
+  const meaningEl = document.querySelector<HTMLElement>("[data-resurface-meaning]");
+  if (hanziEl) renderRubyText(hanziEl, idiom.hanzi, idiom.pinyin.split(" "));
+  if (meaningEl) meaningEl.textContent = idiom.meaning;
+}
+
+/** Dev-only: lets the resurfacing flow be tried without playing a full
+ * real session first, standing in for "actually waiting a day" —
+ * ported from session.html's identical controls. Not part of the
+ * child-facing product, see DECISIONS.md. */
+function wireDevControls(): void {
+  document.getElementById("dev-seed-history-btn")?.addEventListener("click", () => {
+    const randomIdiom = doorLevels[Math.floor(Math.random() * doorLevels.length)].idiom;
+    seedFakePriorSession(randomIdiom.id);
+    location.reload();
+  });
+  document.getElementById("dev-clear-history-btn")?.addEventListener("click", () => {
+    clearHistory();
+    location.reload();
+  });
 }
 
 function showSummary(completedHanzi: string[]): void {
@@ -343,6 +373,10 @@ function bootstrap(): void {
       // complete" signal — every dot done, none marked current.
       updateSessionProgress(doorLevels.length, doorLevels.length);
       showSummary(completedHanzi);
+      // 2026-08-26: records this completed sitting so a later visit can
+      // resurface one of these idioms — see the resurface-card gate
+      // below and shared/sessionHistory.ts.
+      recordCompletedSession(doorLevels.map((level) => level.idiom.id));
     }
   };
 
@@ -352,7 +386,33 @@ function bootstrap(): void {
   // this and goes straight to level 0's intro — the warm-up is a
   // once-per-session on-ramp, not something worth replaying every time
   // a child replays the same 3 idioms.
-  showMatchIntro(() => beginMatchStage());
+  const startMatchStageFlow = (): void => {
+    showMatchIntro(() => beginMatchStage());
+  };
+
+  wireDevControls();
+
+  // 2026-08-26: on a return visit (a prior completed session exists —
+  // shared/sessionHistory.ts), a brief "welcome back" callback gates the
+  // match warm-up rather than running straight into it. A genuinely
+  // first-ever visit (no prior history) skips straight to the warm-up,
+  // same as before this addition.
+  const resurfaceId = pickResurfaceIdiomId();
+  if (resurfaceId) {
+    const card = document.getElementById("resurface-card");
+    renderResurfaceCard(idiomsById[resurfaceId]);
+    card?.classList.add("visible");
+    document.getElementById("resurface-continue-btn")?.addEventListener(
+      "click",
+      () => {
+        card?.classList.remove("visible");
+        startMatchStageFlow();
+      },
+      { once: true },
+    );
+  } else {
+    startMatchStageFlow();
+  }
 
   document.getElementById("jump-btn")?.addEventListener("pointerdown", (e) => {
     e.preventDefault();

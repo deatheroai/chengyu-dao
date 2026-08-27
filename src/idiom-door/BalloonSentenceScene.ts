@@ -4,7 +4,7 @@ import { updateBalloonStatus } from "./balloonStatus";
 import { CELL_JITTER_FRACTION, type BalloonLevel, type BalloonDef } from "./balloonLevelContent";
 import { BALLOON_COLORWAYS, type BalloonColorway } from "./balloonColors";
 import { drawPlayerFigure } from "../shared/playerFigure";
-import { updateBalloonPosition } from "./balloonPositionStatus";
+import { updateBalloonPosition, updateBalloonCameraScroll, syncBalloonTargetPositions } from "./balloonPositionStatus";
 import { stepFlight, type FlightState, type FlightConfig } from "./balloonPhysics";
 
 export interface BalloonSentenceSceneData {
@@ -18,23 +18,23 @@ const CLOUD_COLOR = 0xffffff;
 const BALLOON_TEXT = "#4a3420";
 const SPARK_COLOR = 0xffd76a;
 
+// 2026-08-26 redesign: a balloon now holds exactly one short (4-
+// character) idiom instead of a whole spliced example sentence (which
+// could run 14-35+ characters once spliced into a decoy's structure —
+// cramped and hard to read while flying, per your feedback). Every
+// idiom in idioms.ts is exactly 4 characters, so balloon content length
+// is effectively fixed now — no per-balloon wrapping/sizing variance to
+// account for, and each character can be rendered much bigger (see
+// CANDIDATE_CHAR_FONT_PX below) than the old variable-length sentence
+// balloons ever could be.
 const CHAR_SIZE = 60;
-// Balloon size is *not* fixed — a full example sentence can run from
-// ~14 to 35+ characters once spliced into a decoy's structure (found by
-// screenshot: a fixed small balloon just clipped the longer ones), so
-// each balloon is sized to fit its own text (see buildBalloon), capped
-// at this max content width so a very long sentence wraps to more lines
-// rather than growing arbitrarily wide.
-const MAX_TEXT_WIDTH = 190;
-const BALLOON_PAD_X = 16;
-const BALLOON_PAD_Y = 14;
+const CANDIDATE_CHAR_FONT_PX = 34;
+const CANDIDATE_PINYIN_FONT_PX = 13;
+const BALLOON_PAD_X = 20;
+const BALLOON_PAD_Y = 16;
 const TEXT_GAP = 4;
-// 2026-08-28: horizontal/vertical spacing for the per-character ruby
-// layout (buildBalloon) — a small gap between adjacent character
-// columns, and a slightly larger one between wrapped lines so two
-// lines' pinyin/hanzi rows don't read as touching.
-const CHAR_GAP = 2;
-const LINE_GAP = 6;
+// Horizontal spacing between adjacent character columns.
+const CHAR_GAP = 4;
 // A little slop beyond the balloon's own measured half-extents — this
 // is "did you fly into roughly the right balloon," not a pixel-precise
 // hitbox.
@@ -291,24 +291,13 @@ export class BalloonSentenceScene extends Phaser.Scene {
   }
 
   /**
-   * Balloon size is content-driven, not fixed: an example sentence can
-   * run anywhere from ~14 to 35+ characters once spliced into a
-   * decoy's structure, and a single fixed size either clipped the long
-   * ones or wasted space around the short ones (found by screenshot).
-   *
-   * 2026-08-28: pinyin used to render as one whole block below one
-   * whole hanzi block — per your "very hard for the child to learn if
-   * the pinyin is on a separate paragraph" feedback, each character now
-   * gets its own {pinyin, hanzi} Text pair, pinyin directly above its
-   * own character (ruby-style). Phaser has no built-in ruby/furigana
-   * layout, so this hand-rolls one: it's word-wrap where the "word"
-   * unit is always exactly one character, wrapping to a new line
-   * whenever the next character wouldn't fit within MAX_TEXT_WIDTH —
-   * the same content-driven-sizing principle as before, just applied
-   * per character-unit instead of per whole-text-block. Each completed
-   * line is then re-centered against the widest line (contentWidth),
-   * same as Phaser's own `align: "center"` would have done for the old
-   * single block, so a short last line doesn't sit flush-left.
+   * 2026-08-26 redesign: a balloon now always holds exactly one short
+   * idiom (4 characters, per idioms.ts) rather than a variable-length
+   * spliced sentence, so this no longer needs the old word-wrap-by-
+   * character logic — every candidate lays out on a single line, sized
+   * to its own (now much larger, per CANDIDATE_CHAR_FONT_PX) rendered
+   * width. Pinyin still renders directly above its own character
+   * (ruby-style), same as everywhere else in this game.
    */
   private buildBalloon(def: BalloonDef): {
     container: Phaser.GameObjects.Container;
@@ -324,66 +313,49 @@ export class BalloonSentenceScene extends Phaser.Scene {
       hanziText: Phaser.GameObjects.Text;
       pinyinText: Phaser.GameObjects.Text;
       centerX: number;
-      line: number;
     }
     const units: CharUnit[] = [];
-    const lineWidths: number[] = [0];
     let cursorX = 0;
-    let line = 0;
 
     chars.forEach((char, i) => {
       const pinyin = def.charPinyin[i] ?? "";
       const hanziText = this.add.text(0, 0, char, {
-        fontSize: "15px",
+        fontSize: `${CANDIDATE_CHAR_FONT_PX}px`,
         color: BALLOON_TEXT,
         fontFamily: "system-ui, sans-serif",
-        fontStyle: "600",
+        fontStyle: "700",
       });
       const pinyinText = this.add.text(0, 0, pinyin, {
-        fontSize: "9px",
+        fontSize: `${CANDIDATE_PINYIN_FONT_PX}px`,
         color: BALLOON_TEXT,
         fontFamily: "system-ui, sans-serif",
         fontStyle: "italic",
       });
       const unitWidth = Math.max(hanziText.width, pinyinText.width);
 
-      // Wrap before placing this unit if it wouldn't fit — `cursorX > 0`
-      // guards against wrapping on the very first character of a line
-      // even if that one character alone exceeds MAX_TEXT_WIDTH (rare,
-      // but would otherwise wrap forever without ever placing anything).
-      if (cursorX > 0 && cursorX + unitWidth > MAX_TEXT_WIDTH) {
-        line++;
-        cursorX = 0;
-        lineWidths.push(0);
-      }
-
-      units.push({ hanziText, pinyinText, centerX: cursorX + unitWidth / 2, line });
+      units.push({ hanziText, pinyinText, centerX: cursorX + unitWidth / 2 });
       cursorX += unitWidth + CHAR_GAP;
-      lineWidths[line] = cursorX - CHAR_GAP;
     });
 
     // A single shared row height for every unit (rather than each
-    // unit's own pinyinText.height) so a punctuation mark's empty-string
-    // pinyin — which Phaser measures as shorter than a real syllable —
+    // unit's own pinyinText.height) so a shorter-measured pinyin syllable
     // doesn't pull its hanzi character up out of alignment with its
-    // neighbors on the same line.
+    // neighbors.
     const pinyinRowHeight = Math.max(...units.map((u) => u.pinyinText.height));
     const hanziRowHeight = Math.max(...units.map((u) => u.hanziText.height));
     const unitHeight = pinyinRowHeight + TEXT_GAP + hanziRowHeight;
 
-    const numLines = line + 1;
-    const contentWidth = Math.max(...lineWidths);
-    const contentHeight = numLines * unitHeight + (numLines - 1) * LINE_GAP;
+    const contentWidth = cursorX - CHAR_GAP;
+    const contentHeight = unitHeight;
     const halfW = contentWidth / 2 + BALLOON_PAD_X;
     const halfH = contentHeight / 2 + BALLOON_PAD_Y;
 
     const gfx = this.add.graphics();
-    // A rounded "balloon card" body — reads as a balloon while giving a
-    // wrapped sentence proper square corners to use. Color is
-    // randomized per balloon (never tied to isCorrect — see
-    // balloonLevelContent.ts's colorIndex): the child has to judge the
-    // *sentence*, not learn to spot a color. Added to the container
-    // first so every character sits on top of it, not behind.
+    // A rounded "balloon card" body. Color is randomized per balloon
+    // (never tied to isCorrect — see balloonLevelContent.ts's
+    // colorIndex): the child has to judge which idiom fits the sentence,
+    // not learn to spot a color. Added to the container first so every
+    // character sits on top of it, not behind.
     const colorway = BALLOON_COLORWAYS[def.colorIndex % BALLOON_COLORWAYS.length];
     gfx.fillStyle(colorway.fill, 0.97);
     gfx.fillRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
@@ -392,9 +364,8 @@ export class BalloonSentenceScene extends Phaser.Scene {
     container.add(gfx);
 
     for (const unit of units) {
-      const lineCenterOffset = (contentWidth - lineWidths[unit.line]) / 2;
-      const x = unit.centerX + lineCenterOffset - contentWidth / 2;
-      const y = unit.line * (unitHeight + LINE_GAP) - contentHeight / 2;
+      const x = unit.centerX - contentWidth / 2;
+      const y = -contentHeight / 2;
       unit.pinyinText.setOrigin(0.5, 0).setPosition(x, y);
       unit.hanziText.setOrigin(0.5, 0).setPosition(x, y + pinyinRowHeight + TEXT_GAP);
       container.add(unit.pinyinText);
@@ -502,6 +473,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const maxScrollY = Math.max(0, this.worldH - height);
     this.cameras.main.scrollX = Phaser.Math.Clamp(this.avatar.x - width / 2, 0, maxScrollX);
     this.cameras.main.scrollY = Phaser.Math.Clamp(this.avatar.y - height / 2, 0, maxScrollY);
+    updateBalloonCameraScroll(this.cameras.main.scrollX, this.cameras.main.scrollY);
   }
 
   /**
@@ -520,6 +492,14 @@ export class BalloonSentenceScene extends Phaser.Scene {
       balloon.container.setPosition(balloon.baseX + driftX, balloon.baseY + driftY);
       this.redrawString(balloon, t);
     }
+    // 2026-08-26: mirrors every balloon's current (post-drift) world
+    // position + correctness into the DOM — see
+    // balloonPositionStatus.ts's syncBalloonTargetPositions doc comment
+    // for why (a test can steer deterministically to the correct one
+    // instead of guessing a blind search pattern).
+    syncBalloonTargetPositions(
+      this.balloons.map((b) => ({ id: b.def.id, isCorrect: b.def.isCorrect, x: b.container.x, y: b.container.y })),
+    );
   }
 
   /** Draws the string as a soft quadratic curve (sampled into short

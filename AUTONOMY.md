@@ -95,11 +95,30 @@ Since there's no perpetual working branch to fast-forward `main` from,
 2. Open a PR against `main`.
 3. Merge it.
 
-Only step 1 happens automatically as part of finishing a task; steps 2–3
-need an explicit go-ahead per this session's operating rules (a PR is
-never opened silently) — but once asked for, landing the change is the
-same three steps every time, and is the normal way this repo's "done"
-gets reflected on the live site.
+**The daily cycle lands itself (2026-08-26 decision).** All three steps
+happen automatically as part of finishing a daily-cycle run, with no
+go-ahead needed — this is the one standing exception to this repo's
+"a PR is never opened silently" rule for interactive sessions. Landing
+is conditional on step 1 actually passing: `npm run typecheck`,
+`npm run test`, `npm run build`, and `npm run test:e2e` must all be
+green (the same gate `.github/workflows/game-ci.yml` runs on the PR)
+before the cycle opens and merges its PR; if anything's red, the cycle
+stops and reports what's failing instead of landing broken work. This
+is what makes `main` (and therefore the live Vercel deploy) update once
+a day automatically, per the daily automated trigger described below.
+
+A one-off interactive session (not the scheduled daily cycle) still
+follows the original three-step split: step 1 is automatic, but
+opening/merging a PR needs an explicit ask first, same as always.
+
+### The daily automated trigger
+
+A Routine fires a fresh session once a day (03:00 UTC) with a prompt
+that runs this file's cycle end-to-end and lands the result per the
+auto-merge policy above. Find its trigger id via `list_triggers` if it
+needs adjusting (time, prompt, disabling). Changing this schedule, or
+turning auto-merge back into an ask-first step, is exactly the kind of
+thing "Changing this mode" below covers — just ask.
 
 ## Changing this mode
 

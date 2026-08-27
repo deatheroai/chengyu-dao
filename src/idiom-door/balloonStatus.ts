@@ -24,6 +24,6 @@ export function updateBalloonStatus(resolved: boolean, outcome?: BalloonOutcome)
   } else if (outcome === "wrong") {
     el.textContent = "Not quite — try another balloon!";
   } else {
-    el.textContent = "Fly around and catch the balloon that uses it correctly!";
+    el.textContent = "Fly around and catch the balloon with the idiom that fits!";
   }
 }

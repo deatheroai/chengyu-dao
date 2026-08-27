@@ -11,7 +11,7 @@ describe("updateBalloonStatus", () => {
     const el = document.getElementById("balloon-status")!;
     expect(el.getAttribute("data-resolved")).toBe("false");
     expect(el.getAttribute("data-outcome")).toBeNull();
-    expect(el.textContent).toBe("Fly around and catch the balloon that uses it correctly!");
+    expect(el.textContent).toBe("Fly around and catch the balloon with the idiom that fits!");
   });
 
   it("announces a wrong (decoy) catch without resolving", () => {

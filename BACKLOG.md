@@ -15,19 +15,44 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
-- [ ] `todo` — **Consolidate the six mechanic prototypes into one real
-      root-URL experience.** `idiom-reveal.html`, `idiom-door.html`,
-      `meaning-check.html`, `catch-meaning.html`, `platform-catch.html`,
-      and `session.html` each validate a piece independently, but nothing
-      ties them into the actual intended play loop yet. `/` currently
-      redirects to `idiom-door.html` as a stopgap (2026-08-25, see
-      `DECISIONS.md`) — not a real consolidation, just the most complete
-      single mechanic to point at meanwhile.
-- [ ] `todo` — Decide which prototypes are still live candidates for the
-      final game vs. superseded spikes (e.g. `catch-meaning.html` vs.
-      `platform-catch.html` — the latter's git history suggests it
-      replaced the former's movement approach) and archive the ones that
-      lost, the way the castle prototype was archived and later removed.
+- [x] `done` — **Consolidate the six mechanic prototypes into one real
+      root-URL experience (2026-08-26, see `DECISIONS.md`).** `idiom-door`
+      is now the real game, not a stopgap: `/` still redirects to
+      `idiom-door.html`, which now also opens with the resurfacing
+      callback (ported from the retired `session.html`) before its match
+      warm-up. The other five prototypes (`idiom-reveal`, `meaning-check`,
+      `catch-meaning`, `platform-catch`, `session`) were archived/deleted;
+      their still-useful pieces moved to `src/shared/` (`positionStatus.ts`,
+      `sessionHistory.ts`) — `applicationCheck.ts` also moved there at
+      first, then removed once the balloon-stage redesign below made its
+      full-sentence-splicing approach unnecessary.
+- [x] `done` — **Redesign the balloon stage (2026-08-26).** Previously
+      each balloon held a whole spliced example sentence (14-35+
+      characters, cramped and hard to read while flying — the sentence's
+      *font* was ~15px inside a variably-sized balloon). Now the idiom's
+      example sentence is shown once, fixed and readable, with the idiom
+      itself blanked out (○○○○); each balloon holds just one short (4
+      character) candidate idiom at a much bigger font (34px), and the
+      child catches whichever idiom actually fills the blank.
+      `shared/applicationCheck.ts` (the old full-sentence distractor
+      builder) is gone; `idiom-door/balloonLevelContent.ts` now builds a
+      `MaskedSentence` plus simple idiom-candidate distractors directly.
+- [ ] `todo` — **Draw `idiom-door`'s session content from the full idiom
+      pool instead of the fixed 3-idiom set.** `src/idioms/idioms.ts` has
+      15 idioms; `idiom-door`'s puzzle needs 4 *distinct* characters per
+      idiom (see `levelContent.ts`'s doc comment), which 12 of the 15
+      satisfy (excludes `yi-xin-yi-yi`, `you-shi-you-zhong`,
+      `xiang-qin-xiang-ai`). Deliberately not attempted in the same
+      sitting as the consolidation above — `idiom-door.spec.ts`'s e2e
+      suite hardcodes assertions against the specific fixed 3 idioms
+      (`doorLevels[i]`), so randomizing the selection needs its own pass
+      to keep that suite (and the decoy pool's per-level collision
+      filtering) correct rather than risking it alongside a large file
+      reorg.
+- [ ] `todo` — Now that `idiom-door` is the one real entry point, revisit
+      whether its title/meta description (still "Idiom Door —
+      Meaning-First Puzzle Spike" in `idiom-door.html`) and its own
+      internal naming should drop the "spike/prototype" framing.
 
 ## Platform / infra
 
@@ -36,11 +61,9 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 - [x] `done` — Removed the old castle escape-room prototype and its
       unused Firebase cloud-save scaffolding (2026-08-25, see
       `DECISIONS.md`).
-- [ ] `todo` — No CI workflow exists in this repo yet (the parent
-      monorepo's `game-ci.yml` wasn't carried over in the split). Add one
-      if/when it's worth gating pushes automatically rather than relying
-      on running `npm run typecheck && npm run test && npm run build`
-      (and `npm run test:e2e`) by hand per `AUTONOMY.md`'s guardrails.
+- [x] `done` — CI workflow added (2026-08-26): `.github/workflows/game-ci.yml`
+      runs typecheck, unit tests, build, and the e2e suite on every push
+      to `main` and every PR.
 - [ ] `blocked` — Cloud saves (Firebase or otherwise). Removed entirely
       in the castle-prototype cleanup since nothing used it; would need
       re-scoping against whichever mechanic(s) survive the consolidation

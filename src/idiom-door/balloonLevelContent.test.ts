@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { balloonLevels, buildBalloonLevel, DISTRACTOR_COUNT, CELL_JITTER_FRACTION } from "./balloonLevelContent";
 import { BALLOON_COLORWAYS } from "./balloonColors";
+import { idioms } from "../idioms/idioms";
 
 describe("balloonLevels data integrity", () => {
   it("has one level per door-puzzle idiom", () => {
@@ -13,25 +14,45 @@ describe("balloonLevels data integrity", () => {
         expect(level.balloons.length).toBe(DISTRACTOR_COUNT + 1);
       });
 
-      it("has exactly one correct balloon, matching the idiom's own approved example sentence exactly", () => {
+      it("has exactly one correct balloon, whose idiom is exactly the target idiom itself", () => {
         const correct = level.balloons.filter((b) => b.isCorrect);
         expect(correct.length).toBe(1);
-        expect(correct[0].hanzi).toBe(level.idiom.exampleSentence.hanzi);
-        expect(correct[0].pinyin).toBe(level.idiom.exampleSentence.pinyin);
+        expect(correct[0].hanzi).toBe(level.idiom.hanzi);
+        expect(correct[0].pinyin).toBe(level.idiom.pinyin);
+        expect(correct[0].sourceIdiomId).toBe(level.idiom.id);
       });
 
-      it("every balloon (correct and decoys alike) actually contains the idiom's own characters — decoys are wrong *usage*, not a different idiom entirely", () => {
-        for (const balloon of level.balloons) {
-          expect(balloon.hanzi).toContain(level.idiom.hanzi);
-        }
-      });
-
-      it("decoy balloons are genuinely different sentences from the correct one", () => {
+      it("decoy balloons are genuinely different idioms, each a real entry in idioms.ts", () => {
         const decoys = level.balloons.filter((b) => !b.isCorrect);
         expect(decoys.length).toBe(DISTRACTOR_COUNT);
+        const idiomIds = new Set(idioms.map((i) => i.id));
         for (const decoy of decoys) {
-          expect(decoy.hanzi).not.toBe(level.idiom.exampleSentence.hanzi);
+          expect(decoy.hanzi).not.toBe(level.idiom.hanzi);
+          expect(decoy.sourceIdiomId).not.toBe(level.idiom.id);
+          expect(idiomIds.has(decoy.sourceIdiomId)).toBe(true);
         }
+      });
+
+      it("no two balloons in the same level are the same idiom", () => {
+        const sourceIds = level.balloons.map((b) => b.sourceIdiomId);
+        expect(new Set(sourceIds).size).toBe(sourceIds.length);
+      });
+
+      it("the masked sentence blanks out exactly the idiom's own characters, and no longer contains them", () => {
+        const idiomLength = Array.from(level.idiom.hanzi).length;
+        expect(level.maskedSentence.hanzi).not.toContain(level.idiom.hanzi);
+        expect(level.maskedSentence.hanzi).toContain("○".repeat(idiomLength));
+        // Same length as the original sentence — only the idiom's own
+        // run was replaced, nothing added/removed around it.
+        expect(Array.from(level.maskedSentence.hanzi).length).toBe(Array.from(level.idiom.exampleSentence.hanzi).length);
+      });
+
+      it("the masked sentence's charPinyin has exactly one entry per hanzi character, empty for the blanked-out run", () => {
+        const chars = Array.from(level.maskedSentence.hanzi);
+        expect(level.maskedSentence.charPinyin.length).toBe(chars.length);
+        chars.forEach((char, i) => {
+          if (char === "○") expect(level.maskedSentence.charPinyin[i]).toBe("");
+        });
       });
 
       it("has no duplicate balloon ids", () => {

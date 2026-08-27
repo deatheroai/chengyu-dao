@@ -124,45 +124,81 @@ async function spamJumpUntil(page: Page, predicate: () => Promise<boolean>, maxM
 }
 
 /** Asserts the balloon-sentence stage (2026-08-25: a stage after each
- * idiom's door) is showing for a given level, naming that idiom in the
- * prompt and starting unresolved. */
+ * idiom's door; redesigned 2026-08-26 to show the idiom's own example
+ * sentence with the idiom blanked out, rather than naming the idiom
+ * directly) is showing for a given level, and starting unresolved. */
 async function expectBalloonStageShowing(page: Page, levelIndex: number): Promise<void> {
-  const idiom = balloonLevels[levelIndex].idiom;
+  const { maskedSentence, idiom } = balloonLevels[levelIndex];
   const prompt = page.locator("#balloon-prompt");
   await expect(page.locator("#balloon-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: DOOR_REACH_TIMEOUT_MS });
-  await expect.poll(() => rubyBaseText(prompt)).toContain(idiom.hanzi);
+  await expect.poll(() => rubyBaseText(prompt)).toBe(maskedSentence.hanzi);
+  // The blanked sentence never hands the child the answer directly.
+  await expect.poll(() => rubyBaseText(prompt)).not.toContain(idiom.hanzi);
   await expect(page.locator("#balloon-status")).toHaveAttribute("data-resolved", "false");
 }
 
-/** Balloon positions depend on rendered text measurement (word-wrapped
- * sentence bounding boxes), not just content, so — unlike the door
- * puzzle's tiles — a test can't fly straight to a known x/y. Instead
- * this sweeps a small zigzag pattern repeatedly, which reliably crosses
- * every balloon in the (compact, roughly-square) grid within a few
- * loops, same "don't need pixel-precise aim, just keep trying" spirit
- * as spamJumpUntil. */
-async function flyUntilResolved(page: Page, maxMs = 60000): Promise<void> {
-  const moves: Array<"ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight"> = [
-    "ArrowUp",
-    "ArrowRight",
-    "ArrowDown",
-    "ArrowDown",
-    "ArrowLeft",
-    "ArrowLeft",
-    "ArrowUp",
-    "ArrowUp",
-    "ArrowRight",
-    "ArrowRight",
-  ];
+/**
+ * Balloon positions depend on rendered text measurement and this
+ * stage's own scrolling camera, not just content, so — unlike the door
+ * puzzle's tiles — a test can't fly toward a known *screen* position
+ * from content alone. 2026-08-26: rather than guessing a blind search
+ * pattern (tried a fixed zigzag, then screen-corner waypoints, then
+ * directional holds — none reliably covered an arbitrarily-sized/
+ * shaped grid within a sane timeout), this steers directly to the
+ * correct balloon's real position, continuously re-read from the
+ * `#balloon-target-positions`/`#balloon-camera-scroll` test-only hooks
+ * (balloonPositionStatus.ts) and converted from world to screen space
+ * — same "expose the exact position, drag deterministically" approach
+ * idiom-match.spec.ts's dragMatchTile already uses for match tiles, just
+ * re-read every beat here since a balloon keeps drifting *and* the
+ * camera keeps re-centering, unlike a match tile's fixed position.
+ */
+async function correctBalloonScreenPosition(page: Page, box: { x: number; y: number }): Promise<{ x: number; y: number }> {
+  const target = page.locator('#balloon-target-positions span[data-correct="true"]');
+  const wx = Number(await target.getAttribute("data-x"));
+  const wy = Number(await target.getAttribute("data-y"));
+  const scrollX = Number(await page.locator("#balloon-camera-scroll").getAttribute("data-x"));
+  const scrollY = Number(await page.locator("#balloon-camera-scroll").getAttribute("data-y"));
+  return { x: box.x + (wx - scrollX), y: box.y + (wy - scrollY) };
+}
+
+// Generous relative to how fast this actually resolves in practice
+// (well under a second of real dragging once aimed) — the slack is for
+// CPU contention under parallel test load, not aiming uncertainty: this
+// steers directly to the correct balloon's live position every beat
+// (see correctBalloonScreenPosition above), so a longer timeout here
+// costs nothing when things go normally and only matters as headroom
+// when they don't. Presses and releases once per cycle (rather than one
+// continuous hold micro-adjusted every beat) — a fresh, decisive
+// press-move-hold-release, same shape as the already-reliable "dragging
+// the pointer" test elsewhere in this file — proved more robust than a
+// single long-held drag with many intermediate moves.
+async function flyUntilResolved(page: Page, maxMs = 45000): Promise<void> {
+  const canvas = page.locator("#game-container canvas");
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("canvas has no bounding box");
+  const isResolved = async (): Promise<boolean> => (await page.locator("#balloon-status").getAttribute("data-resolved")) === "true";
+
+  const CYCLE_MS = 2000;
   const deadline = Date.now() + maxMs;
-  let i = 0;
   while (Date.now() < deadline) {
-    const key = moves[i % moves.length];
-    i++;
-    await page.keyboard.down(key);
-    await page.waitForTimeout(220);
-    await page.keyboard.up(key);
-    if ((await page.locator("#balloon-status").getAttribute("data-resolved")) === "true") return;
+    const pos = await correctBalloonScreenPosition(page, box);
+    await page.mouse.move(pos.x, pos.y);
+    await page.mouse.down();
+    let resolved = false;
+    try {
+      const cycleDeadline = Math.min(deadline, Date.now() + CYCLE_MS);
+      while (Date.now() < cycleDeadline) {
+        await page.waitForTimeout(150);
+        if (await isResolved()) {
+          resolved = true;
+          break;
+        }
+      }
+    } finally {
+      await page.mouse.up();
+    }
+    if (resolved) return;
   }
   throw new Error("flyUntilResolved timed out");
 }
@@ -300,7 +336,7 @@ test("solving a level opens the door into the balloon stage, and resolving that 
   expect(s).toEqual({ nextIndex: "0", complete: "false" });
 });
 
-test("the balloon stage shows the idiom-specific prompt, and flying around eventually resolves it", async ({ page }) => {
+test("the balloon stage shows the sentence with the idiom blanked out, and flying around eventually resolves it", async ({ page }) => {
   test.setTimeout(150000);
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
@@ -386,6 +422,18 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${doorLevels[0].idiom.meaning}"`);
   const s = await status(page);
   expect(s).toEqual({ nextIndex: "0", complete: "false" });
+
+  // 2026-08-26: finishing that first real session earlier in this test
+  // (before "Play again" restarted a fresh in-page run) should be enough
+  // on its own to trigger a resurface callback on a genuinely fresh page
+  // load - no dev control needed here, this exercises the real
+  // record/read path end to end. See idiom-door-resurface.spec.ts for
+  // the dev-control-based coverage of the resurface flow itself; this
+  // reuses the full completion already paid for above rather than
+  // repeating it in its own (expensive) test.
+  await page.goto("/idiom-door.html");
+  await expect(page.locator("#resurface-card")).toHaveClass(/visible/);
+  await expect(page.locator("[data-resurface-hanzi]")).not.toBeEmpty();
 });
 
 test("the on-screen JUMP button works the same as the keyboard", async ({ page }) => {

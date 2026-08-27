@@ -23,6 +23,26 @@ None open right now.
 
 ## Resolved
 
+- **2026-08-26 — `idiom-door` is the real root-URL game; the other five
+  prototypes are archived.** Asked directly (this scope/direction call
+  isn't guessable per `AUTONOMY.md`): `idiom-door` becomes the core
+  mechanic (by far the most developed at the time, ~3065 lines vs.
+  330-700 for the others, and already `index.html`'s redirect target).
+  The losing prototypes (`idiom-reveal`, `meaning-check`, `catch-meaning`,
+  `platform-catch`, `session`) are archived/deleted rather than kept
+  around, per your answer — their still-useful pieces
+  (`applicationCheck.ts`'s distractor-sentence builder,
+  `positionStatus.ts`'s DOM-position test hook, `sessionHistory.ts`'s
+  resurfacing logic) were moved into `src/shared/` since `idiom-door`
+  already depended on (or, for `sessionHistory`, now newly uses) them —
+  see this cycle's commit for the full file-by-file move/delete list.
+  You also confirmed the architecture stays modular (mechanic-per-module,
+  same as today) so a level's mechanic can still be swapped later without
+  a rewrite — nothing about this consolidation forecloses that.
+  `idiom-door`'s own content is still the fixed 3-idiom set it always
+  had; drawing dynamically from the full 15-idiom pool is follow-up work,
+  logged in `BACKLOG.md` rather than attempted in the same sitting, to
+  avoid destabilizing its already-large, carefully-tuned e2e suite.
 - **2026-08-25 — Split from the `TestAI` monorepo, brought `AUTONOMY.md`
   over.** `chengyu-dao` is now the game's standalone home (repo root *is*
   the game, no `game/` subdirectory). Ported and adapted the parent repo's
