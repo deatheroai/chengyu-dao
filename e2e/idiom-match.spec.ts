@@ -58,6 +58,38 @@ test("shows the match warm-up intro before anything is tappable, and Start revea
   expect(maxFirstX).toBeLessThan(minSecondX);
 });
 
+/**
+ * 2026-08-27 regression: pressing down anywhere within a tile's card
+ * used to only register near its top-left corner (a Phaser Container
+ * hit-area gotcha — see IdiomMatchScene.spawnTiles's fix comment).
+ * Every other test here presses exactly at a tile's own mathematical
+ * center (tilePagePosition/dragMatchTile), which sat right on the
+ * boundary of the broken hit area and so still worked — masking the
+ * bug for anything but a pixel-perfect touch. This deliberately offsets
+ * well off-center (toward the bottom-right, the exact quadrant that was
+ * unresponsive) to catch a regression a center-only press wouldn't.
+ */
+test("pressing down anywhere within a tile's card starts a drag, not just its exact center", async ({ page }) => {
+  await page.goto("/idiom-door.html");
+  await page.click("#start-match-btn");
+
+  const [idiomA] = matchLevel.idiomIds;
+  const fromCenter = await tilePagePosition(page, `${idiomA}-first`);
+  const toCenter = await tilePagePosition(page, `${idiomA}-second`);
+  // Every tile card is comfortably larger than this offset on both
+  // axes (two hanzi + pinyin plus padding) - well within the card, but
+  // far enough from center to have landed in the broken quadrant.
+  const OFFSET = 30;
+
+  await page.mouse.move(fromCenter.x + OFFSET, fromCenter.y + OFFSET);
+  await page.mouse.down();
+  await page.mouse.move(toCenter.x + OFFSET, toCenter.y + OFFSET, { steps: 8 });
+  await page.mouse.up();
+
+  await expect(page.locator("#match-status")).toHaveAttribute("data-outcome", "matched");
+  await expect(page.locator("#match-status")).toHaveAttribute("data-matched-pairs", "1");
+});
+
 test("dragging from a first half to the wrong second half flashes wrong, and both are draggable again afterward", async ({ page }) => {
   await page.goto("/idiom-door.html");
   await page.click("#start-match-btn");

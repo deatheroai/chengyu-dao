@@ -167,7 +167,27 @@ export class IdiomMatchScene extends Phaser.Scene {
       const rt: RuntimeTile = { tile, container, bg, halfW, halfH, state: "idle" };
       this.redrawTileBg(rt);
       container.setSize(halfW * 2, halfH * 2);
-      container.setInteractive(new Phaser.Geom.Rectangle(-halfW, -halfH, halfW * 2, halfH * 2), Phaser.Geom.Rectangle.Contains);
+      // 2026-08-27 bug fix: this hit rectangle must be given in
+      // origin-relative (0,0 to width,height) space, NOT centered at
+      // (0,0) the way the tile's own visuals are drawn. Phaser's
+      // Container always normalizes a custom hitArea test point by
+      // adding `displayOriginX/Y` (= width/2, height/2, per
+      // Container.js — a fixed, non-configurable 0.5 origin "to allow
+      // Containers to be used for input") before checking it against
+      // the shape (InputManager.pointWithinHitArea). A rectangle
+      // centered at (-halfW, -halfH) — matching how the card itself is
+      // drawn — gets that offset applied *again*, on top of the
+      // centering already baked into its own coordinates, shifting the
+      // whole sensitive area by (-halfW, -halfH): only the area from
+      // the tile's outer edge in to its own center (visually, the
+      // upper-left portion) ever registered a touch, exactly the
+      // "only sensitive at the top-left corner" behavior reported.
+      // Every existing test happened to press exactly at each tile's
+      // mathematical center (dragMatchTile's tilePagePosition), which
+      // sits right on that boundary and still worked — masking this
+      // for real (off-center) touches. See idiom-match.spec.ts's
+      // off-center regression test.
+      container.setInteractive(new Phaser.Geom.Rectangle(0, 0, halfW * 2, halfH * 2), Phaser.Geom.Rectangle.Contains);
       container.on("pointerdown", (pointer: Phaser.Input.Pointer) => this.startDrag(tile, pointer));
       this.gridLayer.add(container);
       this.runtimeTiles.set(tile.id, rt);
