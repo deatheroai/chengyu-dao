@@ -225,6 +225,29 @@ async function continueFromBalloonSuccess(page: Page): Promise<void> {
   await expect(page.locator("#balloon-success-card")).not.toHaveClass(/visible/);
 }
 
+/**
+ * 2026-08-27 regression: the dev-only #dev-controls block (bottom-right)
+ * used to visually and functionally overlap #jump-btn (bottom-*center*,
+ * but wide enough that its own right edge reaches well into the right
+ * side of a typical mobile viewport) — a real child could accidentally
+ * tap "Seed history"/"Clear history" instead of jumping, per your
+ * report. Confirmed via bounding boxes, not just visually, since a
+ * small pixel overlap is easy to miss in a screenshot.
+ */
+test("the dev-only controls never overlap the jump button", async ({ page }) => {
+  await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
+  await startPlaying(page);
+
+  const jumpBox = await page.locator("#jump-btn").boundingBox();
+  const devBox = await page.locator("#dev-controls").boundingBox();
+  if (!jumpBox || !devBox) throw new Error("missing bounding box");
+
+  const overlapsHorizontally = jumpBox.x < devBox.x + devBox.width && devBox.x < jumpBox.x + jumpBox.width;
+  const overlapsVertically = jumpBox.y < devBox.y + devBox.height && devBox.y < jumpBox.y + jumpBox.height;
+  expect(overlapsHorizontally && overlapsVertically).toBe(false);
+});
+
 test("shows a full-screen intro with the meaning before the level starts, and nothing moves until Start is pressed", async ({ page }) => {
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
