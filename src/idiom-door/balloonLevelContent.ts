@@ -2,6 +2,7 @@ import type { IdiomContent } from "../idioms/types";
 import { idioms } from "../idioms/idioms";
 import { createRng, seedFromString, randRange } from "./seededRandom";
 import { BALLOON_COLORWAYS } from "./balloonColors";
+import { sessionIdiomIds } from "./sessionIdioms";
 
 export interface BalloonDef {
   id: string;
@@ -201,10 +202,7 @@ export function buildBalloonLevel(idiomId: string): BalloonLevel {
   return { idiom, maskedSentence, balloons };
 }
 
-// Same 3 idioms as levelContent.ts's doorLevels — this stage follows
-// each of those idiom's door, not a separate/different set.
-export const balloonLevels: BalloonLevel[] = [
-  buildBalloonLevel("yan-er-you-xin"),
-  buildBalloonLevel("zhu-ren-wei-le"),
-  buildBalloonLevel("wen-gu-zhi-xin"),
-];
+// Same idiom set as levelContent.ts's doorLevels (sessionIdioms.ts's
+// sessionIdiomIds) — this stage follows each of those idiom's door, not
+// a separate/different set.
+export const balloonLevels: BalloonLevel[] = sessionIdiomIds.map((id) => buildBalloonLevel(id));

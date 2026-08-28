@@ -1,6 +1,7 @@
 import type { IdiomContent } from "../idioms/types";
 import { idioms } from "../idioms/idioms";
 import { createRng, seedFromString, randRange, randInt } from "./seededRandom";
+import { sessionIdiomIds } from "./sessionIdioms";
 
 export interface LevelCharacterTile {
   id: string;
@@ -254,82 +255,40 @@ function buildLevel(idiomId: string, decoyPool: DecoySpec[]): DoorLevel {
 }
 
 /**
- * Three idioms chosen for having 4 *distinct* characters each (no
- * repeats within the idiom) — 一心一意/有始有终/相亲相爱 all repeat a
- * character, which would mean two physically different tiles sharing a
- * glyph where only one "counts" at a given moment; a real design
- * question worth its own pass before extending this mechanic to the
- * rest of the 15 approved idioms, not something to guess at silently.
+ * Every approved idiom's own characters, de-duplicated by glyph (one
+ * entry per distinct character, sourced from the first idiom in
+ * idioms.ts that uses it) — the candidate decoy pool for every level.
+ * `buildLevel` filters a level's own idiom's characters back out
+ * per-level regardless (see `validDecoys` below), so it's safe for this
+ * pool to include glyphs from idioms that also happen to be in this
+ * session's own door set — e.g. if 助人为乐 is today's session, 助 (from
+ * 拔苗助长) is still a valid decoy for its level once 人/为/乐 (助人为乐's
+ * *own* characters) are filtered out, the same collision-avoidance this
+ * pool always needed.
  *
- * 2026-08-28: swapped from the original ba-miao-zhu-zhang/
- * shu-neng-sheng-qiao/zhi-cuo-jiu-gai trio to this one per your "bored
- * repeatedly testing on these same idioms" feedback — picked to keep
- * the same "4 distinct characters" constraint while spreading across
- * three different theme tags (honesty/kindness/wisdom, vs. the old
- * set's focus/focus/honesty) for more thematic variety. The old trio
- * stays in the decoy pool below rather than disappearing.
- *
- * Drawn from the other 12 approved idioms' own characters (one entry
- * per distinct glyph, de-duplicated across the *whole* pool even
- * across idioms — e.g. 有 appears in both you-shi-you-zhong and this
- * set's yan-er-you-xin, so it's only listed once here, sourced from
- * whichever idiom isn't one of the three below) — expanded well past
- * the original 3-character pool per your 2026-08-23 "mixed with more
- * decoy characters" feedback, so a level's decoys don't feel like the
- * same 2-3 glyphs on repeat. A chosen idiom's own characters get
- * filtered back out per-level regardless (see `validDecoys` below) —
- * e.g. zhu-ren-wei-le itself contains 助, which is also here via
- * ba-miao-zhu-zhang, the same kind of collision the original pool's
- * comment already called out for the previous trio.
+ * Built from the whole `idioms` array rather than hand-listed, so a
+ * future idiom addition to idioms.ts widens the decoy pool automatically
+ * instead of needing its characters copied in here by hand.
  */
-const DECOY_POOL: DecoySpec[] = [
-  { char: "一", sourceIdiomId: "yi-xin-yi-yi" },
-  { char: "心", sourceIdiomId: "yi-xin-yi-yi" },
-  { char: "意", sourceIdiomId: "yi-xin-yi-yi" },
-  { char: "有", sourceIdiomId: "you-shi-you-zhong" },
-  { char: "始", sourceIdiomId: "you-shi-you-zhong" },
-  { char: "终", sourceIdiomId: "you-shi-you-zhong" },
-  { char: "半", sourceIdiomId: "ban-tu-er-fei" },
-  { char: "途", sourceIdiomId: "ban-tu-er-fei" },
-  { char: "而", sourceIdiomId: "ban-tu-er-fei" },
-  { char: "废", sourceIdiomId: "ban-tu-er-fei" },
-  { char: "熟", sourceIdiomId: "shu-neng-sheng-qiao" },
-  { char: "能", sourceIdiomId: "shu-neng-sheng-qiao" },
-  { char: "生", sourceIdiomId: "shu-neng-sheng-qiao" },
-  { char: "巧", sourceIdiomId: "shu-neng-sheng-qiao" },
-  { char: "磨", sourceIdiomId: "mo-chu-cheng-zhen" },
-  { char: "杵", sourceIdiomId: "mo-chu-cheng-zhen" },
-  { char: "成", sourceIdiomId: "mo-chu-cheng-zhen" },
-  { char: "针", sourceIdiomId: "mo-chu-cheng-zhen" },
-  { char: "拔", sourceIdiomId: "ba-miao-zhu-zhang" },
-  { char: "苗", sourceIdiomId: "ba-miao-zhu-zhang" },
-  { char: "助", sourceIdiomId: "ba-miao-zhu-zhang" },
-  { char: "长", sourceIdiomId: "ba-miao-zhu-zhang" },
-  { char: "知", sourceIdiomId: "zhi-cuo-jiu-gai" },
-  { char: "错", sourceIdiomId: "zhi-cuo-jiu-gai" },
-  { char: "就", sourceIdiomId: "zhi-cuo-jiu-gai" },
-  { char: "改", sourceIdiomId: "zhi-cuo-jiu-gai" },
-  { char: "齐", sourceIdiomId: "qi-xin-xie-li" },
-  { char: "协", sourceIdiomId: "qi-xin-xie-li" },
-  { char: "力", sourceIdiomId: "qi-xin-xie-li" },
-  { char: "相", sourceIdiomId: "xiang-qin-xiang-ai" },
-  { char: "亲", sourceIdiomId: "xiang-qin-xiang-ai" },
-  { char: "爱", sourceIdiomId: "xiang-qin-xiang-ai" },
-  { char: "守", sourceIdiomId: "shou-zhu-dai-tu" },
-  { char: "株", sourceIdiomId: "shou-zhu-dai-tu" },
-  { char: "待", sourceIdiomId: "shou-zhu-dai-tu" },
-  { char: "兔", sourceIdiomId: "shou-zhu-dai-tu" },
-  { char: "井", sourceIdiomId: "jing-di-zhi-wa" },
-  { char: "底", sourceIdiomId: "jing-di-zhi-wa" },
-  { char: "之", sourceIdiomId: "jing-di-zhi-wa" },
-  { char: "蛙", sourceIdiomId: "jing-di-zhi-wa" },
-  { char: "举", sourceIdiomId: "yi-ju-liang-de" },
-  { char: "两", sourceIdiomId: "yi-ju-liang-de" },
-  { char: "得", sourceIdiomId: "yi-ju-liang-de" },
-];
+const DECOY_POOL: DecoySpec[] = (() => {
+  const seen = new Set<string>();
+  const pool: DecoySpec[] = [];
+  for (const sourceIdiom of idioms) {
+    for (const char of Array.from(sourceIdiom.hanzi)) {
+      if (seen.has(char)) continue;
+      seen.add(char);
+      pool.push({ char, sourceIdiomId: sourceIdiom.id });
+    }
+  }
+  return pool;
+})();
 
-export const doorLevels: DoorLevel[] = [
-  buildLevel("yan-er-you-xin", DECOY_POOL), // 言而有信
-  buildLevel("zhu-ren-wei-le", DECOY_POOL), // 助人为乐
-  buildLevel("wen-gu-zhi-xin", DECOY_POOL), // 温故知新
-];
+/**
+ * This session's door levels, one per idiom in `sessionIdioms.ts`'s
+ * `sessionIdiomIds` — the shared source of truth `balloonLevelContent.ts`
+ * and `matchLevelContent.ts` also build from, so all three stages agree
+ * on which idioms today's session covers. See `sessionIdioms.ts` for how
+ * that set is chosen (a random 3 of the 12 eligible idioms, rotating by
+ * calendar day rather than fixed forever).
+ */
+export const doorLevels: DoorLevel[] = sessionIdiomIds.map((id) => buildLevel(id, DECOY_POOL));

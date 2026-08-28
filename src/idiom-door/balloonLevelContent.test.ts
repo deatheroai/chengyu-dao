@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import { balloonLevels, buildBalloonLevel, DISTRACTOR_COUNT, CELL_JITTER_FRACTION } from "./balloonLevelContent";
 import { BALLOON_COLORWAYS } from "./balloonColors";
 import { idioms } from "../idioms/idioms";
+import { sessionIdiomIds } from "./sessionIdioms";
 
 describe("balloonLevels data integrity", () => {
-  it("has one level per door-puzzle idiom", () => {
-    expect(balloonLevels.length).toBe(3);
+  it("has one level per door-puzzle idiom, matching sessionIdioms.ts's sessionIdiomIds", () => {
+    expect(balloonLevels.length).toBe(sessionIdiomIds.length);
+    expect(balloonLevels.map((level) => level.idiom.id)).toEqual(sessionIdiomIds);
   });
 
   for (const level of balloonLevels) {

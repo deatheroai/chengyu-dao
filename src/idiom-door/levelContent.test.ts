@@ -9,10 +9,15 @@ import {
   MIN_SLOT_GAP,
 } from "./levelContent";
 import { attemptGrab, initialOrderedCatchState } from "./orderedCatchProgress";
+import { sessionIdiomIds } from "./sessionIdioms";
 
 describe("doorLevels data integrity", () => {
   it("has at least one level", () => {
     expect(doorLevels.length).toBeGreaterThan(0);
+  });
+
+  it("matches sessionIdioms.ts's sessionIdiomIds exactly, same set and order", () => {
+    expect(doorLevels.map((level) => level.idiom.id)).toEqual(sessionIdiomIds);
   });
 
   for (const level of doorLevels) {

@@ -152,14 +152,38 @@ async function expectBalloonStageShowing(page: Page, levelIndex: number): Promis
  * idiom-match.spec.ts's dragMatchTile already uses for match tiles, just
  * re-read every beat here since a balloon keeps drifting *and* the
  * camera keeps re-centering, unlike a match tile's fixed position.
+ *
+ * 2026-08-28: clamped to just inside the canvas's own bounds. Once the
+ * game started drawing its door/balloon session from a rotating
+ * selection of idioms (sessionIdioms.ts) rather than the same fixed 3
+ * every time, some layouts put the correct balloon far enough from the
+ * avatar's starting position that the naive world→screen conversion
+ * lands off-canvas (negative, or past the canvas's own width/height) on
+ * the first cycle or two, before the camera has scrolled to follow. A
+ * real finger/mouse can't click outside the screen either — it would
+ * just drag to the nearest edge in that direction, and the *next*
+ * cycle's re-read (as the avatar/camera catch up) converges from there,
+ * same as this now does. Confirmed via a reproduction against a session
+ * that reliably hit this (jing-di-zhi-wa / ban-tu-er-fei /
+ * yan-er-you-xin, 2026-08-28): unclamped, the aim point stayed stuck
+ * off-canvas cycle after cycle and never resolved within the timeout;
+ * clamped, it converged in ~2.5s.
  */
-async function correctBalloonScreenPosition(page: Page, box: { x: number; y: number }): Promise<{ x: number; y: number }> {
+async function correctBalloonScreenPosition(
+  page: Page,
+  box: { x: number; y: number; width: number; height: number },
+): Promise<{ x: number; y: number }> {
   const target = page.locator('#balloon-target-positions span[data-correct="true"]');
   const wx = Number(await target.getAttribute("data-x"));
   const wy = Number(await target.getAttribute("data-y"));
   const scrollX = Number(await page.locator("#balloon-camera-scroll").getAttribute("data-x"));
   const scrollY = Number(await page.locator("#balloon-camera-scroll").getAttribute("data-y"));
-  return { x: box.x + (wx - scrollX), y: box.y + (wy - scrollY) };
+  const rawX = box.x + (wx - scrollX);
+  const rawY = box.y + (wy - scrollY);
+  return {
+    x: Math.min(Math.max(rawX, box.x + 1), box.x + box.width - 1),
+    y: Math.min(Math.max(rawY, box.y + 1), box.y + box.height - 1),
+  };
 }
 
 // Generous relative to how fast this actually resolves in practice

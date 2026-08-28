@@ -37,22 +37,51 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       `shared/applicationCheck.ts` (the old full-sentence distractor
       builder) is gone; `idiom-door/balloonLevelContent.ts` now builds a
       `MaskedSentence` plus simple idiom-candidate distractors directly.
-- [ ] `todo` — **Draw `idiom-door`'s session content from the full idiom
-      pool instead of the fixed 3-idiom set.** `src/idioms/idioms.ts` has
-      15 idioms; `idiom-door`'s puzzle needs 4 *distinct* characters per
-      idiom (see `levelContent.ts`'s doc comment), which 12 of the 15
-      satisfy (excludes `yi-xin-yi-yi`, `you-shi-you-zhong`,
-      `xiang-qin-xiang-ai`). Deliberately not attempted in the same
-      sitting as the consolidation above — `idiom-door.spec.ts`'s e2e
-      suite hardcodes assertions against the specific fixed 3 idioms
-      (`doorLevels[i]`), so randomizing the selection needs its own pass
-      to keep that suite (and the decoy pool's per-level collision
-      filtering) correct rather than risking it alongside a large file
-      reorg.
-- [ ] `todo` — Now that `idiom-door` is the one real entry point, revisit
-      whether its title/meta description (still "Idiom Door —
-      Meaning-First Puzzle Spike" in `idiom-door.html`) and its own
-      internal naming should drop the "spike/prototype" framing.
+- [x] `done` — **Draw `idiom-door`'s session content from the full idiom
+      pool instead of the fixed 3-idiom set (2026-08-28).** New
+      `src/idiom-door/sessionIdioms.ts` is the one shared source of truth:
+      `ELIGIBLE_IDIOM_IDS` (the 12 of 15 idioms with 4 *distinct*
+      characters — excludes `yi-xin-yi-yi`, `you-shi-you-zhong`,
+      `xiang-qin-xiang-ai`, same constraint `levelContent.ts` always had)
+      and `sessionIdiomIds`, a random 3 of those 12, seeded by *today's
+      UTC calendar date* rather than `Math.random()` — picked specifically
+      so a Playwright test importing the module in Node and the browser
+      page it drives, evaluated moments apart, land on the same day
+      string and therefore the same selection (true page-load randomness
+      would make the two diverge, since each side would draw
+      independently). `levelContent.ts`, `balloonLevelContent.ts`, and
+      `matchLevelContent.ts` all now build from `sessionIdiomIds` instead
+      of each hardcoding the same fixed trio; `levelContent.ts`'s decoy
+      pool is now derived from every idiom in `idioms.ts` (deduplicated by
+      glyph) instead of a hand-listed subset, so it no longer needs
+      updating by hand when the door set changes. Idiom count per session
+      stays 3 (`IDIOMS_PER_SESSION`) — only *which* 3 rotates — so nothing
+      about level count or pacing changed, and `idiom-door.spec.ts`'s
+      "1/3, 2/3, 3/3" progress assertions still hold as-is.
+      `sessionIdioms.test.ts` guards the invariant this all leans on:
+      no first-half/last-half collision across the *whole* eligible pool
+      (matchLevelContent.ts's ambiguous-pairing guard), so any subset the
+      daily rotation draws is safe by construction, not by luck.
+      Along the way, found and fixed a latent bug in
+      `idiom-door.spec.ts`'s `flyUntilResolved` helper: its world→screen
+      conversion could land off-canvas (negative, or past the canvas's
+      own bounds) when a session's balloon layout put the correct balloon
+      far enough from the avatar's start that the camera hadn't scrolled
+      to follow yet — invisible with the old fixed 3-idiom set (never
+      happened to trigger it), but reliably reproducible once the door
+      set could vary. Now clamped to just inside the canvas, same as a
+      real finger/mouse would be.
+- [x] `done` — Now that `idiom-door` is the one real entry point, dropped
+      the "spike/prototype" framing (2026-08-28): `idiom-door.html`'s
+      `<title>` is now "Chengyu Dao — Idiom Door" (was "Idiom Door —
+      Meaning-First Puzzle Spike"), and it gained a `<meta
+      name="description">` summarizing the game (there wasn't one
+      before). Checked the rest of `idiom-door`'s own internal
+      naming/comments for the same framing — the two remaining
+      "prototype" mentions in `main.ts`/`style.css` are accurate
+      historical notes about the retired `session.html` prototype code
+      was ported from, not stale branding of `idiom-door` itself, so left
+      as-is.
 
 ## Platform / infra
 

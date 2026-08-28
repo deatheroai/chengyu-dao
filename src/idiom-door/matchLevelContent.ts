@@ -1,5 +1,6 @@
 import { idiomsById } from "../idioms/idioms";
 import { createRng, seedFromString } from "./seededRandom";
+import { sessionIdiomIds } from "./sessionIdioms";
 
 /**
  * One half-idiom tile: the first two hanzi of a 4-character idiom, or
@@ -94,14 +95,13 @@ export function buildMatchLevel(idiomIds: string[]): MatchLevel {
 }
 
 /**
- * The session's warm-up level, drawn from the same 3 idioms
- * levelContent.ts's `doorLevels` uses (yan-er-you-xin / zhu-ren-wei-le
- * / wen-gu-zhi-xin) — this stage runs once, before that per-idiom
+ * The session's warm-up level, drawn from the same idiom set
+ * levelContent.ts's `doorLevels` uses (`sessionIdioms.ts`'s
+ * `sessionIdiomIds`) — this stage runs once, before that per-idiom
  * door/balloon sequence, on the same idiom set rather than a different
  * one, so the halves the child just joined here are the same idioms
- * they immediately go on to practice. Hardcoded rather than imported
- * from levelContent.ts's `doorLevels` to keep this module content-only
- * and decoupled from that one's decoy-pool machinery — see
- * levelContent.ts's own comment on why those 3 were chosen.
+ * they immediately go on to practice. Reads `sessionIdiomIds` directly
+ * (rather than levelContent.ts's `doorLevels`) to keep this module
+ * content-only and decoupled from that one's decoy-pool machinery.
  */
-export const matchLevel: MatchLevel = buildMatchLevel(["yan-er-you-xin", "zhu-ren-wei-le", "wen-gu-zhi-xin"]);
+export const matchLevel: MatchLevel = buildMatchLevel(sessionIdiomIds);
