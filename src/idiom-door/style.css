@@ -261,7 +261,8 @@ rt {
 #level-intro-card,
 #balloon-success-card,
 #match-intro-card,
-#resurface-card {
+#resurface-card,
+#match-hint-card {
   position: absolute;
   inset: 0;
   display: none;
@@ -274,7 +275,8 @@ rt {
 #level-intro-card.visible,
 #balloon-success-card.visible,
 #match-intro-card.visible,
-#resurface-card.visible {
+#resurface-card.visible,
+#match-hint-card.visible {
   display: flex;
 }
 
@@ -282,7 +284,8 @@ rt {
 #level-intro-card .card,
 #balloon-success-card .card,
 #match-intro-card .card,
-#resurface-card .card {
+#resurface-card .card,
+#match-hint-card .card {
   background: #fff8ef;
   border-radius: 20px;
   padding: 1.75rem 1.5rem;
@@ -294,7 +297,8 @@ rt {
 
 #level-intro-card .eyebrow,
 #match-intro-card .eyebrow,
-#resurface-card .eyebrow {
+#resurface-card .eyebrow,
+#match-hint-card .eyebrow {
   margin: 0;
   font-size: 0.8rem;
   font-weight: 600;
@@ -362,7 +366,8 @@ rt {
 #start-level-btn,
 #balloon-continue-btn,
 #start-match-btn,
-#resurface-continue-btn {
+#resurface-continue-btn,
+#match-hint-dismiss-btn {
   border: none;
   background: #c1401f;
   color: #fff8ef;
@@ -375,15 +380,37 @@ rt {
 #start-level-btn:hover,
 #balloon-continue-btn:hover,
 #start-match-btn:hover,
-#resurface-continue-btn:hover {
+#resurface-continue-btn:hover,
+#match-hint-dismiss-btn:hover {
   background: #a83618;
 }
 #start-level-btn:focus-visible,
 #balloon-continue-btn:focus-visible,
 #start-match-btn:focus-visible,
-#resurface-continue-btn:focus-visible {
+#resurface-continue-btn:focus-visible,
+#match-hint-dismiss-btn:focus-visible {
   outline: 2px solid #4a3420;
   outline-offset: 2px;
+}
+
+/* --- Match-stage hint card (2026-08-28) --- */
+
+#match-hint-card .hint-hanzi {
+  /* Ruby-annotated (rubyText.ts), same shared ruby/rt rule as every
+     other hanzi line in this game — extra line-height gives the
+     annotation room, same reasoning as .intro-meaning-zh/.success-hanzi. */
+  margin: 0.9rem 0 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 2.3;
+  color: #4a3420;
+}
+
+#match-hint-card .hint-meaning {
+  margin: 0 0 1.25rem;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #4a3420;
 }
 
 /* --- Resurface card (2026-08-26, ported from session.html) --- */

@@ -29,6 +29,18 @@ export async function dragMatchTile(page: Page, fromTileId: string, toTileId: st
   await page.mouse.up();
 }
 
+/** Presses and releases a tile without ever moving in between — a plain
+ * tap, as opposed to dragMatchTile's drag. IdiomMatchScene tells the two
+ * apart by how far the pointer moved between press and release (see its
+ * TAP_MOVE_THRESHOLD), so this deliberately never calls `mouse.move`
+ * between `down` and `up`. */
+export async function tapMatchTile(page: Page, tileId: string): Promise<void> {
+  const at = await tilePagePosition(page, tileId);
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  await page.mouse.up();
+}
+
 /**
  * Dismisses the match-intro overlay and drags every idiom's first half
  * to its second half, in order — the session's one-time warm-up

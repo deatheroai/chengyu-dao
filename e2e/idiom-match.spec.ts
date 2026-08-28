@@ -1,6 +1,20 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "@playwright/test";
 import { matchLevel } from "../src/idiom-door/matchLevelContent";
-import { dragMatchTile } from "./helpers/idiomMatch";
+import { idiomsById } from "../src/idioms/idioms";
+import { buildHintMaskedIdiom } from "../src/idiom-door/matchHintStatus";
+import { dragMatchTile, tapMatchTile } from "./helpers/idiomMatch";
+
+/** Strips ruby `<rt>` pinyin annotations from a clone, recovering just
+ * the base hanzi text — same approach as idiom-door.spec.ts's
+ * rubyBaseText, needed here too since the hint card's hanzi line is
+ * ruby-annotated the same way. */
+async function rubyBaseText(locator: Locator): Promise<string> {
+  return locator.evaluate((el) => {
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("rt").forEach((rt) => rt.remove());
+    return clone.textContent ?? "";
+  });
+}
 
 /**
  * The "join the two halves" warm-up stage: before the first door
@@ -145,4 +159,68 @@ test("joining every idiom's two halves completes the stage and hands off to the 
 
   await expect(page.locator("#level-intro-card")).toHaveClass(/visible/, { timeout: 5000 });
   await expect(page.locator("#match-ui-layer")).toHaveClass(/stage-hidden/);
+});
+
+/**
+ * 2026-08-28: a hint for a child who doesn't recognize a left-column
+ * tile — tapping it (pressing and releasing without ever dragging)
+ * shows its idiom's first two characters, its last two blanked out,
+ * then its plain-English meaning. Deliberately keyed to a *plain tap*,
+ * not a drag that happens to miss its target — see the next few tests.
+ */
+test("tapping (not dragging) a first-half tile shows a hint with its meaning, first two characters revealed and the rest blanked", async ({ page }) => {
+  await page.goto("/idiom-door.html");
+  await page.click("#start-match-btn");
+
+  const [idiomId] = matchLevel.idiomIds;
+  const idiom = idiomsById[idiomId];
+  const { hanzi } = buildHintMaskedIdiom(idiom);
+
+  await expect(page.locator("#match-hint-card")).not.toHaveClass(/visible/);
+  await tapMatchTile(page, `${idiomId}-first`);
+
+  const card = page.locator("#match-hint-card");
+  await expect(card).toHaveClass(/visible/);
+  await expect.poll(() => rubyBaseText(card.locator("[data-hint-hanzi]"))).toBe(hanzi);
+  await expect(card.locator("[data-hint-meaning]")).toHaveText(idiom.meaning);
+
+  // The tapped tile itself is untouched — no pair was attempted, so no
+  // match/wrong outcome, same "nothing lost" ethos as a missed drag.
+  await expect(page.locator("#match-status")).not.toHaveAttribute("data-outcome", /.+/);
+
+  // Dismissing hides the card and leaves the stage exactly as it was —
+  // the same tile can still be matched normally afterward.
+  await page.click("#match-hint-dismiss-btn");
+  await expect(card).not.toHaveClass(/visible/);
+  await dragMatchTile(page, `${idiomId}-first`, `${idiomId}-second`);
+  await expect(page.locator("#match-status")).toHaveAttribute("data-matched-pairs", "1");
+});
+
+test("tapping a second-half tile never shows a hint", async ({ page }) => {
+  await page.goto("/idiom-door.html");
+  await page.click("#start-match-btn");
+
+  const [idiomId] = matchLevel.idiomIds;
+  await tapMatchTile(page, `${idiomId}-second`);
+
+  await expect(page.locator("#match-hint-card")).not.toHaveClass(/visible/);
+});
+
+test("dragging a first-half tile and missing its target does not show a hint", async ({ page }) => {
+  await page.goto("/idiom-door.html");
+  await page.click("#start-match-btn");
+
+  const [idiomId] = matchLevel.idiomIds;
+  const from = await tilePagePosition(page, `${idiomId}-first`);
+  const box = await canvasBox(page);
+
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  // A real drag (well past TAP_MOVE_THRESHOLD), released on empty space
+  // below both columns — a genuine, if unlanded, match attempt, not a
+  // request for help.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height - 10, { steps: 5 });
+  await page.mouse.up();
+
+  await expect(page.locator("#match-hint-card")).not.toHaveClass(/visible/);
 });

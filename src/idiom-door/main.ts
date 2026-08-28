@@ -5,6 +5,7 @@ import { BalloonSentenceScene } from "./BalloonSentenceScene";
 import { balloonLevels } from "./balloonLevelContent";
 import { IdiomMatchScene } from "./IdiomMatchScene";
 import { matchLevel } from "./matchLevelContent";
+import { hideMatchHint } from "./matchHintStatus";
 import { updateSessionProgress } from "./sessionProgressStatus";
 import { renderRubyText } from "../shared/rubyText";
 import { pickResurfaceIdiomId, recordCompletedSession, clearHistory, seedFakePriorSession } from "../shared/sessionHistory";
@@ -430,6 +431,12 @@ function bootstrap(): void {
     completedHanzi.length = 0;
     startLevelWithIntro(0);
   });
+
+  // The match-stage hint card (IdiomMatchScene.endDrag / matchHintStatus.ts)
+  // is stateless content-wise — dismissing it just hides it and resumes
+  // the match stage exactly where it was, so (like reveal-english-btn
+  // above) this is wired once rather than per-hint.
+  document.getElementById("match-hint-dismiss-btn")?.addEventListener("click", hideMatchHint);
 }
 
 bootstrap();

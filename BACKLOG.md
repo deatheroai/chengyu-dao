@@ -15,6 +15,21 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Match warm-up: tap-for-a-hint on a first-half tile
+      (2026-08-28).** A child who doesn't recognize a left-column card
+      can tap it (press and release without ever dragging) to see a
+      hint: its idiom's first two characters, its last two blanked out,
+      then its plain-English meaning — new `#match-hint-card`, populated
+      by `matchHintStatus.ts`'s `showMatchHint`/`buildHintMaskedIdiom`.
+      Deliberately keyed to a genuine tap only, not a drag that misses
+      its target: `IdiomMatchScene` now tracks how far the pointer moved
+      between press and release (`TAP_MOVE_THRESHOLD`), so a real (if
+      unlanded) drag attempt stays silent exactly as it did before —
+      only a still press-and-release reads as "I don't know this one."
+      Second-half (right column) tiles never show a hint, since the hint
+      is keyed to "which idiom is this," which only a first-half tile's
+      own text sets up. Dismissed via a "Got it" button (main.ts), same
+      card-overlay pattern as every other full-screen card in this game.
 - [x] `done` — **Consolidate the six mechanic prototypes into one real
       root-URL experience (2026-08-26, see `DECISIONS.md`).** `idiom-door`
       is now the real game, not a stopgap: `/` still redirects to

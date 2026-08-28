@@ -108,6 +108,22 @@
           <button id="start-match-btn" type="button">▶ Start</button>
         </div>
       </div>
+      <!-- 2026-08-28: a hint for a first-half tile the child doesn't
+           recognize — tapping (not dragging) one of the left-column
+           cards shows its idiom's first two characters, its last two
+           blanked out, then its plain-English meaning
+           (IdiomMatchScene.endDrag / matchHintStatus.ts). A tap-and-
+           release with no drag at all is read as "I don't know this
+           one"; a real drag that just misses its target stays silent,
+           same as it always has — this only fires for the former. -->
+      <div id="match-hint-card">
+        <div class="card">
+          <p class="eyebrow">Hint</p>
+          <p data-hint-hanzi class="hint-hanzi" lang="zh-Hans"></p>
+          <p data-hint-meaning class="hint-meaning"></p>
+          <button id="match-hint-dismiss-btn" type="button">Got it</button>
+        </div>
+      </div>
       <div id="level-intro-card">
         <div class="card">
           <p class="eyebrow">Which idiom means...</p>

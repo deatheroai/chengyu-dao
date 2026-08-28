@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import type { MatchLevel, MatchTile } from "./matchLevelContent";
 import { initialMatchProgressState, selectTile, type MatchProgressState } from "./matchProgress";
 import { updateMatchStatus } from "./matchStatus";
+import { showMatchHint } from "./matchHintStatus";
+import { idiomsById } from "../idioms/idioms";
 
 export interface IdiomMatchSceneData {
   level: MatchLevel;
@@ -63,6 +65,13 @@ const WRONG_REVERT_MS = 550;
 // BalloonSentenceScene's handleCatch uses before calling onResolved.
 const COMPLETE_HANDOFF_MS = 700;
 
+// World px of pointer movement, measured from where a drag started,
+// below which a press-then-release counts as a tap rather than a drag
+// (see endDrag's hint-triggering branch below). Comfortably above
+// incidental finger/mouse jitter during a still press, comfortably
+// below the distance a deliberate drag toward the other column covers.
+const TAP_MOVE_THRESHOLD = 12;
+
 interface RuntimeTile {
   tile: MatchTile;
   container: Phaser.GameObjects.Container;
@@ -102,6 +111,13 @@ export class IdiomMatchScene extends Phaser.Scene {
   private dragLine!: Phaser.GameObjects.Graphics;
   private dragOriginId: string | null = null;
   private dragHoverId: string | null = null;
+  // Where the current drag's press started, and whether it's moved past
+  // TAP_MOVE_THRESHOLD since — lets endDrag tell a plain tap-and-release
+  // apart from a drag that just happens to miss its target (see its own
+  // doc comment for why only the former shows the hint).
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private dragMoved = false;
 
   constructor() {
     super("IdiomMatchScene");
@@ -115,6 +131,7 @@ export class IdiomMatchScene extends Phaser.Scene {
     this.matchedLines = [];
     this.dragOriginId = null;
     this.dragHoverId = null;
+    this.dragMoved = false;
     this.resolved = false;
   }
 
@@ -309,6 +326,9 @@ export class IdiomMatchScene extends Phaser.Scene {
     if (!rt || rt.state === "matched") return;
     this.dragOriginId = tile.id;
     this.dragHoverId = null;
+    this.dragStartX = pointer.worldX;
+    this.dragStartY = pointer.worldY;
+    this.dragMoved = false;
     this.setTileVisualState(tile.id, "selected");
     this.updateDrag(pointer);
   }
@@ -317,6 +337,11 @@ export class IdiomMatchScene extends Phaser.Scene {
     if (!this.dragOriginId) return;
     const origin = this.runtimeTiles.get(this.dragOriginId);
     if (!origin) return;
+
+    if (!this.dragMoved) {
+      const moved = Phaser.Math.Distance.Between(this.dragStartX, this.dragStartY, pointer.worldX, pointer.worldY);
+      if (moved > TAP_MOVE_THRESHOLD) this.dragMoved = true;
+    }
 
     this.drawLine(this.dragLine, origin.container.x, origin.container.y, pointer.worldX, pointer.worldY, DRAG_LINE_COLOR);
 
@@ -334,6 +359,7 @@ export class IdiomMatchScene extends Phaser.Scene {
   private endDrag(pointer: Phaser.Input.Pointer): void {
     if (!this.dragOriginId) return;
     const originId = this.dragOriginId;
+    const wasTap = !this.dragMoved;
     this.dragOriginId = null;
     this.dragHoverId = null;
     this.dragLine.clear();
@@ -344,6 +370,19 @@ export class IdiomMatchScene extends Phaser.Scene {
       // cancel, no state change, same "nothing lost" ethos as a wrong
       // pair, just without even the flash since no pair was attempted.
       this.setTileVisualState(originId, "idle");
+      // A plain touch-and-release with no drag at all, on a first-half
+      // (left column) tile, is read as "I don't know this one" and
+      // shows a hint — but only that: a *dragged* attempt that misses
+      // its target stays silent here, same as it always has, since
+      // that's a real (if unlanded) match attempt, not a request for
+      // help. Right-half tiles never show a hint either — the hint is
+      // keyed to "which idiom is this," which only a first-half tile's
+      // own text (its idiom's first two characters) sets up.
+      const originTile = this.runtimeTiles.get(originId)?.tile;
+      if (wasTap && originTile?.half === "first") {
+        const idiom = idiomsById[originTile.idiomId];
+        if (idiom) showMatchHint(idiom);
+      }
       return;
     }
 
