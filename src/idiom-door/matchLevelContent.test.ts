@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { buildMatchLevel, matchLevel } from "./matchLevelContent";
 import { idioms } from "../idioms/idioms";
+import { doorLevels } from "./levelContent";
+import { sessionIdiomIds, ELIGIBLE_IDIOM_IDS, IDIOMS_PER_SESSION } from "./sessionIdioms";
 
 describe("buildMatchLevel", () => {
   it("produces two tiles per idiom, split first-two/last-two", () => {
@@ -46,8 +48,14 @@ describe("buildMatchLevel", () => {
 });
 
 describe("matchLevel (the session's warm-up content)", () => {
-  it("has 3 idioms, 6 tiles, matching levelContent.ts's doorLevels set", () => {
-    expect(matchLevel.idiomIds).toEqual(["yan-er-you-xin", "zhu-ren-wei-le", "wen-gu-zhi-xin"]);
-    expect(matchLevel.tiles).toHaveLength(6);
+  it(`has ${IDIOMS_PER_SESSION} idioms drawn from the eligible pool, and ${IDIOMS_PER_SESSION * 2} tiles`, () => {
+    expect(matchLevel.idiomIds).toHaveLength(IDIOMS_PER_SESSION);
+    for (const id of matchLevel.idiomIds) expect(ELIGIBLE_IDIOM_IDS).toContain(id);
+    expect(matchLevel.tiles).toHaveLength(IDIOMS_PER_SESSION * 2);
+  });
+
+  it("matches sessionIdioms.ts's sessionIdiomIds exactly, same set and order as levelContent.ts's doorLevels", () => {
+    expect(matchLevel.idiomIds).toEqual(sessionIdiomIds);
+    expect(doorLevels.map((level) => level.idiom.id)).toEqual(sessionIdiomIds);
   });
 });
