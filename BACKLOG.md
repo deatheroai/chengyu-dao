@@ -108,13 +108,14 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 - [x] `done` — CI workflow added (2026-08-26): `.github/workflows/game-ci.yml`
       runs typecheck, unit tests, build, and the e2e suite on every push
       to `main` and every PR.
-- [ ] `blocked` — Cloud saves (Firebase or otherwise). Removed entirely
-      in the castle-prototype cleanup since nothing used it. The original
-      blocker (re-scoping against whichever mechanic survives the
-      consolidation) is resolved — `idiom-door` is that mechanic — but
-      rebuilding it means picking a backend/tier, which is now a logged
-      Pending Decision in `DECISIONS.md` (2026-08-30) rather than
-      something to guess at.
+- [ ] `todo` — Cloud saves for `idiom-door`, Vercel-native backend
+      (Vercel Postgres/Neon or Vercel KV — pick whichever fits the
+      save-data shape better at implementation time), free tier only
+      (see `DECISIONS.md`'s 2026-08-30 entry). Sync via a device
+      link-code flow, not accounts/auth — no personal info collected,
+      given the audience is children. Needs a couple of serverless API
+      routes added to the Vite build (none exist yet) plus wiring
+      `sessionHistory.ts`'s local read/write through them.
 
 ## Later / explicitly out of scope for now
 

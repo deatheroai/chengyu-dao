@@ -10,18 +10,7 @@ these.
 
 ## Pending Decisions
 
-- **Build cloud saves for `idiom-door` now, and if so with what
-  backend/tier?** `BACKLOG.md`'s cloud-saves item was blocked on "which
-  mechanic(s) survive the consolidation" — that's been resolved since
-  2026-08-26 (`idiom-door` is the one survivor), so the item's original
-  blocker is stale. But actually building it still means picking a
-  backend (Firebase was the old, now-removed choice; there are other
-  options) and possibly a paid tier, which is exactly the kind of
-  "irreversible or costly external commitment" `AUTONOMY.md` says to ask
-  about rather than guess. Raising it here rather than picking one.
-  Today's cycle (2026-08-30) found this the only backlog item with
-  outstanding work and nothing else unblocked to build instead — see
-  that entry in `BACKLOG.md`.
+None open right now.
 
 ## Needs Your Action (not decisions — steps only you can take)
 
@@ -34,6 +23,19 @@ these.
 
 ## Resolved
 
+- **2026-08-30 — Build cloud saves now, Vercel-native backend, free
+  tier only.** Asked directly (irreversible/costly-commitment call per
+  `AUTONOMY.md`): yes, build it now — the original consolidation
+  blocker resolved back on 2026-08-26. Backend is **Vercel-native**
+  (Vercel Postgres/Neon or Vercel KV, decided at implementation time by
+  whichever fits the save-data shape better) rather than adding a
+  separate vendor like Firebase or Supabase, since the site is already
+  fully committed to Vercel for hosting. **Free tier only for now** —
+  no paid tier authorized. Sync should use a device link-code flow
+  (type a short code from one device into another) rather than any
+  account/auth system, since the audience is children and this avoids
+  collecting personal information entirely. `BACKLOG.md`'s cloud-saves
+  item is unblocked to reflect this.
 - **2026-08-26 — `idiom-door` is the real root-URL game; the other five
   prototypes are archived.** Asked directly (this scope/direction call
   isn't guessable per `AUTONOMY.md`): `idiom-door` becomes the core
