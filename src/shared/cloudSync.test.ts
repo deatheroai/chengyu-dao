@@ -85,19 +85,25 @@ describe("pushToCloud", () => {
     expect(result).toEqual({ ok: false, reason: "not-configured" });
   });
 
-  it("reports network on any other non-ok response", async () => {
+  it("reports network on any other non-ok response, with the server's own error as detail", async () => {
     stubFetch(() => new Response(JSON.stringify({ error: "boom" }), { status: 500 }));
     const result = await pushToCloud(VALID_CODE, {});
-    expect(result).toEqual({ ok: false, reason: "network" });
+    expect(result).toEqual({ ok: false, reason: "network", detail: "HTTP 500: boom" });
   });
 
-  it("reports network rather than throwing when fetch itself rejects (offline)", async () => {
+  it("falls back to a bare status when the failed response isn't JSON", async () => {
+    stubFetch(() => new Response("<html>Internal Server Error</html>", { status: 502 }));
+    const result = await pushToCloud(VALID_CODE, {});
+    expect(result).toEqual({ ok: false, reason: "network", detail: "HTTP 502" });
+  });
+
+  it("reports network rather than throwing when fetch itself rejects (offline), with the error message as detail", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() => Promise.reject(new Error("offline"))),
     );
     const result = await pushToCloud(VALID_CODE, {});
-    expect(result).toEqual({ ok: false, reason: "network" });
+    expect(result).toEqual({ ok: false, reason: "network", detail: "offline" });
   });
 });
 
@@ -127,6 +133,21 @@ describe("pullFromCloud", () => {
     stubFetch(() => new Response(JSON.stringify({ error: "not-configured" }), { status: 501 }));
     const result = await pullFromCloud(VALID_CODE);
     expect(result).toEqual({ ok: false, reason: "not-configured" });
+  });
+
+  it("reports network on any other non-ok response, with the server's own error as detail", async () => {
+    stubFetch(() => new Response(JSON.stringify({ error: "boom" }), { status: 500 }));
+    const result = await pullFromCloud(VALID_CODE);
+    expect(result).toEqual({ ok: false, reason: "network", detail: "HTTP 500: boom" });
+  });
+
+  it("reports network rather than throwing when fetch itself rejects (offline), with the error message as detail", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("offline"))),
+    );
+    const result = await pullFromCloud(VALID_CODE);
+    expect(result).toEqual({ ok: false, reason: "network", detail: "offline" });
   });
 
   it("requests with the code as a query parameter via GET", async () => {

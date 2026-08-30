@@ -62,6 +62,16 @@ describe("showCloudSaveCard", () => {
       expect(document.querySelector("[data-cloud-status]")!.textContent).toMatch(/isn't set up/);
     });
   });
+
+  it("appends the server's own error to the message on an unexpected failure, so it isn't mistaken for being offline", async () => {
+    stubFetch(() => new Response(JSON.stringify({ error: "redis timeout" }), { status: 500 }));
+    showCloudSaveCard();
+    await vi.waitFor(() => {
+      expect(document.querySelector("[data-cloud-status]")!.textContent).toBe(
+        "Couldn't reach the cloud save server. Check your connection and try again. (HTTP 500: redis timeout)",
+      );
+    });
+  });
 });
 
 describe("hideCloudSaveCard", () => {
