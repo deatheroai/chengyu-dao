@@ -20,21 +20,15 @@ None open right now.
   depends on that being true, same as it was for the parent `TestAI`
   monorepo. Nothing to do if it's already the default; flag it if you've
   changed it.
-- **Install the Upstash Redis integration (Vercel Marketplace) and
-  connect it to this project, for cloud saves (2026-08-30).** Building
-  the sync itself (`api/cloud-save.ts`, `shared/cloudSync.ts`, the
-  `#cloud-save-card` panel — see `BACKLOG.md`'s entry) didn't need this,
-  but *using* it for real does: from the Vercel dashboard, add the
-  Upstash for Redis integration and connect it to `chengyu-dao`, which
-  sets the `KV_REST_API_URL`/`KV_REST_API_TOKEN` (or `UPSTASH_REDIS_
-  REST_URL`/`UPSTASH_REDIS_REST_TOKEN`) environment variables the
-  function reads. Nothing else needs building or asking once that's
-  done — a redeploy alone picks the new env vars up. Until then,
-  `/api/cloud-save` returns 501 and the panel says so plainly rather
-  than failing silently; the rest of the game works exactly as before.
-
 ## Resolved
 
+- **2026-08-30 — Upstash Redis integration installed and connected.**
+  The one human step `BACKLOG.md`'s cloud-saves entry needed — done;
+  `/api/cloud-save` now has real `KV_REST_API_URL`/`KV_REST_API_TOKEN`
+  (or `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`) to read, so
+  the cloud-save panel should show "Saved to the cloud ✓" instead of
+  "isn't set up yet" on the next deploy. Worth a quick manual check on
+  the live site to confirm.
 - **2026-08-30 — Build cloud saves now, Vercel-native backend, free
   tier only.** Asked directly (irreversible/costly-commitment call per
   `AUTONOMY.md`): yes, build it now — the original consolidation
