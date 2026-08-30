@@ -6,6 +6,8 @@ import {
   pickResurfaceIdiomId,
   clearHistory,
   seedFakePriorSession,
+  exportForCloud,
+  importFromCloud,
 } from "./sessionHistory";
 
 beforeEach(() => {
@@ -76,5 +78,38 @@ describe("seedFakePriorSession", () => {
     expect(hasPriorSession()).toBe(true);
     expect(allDiscoveredIdiomIds()).toEqual(["wen-gu-zhi-xin"]);
     expect(pickResurfaceIdiomId()).toBe("wen-gu-zhi-xin");
+  });
+});
+
+describe("exportForCloud / importFromCloud", () => {
+  it("round-trips local history through an export/import pair unchanged", () => {
+    recordCompletedSession(["a", "b", "c"], 1000);
+    const exported = exportForCloud();
+    clearHistory();
+    expect(hasPriorSession()).toBe(false);
+    importFromCloud(exported);
+    expect(allDiscoveredIdiomIds()).toEqual(["a", "b", "c"]);
+  });
+
+  it("merges a remote history into a non-empty local one rather than overwriting it", () => {
+    recordCompletedSession(["a", "b", "c"], 1000);
+    importFromCloud({ completedSessions: [{ idiomIds: ["d", "e", "f"], completedAt: 2000 }] });
+    expect(new Set(allDiscoveredIdiomIds())).toEqual(new Set(["a", "b", "c", "d", "e", "f"]));
+  });
+
+  it("deduplicates a session that's identical (same completedAt + idiomIds) on both sides", () => {
+    recordCompletedSession(["a", "b", "c"], 1000);
+    importFromCloud({ completedSessions: [{ idiomIds: ["a", "b", "c"], completedAt: 1000 }] });
+    const data = exportForCloud();
+    expect(data.completedSessions).toHaveLength(1);
+  });
+
+  it("ignores malformed remote input rather than throwing or corrupting local data", () => {
+    recordCompletedSession(["a"], 1000);
+    importFromCloud(null);
+    importFromCloud("not an object");
+    importFromCloud({ completedSessions: "not an array" });
+    importFromCloud({ completedSessions: [{ idiomIds: "not an array", completedAt: 1 }, { idiomIds: ["b"] }] });
+    expect(allDiscoveredIdiomIds()).toEqual(["a"]);
   });
 });

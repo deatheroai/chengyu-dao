@@ -11,7 +11,7 @@ export interface CompletedSessionRecord {
   completedAt: number;
 }
 
-interface SessionHistoryData {
+export interface SessionHistoryData {
   completedSessions: CompletedSessionRecord[];
 }
 
@@ -63,6 +63,42 @@ export function pickResurfaceIdiomId(rng: () => number = Math.random): string | 
 
 export function clearHistory(): void {
   localStorage.removeItem(STORAGE_KEY);
+}
+
+/** Cloud-save export (cloudSync.ts) — the exact shape stored under a
+ * device's save code, so a restore on another device round-trips
+ * through importFromCloud below with nothing lost or reshaped. */
+export function exportForCloud(): SessionHistoryData {
+  return load();
+}
+
+/**
+ * Cloud-save restore: merges a fetched save into whatever's already
+ * local rather than overwriting it outright, so restoring on a device
+ * that already has *some* history (e.g. re-entering a code after
+ * playing a little on a fresh device first) can't lose either side's
+ * progress. Sessions are deduplicated by their (completedAt, idiomIds)
+ * pair — the same session recorded twice (e.g. syncing the same code on
+ * two devices) merges into one entry instead of duplicating.
+ */
+export function importFromCloud(remote: unknown): void {
+  if (!remote || typeof remote !== "object" || !Array.isArray((remote as SessionHistoryData).completedSessions)) {
+    return;
+  }
+  const local = load();
+  const seen = new Set(local.completedSessions.map(sessionKey));
+  for (const session of (remote as SessionHistoryData).completedSessions) {
+    if (!session || !Array.isArray(session.idiomIds) || typeof session.completedAt !== "number") continue;
+    const key = sessionKey(session);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    local.completedSessions.push(session);
+  }
+  save(local);
+}
+
+function sessionKey(session: CompletedSessionRecord): string {
+  return `${session.completedAt}:${session.idiomIds.join(",")}`;
 }
 
 /**

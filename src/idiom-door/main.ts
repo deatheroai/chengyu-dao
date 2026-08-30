@@ -8,7 +8,9 @@ import { matchLevel } from "./matchLevelContent";
 import { hideMatchHint } from "./matchHintStatus";
 import { updateSessionProgress } from "./sessionProgressStatus";
 import { renderRubyText } from "../shared/rubyText";
-import { pickResurfaceIdiomId, recordCompletedSession, clearHistory, seedFakePriorSession } from "../shared/sessionHistory";
+import { pickResurfaceIdiomId, recordCompletedSession, clearHistory, seedFakePriorSession, exportForCloud } from "../shared/sessionHistory";
+import { getLocalCloudCode, pushToCloud } from "../shared/cloudSync";
+import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode } from "./cloudSaveStatus";
 import { idiomsById } from "../idioms/idioms";
 import type { IdiomContent } from "../idioms/types";
 
@@ -129,6 +131,19 @@ function wireDevControls(): void {
     clearHistory();
     location.reload();
   });
+}
+
+/** Best-effort background push, only when cloud save has already been
+ * turned on for this device (a code exists locally). Turning it *on*
+ * in the first place only happens via the cloud-save panel
+ * (cloud-save-btn → cloudSaveStatus.ts's showCloudSaveCard), which
+ * mints the code and does the first push — this just keeps an
+ * already-syncing save current after each completed session, silently,
+ * without popping the panel open. */
+function syncSessionHistoryToCloud(): void {
+  const code = getLocalCloudCode();
+  if (!code) return;
+  void pushToCloud(code, exportForCloud());
 }
 
 function showSummary(completedHanzi: string[]): void {
@@ -378,6 +393,10 @@ function bootstrap(): void {
       // resurface one of these idioms — see the resurface-card gate
       // below and shared/sessionHistory.ts.
       recordCompletedSession(doorLevels.map((level) => level.idiom.id));
+      // 2026-08-30: keeps an already-turned-on cloud save current the
+      // moment a session finishes, not just whenever the panel happens
+      // to be reopened — see syncSessionHistoryToCloud below.
+      syncSessionHistoryToCloud();
     }
   };
 
@@ -437,6 +456,18 @@ function bootstrap(): void {
   // the match stage exactly where it was, so (like reveal-english-btn
   // above) this is wired once rather than per-hint.
   document.getElementById("match-hint-dismiss-btn")?.addEventListener("click", hideMatchHint);
+
+  // 2026-08-30: cloud-save panel — see idiom-door.html's #cloud-save-card
+  // and cloudSaveStatus.ts for what each of these actually does.
+  document.getElementById("cloud-save-btn")?.addEventListener("click", showCloudSaveCard);
+  document.getElementById("cloud-save-dismiss-btn")?.addEventListener("click", hideCloudSaveCard);
+  document.getElementById("cloud-copy-btn")?.addEventListener("click", () => {
+    void handleCopyCode();
+  });
+  document.getElementById("cloud-restore-btn")?.addEventListener("click", () => {
+    const input = document.getElementById("cloud-restore-input") as HTMLInputElement | null;
+    if (input) void handleRestoreFromCode(input.value);
+  });
 }
 
 bootstrap();

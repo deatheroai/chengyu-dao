@@ -9,7 +9,9 @@ scenes and seeing how they apply to everyday life.
 - Vite + TypeScript
 - [Phaser](https://phaser.io/) for the explorable/game scenes
 - Plain DOM/CSS for UI chrome
-- Saves are `localStorage`-only per mechanic today (no cloud sync)
+- Saves are `localStorage`-first; optional cloud sync via a Vercel
+  serverless function backed by Upstash Redis (`api/cloud-save.ts`),
+  device-code based — no accounts (2026-08-30, see `DECISIONS.md`)
 
 ## Develop
 
@@ -40,13 +42,14 @@ opening with a resurfacing callback on a return visit.
 
 ```
 idiom-door.html   # the game
+api/              # Vercel serverless functions (cloud-save.ts)
 
 src/
   idioms/      # idiom content data + types
   idiom-door/  # match/door/balloon scenes, level content, session flow
   shared/      # shared helpers: ruby text (pinyin), player-position DOM
                # hook, application-check distractor builder, session
-               # history/resurfacing
+               # history/resurfacing, cloud-save sync + code validation
 ```
 
 Five earlier standalone mechanic prototypes (`idiom-reveal`,
@@ -64,6 +67,15 @@ etc.). `vercel.json` is included for a Vercel deploy:
 2. Set **Root Directory** to the repo root (this repo *is* the game, unlike
    its original home as a subdirectory of a larger monorepo).
 3. Deploy — `vercel.json` configures the build/output.
+
+Cloud save (optional — the game works fully `localStorage`-only without
+it) needs an Upstash Redis integration installed from the Vercel
+Marketplace and connected to this project, so that either
+`KV_REST_API_URL`/`KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_URL`/
+`UPSTASH_REDIS_REST_TOKEN` are set as environment variables — see
+`api/cloud-save.ts`. Without those set, `/api/cloud-save` returns 501 and
+the cloud-save panel shows "Cloud save isn't set up for this game yet"
+rather than failing silently or breaking anything else.
 
 ## History
 

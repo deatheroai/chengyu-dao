@@ -108,14 +108,31 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 - [x] `done` — CI workflow added (2026-08-26): `.github/workflows/game-ci.yml`
       runs typecheck, unit tests, build, and the e2e suite on every push
       to `main` and every PR.
-- [ ] `todo` — Cloud saves for `idiom-door`, Vercel-native backend
-      (Vercel Postgres/Neon or Vercel KV — pick whichever fits the
-      save-data shape better at implementation time), free tier only
-      (see `DECISIONS.md`'s 2026-08-30 entry). Sync via a device
-      link-code flow, not accounts/auth — no personal info collected,
-      given the audience is children. Needs a couple of serverless API
-      routes added to the Vite build (none exist yet) plus wiring
-      `sessionHistory.ts`'s local read/write through them.
+- [x] `done` — **Cloud saves for `idiom-door` (2026-08-30).** Backend is
+      Upstash Redis via a Vercel Marketplace integration (Vercel's own
+      KV/Postgres products were sunset in favor of Neon/Upstash — see
+      this cycle's PR for the research), a flat key→JSON-blob store
+      fitting `sessionHistory.ts`'s save shape better than a relational
+      schema would. New `api/cloud-save.ts` (GET/POST, Vercel's
+      fetch-style Web handler — no `@vercel/node` dependency, whose
+      current published types pull in several outdated/vulnerable
+      transitive packages for what would've been types-only). No
+      accounts: an 8-character device-typed code (`shared/
+      cloudSaveValidation.ts`) is the entire sync/access model, chosen
+      specifically so no personal information is ever collected, given
+      the audience is children. `shared/cloudSync.ts` (client fetch
+      wrapper) and `sessionHistory.ts`'s new `exportForCloud`/
+      `importFromCloud` (merge-based restore, never an overwrite, so
+      neither device can lose the other's progress) do the actual
+      syncing; `idiom-door/cloudSaveStatus.ts` + `#cloud-save-card`
+      wire it into the UI (a persistent `#cloud-save-btn`, matching
+      `#session-progress`'s "reachable through every stage" placement).
+      **Still needs a human step** (only you can do it): install the
+      Upstash Redis integration from the Vercel Marketplace and connect
+      it to this project — see `DECISIONS.md`'s new "Needs Your Action"
+      entry. Until then `/api/cloud-save` returns 501 and the panel
+      shows "Cloud save isn't set up for this game yet" rather than
+      failing silently — the rest of the game is unaffected either way.
 
 ## Later / explicitly out of scope for now
 
