@@ -15,6 +15,28 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Fix: door stage sometimes caught the wrong tile when
+      two were close together (2026-08-30).** Reported live: "the first
+      two and last two characters appearing side by side... very easy
+      to accidentally touch the next character when jumping." Root
+      cause — `IdiomDoorScene.checkCatches` resolved a frame's catch to
+      whichever in-range tile came first in track order (left to
+      right), not the nearest one to the character's actual position.
+      With `levelContent.ts`'s tiles only ~110px apart at minimum
+      (`MIN_SLOT_GAP`) and a deliberately generous ±70px catch radius
+      (so a mistimed jump still forgives), two adjacent tiles'
+      catch zones genuinely overlap — the game was then picking
+      whichever one happened to sort earlier, regardless of which one
+      the child actually jumped toward. New `catchSelection.ts`
+      (`pickCatchCandidate`, pure function + unit tests, same
+      "logic module + thin Scene wiring" split as
+      `orderedCatchProgress.ts`/`runPhysics.ts`) now picks the nearest
+      in-range tile instead — same forgiving catch radius, but ambiguity
+      resolves by genuine proximity rather than an arbitrary array-order
+      tiebreak. If this doesn't fully resolve it in practice, the next
+      lever is tightening `CATCH_RADIUS_X`/`CATCH_RADIUS_Y` or widening
+      `MIN_SLOT_GAP`, not attempted here since the array-order bug alone
+      is a sufficient, confirmed explanation.
 - [x] `done` — **Match warm-up: tap-for-a-hint on a first-half tile
       (2026-08-28).** A child who doesn't recognize a left-column card
       can tap it (press and release without ever dragging) to see a

@@ -5,6 +5,7 @@ import type { DoorLevel, LevelCharacterTile } from "./levelContent";
 import { drawPlayerFigure } from "../shared/playerFigure";
 import { updatePlayerPosition } from "../shared/positionStatus";
 import { stepRun, type RunState, type RunConfig } from "./runPhysics";
+import { pickCatchCandidate } from "./catchSelection";
 
 export interface IdiomDoorSceneData {
   level: DoorLevel;
@@ -354,24 +355,19 @@ export class IdiomDoorScene extends Phaser.Scene {
    * same reason as everywhere else in this project: a big frame delta
    * could otherwise let the character's fall/rise skip clean past a
    * tile's height window between one frame and the next.
+   *
+   * Resolves to the *nearest* in-range tile (catchSelection.ts), even a
+   * "wrong" one — not just whichever happens to come first in track
+   * order. Only one catch per frame either way: never two tiles
+   * resolved in the same frame with the second silently overwriting the
+   * first's status.
    */
   private checkCatches(prevChar: RunState): void {
-    const minX = Math.min(prevChar.x, this.character.x) - CATCH_RADIUS_X;
-    const maxX = Math.max(prevChar.x, this.character.x) + CATCH_RADIUS_X;
-    const minY = Math.min(prevChar.y, this.character.y) - CATCH_RADIUS_Y;
-    const maxY = Math.max(prevChar.y, this.character.y) + CATCH_RADIUS_Y;
-
-    for (const tile of this.tiles) {
-      if (tile.caught) continue;
-      const tileY = this.groundY - tile.def.height;
-      if (tile.def.x < minX || tile.def.x > maxX || tileY < minY || tileY > maxY) continue;
-      // Stop at the first match, even a "wrong" one — same reasoning as
-      // PlatformCatchScene's nearest-only grab: one catch per frame,
-      // never two tiles resolved in the same frame with the second
-      // silently overwriting the first's status.
-      this.handleCatch(tile);
-      return;
-    }
+    const candidates = this.tiles
+      .filter((tile) => !tile.caught)
+      .map((tile) => ({ tile, x: tile.def.x, y: this.groundY - tile.def.height }));
+    const picked = pickCatchCandidate(candidates, prevChar, this.character, CATCH_RADIUS_X, CATCH_RADIUS_Y);
+    if (picked) this.handleCatch(picked.tile);
   }
 
   private handleCatch(tile: RuntimeTile): void {
