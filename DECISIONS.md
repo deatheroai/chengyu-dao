@@ -10,7 +10,18 @@ these.
 
 ## Pending Decisions
 
-None open right now.
+- **Build cloud saves for `idiom-door` now, and if so with what
+  backend/tier?** `BACKLOG.md`'s cloud-saves item was blocked on "which
+  mechanic(s) survive the consolidation" — that's been resolved since
+  2026-08-26 (`idiom-door` is the one survivor), so the item's original
+  blocker is stale. But actually building it still means picking a
+  backend (Firebase was the old, now-removed choice; there are other
+  options) and possibly a paid tier, which is exactly the kind of
+  "irreversible or costly external commitment" `AUTONOMY.md` says to ask
+  about rather than guess. Raising it here rather than picking one.
+  Today's cycle (2026-08-30) found this the only backlog item with
+  outstanding work and nothing else unblocked to build instead — see
+  that entry in `BACKLOG.md`.
 
 ## Needs Your Action (not decisions — steps only you can take)
 
