@@ -6,10 +6,23 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    /* Bundler mode — matches tsconfig.json; Vercel bundles api/*.ts
-       itself at deploy time, this config exists for typechecking only. */
+    /* "bundler" resolution for editor/typecheck ergonomics (matches
+       tsconfig.json) — but unlike src/ (which Vite genuinely bundles),
+       Vercel's Node.js function build does NOT bundle api/*.ts for a
+       "type": "module" project like this one: it transpiles 1:1 and
+       lets Node's own ESM loader resolve imports at runtime, which
+       (unlike bundler resolution) requires an explicit extension on
+       every relative import. Every relative import under api/ must
+       therefore use a real .js extension (against the .ts source —
+       "bundler" resolution explicitly supports that), never left
+       bare or written as .ts — see scripts/check-api-esm.mjs
+       (`npm run verify:api`, part of `npm run build`), which actually
+       runs the compiled output through Node's real ESM loader to
+       catch it if this rule is ever broken again (found live,
+       2026-08-30, see BACKLOG.md — no other gate here would have).
+       noEmit is the default for `npm run typecheck`; verify:api
+       overrides it (--noEmit false) to actually emit and run. */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,

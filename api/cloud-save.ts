@@ -1,5 +1,18 @@
 import { Redis } from "@upstash/redis";
-import { isValidCloudSaveCode, isValidCloudSavePayload } from "../src/shared/cloudSaveValidation";
+// The explicit .js extension (on an import of a .ts source file) is
+// deliberate, not a typo: this repo's package.json has "type": "module",
+// and unlike Vite's dev/build pipeline (which resolves extensionless
+// imports generously) or a bundler, Vercel's Node.js function build
+// does NOT bundle api/*.ts into one file -- it transpiles 1:1 and lets
+// Node's own ESM loader resolve imports at runtime. Node's ESM loader,
+// unlike CommonJS require, requires an explicit extension on every
+// relative import; omitting it here previously deployed fine under
+// `npm run build`/`vite dev` but crashed every real invocation in
+// production with ERR_MODULE_NOT_FOUND (found live, 2026-08-30 -- see
+// BACKLOG.md). TypeScript's "bundler" moduleResolution explicitly
+// supports writing the .js extension against a .ts source for exactly
+// this case.
+import { isValidCloudSaveCode, isValidCloudSavePayload } from "../src/shared/cloudSaveValidation.js";
 
 /**
  * Cloud-save sync endpoint (DECISIONS.md's 2026-08-30 entry: Vercel-

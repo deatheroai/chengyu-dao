@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && npm run verify:api",
+    "verify:api": "tsc -p tsconfig.api.json --noEmit false --outDir .api-build && node scripts/check-api-esm.mjs && rm -rf .api-build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.api.json --noEmit",
     "test": "vitest run",

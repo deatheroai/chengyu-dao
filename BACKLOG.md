@@ -153,6 +153,31 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       exact "redis throws" case this bug lived in — something the
       original PR couldn't cover since it only had e2e tests against a
       mocked *client* fetch, never the server handler itself.
+- [x] `done` — **Fix: cloud save crashed on every single request in
+      production with `ERR_MODULE_NOT_FOUND` (2026-08-30).** The fix
+      above still didn't make Restore (or, it turned out, Save) work —
+      you pulled the actual Vercel function log, which showed
+      `api/cloud-save.js` couldn't resolve its import of
+      `../src/shared/cloudSaveValidation`. Root cause: this repo's
+      `package.json` has `"type": "module"`, and Vercel's Node.js
+      function build does **not** bundle `api/*.ts` into one file for
+      that case — it transpiles 1:1 and lets Node's own ESM loader
+      resolve imports at runtime, which (unlike Vite's dev/build
+      pipeline, and unlike CommonJS `require`) requires an explicit
+      file extension on every relative import. The bare import had none
+      — worked fine under `vite dev`/`vite build` (generous resolver),
+      crashed on every real invocation in production. Fixed by
+      importing with an explicit `.js` extension (against the `.ts`
+      source — TypeScript's `"bundler"` resolution explicitly supports
+      this). Added `scripts/check-api-esm.mjs` + a new `verify:api` npm
+      script, wired into `npm run build`, that actually emits real
+      `.js` (`tsc -p tsconfig.api.json --noEmit false`) and runs it
+      through Node's genuine ESM loader — the same mechanism a real
+      deploy uses — so this exact class of bug (invisible to
+      typecheck/test/e2e, all of which go through a more lenient
+      resolver) can't silently ship again. Confirmed by reverting the
+      extension locally and watching `verify:api` reproduce the exact
+      production stack trace, then re-fixing and watching it pass.
 
 ## Later / explicitly out of scope for now
 
