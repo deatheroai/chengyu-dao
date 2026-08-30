@@ -169,6 +169,12 @@
         <span data-progress-fraction></span>
         <div class="progress-dots" data-progress-dots></div>
       </div>
+      <!-- 2026-08-30: opens the cloud-save panel (#cloud-save-card below)
+           — persistent and always tappable (unlike #session-progress,
+           which is decorative-only, this is a real button), same corner
+           as that badge but the opposite side. See DECISIONS.md's
+           2026-08-30 entry: no accounts, just a device-typed code. -->
+      <button id="cloud-save-btn" type="button" aria-label="Cloud save">☁️ Save</button>
       <!-- 2026-08-26: shown before anything else, on a return visit only
            — if at least one idiom has been discovered in a prior
            completed session (shared/sessionHistory.ts), a brief,
@@ -183,6 +189,29 @@
           <p data-resurface-hanzi class="resurface-hanzi" lang="zh-Hans"></p>
           <p data-resurface-meaning class="resurface-meaning"></p>
           <button id="resurface-continue-btn" type="button">Continue →</button>
+        </div>
+      </div>
+      <!-- 2026-08-30: cloud-save panel, opened via #cloud-save-btn above
+           (main.ts / cloudSaveStatus.ts). No accounts — this device's
+           own code (generated on first open) is shown for copying to
+           another device, and a second device pastes it back in below
+           to pull that progress in here. Both directions merge into
+           local history rather than overwrite it (sessionHistory.ts's
+           exportForCloud/importFromCloud), so neither device can lose
+           progress the other has. See DECISIONS.md's 2026-08-30 entry. -->
+      <div id="cloud-save-card">
+        <div class="card">
+          <p class="eyebrow">Cloud save</p>
+          <p class="cloud-save-text">This device's save code — copy it to another device to keep your progress in sync:</p>
+          <p data-cloud-code class="cloud-code" aria-live="polite"></p>
+          <button id="cloud-copy-btn" type="button">📋 Copy code</button>
+          <p class="cloud-save-text cloud-restore-label">Have a code from another device?</p>
+          <div class="cloud-restore-row">
+            <input id="cloud-restore-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Enter code" aria-label="Save code to restore" />
+            <button id="cloud-restore-btn" type="button">Restore</button>
+          </div>
+          <p data-cloud-status class="cloud-status" aria-live="polite"></p>
+          <button id="cloud-save-dismiss-btn" type="button" class="cloud-close-btn">Close</button>
         </div>
       </div>
       <!-- Dev-only prototype controls: stand in for "actually waiting a

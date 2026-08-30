@@ -7,19 +7,21 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.api.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
+    "@types/node": "^26.4.0",
     "jsdom": "^30.0.1",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.3",
     "phaser": "^4.2.1"
   }
 }

@@ -20,6 +20,18 @@ None open right now.
   depends on that being true, same as it was for the parent `TestAI`
   monorepo. Nothing to do if it's already the default; flag it if you've
   changed it.
+- **Install the Upstash Redis integration (Vercel Marketplace) and
+  connect it to this project, for cloud saves (2026-08-30).** Building
+  the sync itself (`api/cloud-save.ts`, `shared/cloudSync.ts`, the
+  `#cloud-save-card` panel — see `BACKLOG.md`'s entry) didn't need this,
+  but *using* it for real does: from the Vercel dashboard, add the
+  Upstash for Redis integration and connect it to `chengyu-dao`, which
+  sets the `KV_REST_API_URL`/`KV_REST_API_TOKEN` (or `UPSTASH_REDIS_
+  REST_URL`/`UPSTASH_REDIS_REST_TOKEN`) environment variables the
+  function reads. Nothing else needs building or asking once that's
+  done — a redeploy alone picks the new env vars up. Until then,
+  `/api/cloud-save` returns 501 and the panel says so plainly rather
+  than failing silently; the rest of the game works exactly as before.
 
 ## Resolved
 
