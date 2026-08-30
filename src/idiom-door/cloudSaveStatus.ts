@@ -28,6 +28,16 @@ function setStatus(card: HTMLElement, message: string): void {
   if (el) el.textContent = message;
 }
 
+/** Appends a failure's `detail` (cloudSync.ts — the server's own error
+ * message or HTTP status, when there is one) in parentheses after the
+ * friendly reason text, so a genuine server-side bug doesn't read
+ * identically to "you're offline" — see cloudSync.ts's CloudSyncResult
+ * doc for why this exists. */
+function formatFailureMessage(result: { reason: CloudSyncFailureReason; detail?: string }): string {
+  const message = STATUS_MESSAGES[result.reason];
+  return result.detail ? `${message} (${result.detail})` : message;
+}
+
 function getCard(): HTMLElement | null {
   return document.getElementById("cloud-save-card");
 }
@@ -47,7 +57,7 @@ export function showCloudSaveCard(): void {
 
   void pushToCloud(code, exportForCloud()).then((result) => {
     if (!card.classList.contains("visible")) return; // closed before this resolved
-    setStatus(card, result.ok ? "Saved to the cloud ✓" : STATUS_MESSAGES[result.reason]);
+    setStatus(card, result.ok ? "Saved to the cloud ✓" : formatFailureMessage(result));
   });
 }
 
@@ -108,7 +118,7 @@ export async function handleRestoreFromCode(rawCode: string): Promise<void> {
   setStatus(card, "Restoring…");
   const result = await pullFromCloud(code);
   if (!result.ok) {
-    setStatus(card, STATUS_MESSAGES[result.reason]);
+    setStatus(card, formatFailureMessage(result));
     return;
   }
   importFromCloud(result.data);

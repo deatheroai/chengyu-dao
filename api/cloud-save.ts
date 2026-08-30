@@ -33,6 +33,10 @@ function getRedis(): Redis | null {
   return new Redis({ url, token });
 }
 
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -60,14 +64,32 @@ export default {
       const { code, data } = (body ?? {}) as { code?: unknown; data?: unknown };
       if (!isValidCloudSaveCode(code)) return json({ error: "invalid-code" }, 400);
       if (!isValidCloudSavePayload(data)) return json({ error: "invalid-payload" }, 400);
-      await redis.set(REDIS_KEY_PREFIX + code, data);
+      // A thrown Redis error (a timeout, a transient Upstash-side
+      // failure) must still come back as *this endpoint's own* JSON
+      // error shape rather than an uncaught exception — Vercel turns
+      // an uncaught exception into a bare, body-less 500, which is
+      // indistinguishable client-side from a genuine network outage
+      // (cloudSync.ts's `detail` can only describe what's in the
+      // response body). This is exactly the class of failure that hid
+      // behind "Couldn't reach the cloud save server" — see
+      // DECISIONS.md/BACKLOG.md's follow-up entry.
+      try {
+        await redis.set(REDIS_KEY_PREFIX + code, data);
+      } catch (err) {
+        return json({ error: `redis set failed: ${describeError(err)}` }, 500);
+      }
       return json({ ok: true }, 200);
     }
 
     if (request.method === "GET") {
       const code = new URL(request.url).searchParams.get("code");
       if (!isValidCloudSaveCode(code)) return json({ error: "invalid-code" }, 400);
-      const stored = await redis.get(REDIS_KEY_PREFIX + code);
+      let stored: unknown;
+      try {
+        stored = await redis.get(REDIS_KEY_PREFIX + code);
+      } catch (err) {
+        return json({ error: `redis get failed: ${describeError(err)}` }, 500);
+      }
       if (stored == null) return json({ error: "not-found" }, 404);
       return json({ ok: true, data: stored }, 200);
     }

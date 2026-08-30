@@ -127,12 +127,32 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       syncing; `idiom-door/cloudSaveStatus.ts` + `#cloud-save-card`
       wire it into the UI (a persistent `#cloud-save-btn`, matching
       `#session-progress`'s "reachable through every stage" placement).
-      **Still needs a human step** (only you can do it): install the
-      Upstash Redis integration from the Vercel Marketplace and connect
-      it to this project — see `DECISIONS.md`'s new "Needs Your Action"
-      entry. Until then `/api/cloud-save` returns 501 and the panel
-      shows "Cloud save isn't set up for this game yet" rather than
-      failing silently — the rest of the game is unaffected either way.
+      The Upstash integration is now installed and connected
+      (2026-08-30, see `DECISIONS.md`).
+- [x] `done` — **Fix: restoring from a code failed with "Couldn't
+      reach the cloud save server" even though saving worked
+      (2026-08-30).** Found live, right after connecting Upstash:
+      saving (POST) succeeded but restoring (GET) didn't. Root cause —
+      `cloudSync.ts` collapsed *any* non-501/404 failure into one
+      generic "network" reason with no detail, so a genuine server-side
+      error (e.g. a thrown exception in `api/cloud-save.ts`, which
+      Vercel turns into a bare, body-less 500 on an uncaught exception)
+      looked identical to actually being offline — impossible to tell
+      apart from the UI alone, and no way to check server logs from
+      here. Fixed two things: `api/cloud-save.ts` now wraps every
+      `redis.get`/`redis.set` call in try/catch and returns a real JSON
+      500 with the underlying error message instead of ever throwing
+      uncaught, and `cloudSync.ts`'s failure results carry an optional
+      `detail` (the server's own error, or the thrown error's message)
+      that `cloudSaveStatus.ts` appends to the shown message — so the
+      *next* time something like this happens, the message itself says
+      what actually failed instead of a generic catch-all. New
+      `api/cloud-save.test.ts` (added `api/**/*.test.ts` to vitest's
+      `include`) covers the handler's own routing/validation/error
+      paths directly against a mocked Redis client, including the
+      exact "redis throws" case this bug lived in — something the
+      original PR couldn't cover since it only had e2e tests against a
+      mocked *client* fetch, never the server handler itself.
 
 ## Later / explicitly out of scope for now
 
