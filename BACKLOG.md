@@ -15,6 +15,26 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Door stage: snappier "touch and go" jump arc
+      (2026-08-31).** The nearest-tile catch fix (below) wasn't the
+      whole story — reported live, still catching tiles beside the
+      intended one, and specifically that the jump "floats a little
+      before landing." Real remaining cause: near a jump arc's apex,
+      vertical speed is close to zero, so the character drifts
+      sideways for a while while still inside `CATCH_RADIUS_Y` of
+      whatever height it peaked at — sweeping through several
+      similar-height tiles during one "floaty" jump, no tile-order bug
+      needed to explain it. `IdiomDoorScene`'s jump physics
+      (`gravity`/`jumpVelocity`, now named `JUMP_GRAVITY`/
+      `JUMP_VELOCITY`) scaled up together — 1400/-700 to 2850/-1000 —
+      which keeps the arc's max height essentially unchanged (still
+      ≈175px, so every tile height in `levelContent.ts`'s
+      `HEIGHT_MIN..HEIGHT_MAX` range stays reachable) but cuts
+      time-to-apex from 0.5s to ≈0.35s (~30% snappier) — less time (and
+      so less horizontal drift) spent hovering near any one height
+      band. `runPhysics.ts` itself is untouched (pure function, config
+      passed in) and its own tests use a self-contained config, so
+      nothing there needed updating.
 - [x] `done` — **Fix: door stage sometimes caught the wrong tile when
       two were close together (2026-08-30).** Reported live: "the first
       two and last two characters appearing side by side... very easy

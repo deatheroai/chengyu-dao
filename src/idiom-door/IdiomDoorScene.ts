@@ -44,6 +44,24 @@ const CATCH_RADIUS_Y = 80;
 // unchanged; a faster run just covers more ground per second, both
 // approaching a tile and during the jump arc itself.
 const RUN_SPEED = 320;
+// 2026-08-31 feedback ("touch and go" — after the nearest-tile catch
+// fix (2026-08-30) still left too many side-catches): the remaining
+// problem wasn't just catch-zone overlap between adjacent tiles (that
+// fix still stands), it was how *long* the character lingers near a
+// given height. Near a parabola's apex, vertical speed is close to
+// zero, so the character drifts sideways for a while while staying
+// inside CATCH_RADIUS_Y of whatever height it peaked at — sweeping
+// through several tiles at similar heights during one "floaty" jump.
+// Scaling gravity and jumpVelocity up together by the same factor
+// keeps the arc's *max height* — and therefore which tiles it can
+// reach — essentially unchanged (jumpVelocity²/(2·gravity) ≈ 175px
+// either way, same as the CATCH_RADIUS_Y comment above still
+// describes), but shrinks the arc's *duration*: a steeper rise and
+// fall means less time (so less horizontal distance, at the same
+// runSpeed) spent hovering near any one height band. Time-to-apex
+// drops from 0.5s to ≈0.35s (jumpVelocity/gravity), about 30% snappier.
+const JUMP_GRAVITY = 2850;
+const JUMP_VELOCITY = -1000;
 // Once the idiom is solved, the child shouldn't have to keep running
 // (and possibly jumping) through however much unsolved track happens
 // to remain — per your feedback, the win should feel immediate. This
@@ -150,7 +168,7 @@ export class IdiomDoorScene extends Phaser.Scene {
   private setupGround(): void {
     const { height } = this.scale;
     this.groundY = height * 0.78;
-    this.runConfig = { runSpeed: RUN_SPEED, gravity: 1400, jumpVelocity: -700, groundY: this.groundY };
+    this.runConfig = { runSpeed: RUN_SPEED, gravity: JUMP_GRAVITY, jumpVelocity: JUMP_VELOCITY, groundY: this.groundY };
   }
 
   private renderGround(): void {
