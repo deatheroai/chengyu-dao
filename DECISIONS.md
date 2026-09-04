@@ -22,6 +22,18 @@ None open right now.
   changed it.
 ## Resolved
 
+- **2026-09-04 — Daily cycle check-in: nothing unblocked, no action taken.**
+  Pending Decisions was empty. `BACKLOG.md`'s active sections (Chinese
+  Idiom Discovery Game, Platform/infra) are all `done`; the only
+  remaining entries are the three `blocked` "Later / explicitly out of
+  scope for now" items (multiplayer, monetization, Upper Primary
+  tier) — none of which are waiting on a decision to raise, they're
+  deliberately deferred per `AUTONOMY.md` until explicitly asked for.
+  No open GitHub issues or PRs either. CI on `main`
+  (`b859eeb`) is green. Per `AUTONOMY.md`'s "don't manufacture busywork"
+  guidance, this cycle made no code changes and ends here rather than
+  inventing scope (e.g. expanding the curated 15-idiom set) that wasn't
+  actually asked for.
 - **2026-08-30 — Upstash Redis integration installed and connected.**
   The one human step `BACKLOG.md`'s cloud-saves entry needed — done;
   `/api/cloud-save` now has real `KV_REST_API_URL`/`KV_REST_API_TOKEN`
