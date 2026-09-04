@@ -15,6 +15,36 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Door stage: real-sized catch hitboxes instead of a
+      generous "forgiveness radius" (2026-09-04, "how does Mario do
+      it?").** The touch-and-go arc tuning (below) still wasn't the
+      whole story — reported live, still catching a tile beside the
+      intended one. Actual remaining cause: `CATCH_RADIUS_X`/`_Y` were a
+      flat ±70px/±80px radius picked independent of any real rendered
+      size, stacked on top of an already-forgiving jump arc. Two
+      concrete problems that fell out of that: (1) two minimum-gap
+      tiles (`levelContent.ts`'s `MIN_SLOT_GAP`, ~110px) could still
+      have overlapping catch zones (2×70=140 > 110) even after the
+      nearest-candidate fix — nearest-wins only helps once both zones
+      are already contending for the same frame; (2) ±80px on the Y
+      axis is *wider than the entire height range* tiles are drawn from
+      (`HEIGHT_MIN..HEIGHT_MAX` spans only 70px), so a tile's height
+      essentially never disqualified anything — every tile within X
+      range was always within Y range too, regardless of how different
+      its actual height was. Real platformers don't hit-test against an
+      independent forgiveness blob like that — they overlap-test each
+      object's own actual collision box against the player's. Moved
+      `CATCH_RADIUS_X`/`_Y` into `catchSelection.ts` (now exported) and
+      derived them from an assumed player hitbox half-extent plus each
+      tile's own real half-extent (tiles render 60×60) — 45px/50px, down
+      from 70px/80px. That's not just "smaller," it's now *provably*
+      non-overlapping on X for any two minimum-gap tiles
+      (`2*CATCH_RADIUS_X < MIN_SLOT_GAP`, asserted directly in
+      `catchSelection.test.ts`) and small enough on Y that height
+      differences between tiles finally matter for real. The
+      touch-and-go arc tuning still earns its keep — it's what makes a
+      well-aimed jump actually land inside this tighter window
+      reliably, rather than sailing past it.
 - [x] `done` — **Door stage: snappier "touch and go" jump arc
       (2026-08-31).** The nearest-tile catch fix (below) wasn't the
       whole story — reported live, still catching tiles beside the
