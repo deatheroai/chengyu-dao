@@ -5,7 +5,7 @@ import type { DoorLevel, LevelCharacterTile } from "./levelContent";
 import { drawPlayerFigure } from "../shared/playerFigure";
 import { updatePlayerPosition } from "../shared/positionStatus";
 import { stepRun, type RunState, type RunConfig } from "./runPhysics";
-import { pickCatchCandidate } from "./catchSelection";
+import { pickCatchCandidate, CATCH_RADIUS_X, CATCH_RADIUS_Y } from "./catchSelection";
 
 export interface IdiomDoorSceneData {
   level: DoorLevel;
@@ -34,10 +34,9 @@ const FOOT_OFFSET = CHAR_SIZE * 0.4;
 // 2026-08-23 feedback that a single fixed height felt too neatly
 // arranged. That whole range stays comfortably inside the jump arc's
 // max height (jumpVelocity²/(2·gravity) ≈ 175px with the physics
-// constants below), and CATCH_RADIUS_Y is generous enough to still
-// catch comfortably at any height in the range.
-const CATCH_RADIUS_X = 70;
-const CATCH_RADIUS_Y = 80;
+// constants below). CATCH_RADIUS_X/Y themselves live in
+// catchSelection.ts (2026-09-04) — sized from real tile/player extents
+// rather than picked independently, see that file's doc comment.
 // 2026-08-24 feedback: 200px/s read as "way too slow." Bumped 60% —
 // the jump arc's shape (and therefore how forgiving catching is)
 // doesn't depend on run speed at all, since gravity/jumpVelocity are

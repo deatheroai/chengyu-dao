@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { pickCatchCandidate } from "./catchSelection";
+import { pickCatchCandidate, CATCH_RADIUS_X, CATCH_RADIUS_Y } from "./catchSelection";
+import { MIN_SLOT_GAP, HEIGHT_MIN, HEIGHT_MAX } from "./levelContent";
 
+// These tests exercise pickCatchCandidate's own selection rule against
+// fixed, arbitrary radii — not the real production CATCH_RADIUS_X/Y
+// (asserted separately below) — so they stay meaningful regardless of
+// how those get tuned.
 const RADIUS_X = 70;
 const RADIUS_Y = 80;
 
@@ -71,5 +76,28 @@ describe("pickCatchCandidate", () => {
     const candidates = [tile];
     const picked = pickCatchCandidate(candidates, { x: 180, y: 100 }, { x: 205, y: 100 }, RADIUS_X, RADIUS_Y);
     expect(picked?.id).toBe("tile-1");
+  });
+});
+
+// 2026-09-04 ("how does Mario do it?"): these guard the actual production
+// CATCH_RADIUS_X/Y against ever drifting back into "generous forgiveness
+// blob, independent of anything real" territory — see catchSelection.ts's
+// doc comment for the full reasoning.
+describe("CATCH_RADIUS_X/Y against real level geometry", () => {
+  it("makes it provably impossible for two minimum-gap tiles' catch zones to overlap on the x-axis", () => {
+    // Two catch zones (each spanning a tile's x +-CATCH_RADIUS_X) can only
+    // touch or overlap if the tiles' centers are within 2*CATCH_RADIUS_X
+    // of each other. levelContent.ts guarantees every real pair of tiles
+    // is at least MIN_SLOT_GAP apart, so this must stay strictly smaller.
+    expect(2 * CATCH_RADIUS_X).toBeLessThan(MIN_SLOT_GAP);
+  });
+
+  it("makes height actually discriminate between two same-x tiles at opposite ends of the height range", () => {
+    // Before this fix, CATCH_RADIUS_Y (80) exceeded the whole HEIGHT_MIN..
+    // HEIGHT_MAX span (70), so a jump timed for one tile's height was
+    // *always* also within range of a same-x tile at the opposite extreme
+    // of the height range — height differences never actually mattered.
+    const heightSpan = HEIGHT_MAX - HEIGHT_MIN;
+    expect(CATCH_RADIUS_Y).toBeLessThan(heightSpan);
   });
 });
