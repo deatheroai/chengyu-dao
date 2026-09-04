@@ -20,6 +20,19 @@ export interface RunConfig {
   gravity: number;
   jumpVelocity: number;
   groundY: number;
+  /**
+   * 2026-09-04 feedback ("land vertical instead of curved or slow"):
+   * multiplies `gravity` only while falling (vy >= 0) — rising still
+   * uses `gravity` alone. >1 makes the descent measurably steeper and
+   * quicker than the rise, without changing jump height (still
+   * governed by `jumpVelocity`/`gravity` alone) or run speed at all —
+   * the classic "float up, drop like a rock" platformer trick (Mario,
+   * Celeste). A shorter fall means less time — so less horizontal
+   * distance, at the same runSpeed — spent drifting sideways during
+   * exactly the phase that lands on (or beside) a tile. 1 = symmetric,
+   * the original behavior.
+   */
+  fallGravityMultiplier: number;
 }
 
 export function stepRun(state: RunState, jumpPressed: boolean, dt: number, cfg: RunConfig): RunState {
@@ -29,7 +42,12 @@ export function stepRun(state: RunState, jumpPressed: boolean, dt: number, cfg: 
   if (state.grounded && jumpPressed) {
     vy = cfg.jumpVelocity;
   } else if (!state.grounded) {
-    vy += cfg.gravity * dt;
+    // Which gravity applies is decided once per frame, from this
+    // frame's starting vy — the same frame-granularity every other
+    // per-frame decision in this file already accepts (see the landing
+    // swept-check below), not a precision concern in practice.
+    const gravity = vy >= 0 ? cfg.gravity * cfg.fallGravityMultiplier : cfg.gravity;
+    vy += gravity * dt;
   }
 
   const nextY = state.y + vy * dt;
