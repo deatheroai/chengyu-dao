@@ -20,8 +20,38 @@ None open right now.
   depends on that being true, same as it was for the parent `TestAI`
   monorepo. Nothing to do if it's already the default; flag it if you've
   changed it.
+- **Try the door stage's latest fall-speed tweak and weigh in on PR #17
+  ("Door stage: fall faster than rise, so landing reads as vertical").**
+  Opened 2026-09-04 by an interactive session, gates all green
+  (typecheck/test/build/e2e, plus CI on the PR itself) and mergeable
+  against current `main` with no conflicts — but it was left unmerged,
+  and its own description explicitly asks for a human playtest ("please
+  try the door stage once deployed and let me know how the landing
+  feels") before judging whether this iteration actually lands right,
+  same as the two door-tuning PRs before it (#14, #16) that turned out
+  to need a follow-up once you tried them live. This daily cycle's
+  standing auto-merge policy (`AUTONOMY.md`'s "Landing changes") covers
+  work the daily cycle itself builds and validates in the same run, not
+  a different session's already-open PR that's explicitly waiting on
+  your subjective read of the feel — so this cycle left it as-is rather
+  than merging it unattended. If you're happy with it, merge #17
+  yourself (or ask a session to); if it still feels off, report what's
+  wrong the same way as the last two rounds.
 ## Resolved
 
+- **2026-09-05 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. `BACKLOG.md`'s active sections
+  (Chinese Idiom Discovery Game, Platform/infra) are all `done`; the only
+  remaining entries are the three `blocked` "Later / explicitly out of
+  scope for now" items (multiplayer, monetization, Upper Primary tier) —
+  deliberately deferred per `AUTONOMY.md`, not waiting on a decision to
+  raise. No open GitHub issues. One open PR, #17 (door-stage fall-speed
+  tuning from an interactive session, all gates green, mergeable) — left
+  unmerged rather than auto-landed since it's explicitly waiting on your
+  own playtest, not this cycle's own work; logged above under "Needs
+  Your Action" instead. CI on `main` (`3e9d15c`) is green. Per
+  `AUTONOMY.md`'s "don't manufacture busywork" guidance, this cycle made
+  no code changes and ends here.
 - **2026-09-04 — Daily cycle check-in: nothing unblocked, no action taken.**
   Pending Decisions was empty. `BACKLOG.md`'s active sections (Chinese
   Idiom Discovery Game, Platform/infra) are all `done`; the only
