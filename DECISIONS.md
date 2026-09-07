@@ -20,25 +20,27 @@ None open right now.
   depends on that being true, same as it was for the parent `TestAI`
   monorepo. Nothing to do if it's already the default; flag it if you've
   changed it.
-- **Try the door stage's latest fall-speed tweak and weigh in on PR #17
-  ("Door stage: fall faster than rise, so landing reads as vertical").**
-  Opened 2026-09-04 by an interactive session, gates all green
-  (typecheck/test/build/e2e, plus CI on the PR itself) and mergeable
-  against current `main` with no conflicts — but it was left unmerged,
-  and its own description explicitly asks for a human playtest ("please
-  try the door stage once deployed and let me know how the landing
-  feels") before judging whether this iteration actually lands right,
-  same as the two door-tuning PRs before it (#14, #16) that turned out
-  to need a follow-up once you tried them live. This daily cycle's
-  standing auto-merge policy (`AUTONOMY.md`'s "Landing changes") covers
-  work the daily cycle itself builds and validates in the same run, not
-  a different session's already-open PR that's explicitly waiting on
-  your subjective read of the feel — so this cycle left it as-is rather
-  than merging it unattended. If you're happy with it, merge #17
-  yourself (or ask a session to); if it still feels off, report what's
-  wrong the same way as the last two rounds.
+
 ## Resolved
 
+- **2026-09-07 — PR #17 (door-stage fall-speed tuning) merged by you;
+  found and fixed the actual gap behind "why isn't automation telling
+  you to merge?".** You merged #17 yourself; CI on `main` at the merge
+  commit (`7aff858`) is green. The automation not offering to merge was
+  working as designed — its own description asked for your subjective
+  playtest read before judging it, same as #14/#16 before it, so no
+  session should merge it unattended. But you flagged you could
+  "only test on Vercel live" — i.e. only on the production URL, which
+  only reflects `main`, so a not-yet-merged PR was untestable to you.
+  That's a real gap: Vercel already posts a per-PR preview deployment
+  (`vercel[bot]`'s comment on #17 linked
+  `chengyu-dao-git-claude-door-fast-fall-dai-fd9e.vercel.app`, live
+  since the PR opened) that lets a PR be played *before* merging — it
+  just wasn't being surfaced. Fixed by adding a "Playtest PRs before
+  merging" convention to `AUTONOMY.md` requiring every PR description
+  that asks for a human playtest to link its Vercel preview URL
+  explicitly, instead of a vague "try it once deployed" that reads as
+  post-merge.
 - **2026-09-07 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. `BACKLOG.md`'s active sections
   (Chinese Idiom Discovery Game, Platform/infra) are all `done`; the only
