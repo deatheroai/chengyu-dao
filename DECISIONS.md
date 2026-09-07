@@ -39,6 +39,19 @@ None open right now.
   wrong the same way as the last two rounds.
 ## Resolved
 
+- **2026-09-07 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. `BACKLOG.md`'s active sections
+  (Chinese Idiom Discovery Game, Platform/infra) are all `done`; the only
+  remaining entries are the three `blocked` "Later / explicitly out of
+  scope for now" items (multiplayer, monetization, Upper Primary tier) —
+  still deliberately deferred per `AUTONOMY.md`, not waiting on a decision
+  to raise. No open GitHub issues. PR #17 (door-stage fall-speed tuning)
+  is still the only open PR — unchanged since the 2026-09-06 check-in,
+  still explicitly waiting on your own playtest before it's judged, so
+  left unmerged again rather than auto-landed; still logged above under
+  "Needs Your Action". CI on `main` (`25feb7a`) is green. Per
+  `AUTONOMY.md`'s "don't manufacture busywork" guidance, this cycle made
+  no code changes and ends here.
 - **2026-09-06 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. `BACKLOG.md`'s active sections
   (Chinese Idiom Discovery Game, Platform/infra) are all `done`; the only
