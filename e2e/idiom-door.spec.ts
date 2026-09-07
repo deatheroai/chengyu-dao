@@ -291,6 +291,41 @@ test("the dev-only controls never overlap the jump button", async ({ page }) => 
   expect(overlapsHorizontally && overlapsVertically).toBe(false);
 });
 
+/** 2026-09-07: sessionIdioms.ts's real rotation is once a day — a
+ * tester replaying the game many times in one sitting was otherwise
+ * stuck seeing the same 3 idioms ("I am getting bored testing on these
+ * three idioms"). Confirms the dev-only reroll override actually lands
+ * in localStorage and back out again, and that "Clear history" reverts
+ * the *content itself* (not just the override key) to today's
+ * deterministic set — not just that the mechanism runs without error. */
+test("the dev 'new idioms' control rerolls this session's idiom set, and 'clear history' reverts it to today's normal set", async ({ page }) => {
+  await page.goto("/idiom-door.html");
+  const readOverride = () => page.evaluate(() => localStorage.getItem("chengyu-dao-dev-idiom-seed-override"));
+  expect(await readOverride()).toBeNull();
+
+  await completeMatchStage(page);
+  await startPlaying(page);
+  const todaysMeaning = await page.locator("#meaning-prompt").textContent();
+
+  // Both dev buttons below reload the page (main.ts's wireDevControls).
+  // Each click is followed by an auto-retrying `expect(locator)` — not a
+  // one-shot `page.evaluate` — specifically so it absorbs that reload's
+  // timing the same way every other dev-control test in this file does;
+  // a bare `page.evaluate` right after `click()` can race the in-flight
+  // navigation and read stale (pre-reload) state.
+  await page.click("#dev-reroll-idioms-btn");
+  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
+  expect(await readOverride()).not.toBeNull();
+
+  await page.click("#dev-clear-history-btn");
+  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
+  expect(await readOverride()).toBeNull();
+
+  await completeMatchStage(page);
+  await startPlaying(page);
+  await expect(page.locator("#meaning-prompt")).toHaveText(todaysMeaning ?? "");
+});
+
 test("shows a full-screen intro with the meaning before the level starts, and nothing moves until Start is pressed", async ({ page }) => {
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);

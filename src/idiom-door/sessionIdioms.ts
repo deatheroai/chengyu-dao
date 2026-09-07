@@ -59,8 +59,61 @@ export function todaySeedString(date: Date = new Date()): string {
   return date.toISOString().slice(0, 10);
 }
 
+/** 2026-09-07: a dev-only escape hatch from the once-a-day rotation
+ * above — great for a real child (same 3 idioms all day, a fresh 3 the
+ * next day), tedious for a tester replaying the game many times in one
+ * sitting ("I am getting bored testing on these three idioms"). When
+ * main.ts's dev-reroll-idioms-btn has written a seed here, it wins over
+ * todaySeedString for *this browser only* — nothing in the shipped game
+ * ever writes to this key on its own, so a real child's session is
+ * never affected. */
+const DEV_SEED_OVERRIDE_KEY = "chengyu-dao-dev-idiom-seed-override";
+
+/** Best-effort localStorage read/write, matching shared/sessionHistory.ts's
+ * own unguarded localStorage calls elsewhere in this project — except
+ * this key is a dev-only nicety, not real save data, so a storage error
+ * (privacy mode, quota) should just silently fall back to normal
+ * behavior rather than ever crashing the page over it. */
+function readDevSeedOverride(): string | null {
+  try {
+    return localStorage.getItem(DEV_SEED_OVERRIDE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Dev-only: picks a new random idiom set for this browser (main.ts's
+ * dev-reroll-idioms-btn), overriding the normal daily rotation until
+ * `clearDevIdiomSeedOverride` is called — see DEV_SEED_OVERRIDE_KEY's
+ * doc comment above. Takes effect on the next page load/reload, same as
+ * every other dev control in this game. */
+export function setDevIdiomSeedOverride(seed: string = String(Date.now())): void {
+  try {
+    localStorage.setItem(DEV_SEED_OVERRIDE_KEY, seed);
+  } catch {
+    // Best-effort — see readDevSeedOverride's doc comment.
+  }
+}
+
+/** Dev-only: clears the reroll override above, so the next reload goes
+ * back to normal date-based rotation. Wired into main.ts's existing
+ * "Clear history" dev control (alongside its own resurface-history
+ * reset) so one button gets a tester fully back to a normal, fresh
+ * state instead of leaving them permanently stuck on a rerolled set
+ * they forgot they set. */
+export function clearDevIdiomSeedOverride(): void {
+  try {
+    localStorage.removeItem(DEV_SEED_OVERRIDE_KEY);
+  } catch {
+    // Best-effort — see readDevSeedOverride's doc comment.
+  }
+}
+
 /** This session's idiom set — the one source of truth `levelContent.ts`
  * (door levels), `balloonLevelContent.ts` (balloon levels), and
  * `matchLevelContent.ts` (the warm-up) all build from, so the three
- * stages always agree on which idioms today's session covers. */
-export const sessionIdiomIds: string[] = pickSessionIdiomIds(todaySeedString());
+ * stages always agree on which idioms today's session covers. Draws
+ * from a dev-only reroll override when one's set (see
+ * DEV_SEED_OVERRIDE_KEY above), falling back to the normal
+ * once-a-day rotation otherwise. */
+export const sessionIdiomIds: string[] = pickSessionIdiomIds(readDevSeedOverride() ?? todaySeedString());

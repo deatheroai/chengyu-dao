@@ -13,6 +13,7 @@ import { getLocalCloudCode, pushToCloud } from "../shared/cloudSync";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode } from "./cloudSaveStatus";
 import { idiomsById } from "../idioms/idioms";
 import type { IdiomContent } from "../idioms/types";
+import { setDevIdiomSeedOverride, clearDevIdiomSeedOverride } from "./sessionIdioms";
 
 function showMeaning(index: number): void {
   const el = document.getElementById("meaning-prompt");
@@ -156,6 +157,21 @@ function wireDevControls(): void {
   });
   document.getElementById("dev-clear-history-btn")?.addEventListener("click", () => {
     clearHistory();
+    // Also resets a tester back to the normal once-a-day idiom rotation
+    // (undoes dev-reroll-idioms-btn below, if it was ever used) — one
+    // button gets fully back to a fresh, normal state rather than
+    // leaving the idiom set stuck on whatever it was last rerolled to.
+    clearDevIdiomSeedOverride();
+    location.reload();
+  });
+  // 2026-09-07: sessionIdioms.ts's real rotation is once a day — right
+  // for a child, tedious for a tester replaying the game many times in
+  // one sitting ("I am getting bored testing on these three idioms").
+  // Picks a new random 3 (of the same 12-idiom eligible pool) for this
+  // browser only; every real child's session is unaffected since
+  // nothing else ever writes this override.
+  document.getElementById("dev-reroll-idioms-btn")?.addEventListener("click", () => {
+    setDevIdiomSeedOverride();
     location.reload();
   });
 }

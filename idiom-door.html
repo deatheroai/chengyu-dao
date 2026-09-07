@@ -238,10 +238,18 @@
            day" so the resurfacing flow above can be tried without
            playing a full real session first. Not part of the intended
            child-facing product — see DECISIONS.md. Ported from
-           session.html's identical dev-controls. -->
+           session.html's identical dev-controls.
+           2026-09-07: dev-reroll-idioms-btn added — a tester replaying
+           the game many times in one sitting was otherwise stuck on the
+           same 3 idioms all day (sessionIdioms.ts's real, once-a-day
+           rotation, working as intended for an actual child). Picks a
+           new random 3 for this browser only; "Clear history" also
+           clears this override, so testing can always get back to
+           normal. -->
       <div id="dev-controls">
         <button id="dev-seed-history-btn" type="button" title="Simulate: I've played before">🔧 Seed history</button>
         <button id="dev-clear-history-btn" type="button" title="Clear history (start fresh)">🔧 Clear history</button>
+        <button id="dev-reroll-idioms-btn" type="button" title="Testing only: pick a new random 3 idioms">🔧 New idioms</button>
       </div>
     </div>
     <script type="module" src="/src/idiom-door/main.ts"></script>
