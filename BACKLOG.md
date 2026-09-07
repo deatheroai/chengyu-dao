@@ -15,6 +15,25 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Dev-only: a "New idioms" control to reroll this
+      session's idiom set for testing (2026-09-07).** Per "I am getting
+      bored testing on these three idioms" — `sessionIdioms.ts` rotates
+      once per UTC calendar day by design (right for a real child: same
+      3 idioms all day, a fresh 3 the next day), which meant a tester
+      replaying the game many times in one sitting was stuck on
+      whatever 3 idioms today happened to draw. New
+      `dev-reroll-idioms-btn` (alongside the existing `dev-controls`
+      panel's "Seed history"/"Clear history" — same "not part of the
+      child-facing product" dev-only status) writes a timestamp-based
+      seed to a `localStorage` override
+      (`setDevIdiomSeedOverride`/`chengyu-dao-dev-idiom-seed-override`)
+      that `sessionIdiomIds` now checks first, before falling back to
+      the normal date-based seed — nothing in the shipped game ever
+      writes this key on its own, so a real child's session is
+      unaffected. "Clear history" now also clears this override
+      (`clearDevIdiomSeedOverride`), so one button gets a tester fully
+      back to today's normal, deterministic set rather than leaving them
+      permanently stuck on whatever they last rerolled to.
 - [x] `done` — **Door stage: fall faster than rise, so landing reads
       as vertical (2026-09-04).** Asked directly (a jump-shape change,
       not pure numbers-tuning, per your "land vertical instead of

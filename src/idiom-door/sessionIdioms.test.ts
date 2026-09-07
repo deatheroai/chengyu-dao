@@ -1,6 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { idioms, idiomsById } from "../idioms/idioms";
-import { ELIGIBLE_IDIOM_IDS, IDIOMS_PER_SESSION, pickSessionIdiomIds, todaySeedString, sessionIdiomIds } from "./sessionIdioms";
+import {
+  ELIGIBLE_IDIOM_IDS,
+  IDIOMS_PER_SESSION,
+  pickSessionIdiomIds,
+  todaySeedString,
+  sessionIdiomIds,
+  setDevIdiomSeedOverride,
+  clearDevIdiomSeedOverride,
+} from "./sessionIdioms";
 import { buildMatchLevel } from "./matchLevelContent";
 
 describe("ELIGIBLE_IDIOM_IDS", () => {
@@ -71,5 +79,36 @@ describe("sessionIdiomIds (today's actual session)", () => {
     expect(sessionIdiomIds).toHaveLength(IDIOMS_PER_SESSION);
     expect(new Set(sessionIdiomIds).size).toBe(sessionIdiomIds.length);
     expect(sessionIdiomIds).toEqual(pickSessionIdiomIds(todaySeedString()));
+  });
+});
+
+// 2026-09-07: the dev-only reroll override (main.ts's dev-reroll-idioms-btn)
+// — sessionIdiomIds itself is a module-level const computed once at import
+// time, so these tests check the localStorage side effect directly
+// (same white-box approach shared/sessionHistory.test.ts uses for its own
+// storage key) rather than re-importing the module to observe a changed
+// sessionIdiomIds.
+describe("setDevIdiomSeedOverride / clearDevIdiomSeedOverride", () => {
+  const OVERRIDE_KEY = "chengyu-dao-dev-idiom-seed-override";
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("writes a seed to localStorage, defaulting to a timestamp-based one when none is given", () => {
+    expect(localStorage.getItem(OVERRIDE_KEY)).toBeNull();
+    setDevIdiomSeedOverride();
+    expect(localStorage.getItem(OVERRIDE_KEY)).not.toBeNull();
+  });
+
+  it("accepts an explicit seed", () => {
+    setDevIdiomSeedOverride("my-seed");
+    expect(localStorage.getItem(OVERRIDE_KEY)).toBe("my-seed");
+  });
+
+  it("clearDevIdiomSeedOverride removes it", () => {
+    setDevIdiomSeedOverride("my-seed");
+    clearDevIdiomSeedOverride();
+    expect(localStorage.getItem(OVERRIDE_KEY)).toBeNull();
   });
 });
