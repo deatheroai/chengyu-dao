@@ -111,6 +111,26 @@ A one-off interactive session (not the scheduled daily cycle) still
 follows the original three-step split: step 1 is automatic, but
 opening/merging a PR needs an explicit ask first, same as always.
 
+### Playtest PRs before merging, not after
+
+Production (`chengyu-dao.vercel.app` or whatever domain is live) only ever
+reflects `main` — a branch that hasn't merged yet is invisible there. If a
+PR's description asks for a human playtest before it's judged (feel/tuning
+changes especially — see the door-stage jump/fall PRs), that playtest has
+to happen on the PR's own **Vercel preview deployment**, not by merging
+first to get something testable. Every PR gets one automatically (posted
+as a comment by `vercel[bot]`, e.g.
+`https://<project>-git-<branch>-<team>.vercel.app`); a session opening
+such a PR must pull that URL from the PR and put it directly in the PR
+description's "next step" line (`Try it here: <preview URL>`), not a vague
+"try it once deployed" — that phrasing reads as "after merge" and defeats
+the point of having a preview URL at all (this is exactly what went wrong
+with PR #17 — see `DECISIONS.md`'s 2026-09-07 entry). Merging is still
+never automatic for a PR whose own description says it's waiting on a
+human's subjective read (per "Landing changes" above) — the fix here is
+just making sure "try it" always means the preview URL, so that waiting
+doesn't block testing.
+
 ### The daily automated trigger
 
 A Routine fires a fresh session once a day (03:00 UTC) with a prompt
