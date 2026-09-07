@@ -15,6 +15,29 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Balloon stage: show the masked sentence on its own
+      centered screen before revealing the floating balloons
+      (2026-09-07).** Per your "surface the sentence in the centre for
+      the player to read before revealing the floating balloons"
+      feedback — until now, `beginBalloonStage` showed the balloon UI
+      chrome (including `#balloon-prompt`'s masked-sentence line) *and*
+      started `BalloonSentenceScene` (so its balloons) all at once, the
+      instant a door was solved, with no reading pause first — unlike
+      every other stage transition in this game (level-intro-card,
+      match-intro-card), which all gate their actual start behind a
+      Start tap. New `#balloon-intro-card` (main.ts's
+      `showBalloonIntro`), same full-screen-card/Start-button pattern as
+      those two: shown the moment a door is solved, rendering the exact
+      same masked sentence `#balloon-prompt` already used (no new
+      content), and `beginBalloonStage` (which starts the Phaser scene)
+      now only runs as its `onStart` callback — so no balloon exists on
+      screen until the child taps Start. `#balloon-prompt` still shows
+      the same sentence, smaller, once flying begins, same big-card/
+      small-in-flight-line relationship level-intro-card has to
+      `#meaning-prompt`. `idiom-door.spec.ts`'s balloon-stage tests
+      updated with a new `startBalloonStage` helper (mirrors
+      `startPlaying`) to dismiss this new intro before expecting the
+      balloon stage itself.
 - [x] `done` — **Door stage: fall faster than rise, so landing reads
       as vertical (2026-09-04).** Asked directly (a jump-shape change,
       not pure numbers-tuning, per your "land vertical instead of

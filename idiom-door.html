@@ -135,6 +135,26 @@
           <button id="start-level-btn" type="button">▶ Start</button>
         </div>
       </div>
+      <!-- 2026-09-07: shown before each balloon stage begins, right after
+           its idiom's door is solved — the child reads the idiom's
+           example sentence (blanked out, ○○○○) on a big, centered screen
+           first, same "reading/thinking time before the run begins"
+           philosophy as level-intro-card/match-intro-card above, per your
+           "surface the sentence in the centre for the player to read
+           before revealing the floating balloons" feedback. The balloon
+           scene doesn't start — so no balloon is on screen yet — until
+           Start is pressed (main.ts's showBalloonIntro/beginBalloonStage).
+           `#balloon-prompt` (inside balloon-ui-layer below) then keeps
+           showing this same sentence, smaller, once flying begins, same
+           relationship as level-intro-card's big meaning vs. the door
+           stage's `#meaning-prompt` line. -->
+      <div id="balloon-intro-card">
+        <div class="card">
+          <p class="eyebrow">Which idiom completes the sentence?</p>
+          <p data-balloon-intro-sentence class="balloon-intro-sentence" lang="zh-Hans"></p>
+          <button id="start-balloon-btn" type="button">▶ Start</button>
+        </div>
+      </div>
       <!-- 2026-08-28: shown right after a correct balloon catch, before
            advancing to the next idiom's intro (or the session summary)
            — per your "give a congratulations message and reinforce the

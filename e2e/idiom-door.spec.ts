@@ -101,6 +101,25 @@ async function startPlaying(page: Page): Promise<void> {
   await expect(page.locator("#level-intro-card")).not.toHaveClass(/visible/);
 }
 
+/** Dismisses the balloon stage's own intro screen (2026-09-07 addition —
+ * same reading/thinking pause as startPlaying above, but for the masked
+ * sentence this stage's balloons quiz) so BalloonSentenceScene actually
+ * starts. Every test needs this right after a door is solved, before
+ * expectBalloonStageShowing — the scene (and so its balloons) doesn't
+ * exist on screen until Start is pressed here. */
+async function startBalloonStage(page: Page, levelIndex: number): Promise<void> {
+  const { maskedSentence, idiom } = balloonLevels[levelIndex];
+  const card = page.locator("#balloon-intro-card");
+  const sentence = card.locator("[data-balloon-intro-sentence]");
+  await expect(card).toHaveClass(/visible/, { timeout: DOOR_REACH_TIMEOUT_MS });
+  await expect.poll(() => rubyBaseText(sentence)).toBe(maskedSentence.hanzi);
+  // Same "never hand the child the answer directly" check as
+  // expectBalloonStageShowing's smaller in-flight prompt below.
+  await expect.poll(() => rubyBaseText(sentence)).not.toContain(idiom.hanzi);
+  await page.click("#start-balloon-btn");
+  await expect(card).not.toHaveClass(/visible/);
+}
+
 async function tapJump(page: Page): Promise<void> {
   await page.keyboard.down("Space");
   await page.waitForTimeout(80);
@@ -369,6 +388,7 @@ test("solving a level opens the door into the balloon stage, and resolving that 
 
   await spamJumpUntil(page, async () => (await status(page)).complete === "true");
 
+  await startBalloonStage(page, 0);
   await expectBalloonStageShowing(page, 0);
   await flyUntilResolved(page);
 
@@ -390,6 +410,7 @@ test("the balloon stage shows the sentence with the idiom blanked out, and flyin
   await startPlaying(page);
   await spamJumpUntil(page, async () => (await status(page)).complete === "true");
 
+  await startBalloonStage(page, 0);
   await expectBalloonStageShowing(page, 0);
   await flyUntilResolved(page);
 
@@ -403,6 +424,7 @@ test("dragging the pointer steers the avatar toward it (2026-08-26: replaced the
   await completeMatchStage(page);
   await startPlaying(page);
   await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+  await startBalloonStage(page, 0);
   await expectBalloonStageShowing(page, 0);
 
   const x1 = Number(await page.locator("#balloon-position").getAttribute("data-x"));
@@ -436,6 +458,7 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
 
   for (let i = 0; i < doorLevels.length; i++) {
     await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+    await startBalloonStage(page, i);
     await expectBalloonStageShowing(page, i);
     await flyUntilResolved(page);
 
