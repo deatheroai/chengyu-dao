@@ -15,6 +15,25 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Door stage: fall faster than rise, so landing reads
+      as vertical (2026-09-04).** Asked directly (a jump-shape change,
+      not pure numbers-tuning, per your "land vertical instead of
+      curved or slow"): chose the smallest of three options offered —
+      keep moving forward throughout the jump (no freezing, the
+      auto-runner's "always advancing" identity stays intact), but make
+      gravity while falling stronger than while rising
+      (`runPhysics.ts`'s new `fallGravityMultiplier`, set to 2 in
+      `IdiomDoorScene.ts`) — the classic "float up, drop like a rock"
+      platformer trick (Mario, Celeste). Jump height is untouched (still
+      only `JUMP_VELOCITY`/`JUMP_GRAVITY`, same ≈175px apex); only the
+      descent's *duration* shrinks — at 2x, the fall takes ≈71% (1/√2)
+      as long as the rise that preceded it, instead of the ≈100% a
+      symmetric arc gives, so there's less time (and so less horizontal
+      drift, at the same `runSpeed`) spent descending through a tile's
+      height band. Complements, doesn't replace, the touch-and-go arc
+      tuning and real-sized catch hitboxes above/below — those made a
+      *well-aimed* jump reliable; this makes the *landing itself* read
+      as a drop rather than a glide.
 - [x] `done` — **Door stage: real-sized catch hitboxes instead of a
       generous "forgiveness radius" (2026-09-04, "how does Mario do
       it?").** The touch-and-go arc tuning (below) still wasn't the

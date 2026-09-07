@@ -61,6 +61,21 @@ const RUN_SPEED = 320;
 // drops from 0.5s to ≈0.35s (jumpVelocity/gravity), about 30% snappier.
 const JUMP_GRAVITY = 2850;
 const JUMP_VELOCITY = -1000;
+// 2026-09-04 feedback ("land vertical instead of curved or slow" — the
+// touch-and-go tuning above and the real-sized catch hitboxes
+// (catchSelection.ts) still weren't quite enough): rather than freezing
+// horizontal movement mid-jump (a bigger change to the auto-runner's
+// core feel — the character always advances, jump timing and catching
+// aside), the fall itself now uses stronger gravity than the rise does
+// (runPhysics.ts's fallGravityMultiplier) — the classic "float up, drop
+// like a rock" platformer trick. Jump *height* is untouched (still
+// governed by JUMP_VELOCITY/JUMP_GRAVITY alone, same ≈175px apex as
+// before) — only how quickly it comes back down. At 2x, the descent
+// takes ≈71% (1/√2) as long as the rise that preceded it, instead of
+// the ≈100% a symmetric arc would — a shorter fall means less time (so
+// less horizontal drift, at the same runSpeed) spent descending through
+// a tile's height band, on top of the touch-and-go/hitbox fixes above.
+const FALL_GRAVITY_MULTIPLIER = 2;
 // Once the idiom is solved, the child shouldn't have to keep running
 // (and possibly jumping) through however much unsolved track happens
 // to remain — per your feedback, the win should feel immediate. This
@@ -167,7 +182,13 @@ export class IdiomDoorScene extends Phaser.Scene {
   private setupGround(): void {
     const { height } = this.scale;
     this.groundY = height * 0.78;
-    this.runConfig = { runSpeed: RUN_SPEED, gravity: JUMP_GRAVITY, jumpVelocity: JUMP_VELOCITY, groundY: this.groundY };
+    this.runConfig = {
+      runSpeed: RUN_SPEED,
+      gravity: JUMP_GRAVITY,
+      jumpVelocity: JUMP_VELOCITY,
+      groundY: this.groundY,
+      fallGravityMultiplier: FALL_GRAVITY_MULTIPLIER,
+    };
   }
 
   private renderGround(): void {
