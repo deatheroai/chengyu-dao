@@ -66,6 +66,33 @@ function showBalloonPrompt(index: number): void {
 }
 
 /**
+ * 2026-09-07 addition: the balloon stage's own "big screen" intro, same
+ * "reading/thinking time before the run begins" philosophy as
+ * showLevelIntro/showMatchIntro below — shown the instant an idiom's
+ * door is solved, *before* BalloonSentenceScene (and so its balloons)
+ * ever starts, per your "surface the sentence in the centre for the
+ * player to read before revealing the floating balloons" feedback.
+ * Reuses the same masked sentence showBalloonPrompt renders into the
+ * smaller in-flight `#balloon-prompt` line — this is just a bigger,
+ * gating rendering of the identical content, not new content of its own.
+ */
+function showBalloonIntro(index: number, onStart: () => void): void {
+  const card = document.getElementById("balloon-intro-card");
+  const sentenceEl = card?.querySelector<HTMLElement>("[data-balloon-intro-sentence]");
+  const { maskedSentence } = balloonLevels[index];
+  if (sentenceEl) renderRubyText(sentenceEl, maskedSentence.hanzi, maskedSentence.charPinyin);
+  card?.classList.add("visible");
+
+  const startBtn = document.getElementById("start-balloon-btn");
+  const onClick = (): void => {
+    card?.classList.remove("visible");
+    startBtn?.removeEventListener("click", onClick);
+    onStart();
+  };
+  startBtn?.addEventListener("click", onClick);
+}
+
+/**
  * 2026-08-28 addition: your "give a congratulations message and
  * reinforce the learning" feedback — shown right after a correct
  * balloon catch, gating the advance to the next idiom's intro (or the
@@ -316,6 +343,10 @@ function bootstrap(): void {
   // spliceIdiomInto distractors, no new unverified content). Runs
   // *before* moving on to the next idiom, right after solving this
   // one's door — the sentence example lands while the idiom is fresh.
+  // Actually starts the Phaser scene (so its balloons render) once the
+  // child has dismissed showBalloonIntro's big-screen reading pause —
+  // called as its onStart, never directly from handleDoorReached, same
+  // "always reading time first" split beginLevel/showLevelIntro use.
   const beginBalloonStage = (index: number): void => {
     showBalloonStageUI();
     showBalloonPrompt(index);
@@ -377,7 +408,7 @@ function bootstrap(): void {
     // *next* door level actually began.
     document.getElementById("catch-ui-layer")?.classList.add("stage-hidden");
     document.getElementById("controls-layer")?.classList.add("stage-hidden");
-    beginBalloonStage(finishedIndex);
+    showBalloonIntro(finishedIndex, () => beginBalloonStage(finishedIndex));
   };
 
   const afterBalloonStage = (finishedIndex: number): void => {

@@ -285,6 +285,7 @@ rt {
 
 #session-summary-card,
 #level-intro-card,
+#balloon-intro-card,
 #balloon-success-card,
 #match-intro-card,
 #resurface-card,
@@ -300,6 +301,7 @@ rt {
 }
 #session-summary-card.visible,
 #level-intro-card.visible,
+#balloon-intro-card.visible,
 #balloon-success-card.visible,
 #match-intro-card.visible,
 #resurface-card.visible,
@@ -310,6 +312,7 @@ rt {
 
 #session-summary-card .card,
 #level-intro-card .card,
+#balloon-intro-card .card,
 #balloon-success-card .card,
 #match-intro-card .card,
 #resurface-card .card,
@@ -325,6 +328,7 @@ rt {
 }
 
 #level-intro-card .eyebrow,
+#balloon-intro-card .eyebrow,
 #match-intro-card .eyebrow,
 #resurface-card .eyebrow,
 #match-hint-card .eyebrow,
@@ -335,6 +339,19 @@ rt {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: #b98a4a;
+}
+
+/* 2026-09-07: the balloon-intro card's own big, readable rendering of the
+   same masked sentence #balloon-prompt shows (smaller) once flying
+   begins — same font-size/line-height relationship as
+   #level-intro-card .intro-meaning-zh has to the door stage's own
+   smaller #meaning-prompt line. */
+#balloon-intro-card .balloon-intro-sentence {
+  margin: 1.1rem 0 1.25rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 2.1;
+  color: #2b5578;
 }
 
 #match-intro-card .match-intro-text {
@@ -394,6 +411,7 @@ rt {
 }
 
 #start-level-btn,
+#start-balloon-btn,
 #balloon-continue-btn,
 #start-match-btn,
 #resurface-continue-btn,
@@ -408,6 +426,7 @@ rt {
   cursor: pointer;
 }
 #start-level-btn:hover,
+#start-balloon-btn:hover,
 #balloon-continue-btn:hover,
 #start-match-btn:hover,
 #resurface-continue-btn:hover,
@@ -415,6 +434,7 @@ rt {
   background: #a83618;
 }
 #start-level-btn:focus-visible,
+#start-balloon-btn:focus-visible,
 #balloon-continue-btn:focus-visible,
 #start-match-btn:focus-visible,
 #resurface-continue-btn:focus-visible,
