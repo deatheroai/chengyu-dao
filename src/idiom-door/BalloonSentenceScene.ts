@@ -6,7 +6,7 @@ import { BALLOON_COLORWAYS, type BalloonColorway } from "./balloonColors";
 import { drawPlayerFigure } from "../shared/playerFigure";
 import { updateBalloonPosition, updateBalloonCameraScroll, syncBalloonTargetPositions } from "./balloonPositionStatus";
 import { stepFlight, type FlightState, type FlightConfig } from "./balloonPhysics";
-import { computeArcSlots } from "./balloonArcLayout";
+import { computeGlyphArc, DEFAULT_ANGLE_STEP_DEG as GLYPH_ANGLE_STEP_DEG } from "./balloonGlyphArc";
 
 export interface BalloonSentenceSceneData {
   level: BalloonLevel;
@@ -252,19 +252,18 @@ export class BalloonSentenceScene extends Phaser.Scene {
    * Sizes the world (see the SKY_MARGIN_* comment above) from this
    * level's *actual* rendered balloon sizes, then lays each balloon's
    * already-assigned slotIndex/jitter (balloonLevelContent.ts) onto a
-   * curved arrangement within it (balloonArcLayout.ts) rather than a
-   * grid — 2026-09-08 feedback: "curve the balloon so they don't take
-   * up so much horizontal space... it should curve like a rainbow."
+   * grid within it. A roughly-square arrangement (cols ≈ rows) reads
+   * better for a set of card-like balloons than a single long row or
+   * column would.
    *
-   * 2026-09-08 (later): the first version of this used a *summed*
-   * (minSpacingX + minSpacingY) safe distance, meant as "extra headroom
-   * for 2D jitter" — it actually just inflated the whole arc's radius
-   * far past what the balloons needed, scattering 3 of 4 candidates
-   * outside the camera's starting view and reported live as "balloons
-   * are missing." Using the larger of the two per-axis distances (not
-   * their sum) keeps the arc's own scale in the same ballpark the old
-   * grid cells were, while still covering whichever axis actually needs
-   * more room for a given level's balloon shape.
+   * 2026-09-08: two earlier attempts here tried curving this — the
+   * *arrangement of balloons in the sky* — per what turned out to be a
+   * misreading of "curve the balloon." What was actually asked for was
+   * the text *inside* one balloon curving (see buildBalloon's own
+   * `computeGlyphArc` use below); scattering multiple balloons into a
+   * rainbow shape across the world was never the ask, and both attempts
+   * made this stage worse (one badly, one just unnecessarily wider than
+   * this grid). Reverted back to the plain grid this always used.
    */
   private layoutBalloons(): void {
     if (this.balloons.length === 0) return;
@@ -272,35 +271,32 @@ export class BalloonSentenceScene extends Phaser.Scene {
 
     const maxHalfW = Math.max(...this.balloons.map((b) => b.halfW));
     const maxHalfH = Math.max(...this.balloons.map((b) => b.halfH));
-    // Same "size from the largest balloon, reserve room for jitter *and*
-    // wind drift" reasoning the old grid cells used — see
-    // JITTER_SAFE_FRACTION/WIND_DRIFT_RADIUS_* above — just computed per
-    // axis and then combined below. Jitter itself is still applied
-    // per-axis (jitterX*minSpacingX, jitterY*minSpacingY below) — only
-    // the arc's own base slot spacing uses the combined figure.
-    const minSpacingX = (maxHalfW * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_X) / JITTER_SAFE_FRACTION;
-    const minSpacingY = (maxHalfH * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_Y) / JITTER_SAFE_FRACTION;
-    const minSpacing = Math.max(minSpacingX, minSpacingY);
+    // Every cell is sized for this level's *largest* balloon, and to
+    // guarantee no overlap even if two neighbors' jitter both happen to
+    // point toward each other — see JITTER_SAFE_FRACTION above. Also
+    // reserves room for the wind drift itself (WIND_DRIFT_RADIUS_X/Y):
+    // two adjacent balloons could in the worst case drift toward each
+    // other by their full radius at the same moment, so that has to be
+    // baked into the cell size the same way the static jitter is,
+    // rather than just hoping it stays clear in practice.
+    const cellW = (maxHalfW * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_X) / JITTER_SAFE_FRACTION;
+    const cellH = (maxHalfH * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_Y) / JITTER_SAFE_FRACTION;
 
-    const slots = computeArcSlots(total, { minSpacing });
-    const xs = slots.map((s) => s.dx);
-    const ys = slots.map((s) => s.dy);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
+    const cols = Math.ceil(Math.sqrt(total));
+    const rows = Math.ceil(total / cols);
 
-    const skyX0 = SKY_MARGIN_X + maxHalfW - minX;
-    const skyY0 = SKY_MARGIN_Y_TOP + maxHalfH - minY;
-    this.worldW = maxX - minX + maxHalfW * 2 + SKY_MARGIN_X * 2;
-    this.worldH = maxY - minY + maxHalfH * 2 + SKY_MARGIN_Y_TOP + SKY_MARGIN_Y_BOTTOM;
+    const skyX0 = SKY_MARGIN_X;
+    const skyY0 = SKY_MARGIN_Y_TOP;
+    this.worldW = cols * cellW + SKY_MARGIN_X * 2;
+    this.worldH = rows * cellH + SKY_MARGIN_Y_TOP + SKY_MARGIN_Y_BOTTOM;
 
     for (const balloon of this.balloons) {
-      const slot = slots[balloon.def.slotIndex] ?? { dx: 0, dy: 0 };
-      const centerX = skyX0 + slot.dx;
-      const centerY = skyY0 + slot.dy;
-      balloon.baseX = centerX + balloon.def.jitterX * minSpacingX;
-      balloon.baseY = centerY + balloon.def.jitterY * minSpacingY;
+      const col = balloon.def.slotIndex % cols;
+      const row = Math.floor(balloon.def.slotIndex / cols);
+      const centerX = skyX0 + (col + 0.5) * cellW;
+      const centerY = skyY0 + (row + 0.5) * cellH;
+      balloon.baseX = centerX + balloon.def.jitterX * cellW;
+      balloon.baseY = centerY + balloon.def.jitterY * cellH;
       // update() overwrites this with base + drift every frame once
       // running, but this keeps the very first rendered frame (before
       // update() has run) in the right place rather than at (0, 0).
@@ -317,6 +313,21 @@ export class BalloonSentenceScene extends Phaser.Scene {
    * width. Pinyin still renders directly above its own character
    * (ruby-style), same as everywhere else in this game.
    */
+  /**
+   * 2026-09-08 ("curve the balloon so they don't take up so much
+   * horizontal space... it should curve like a rainbow"): each
+   * character (and its pinyin) leans along a shallow arc instead of
+   * sitting in a straight line — like text curving on a badge, not a
+   * dramatic bend. Two earlier attempts misread this as curving the
+   * *arrangement of balloons in the sky* instead (see layoutBalloons'
+   * doc comment) — this is the actual fix, entirely local to one
+   * balloon's own content.
+   *
+   * Each character gets its own small Container (`unitContainer`),
+   * positioned and rotated per `computeGlyphArc` — Phaser rotates a
+   * container's children for free, so the pinyin-above-hanzi stacking
+   * inside it can stay in plain local coordinates, same as before.
+   */
   private buildBalloon(def: BalloonDef): {
     container: Phaser.GameObjects.Container;
     halfW: number;
@@ -330,12 +341,9 @@ export class BalloonSentenceScene extends Phaser.Scene {
     interface CharUnit {
       hanziText: Phaser.GameObjects.Text;
       pinyinText: Phaser.GameObjects.Text;
-      centerX: number;
+      unitWidth: number;
     }
-    const units: CharUnit[] = [];
-    let cursorX = 0;
-
-    chars.forEach((char, i) => {
+    const units: CharUnit[] = chars.map((char, i) => {
       const pinyin = def.charPinyin[i] ?? "";
       const hanziText = this.add.text(0, 0, char, {
         fontSize: `${CANDIDATE_CHAR_FONT_PX}px`,
@@ -349,10 +357,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
         fontFamily: "system-ui, sans-serif",
         fontStyle: "italic",
       });
-      const unitWidth = Math.max(hanziText.width, pinyinText.width);
-
-      units.push({ hanziText, pinyinText, centerX: cursorX + unitWidth / 2 });
-      cursorX += unitWidth + CHAR_GAP;
+      return { hanziText, pinyinText, unitWidth: Math.max(hanziText.width, pinyinText.width) };
     });
 
     // A single shared row height for every unit (rather than each
@@ -363,10 +368,63 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const hanziRowHeight = Math.max(...units.map((u) => u.hanziText.height));
     const unitHeight = pinyinRowHeight + TEXT_GAP + hanziRowHeight;
 
-    const contentWidth = cursorX - CHAR_GAP;
-    const contentHeight = unitHeight;
-    const halfW = contentWidth / 2 + BALLOON_PAD_X;
-    const halfH = contentHeight / 2 + BALLOON_PAD_Y;
+    // Radius derived from this balloon's own widest character unit (not
+    // a flat guess) so adjacent characters land `CHAR_GAP` apart along
+    // the curve — same "size from the real measured content" approach
+    // every other layout in this project uses. Chord length between two
+    // points `GLYPH_ANGLE_STEP_DEG` apart on a circle of radius R is
+    // 2R·sin(step/2); solved for R so that chord equals the required
+    // spacing.
+    const maxUnitWidth = Math.max(...units.map((u) => u.unitWidth));
+    const requiredChord = maxUnitWidth + CHAR_GAP;
+    const stepRad = (GLYPH_ANGLE_STEP_DEG * Math.PI) / 180;
+    const glyphRadius = requiredChord / (2 * Math.sin(stepRad / 2));
+    const arcSlots = computeGlyphArc(chars.length, { radius: glyphRadius, angleStepDeg: GLYPH_ANGLE_STEP_DEG });
+
+    // Each unit's own local bounding box (centered on its container's
+    // origin, since the pinyin/hanzi stack below is laid out from
+    // -unitHeight/2 to +unitHeight/2) rotated by its slot's angle and
+    // placed at its slot's offset — collecting every corner gives the
+    // balloon's true content bounds without assuming the (possibly
+    // lopsided, since the arc's own y isn't symmetric around 0) raw
+    // slot positions already center themselves.
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    units.forEach((unit, i) => {
+      const slot = arcSlots[i];
+      const rad = (slot.angleDeg * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      const halfW = unit.unitWidth / 2;
+      const halfH = unitHeight / 2;
+      for (const [lx, ly] of [
+        [-halfW, -halfH],
+        [halfW, -halfH],
+        [halfW, halfH],
+        [-halfW, halfH],
+      ]) {
+        const x = slot.x + lx * cos - ly * sin;
+        const y = slot.y + lx * sin + ly * cos;
+        minX = Math.min(minX, x);
+        maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y);
+        maxY = Math.max(maxY, y);
+      }
+    });
+
+    // Recenter so the drawn card (and the catch hitbox other code
+    // derives from halfW/halfH around this container's own x/y) actually
+    // matches the curved content's real bounds, rather than assuming the
+    // raw arc slots were already centered on (0, 0) — they aren't (the
+    // arc's y grows away from its middle, never negative).
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const contentHalfW = (maxX - minX) / 2;
+    const contentHalfH = (maxY - minY) / 2;
+    const halfW = contentHalfW + BALLOON_PAD_X;
+    const halfH = contentHalfH + BALLOON_PAD_Y;
 
     const gfx = this.add.graphics();
     // A rounded "balloon card" body. Color is randomized per balloon
@@ -381,14 +439,16 @@ export class BalloonSentenceScene extends Phaser.Scene {
     gfx.strokeRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
     container.add(gfx);
 
-    for (const unit of units) {
-      const x = unit.centerX - contentWidth / 2;
-      const y = -contentHeight / 2;
-      unit.pinyinText.setOrigin(0.5, 0).setPosition(x, y);
-      unit.hanziText.setOrigin(0.5, 0).setPosition(x, y + pinyinRowHeight + TEXT_GAP);
-      container.add(unit.pinyinText);
-      container.add(unit.hanziText);
-    }
+    units.forEach((unit, i) => {
+      const slot = arcSlots[i];
+      const unitContainer = this.add.container(slot.x - centerX, slot.y - centerY);
+      unitContainer.setAngle(slot.angleDeg);
+      unit.pinyinText.setOrigin(0.5, 0).setPosition(0, -unitHeight / 2);
+      unit.hanziText.setOrigin(0.5, 0).setPosition(0, -unitHeight / 2 + pinyinRowHeight + TEXT_GAP);
+      unitContainer.add(unit.pinyinText);
+      unitContainer.add(unit.hanziText);
+      container.add(unitContainer);
+    });
 
     // The dangling string is a separate graphics object — unlike the
     // body above, it's redrawn every frame to sway independently (see

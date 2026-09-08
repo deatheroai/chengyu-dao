@@ -15,26 +15,39 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
-- [x] `done` — **Balloon stage: curve the candidate layout, shrink the
-      font (2026-09-08).** Per your "curve the balloon so they don't
-      take up so much horizontal space" — `BalloonSentenceScene`'s
-      `layoutBalloons` used to lay candidates on a roughly-square grid
-      (`cols ≈ √total`). New `balloonArcLayout.ts` (pure function +
-      tests) arranges them along a "bouquet" curve instead — every other
-      slot alternates slightly above/below a shared arc, so an adjacent
-      pair's clearance comes from both axes at once instead of
-      horizontal spacing alone, letting the horizontal step shrink well
-      below a flat row/grid's requirement for the same minimum spacing.
-      Safety enforced by construction (lay the raw curve out, check
-      every pairwise distance, scale up once if the tightest pair falls
-      short — exact, not iterative) rather than hand-tuned constants.
-      Also stepped `CANDIDATE_CHAR_FONT_PX`/`CANDIDATE_PINYIN_FONT_PX`
-      down (34/13px → 28/11px), the other lever on "still spans too
-      far." All green: `npm run typecheck`/`test` (285 passed)/`build`,
-      plus the full `idiom-door.spec.ts` e2e suite (24 passed,
-      mobile+desktop) including the balloon-stage tests. Still a
-      build-and-eyeball first pass, not a final tuning — refine the
-      curve/font constants further once you've actually looked at it.
+- [x] `done` — **Balloon stage: curve each balloon's own idiom text,
+      shrink the font (2026-09-08).** Per your "curve the balloon so
+      they don't take up so much horizontal space." Two false starts
+      first, both from misreading "curve the balloon" as curving the
+      *arrangement of balloons in the sky* rather than the text inside
+      one balloon: a zigzag-based layout that scattered 3 of 4 candidates
+      outside the camera's view ("balloons are missing"), then a
+      corrected version that arranged the balloons themselves into a
+      literal rainbow across the world — reported live as "I don't mean
+      to spread the balloons out in a rainbow... the implementation got
+      the wrong design." Both reverted; `layoutBalloons` is back to its
+      original plain grid, unchanged.
+      The actual fix is in `buildBalloon`: each of the idiom's 4
+      characters (with its pinyin) now leans along a shallow arc within
+      its own balloon card — like text curving on a badge — via new
+      `balloonGlyphArc.ts` (pure function + tests). Each character sits
+      in its own small rotated `Phaser.GameObjects.Container` (Phaser
+      rotates a container's children for free, so the pinyin-above-hanzi
+      stacking stays plain local coordinates); the arc's radius is
+      derived from the balloon's own widest measured character unit
+      (not a flat guess) so spacing scales with whatever the real
+      content measures. The card's rounded-rect body and catch hitbox
+      (`halfW`/`halfH`) are sized from the true rotated bounding box of
+      all four characters, recentered so the drawn card actually matches
+      the curved content. Also stepped
+      `CANDIDATE_CHAR_FONT_PX`/`CANDIDATE_PINYIN_FONT_PX` down (34/13px
+      → 28/11px), the other lever on "still spans too far." All green:
+      `npm run typecheck`/`test` (286 passed)/`build`, plus the full
+      `idiom-door.spec.ts` e2e suite (24 passed, mobile+desktop)
+      including the balloon-stage tests. Still a first pass on the
+      curve's tightness (`GLYPH_ANGLE_STEP_DEG` in
+      `BalloonSentenceScene.ts`) — easy to nudge once you've looked at
+      it.
 - [ ] `todo` — **Writing/tracing stage: teach each character before the
       door (2026-09-08).** New stage between an idiom's intro and its
       door: each of the idiom's 4 characters shown one at a time over a
