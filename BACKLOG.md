@@ -89,6 +89,45 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       All green: `npm run typecheck`/`test` (286 passed)/`build`, plus
       the full `idiom-door.spec.ts` e2e suite (24 passed,
       mobile+desktop) including the balloon-stage tests.
+- [x] `done` — **Balloon stage: single overlapping line, a self-contained
+      HP + pop-away on a wrong catch, more vivid colors (2026-09-08).**
+      Another round of live feedback on top of the entries above:
+      - **"the balloons can overlap a little, just keep them on the same
+        horizontal line"** — drops the brick-stagger rows from the round
+        before this one. `layoutBalloons` is back to a single row
+        (`cols = total`), with a new `ROW_OVERLAP_FRACTION` (0.82)
+        deliberately shrinking the cell spacing below the
+        no-overlap-guaranteed formula — an *intentional* relaxation this
+        time, not the accidental kind two earlier balloon-stage PRs
+        shipped by mistake.
+      - **"can we include some hp deduction if the wrong balloon is
+        selected... after a wrong selection the balloon should pop
+        away"** — new `balloonHp.ts` (pure state + test) is a small,
+        self-contained HP counter *scoped to this stage only*, not yet
+        the full cross-stage reward economy the writing-stage entries
+        below describe (that needs the writing stage to exist first,
+        so it can earn HP the door stage then spends) — this is the
+        same shape that economy will eventually feed into, not a
+        rewrite. A wrong catch deducts `WRONG_CATCH_HP_PENALTY` (20 of
+        a starting 100, shown via new `#balloon-hp` /
+        `balloonHpStatus.ts`), pops that decoy away for good (same
+        shrink-and-destroy tween shape as a correct catch's grow, just
+        inverted) via a new `popped` flag on `RuntimeBalloon` (skipped
+        by catch-checking, drift/string updates, and the test-only
+        position-sync hook). The *correct* balloon is never poppable —
+        always something left to find, no fail state, same ethos as
+        everywhere else here.
+      - **"I still don't like the colours... I want more vivid
+        colours"** — `balloonColors.ts` moves from a light pastel fill +
+        vivid border to a saturated fill *and* a deep vivid border.
+        Checked (not eyeballed) that `#4a3420` (BALLOON_TEXT) still
+        clears 4.5:1 contrast — WCAG AA for normal text — against every
+        new fill before landing it.
+      All green: `npm run typecheck`/`test` (289 passed)/`build`, plus
+      the full `idiom-door.spec.ts` e2e suite (24 passed, mobile+desktop,
+      one mobile flake in the unrelated door-stage spam-jump test that
+      passed clean on a solo re-run — pre-existing parallel-load timing,
+      not a regression from this change).
 - [ ] `todo` — **Writing/tracing stage: teach each character before the
       door (2026-09-08).** New stage between an idiom's intro and its
       door: each of the idiom's 4 characters shown one at a time over a

@@ -256,6 +256,14 @@ rt {
   min-height: 1.1em;
 }
 
+/* 2026-09-08: this stage's own small HP counter (balloonHp.ts) —
+   deducted on a wrong catch, see BalloonSentenceScene.handleCatch. */
+#balloon-hp {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #c2185b;
+}
+
 
 /* 2026-08-30: opens the cloud-save panel — mirrors #session-progress's
    corner-pill look (same top edge, opposite side) but is a real,
