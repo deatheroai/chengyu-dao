@@ -464,16 +464,18 @@ export class BalloonSentenceScene extends Phaser.Scene {
     // balloonLevelContent.ts's colorIndex): the child has to judge which
     // idiom fits the sentence, not learn to spot a color. Added to the
     // container first so every character sits on top of it, not behind.
+    // 2026-09-08 ("let's do them without borders"): no lineStyle/
+    // strokePath here any more — just the fill. colorway.border is
+    // still used for the dangling string below (redrawString) — that's
+    // a separate visual element, not the card's own outline.
     const colorway = BALLOON_COLORWAYS[def.colorIndex % BALLOON_COLORWAYS.length];
     gfx.fillStyle(colorway.fill, 0.97);
-    gfx.lineStyle(3, colorway.border, 0.9);
     gfx.beginPath();
     gfx.moveTo(outerPoints[0][0] - centerX, outerPoints[0][1] - centerY);
     for (const [x, y] of outerPoints) gfx.lineTo(x - centerX, y - centerY);
     for (let i = innerPoints.length - 1; i >= 0; i--) gfx.lineTo(innerPoints[i][0] - centerX, innerPoints[i][1] - centerY);
     gfx.closePath();
     gfx.fillPath();
-    gfx.strokePath();
     container.add(gfx);
 
     units.forEach((unit, i) => {
