@@ -92,10 +92,13 @@ export const DISTRACTOR_COUNT = 3;
 // (1 − 2·CELL_JITTER_FRACTION) specifically to keep this jitter from
 // ever causing an overlap — at 0.2 that's a ×1.67 inflation on top of
 // the balloons' own real size, the single biggest contributor to how
-// far apart the grid ended up. Down to 0.1 (×1.25) — still real
-// per-level randomization (not perfectly centered in each cell), just a
-// smaller share of the "why is there so much gap" total.
-export const CELL_JITTER_FRACTION = 0.1;
+// far apart the grid ended up. Dropped to 0.1 (×1.25) that round.
+//
+// 2026-09-08 (later, "spread them out just a little bit more"): the
+// grid read as a bit too tight after that — nudged back up to 0.13
+// (×1.35), plus the new brick-style row stagger below (layoutBalloons)
+// changes the *feel* of the spacing more than the raw number does.
+export const CELL_JITTER_FRACTION = 0.13;
 
 const BLANK_CHAR = "○";
 

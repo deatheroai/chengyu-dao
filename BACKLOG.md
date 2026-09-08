@@ -65,6 +65,30 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       including the balloon-stage tests. Still a first look, not final
       tuning — `GLYPH_ANGLE_STEP_DEG`, `CELL_JITTER_FRACTION`, and
       `CELL_PADDING` are all easy to nudge further from here.
+- [x] `done` — **Balloon stage: brick-style stagger, colors handed off
+      for your pick, spacing nudged back out (2026-09-08).** Follow-up
+      to the curve/grid-tightening work above, per "I don't like the
+      stacking feel currently maybe a bit of brick like alternating
+      floating... spread them out just a little bit more... just widen
+      the horizon slightly."
+      `layoutBalloons` now offsets odd rows by half a cell — the same
+      running-bond offset actual brickwork uses — so no balloon sits
+      directly under the one above it; the extra half-cell of world
+      width that offset needs is exactly the "widen the horizon
+      slightly" ask, not a separate knob. `CELL_JITTER_FRACTION`
+      (0.1 → 0.13) and `CELL_PADDING` (8 → 11) nudged back up from the
+      previous round's tightening, per "spread them out just a little
+      bit more" — `WIND_DRIFT_RADIUS_X/Y` (the wind-drift animation)
+      still untouched.
+      Colors are yours to call, not guessed: published an interactive
+      swatch picker (rendering the actual curved-band shape with real
+      idiom text so colors read in context, live fill/border editing,
+      a "suggest a fresh candy set" shuffle) rather than picking new
+      `balloonColors.ts` hex values myself — say which set to lock in
+      and I'll put it back into the file.
+      All green: `npm run typecheck`/`test` (286 passed)/`build`, plus
+      the full `idiom-door.spec.ts` e2e suite (24 passed,
+      mobile+desktop) including the balloon-stage tests.
 - [ ] `todo` — **Writing/tracing stage: teach each character before the
       door (2026-09-08).** New stage between an idiom's intro and its
       door: each of the idiom's 4 characters shown one at a time over a
