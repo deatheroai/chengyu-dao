@@ -95,9 +95,10 @@ const DEFAULT_REACH_ANGLE = -Math.PI / 2.3;
 
 // Extra breathing room between grid cells beyond a balloon's own
 // measured half-extent, on top of balloonLevelContent.ts's jitter.
-// 2026-09-08: trimmed from 16 — the other lever, alongside a smaller
-// CELL_JITTER_FRACTION, on "the balloons are too far apart."
-const CELL_PADDING = 8;
+// 2026-09-08: trimmed from 16 to 8 alongside a smaller
+// CELL_JITTER_FRACTION on "the balloons are too far apart," then nudged
+// back up slightly on "spread them out just a little bit more."
+const CELL_PADDING = 11;
 // Worst case, two balloons in adjacent cells can jitter toward each
 // other by CELL_JITTER_FRACTION of a cell each — this is the fraction
 // of a cell's width/height that's *guaranteed* clear of that, used to
@@ -300,15 +301,25 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const cols = Math.ceil(Math.sqrt(total));
     const rows = Math.ceil(total / cols);
 
+    // 2026-09-08 ("I don't like the stacking feel... a bit of brick like
+    // alternating floating"): odd rows shift right by half a cell, same
+    // offset a running-bond brick course uses, so a balloon never sits
+    // directly under the one above it. The extra half-cell of world
+    // width below is exactly enough room for that shifted row's own
+    // rightmost balloon — also reads as "widen the horizon slightly"
+    // (per that same feedback) as a side effect, not a separate knob.
+    const STAGGER_X = cellW / 2;
+
     const skyX0 = SKY_MARGIN_X;
     const skyY0 = SKY_MARGIN_Y_TOP;
-    this.worldW = cols * cellW + SKY_MARGIN_X * 2;
+    this.worldW = cols * cellW + STAGGER_X + SKY_MARGIN_X * 2;
     this.worldH = rows * cellH + SKY_MARGIN_Y_TOP + SKY_MARGIN_Y_BOTTOM;
 
     for (const balloon of this.balloons) {
       const col = balloon.def.slotIndex % cols;
       const row = Math.floor(balloon.def.slotIndex / cols);
-      const centerX = skyX0 + (col + 0.5) * cellW;
+      const rowStagger = row % 2 === 1 ? STAGGER_X : 0;
+      const centerX = skyX0 + rowStagger + (col + 0.5) * cellW;
       const centerY = skyY0 + (row + 0.5) * cellH;
       balloon.baseX = centerX + balloon.def.jitterX * cellW;
       balloon.baseY = centerY + balloon.def.jitterY * cellH;
