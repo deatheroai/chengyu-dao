@@ -7,6 +7,8 @@ import { drawPlayerFigure } from "../shared/playerFigure";
 import { updateBalloonPosition, updateBalloonCameraScroll, syncBalloonTargetPositions } from "./balloonPositionStatus";
 import { stepFlight, type FlightState, type FlightConfig } from "./balloonPhysics";
 import { computeGlyphArc, DEFAULT_ANGLE_STEP_DEG as GLYPH_ANGLE_STEP_DEG } from "./balloonGlyphArc";
+import { initialBalloonHpState, applyWrongCatchPenalty, type BalloonHpState } from "./balloonHp";
+import { updateBalloonHpStatus } from "./balloonHpStatus";
 
 export interface BalloonSentenceSceneData {
   level: BalloonLevel;
@@ -105,6 +107,11 @@ const CELL_PADDING = 11;
 // size cells so adjacent balloons can never overlap regardless of
 // which way their jitter happens to fall.
 const JITTER_SAFE_FRACTION = 1 - 2 * CELL_JITTER_FRACTION;
+// 2026-09-08 ("the balloons can overlap a little"): applied on top of
+// the no-overlap-guaranteed cellW above, so adjacent balloons brush or
+// overlap a little instead of always keeping the full guaranteed-clear
+// gap. 1 = the old strict no-overlap spacing; smaller pulls them closer.
+const ROW_OVERLAP_FRACTION = 0.82;
 
 // World-space margins (px) around the balloon grid — a "world," not a
 // single fixed screen: found by screenshot (twice) that trying to fit
@@ -134,6 +141,12 @@ interface RuntimeBalloon {
   def: BalloonDef;
   container: Phaser.GameObjects.Container;
   touching: boolean;
+  /** 2026-09-08: a wrong (decoy) catch pops that balloon away for good
+   * (see handleCatch) — this flags it out of further catch checks and
+   * the per-frame drift/string update/DOM sync, rather than actually
+   * removing it from `this.balloons` (simpler than re-indexing, and
+   * matches IdiomDoorScene's own tiles' `caught` flag). */
+  popped: boolean;
   /** Measured half-width/height of this balloon's actual body (varies —
    * see buildBalloon), used both for its own catch radius and to size
    * the world's grid so every balloon actually fits its cell. */
@@ -155,6 +168,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
   private level!: BalloonLevel;
   private onResolved?: () => void;
   private catchState: BalloonCatchState = initialBalloonCatchState();
+  private hpState: BalloonHpState = initialBalloonHpState();
 
   private bg?: Phaser.GameObjects.Graphics;
   private balloonsLayer!: Phaser.GameObjects.Container;
@@ -187,6 +201,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
     this.level = data.level;
     this.onResolved = data.onResolved;
     this.catchState = initialBalloonCatchState();
+    this.hpState = initialBalloonHpState();
     this.balloons = [];
     this.pointerActive = false;
     this.resolved = false;
@@ -207,6 +222,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
     this.updateBalloonDrift(0);
 
     updateBalloonStatus(false);
+    updateBalloonHpStatus(this.hpState.hp);
     this.updateCameraScroll();
 
     this.scale.on(Phaser.Scale.Events.RESIZE, () => {
@@ -259,7 +275,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
     this.balloons = this.level.balloons.map((def) => {
       const { container, halfW, halfH, stringGfx, colorway } = this.buildBalloon(def);
       this.balloonsLayer.add(container);
-      return { def, container, touching: false, halfW, halfH, baseX: 0, baseY: 0, stringGfx, colorway };
+      return { def, container, touching: false, popped: false, halfW, halfH, baseX: 0, baseY: 0, stringGfx, colorway };
     });
     this.layoutBalloons();
   }
@@ -298,30 +314,25 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const cellW = (maxHalfW * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_X) / JITTER_SAFE_FRACTION;
     const cellH = (maxHalfH * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_Y) / JITTER_SAFE_FRACTION;
 
-    const cols = Math.ceil(Math.sqrt(total));
-    const rows = Math.ceil(total / cols);
-
-    // 2026-09-08 ("I don't like the stacking feel... a bit of brick like
-    // alternating floating"): odd rows shift right by half a cell, same
-    // offset a running-bond brick course uses, so a balloon never sits
-    // directly under the one above it. The extra half-cell of world
-    // width below is exactly enough room for that shifted row's own
-    // rightmost balloon — also reads as "widen the horizon slightly"
-    // (per that same feedback) as a side effect, not a separate knob.
-    const STAGGER_X = cellW / 2;
+    // 2026-09-08 ("the balloons can overlap a little, just keep them on
+    // the same horizontal line" — dropping the brick-stagger rows from
+    // the round before this one): a single row, and ROW_OVERLAP_FRACTION
+    // deliberately shrinks the above no-overlap-guaranteed cellW — a
+    // small, *intentional* relaxation this time, not the accidental kind
+    // earlier balloon-stage PRs shipped by mistake.
+    const cols = total;
+    const rowCellW = cellW * ROW_OVERLAP_FRACTION;
 
     const skyX0 = SKY_MARGIN_X;
     const skyY0 = SKY_MARGIN_Y_TOP;
-    this.worldW = cols * cellW + STAGGER_X + SKY_MARGIN_X * 2;
-    this.worldH = rows * cellH + SKY_MARGIN_Y_TOP + SKY_MARGIN_Y_BOTTOM;
+    this.worldW = cols * rowCellW + SKY_MARGIN_X * 2;
+    this.worldH = cellH + SKY_MARGIN_Y_TOP + SKY_MARGIN_Y_BOTTOM;
 
     for (const balloon of this.balloons) {
-      const col = balloon.def.slotIndex % cols;
-      const row = Math.floor(balloon.def.slotIndex / cols);
-      const rowStagger = row % 2 === 1 ? STAGGER_X : 0;
-      const centerX = skyX0 + rowStagger + (col + 0.5) * cellW;
-      const centerY = skyY0 + (row + 0.5) * cellH;
-      balloon.baseX = centerX + balloon.def.jitterX * cellW;
+      const col = balloon.def.slotIndex;
+      const centerX = skyX0 + (col + 0.5) * rowCellW;
+      const centerY = skyY0 + cellH / 2;
+      balloon.baseX = centerX + balloon.def.jitterX * rowCellW;
       balloon.baseY = centerY + balloon.def.jitterY * cellH;
       // update() overwrites this with base + drift every frame once
       // running, but this keeps the very first rendered frame (before
@@ -591,6 +602,9 @@ export class BalloonSentenceScene extends Phaser.Scene {
    */
   private updateBalloonDrift(t: number): void {
     for (const balloon of this.balloons) {
+      // A popped (wrongly-caught) balloon's container is destroyed —
+      // see handleCatch — so it can't be repositioned/redrawn any more.
+      if (balloon.popped) continue;
       const driftX = Math.sin(t * WIND_DRIFT_FREQ_X + balloon.def.driftPhaseX) * WIND_DRIFT_RADIUS_X;
       const driftY = Math.sin(t * WIND_DRIFT_FREQ_Y + balloon.def.driftPhaseY) * WIND_DRIFT_RADIUS_Y;
       balloon.container.setPosition(balloon.baseX + driftX, balloon.baseY + driftY);
@@ -600,9 +614,10 @@ export class BalloonSentenceScene extends Phaser.Scene {
     // position + correctness into the DOM — see
     // balloonPositionStatus.ts's syncBalloonTargetPositions doc comment
     // for why (a test can steer deterministically to the correct one
-    // instead of guessing a blind search pattern).
+    // instead of guessing a blind search pattern). Popped balloons are
+    // excluded — nothing left to steer toward.
     syncBalloonTargetPositions(
-      this.balloons.map((b) => ({ id: b.def.id, isCorrect: b.def.isCorrect, x: b.container.x, y: b.container.y })),
+      this.balloons.filter((b) => !b.popped).map((b) => ({ id: b.def.id, isCorrect: b.def.isCorrect, x: b.container.x, y: b.container.y })),
     );
   }
 
@@ -686,6 +701,7 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const avatarMaxY = Math.max(prevAvatar.y, this.avatar.y);
 
     for (const balloon of this.balloons) {
+      if (balloon.popped) continue;
       // The container's actual current position (which includes its
       // cosmetic bob tween) — that tween's amplitude is small relative
       // to the catch radius, so this is accurate enough without
@@ -713,8 +729,29 @@ export class BalloonSentenceScene extends Phaser.Scene {
 
     if (outcome !== "correct") {
       if (outcome === "wrong") {
+        // 2026-09-08 ("can we include some hp deduction if the wrong
+        // balloon is selected... after a wrong selection the balloon
+        // should pop away"): deduct this stage's HP (balloonHp.ts) and
+        // remove the decoy for good, rather than leaving it touchable
+        // again — same tween shape as the correct catch below, just
+        // shrinking instead of growing, so a pop reads as distinct from
+        // a win. The *correct* balloon is never touched by this branch
+        // (attemptBalloonCatch only returns "wrong" for a decoy), so
+        // there's always something left to find — no fail state, same
+        // ethos as everywhere else in this project.
+        this.hpState = applyWrongCatchPenalty(this.hpState);
+        updateBalloonHpStatus(this.hpState.hp);
+        balloon.popped = true;
         this.spawnSparkBurst(balloon.container.x, balloon.container.y, 3);
         updateBalloonStatus(false, "wrong");
+        this.tweens.add({
+          targets: balloon.container,
+          alpha: 0,
+          scale: 0.5,
+          duration: 220,
+          ease: "Cubic.easeIn",
+          onComplete: () => balloon.container.destroy(),
+        });
       }
       return;
     }
