@@ -15,15 +15,26 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
-- [ ] `todo` — **Balloon stage: curve the candidate layout, shrink the
+- [x] `done` — **Balloon stage: curve the candidate layout, shrink the
       font (2026-09-08).** Per your "curve the balloon so they don't
       take up so much horizontal space" — `BalloonSentenceScene`'s
-      `layoutBalloons` currently lays candidates on a roughly-square
-      grid (`cols ≈ √total`); try an arc/curve arrangement instead
-      (varying y by position) so the same candidate count reads
-      taller/narrower, alongside a step down from
-      `CANDIDATE_CHAR_FONT_PX` (34px). Build-and-eyeball, not
-      over-specified — refine from whatever the first pass looks like.
+      `layoutBalloons` used to lay candidates on a roughly-square grid
+      (`cols ≈ √total`). New `balloonArcLayout.ts` (pure function +
+      tests) arranges them along a "bouquet" curve instead — every other
+      slot alternates slightly above/below a shared arc, so an adjacent
+      pair's clearance comes from both axes at once instead of
+      horizontal spacing alone, letting the horizontal step shrink well
+      below a flat row/grid's requirement for the same minimum spacing.
+      Safety enforced by construction (lay the raw curve out, check
+      every pairwise distance, scale up once if the tightest pair falls
+      short — exact, not iterative) rather than hand-tuned constants.
+      Also stepped `CANDIDATE_CHAR_FONT_PX`/`CANDIDATE_PINYIN_FONT_PX`
+      down (34/13px → 28/11px), the other lever on "still spans too
+      far." All green: `npm run typecheck`/`test` (285 passed)/`build`,
+      plus the full `idiom-door.spec.ts` e2e suite (24 passed,
+      mobile+desktop) including the balloon-stage tests. Still a
+      build-and-eyeball first pass, not a final tuning — refine the
+      curve/font constants further once you've actually looked at it.
 - [ ] `todo` — **Writing/tracing stage: teach each character before the
       door (2026-09-08).** New stage between an idiom's intro and its
       door: each of the idiom's 4 characters shown one at a time over a
