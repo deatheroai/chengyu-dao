@@ -23,6 +23,19 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-08 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. `BACKLOG.md`'s active sections
+  (Chinese Idiom Discovery Game, Platform/infra) are all `done`; the only
+  remaining entries are the three `blocked` "Later / explicitly out of
+  scope for now" items (multiplayer, monetization, Upper Primary tier) —
+  still deliberately deferred per `AUTONOMY.md`, not waiting on a decision
+  to raise. No open GitHub issues or PRs. Checked `src/` for stray
+  TODO/FIXME markers as a sanity check before concluding there was nothing
+  to build — none found (the two case-insensitive grep hits were false
+  positives from `...PositionsToDom`/`...positionsToDom` identifiers, not
+  actual TODOs). CI on `main` (`cd5d7f4`) is green. Per `AUTONOMY.md`'s
+  "don't manufacture busywork" guidance, this cycle made no code changes
+  and ends here.
 - **2026-09-07 — PR #17 (door-stage fall-speed tuning) merged by you;
   found and fixed the actual gap behind "why isn't automation telling
   you to merge?".** You merged #17 yourself; CI on `main` at the merge
