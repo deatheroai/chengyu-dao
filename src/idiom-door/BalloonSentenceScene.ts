@@ -253,11 +253,18 @@ export class BalloonSentenceScene extends Phaser.Scene {
    * level's *actual* rendered balloon sizes, then lays each balloon's
    * already-assigned slotIndex/jitter (balloonLevelContent.ts) onto a
    * curved arrangement within it (balloonArcLayout.ts) rather than a
-   * grid — 2026-09-08 feedback: even a roughly-square grid (cols ≈ rows)
-   * read as taking up too much horizontal space for a set of card-like
-   * balloons: curving them (letting adjacent balloons trade some of
-   * their clearance for vertical offset instead of pure horizontal
-   * spacing) reads narrower and taller for the same count.
+   * grid — 2026-09-08 feedback: "curve the balloon so they don't take
+   * up so much horizontal space... it should curve like a rainbow."
+   *
+   * 2026-09-08 (later): the first version of this used a *summed*
+   * (minSpacingX + minSpacingY) safe distance, meant as "extra headroom
+   * for 2D jitter" — it actually just inflated the whole arc's radius
+   * far past what the balloons needed, scattering 3 of 4 candidates
+   * outside the camera's starting view and reported live as "balloons
+   * are missing." Using the larger of the two per-axis distances (not
+   * their sum) keeps the arc's own scale in the same ballpark the old
+   * grid cells were, while still covering whichever axis actually needs
+   * more room for a given level's balloon shape.
    */
   private layoutBalloons(): void {
     if (this.balloons.length === 0) return;
@@ -268,20 +275,12 @@ export class BalloonSentenceScene extends Phaser.Scene {
     // Same "size from the largest balloon, reserve room for jitter *and*
     // wind drift" reasoning the old grid cells used — see
     // JITTER_SAFE_FRACTION/WIND_DRIFT_RADIUS_* above — just computed per
-    // axis and then combined below, since arc slots (unlike grid cells)
-    // aren't axis-aligned: an "adjacent" pair can differ in both x and y
-    // at once, so a single safe distance has to cover both axes' worst
-    // case together.
+    // axis and then combined below. Jitter itself is still applied
+    // per-axis (jitterX*minSpacingX, jitterY*minSpacingY below) — only
+    // the arc's own base slot spacing uses the combined figure.
     const minSpacingX = (maxHalfW * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_X) / JITTER_SAFE_FRACTION;
     const minSpacingY = (maxHalfH * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_Y) / JITTER_SAFE_FRACTION;
-    // Summing (not just taking the max) is the deliberately conservative
-    // choice — a little extra packing looseness traded for headroom
-    // against jitter/drift that isn't purely axis-aligned, rather than a
-    // tight bound that'd need a full 2D proof to trust. Jitter itself is
-    // still applied per-axis below (jitterX*minSpacingX,
-    // jitterY*minSpacingY) — only the arc's own base slot spacing uses
-    // the combined figure.
-    const minSpacing = minSpacingX + minSpacingY;
+    const minSpacing = Math.max(minSpacingX, minSpacingY);
 
     const slots = computeArcSlots(total, { minSpacing });
     const xs = slots.map((s) => s.dx);

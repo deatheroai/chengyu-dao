@@ -21,48 +21,54 @@ describe("computeArcSlots", () => {
     expect(computeArcSlots(1, { minSpacing: 100 })).toEqual([{ dx: 0, dy: 0 }]);
   });
 
-  // The actual invariant this module exists for: whatever count/minSpacing
-  // combination a real balloon level throws at it (BalloonSentenceScene's
-  // DISTRACTOR_COUNT + 1 = 4 today, but this stays general), no two slots
-  // ever end up closer than the caller's requested minSpacing — the
-  // correction pass in computeArcSlots is what's supposed to guarantee
-  // this by construction rather than by tuning the default fractions to
-  // "happen" to work for one specific count.
+  // The actual invariant this module exists for: whatever count/spacing
+  // a real balloon level throws at it (BalloonSentenceScene's
+  // DISTRACTOR_COUNT + 1 = 4 today, but this stays general), no two
+  // slots ever end up closer than the caller's requested minSpacing.
   it("never places two slots closer than minSpacing, across a range of counts and spacings", () => {
     for (const count of [2, 3, 4, 5, 6, 8]) {
       for (const minSpacing of [40, 120, 260]) {
         const slots = computeArcSlots(count, { minSpacing });
         expect(slots).toHaveLength(count);
         const actualMin = minPairDistance(slots);
-        // A little floating-point slack, not a real tolerance for
-        // encroachment — the correction pass targets exactly minSpacing.
         expect(actualMin).toBeGreaterThanOrEqual(minSpacing - 1e-6);
       }
     }
   });
 
-  it("still guarantees the spacing invariant with non-default fractions, including ones that undershoot before correction", () => {
-    // A tiny rowOffsetFraction/curveDepthFraction means the raw curve
-    // (before the corrective scale-up) is nearly a flat row — the case
-    // most likely to start out under minSpacing and actually exercise
-    // the correction path, not just confirm it was a no-op.
-    const slots = computeArcSlots(5, { minSpacing: 200, stepXFraction: 0.15, rowOffsetFraction: 0.05, curveDepthFraction: 0.05 });
-    expect(minPairDistance(slots)).toBeGreaterThanOrEqual(200 - 1e-6);
+  // A large enough count at the default angle step would push the total
+  // span past 180°, where chord length stops increasing with angular
+  // separation and non-adjacent pairs could end up *closer* than
+  // adjacent ones — the span cap exists specifically to keep this from
+  // ever mattering. Exercise a count large enough to actually trigger
+  // that cap, not just ones comfortably under it.
+  it("keeps the min-spacing guarantee even for a count large enough to hit the span cap", () => {
+    const slots = computeArcSlots(20, { minSpacing: 100 });
+    expect(minPairDistance(slots)).toBeGreaterThanOrEqual(100 - 1e-6);
   });
 
-  // The actual point of curving instead of gridding: for a realistic
-  // candidate count (BalloonSentenceScene's usual 1 correct + 3 decoys),
-  // the horizontal footprint should come in well under what laying the
-  // same count out in a single flat row at the same minSpacing would need
-  // — otherwise this module isn't actually buying anything over the old
-  // grid layout's column spacing.
-  it("uses meaningfully less horizontal space than a flat row of the same count", () => {
-    const count = 4;
-    const minSpacing = 180;
-    const slots = computeArcSlots(count, { minSpacing });
-    const xs = slots.map((s) => s.dx);
-    const span = Math.max(...xs) - Math.min(...xs);
-    const flatRowSpan = (count - 1) * minSpacing;
-    expect(span).toBeLessThan(flatRowSpan * 0.85);
+  // The actual point of this shape: a real rainbow silhouette, not just
+  // a safe scatter of points — the middle of the arc should sit visibly
+  // higher (smaller dy) than either end.
+  it("curves like a rainbow: the middle sits higher than both ends", () => {
+    const slots = computeArcSlots(5, { minSpacing: 150 });
+    const middle = slots[2].dy;
+    const left = slots[0].dy;
+    const right = slots[4].dy;
+    expect(middle).toBeLessThan(left);
+    expect(middle).toBeLessThan(right);
+    // Symmetric around the center, since the slots are evenly spaced by
+    // angle around one circle.
+    expect(left).toBeCloseTo(right, 6);
+    expect(slots[1].dy).toBeCloseTo(slots[3].dy, 6);
+  });
+
+  it("respects a custom angle step (a wider step reads as a tighter curl)", () => {
+    const narrow = computeArcSlots(4, { minSpacing: 150, angleStepDeg: 15 });
+    const wide = computeArcSlots(4, { minSpacing: 150, angleStepDeg: 35 });
+    const span = (slots: { dx: number }[]) => Math.max(...slots.map((s) => s.dx)) - Math.min(...slots.map((s) => s.dx));
+    // Same minSpacing, but a wider angle step curls the same count into
+    // a tighter arc — less horizontal span for the same safe spacing.
+    expect(span(wide)).toBeLessThan(span(narrow));
   });
 });
