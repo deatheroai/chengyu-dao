@@ -15,39 +15,56 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
-- [x] `done` — **Balloon stage: curve each balloon's own idiom text,
-      shrink the font (2026-09-08).** Per your "curve the balloon so
-      they don't take up so much horizontal space." Two false starts
+- [x] `done` — **Balloon stage: curve each balloon's own idiom text and
+      card, tighten the grid (2026-09-08).** Per your "curve the balloon
+      so they don't take up so much horizontal space." Two false starts
       first, both from misreading "curve the balloon" as curving the
-      *arrangement of balloons in the sky* rather than the text inside
-      one balloon: a zigzag-based layout that scattered 3 of 4 candidates
-      outside the camera's view ("balloons are missing"), then a
-      corrected version that arranged the balloons themselves into a
-      literal rainbow across the world — reported live as "I don't mean
-      to spread the balloons out in a rainbow... the implementation got
-      the wrong design." Both reverted; `layoutBalloons` is back to its
-      original plain grid, unchanged.
-      The actual fix is in `buildBalloon`: each of the idiom's 4
-      characters (with its pinyin) now leans along a shallow arc within
-      its own balloon card — like text curving on a badge — via new
-      `balloonGlyphArc.ts` (pure function + tests). Each character sits
-      in its own small rotated `Phaser.GameObjects.Container` (Phaser
-      rotates a container's children for free, so the pinyin-above-hanzi
-      stacking stays plain local coordinates); the arc's radius is
-      derived from the balloon's own widest measured character unit
-      (not a flat guess) so spacing scales with whatever the real
-      content measures. The card's rounded-rect body and catch hitbox
-      (`halfW`/`halfH`) are sized from the true rotated bounding box of
-      all four characters, recentered so the drawn card actually matches
-      the curved content. Also stepped
-      `CANDIDATE_CHAR_FONT_PX`/`CANDIDATE_PINYIN_FONT_PX` down (34/13px
-      → 28/11px), the other lever on "still spans too far." All green:
+      *arrangement of balloons in the sky* rather than one balloon's own
+      text and card: a zigzag-based layout that scattered 3 of 4
+      candidates outside the camera's view ("balloons are missing"),
+      then a corrected version that arranged the balloons themselves
+      into a literal rainbow across the world ("I don't mean to spread
+      the balloons out in a rainbow... the implementation got the wrong
+      design"). Both reverted; `layoutBalloons` went back to its
+      original grid.
+      Two real fixes landed, per the actual follow-up feedback ("the
+      words are curved but the rectangle remains the same... curve the
+      rectangle" + "the balloons are too far apart... spread them evenly
+      and slightly tighter"):
+      1. **The card itself now curves.** `buildBalloon`'s background is
+         a genuine curved band (`buildBalloon`'s `pointOnCircle`/path
+         building, sampled onto the *same* circle `balloonGlyphArc.ts`'s
+         `computeGlyphArc` already puts the 4 characters on — an inner
+         arc and an outer arc closed into one banner shape) instead of a
+         flat rounded rectangle sized to bound the curved text. Padding
+         is tight and per-band (`BAND_PAD_X/Y`) rather than one generous
+         allowance added once around an already-wide box.
+         Worth being upfront about a real limit found here: for a
+         4-character run to stay *legible* (each character rotated only
+         a modest amount, not sideways), curving the text doesn't
+         actually shrink its horizontal footprint much on its own — a
+         wider curl trades width for height only past a point where
+         individual characters would tilt too far to read. Checked
+         numerically before landing this, not just assumed. The curved
+         card is still the right visual (and what was asked for), but
+         the real "less horizontal space" win is #2 below.
+      2. **The grid is tighter.** `CELL_JITTER_FRACTION`
+         (`balloonLevelContent.ts`, static per-level position
+         randomization) 0.2 → 0.1 and `CELL_PADDING`
+         (`BalloonSentenceScene.ts`, flat extra breathing room) 16 → 8 —
+         together the biggest share of why cells were sized so much
+         larger than the balloons actually needed. The continuous
+         "drifting in the wind" animation amplitude
+         (`WIND_DRIFT_RADIUS_X/Y`) is untouched — that's a different,
+         not-asked-about thing, not the source of the "too far apart"
+         complaint.
+      Also stepped `CANDIDATE_CHAR_FONT_PX`/`CANDIDATE_PINYIN_FONT_PX`
+      down (34/13px → 28/11px) in the first pass at this. All green:
       `npm run typecheck`/`test` (286 passed)/`build`, plus the full
       `idiom-door.spec.ts` e2e suite (24 passed, mobile+desktop)
-      including the balloon-stage tests. Still a first pass on the
-      curve's tightness (`GLYPH_ANGLE_STEP_DEG` in
-      `BalloonSentenceScene.ts`) — easy to nudge once you've looked at
-      it.
+      including the balloon-stage tests. Still a first look, not final
+      tuning — `GLYPH_ANGLE_STEP_DEG`, `CELL_JITTER_FRACTION`, and
+      `CELL_PADDING` are all easy to nudge further from here.
 - [ ] `todo` — **Writing/tracing stage: teach each character before the
       door (2026-09-08).** New stage between an idiom's intro and its
       door: each of the idiom's 4 characters shown one at a time over a
