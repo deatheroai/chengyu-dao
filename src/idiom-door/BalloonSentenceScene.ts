@@ -6,6 +6,7 @@ import { BALLOON_COLORWAYS, type BalloonColorway } from "./balloonColors";
 import { drawPlayerFigure } from "../shared/playerFigure";
 import { updateBalloonPosition, updateBalloonCameraScroll, syncBalloonTargetPositions } from "./balloonPositionStatus";
 import { stepFlight, type FlightState, type FlightConfig } from "./balloonPhysics";
+import { computeArcSlots } from "./balloonArcLayout";
 
 export interface BalloonSentenceSceneData {
   level: BalloonLevel;
@@ -28,8 +29,12 @@ const SPARK_COLOR = 0xffd76a;
 // CANDIDATE_CHAR_FONT_PX below) than the old variable-length sentence
 // balloons ever could be.
 const CHAR_SIZE = 60;
-const CANDIDATE_CHAR_FONT_PX = 34;
-const CANDIDATE_PINYIN_FONT_PX = 13;
+// 2026-09-08 feedback: still spans too far even after curving the layout
+// (see layoutBalloons below) — stepped down from 34/13px so each
+// candidate's own card is narrower too, both levers pushing the same
+// "less horizontal space" direction at once.
+const CANDIDATE_CHAR_FONT_PX = 28;
+const CANDIDATE_PINYIN_FONT_PX = 11;
 const BALLOON_PAD_X = 20;
 const BALLOON_PAD_Y = 16;
 const TEXT_GAP = 4;
@@ -247,9 +252,12 @@ export class BalloonSentenceScene extends Phaser.Scene {
    * Sizes the world (see the SKY_MARGIN_* comment above) from this
    * level's *actual* rendered balloon sizes, then lays each balloon's
    * already-assigned slotIndex/jitter (balloonLevelContent.ts) onto a
-   * grid within it. A roughly-square arrangement (cols ≈ rows) reads
-   * better for a set of card-like balloons than a single long row or
-   * column would.
+   * curved arrangement within it (balloonArcLayout.ts) rather than a
+   * grid — 2026-09-08 feedback: even a roughly-square grid (cols ≈ rows)
+   * read as taking up too much horizontal space for a set of card-like
+   * balloons: curving them (letting adjacent balloons trade some of
+   * their clearance for vertical offset instead of pure horizontal
+   * spacing) reads narrower and taller for the same count.
    */
   private layoutBalloons(): void {
     if (this.balloons.length === 0) return;
@@ -257,32 +265,43 @@ export class BalloonSentenceScene extends Phaser.Scene {
 
     const maxHalfW = Math.max(...this.balloons.map((b) => b.halfW));
     const maxHalfH = Math.max(...this.balloons.map((b) => b.halfH));
-    // Every cell is sized for this level's *largest* balloon, and to
-    // guarantee no overlap even if two neighbors' jitter both happen to
-    // point toward each other — see JITTER_SAFE_FRACTION above. Also
-    // reserves room for the wind drift itself (WIND_DRIFT_RADIUS_X/Y):
-    // two adjacent balloons could in the worst case drift toward each
-    // other by their full radius at the same moment, so that has to be
-    // baked into the cell size the same way the static jitter is,
-    // rather than just hoping it stays clear in practice.
-    const cellW = (maxHalfW * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_X) / JITTER_SAFE_FRACTION;
-    const cellH = (maxHalfH * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_Y) / JITTER_SAFE_FRACTION;
+    // Same "size from the largest balloon, reserve room for jitter *and*
+    // wind drift" reasoning the old grid cells used — see
+    // JITTER_SAFE_FRACTION/WIND_DRIFT_RADIUS_* above — just computed per
+    // axis and then combined below, since arc slots (unlike grid cells)
+    // aren't axis-aligned: an "adjacent" pair can differ in both x and y
+    // at once, so a single safe distance has to cover both axes' worst
+    // case together.
+    const minSpacingX = (maxHalfW * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_X) / JITTER_SAFE_FRACTION;
+    const minSpacingY = (maxHalfH * 2 + CELL_PADDING + 2 * WIND_DRIFT_RADIUS_Y) / JITTER_SAFE_FRACTION;
+    // Summing (not just taking the max) is the deliberately conservative
+    // choice — a little extra packing looseness traded for headroom
+    // against jitter/drift that isn't purely axis-aligned, rather than a
+    // tight bound that'd need a full 2D proof to trust. Jitter itself is
+    // still applied per-axis below (jitterX*minSpacingX,
+    // jitterY*minSpacingY) — only the arc's own base slot spacing uses
+    // the combined figure.
+    const minSpacing = minSpacingX + minSpacingY;
 
-    const cols = Math.ceil(Math.sqrt(total));
-    const rows = Math.ceil(total / cols);
+    const slots = computeArcSlots(total, { minSpacing });
+    const xs = slots.map((s) => s.dx);
+    const ys = slots.map((s) => s.dy);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
 
-    const skyX0 = SKY_MARGIN_X;
-    const skyY0 = SKY_MARGIN_Y_TOP;
-    this.worldW = cols * cellW + SKY_MARGIN_X * 2;
-    this.worldH = rows * cellH + SKY_MARGIN_Y_TOP + SKY_MARGIN_Y_BOTTOM;
+    const skyX0 = SKY_MARGIN_X + maxHalfW - minX;
+    const skyY0 = SKY_MARGIN_Y_TOP + maxHalfH - minY;
+    this.worldW = maxX - minX + maxHalfW * 2 + SKY_MARGIN_X * 2;
+    this.worldH = maxY - minY + maxHalfH * 2 + SKY_MARGIN_Y_TOP + SKY_MARGIN_Y_BOTTOM;
 
     for (const balloon of this.balloons) {
-      const col = balloon.def.slotIndex % cols;
-      const row = Math.floor(balloon.def.slotIndex / cols);
-      const centerX = skyX0 + (col + 0.5) * cellW;
-      const centerY = skyY0 + (row + 0.5) * cellH;
-      balloon.baseX = centerX + balloon.def.jitterX * cellW;
-      balloon.baseY = centerY + balloon.def.jitterY * cellH;
+      const slot = slots[balloon.def.slotIndex] ?? { dx: 0, dy: 0 };
+      const centerX = skyX0 + slot.dx;
+      const centerY = skyY0 + slot.dy;
+      balloon.baseX = centerX + balloon.def.jitterX * minSpacingX;
+      balloon.baseY = centerY + balloon.def.jitterY * minSpacingY;
       // update() overwrites this with base + drift every frame once
       // running, but this keeps the very first rendered frame (before
       // update() has run) in the right place rather than at (0, 0).

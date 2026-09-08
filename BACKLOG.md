@@ -15,6 +15,110 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Balloon stage: curve the candidate layout, shrink the
+      font (2026-09-08).** Per your "curve the balloon so they don't
+      take up so much horizontal space" — `BalloonSentenceScene`'s
+      `layoutBalloons` used to lay candidates on a roughly-square grid
+      (`cols ≈ √total`). New `balloonArcLayout.ts` (pure function +
+      tests) arranges them along a "bouquet" curve instead — every other
+      slot alternates slightly above/below a shared arc, so an adjacent
+      pair's clearance comes from both axes at once instead of
+      horizontal spacing alone, letting the horizontal step shrink well
+      below a flat row/grid's requirement for the same minimum spacing.
+      Safety enforced by construction (lay the raw curve out, check
+      every pairwise distance, scale up once if the tightest pair falls
+      short — exact, not iterative) rather than hand-tuned constants.
+      Also stepped `CANDIDATE_CHAR_FONT_PX`/`CANDIDATE_PINYIN_FONT_PX`
+      down (34/13px → 28/11px), the other lever on "still spans too
+      far." All green: `npm run typecheck`/`test` (285 passed)/`build`,
+      plus the full `idiom-door.spec.ts` e2e suite (24 passed,
+      mobile+desktop) including the balloon-stage tests. Still a
+      build-and-eyeball first pass, not a final tuning — refine the
+      curve/font constants further once you've actually looked at it.
+- [ ] `todo` — **Writing/tracing stage: teach each character before the
+      door (2026-09-08).** New stage between an idiom's intro and its
+      door: each of the idiom's 4 characters shown one at a time over a
+      stroke-order template, child traces it, scored on accuracy.
+      Recommend [HanziWriter](https://hanziwriter.org/) (MIT) with
+      stroke data bundled locally for just this project's distinct
+      characters (not the full CDN dataset) rather than building stroke
+      recognition from scratch. New DOM UI layer + Phaser scene +
+      pure-logic scoring module, following the same
+      pure-function-plus-thin-Scene pattern as every other mechanic
+      here.
+- [ ] `todo` — **HP: earned from tracing, spent in the door stage, a
+      real gate (2026-09-08).** Per your "decent writing should enable
+      the child to pass the door stage but if badly written the child
+      should have to restart": trace accuracy (no baseline freebie)
+      becomes that idiom's door-stage HP. Every jump costs a small flat
+      amount; a jump that lands on the wrong character costs an
+      additional, larger amount on top. At 0 HP, jumping stops working
+      — the character keeps auto-running but can't catch anything, so
+      it reaches the door unsolved, which already gently restarts the
+      level (`IdiomDoorScene.checkDoor`). That restart needs to route
+      back to *retracing* this idiom (a new callback out to `main.ts`,
+      same pattern as `onDoorReached`), not just respawn the same door
+      tiles with an already-spent pool. Needs a small HP meter in
+      `catch-ui-layer` so the child can see they're running low. Starting
+      numbers (tune after playtest, same as every other constant in
+      this file): ~100 HP for a perfect trace, ~5 HP/jump, +~10 HP extra
+      on a wrong catch.
+- [ ] `todo` — **Door stage: burning tile on a wrong catch (2026-09-08).**
+      Wrong catch recolors that specific tile scorched/charred (reuse
+      the existing spark-burst system, angrier) and marks it inert
+      afterward — so one mistimed jump lingering near it (the exact
+      "touch-and-go" problem past door-feel PRs fought hard to fix)
+      doesn't rack up repeat HP penalties for a single mistake.
+- [ ] `todo` — **Door stage: match caught tiles by glyph, not a
+      pre-baked index — unlocks repeated-character idioms (2026-09-08).**
+      `ELIGIBLE_IDIOM_IDS` currently excludes 一心一意/有始有终/相亲相爱
+      because they repeat a character, and the door puzzle's catch
+      logic (`orderedCatchProgress.ts`, `IdiomDoorScene.handleCatch`)
+      pre-assigns each tile to a specific character *position* at
+      level-build time — for a repeated glyph that produces two
+      tiles that look identical on screen but are internally tagged for
+      different positions, so a child can get told "wrong" for grabbing
+      the exact glyph asked for. Fix: match a caught tile by comparing
+      its glyph against `characters[nextIndex]` (the next character
+      still needed) rather than a positional index. Order stays enforced
+      between *distinct* characters (still teaches the idiom's real
+      character order); repeated glyphs just satisfy whichever
+      occurrence is still outstanding. Removes the need for
+      `ELIGIBLE_IDIOM_IDS` to exclude anything — the whole idiom pool
+      becomes door/balloon-playable.
+- [ ] `todo` — **Remove the per-session match warm-up; matching becomes a
+      milestone-finale-only mechanic (2026-09-08).** Per your steer:
+      drop `beginMatchStage`/`showMatchIntro` from `main.ts`'s boot flow
+      entirely — a session goes straight from the resurface card (if
+      any) into the first idiom's intro. In its place: every time the
+      cumulative discovered-idiom count (`sessionHistory.ts`'s
+      `allDiscoveredIdiomIds`) crosses a new multiple of 15, that fresh
+      batch of 15 triggers a celebratory match milestone — the existing
+      idiom-halves mechanic (`IdiomMatchScene`/`matchProgress.ts`/
+      `buildMatchLevel`, unchanged), split into 3 sub-rounds of 5,
+      scoped to that batch only (not the whole history). Each
+      milestone's final HP is recorded to a new small on-device-only
+      history (no accounts, matches how saves already work) so a
+      finished milestone can show it against past ones ("Round 2: 480 HP
+      — Round 1 was 410, you're improving!") — a personal-best list and
+      a round-over-round trend are the same underlying data, just
+      displayed two ways. Not hardcoded to a fixed number of rounds —
+      just keeps going as the idiom pool grows.
+- [ ] `todo` — **Grow the idiom pool from 15 toward ~100 (2026-09-08).**
+      Same data-driven pattern `src/idioms/idioms.ts` already uses —
+      per `AUTONOMY.md` this doesn't need a decision, just doing it.
+      Authored in reviewable batches (matching this project's existing
+      "needs your review before treated as fully vetted" practice for
+      Chinese-language content), one flat age tier (no Upper Primary
+      split, per your steer). One construction-time fix needed
+      alongside it: `matchLevelContent.ts`'s no-collision guard (two
+      idioms can't share the same first-two or last-two characters)
+      currently assumes a small, hand-verified pool; at ~100 idioms,
+      collisions within a given milestone's 15-idiom batch become
+      realistic. Needs to become an active collision-avoiding grouping
+      step when assembling each milestone's batch, not just a guard that
+      throws.
+
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
       bored testing on these three idioms" — `sessionIdioms.ts` rotates
