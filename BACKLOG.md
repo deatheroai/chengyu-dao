@@ -128,6 +128,18 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       one mobile flake in the unrelated door-stage spam-jump test that
       passed clean on a solo re-run — pre-existing parallel-load timing,
       not a regression from this change).
+- [x] `done` — **Balloon stage: no border on the card body (2026-09-08).**
+      Per "let's do them without borders." `buildBalloon`'s curved-band
+      body drops its `lineStyle`/`strokePath` — filled only now.
+      `colorway.border` is untouched and still used for the dangling
+      string (`redrawString`) — a separate visual element, not the
+      card's own outline, so that wasn't part of the ask. All green:
+      `npm run typecheck`/`test` (289 passed)/`build`, plus the full
+      `idiom-door.spec.ts` e2e suite (24 passed, mobile+desktop, clean
+      this time). New `balloonColors.ts` fill values from your palette
+      pick are still pending — waiting on the actual hex values (the
+      picker had no save feature, so nothing from your session there
+      reached this repo).
 - [ ] `todo` — **Writing/tracing stage: teach each character before the
       door (2026-09-08).** New stage between an idiom's intro and its
       door: each of the idiom's 4 characters shown one at a time over a
