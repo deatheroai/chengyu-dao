@@ -35,11 +35,24 @@ const CHAR_SIZE = 60;
 // "less horizontal space" direction at once.
 const CANDIDATE_CHAR_FONT_PX = 28;
 const CANDIDATE_PINYIN_FONT_PX = 11;
-const BALLOON_PAD_X = 20;
-const BALLOON_PAD_Y = 16;
 const TEXT_GAP = 4;
 // Horizontal spacing between adjacent character columns.
 const CHAR_GAP = 4;
+// 2026-09-08 (later): "the words are curved but the rectangle remains
+// the same... curve the rectangle so it takes up less horizontal space
+// overall" — the card body is now a curved band (buildBalloon's
+// buildCurvedCardPath) that actually follows the text's own arc rather
+// than one flat rounded rectangle sized to bound it. Padding is now
+// tight around the curved content itself (BAND_PAD_X/Y below) instead
+// of one generous BALLOON_PAD_X/Y added once around an already-wide
+// bounding box — the old 20/16px padding was most of what kept the
+// card wide regardless of how the text inside it was arranged.
+// BAND_PAD_X is a pixel amount, converted to an angular pad (÷ the
+// glyph arc's own radius, small-angle arc-length≈radius×angle) at build
+// time — a fixed pixel gap around the end characters reads consistently
+// regardless of how tightly a given balloon's own arc happens to curl.
+const BAND_PAD_X = 8;
+const BAND_PAD_Y = 10;
 // A little slop beyond the balloon's own measured half-extents — this
 // is "did you fly into roughly the right balloon," not a pixel-precise
 // hitbox.
@@ -82,7 +95,9 @@ const DEFAULT_REACH_ANGLE = -Math.PI / 2.3;
 
 // Extra breathing room between grid cells beyond a balloon's own
 // measured half-extent, on top of balloonLevelContent.ts's jitter.
-const CELL_PADDING = 16;
+// 2026-09-08: trimmed from 16 — the other lever, alongside a smaller
+// CELL_JITTER_FRACTION, on "the balloons are too far apart."
+const CELL_PADDING = 8;
 // Worst case, two balloons in adjacent cells can jitter toward each
 // other by CELL_JITTER_FRACTION of a cell each — this is the fraction
 // of a cell's width/height that's *guaranteed* clear of that, used to
@@ -381,62 +396,62 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const glyphRadius = requiredChord / (2 * Math.sin(stepRad / 2));
     const arcSlots = computeGlyphArc(chars.length, { radius: glyphRadius, angleStepDeg: GLYPH_ANGLE_STEP_DEG });
 
-    // Each unit's own local bounding box (centered on its container's
-    // origin, since the pinyin/hanzi stack below is laid out from
-    // -unitHeight/2 to +unitHeight/2) rotated by its slot's angle and
-    // placed at its slot's offset — collecting every corner gives the
-    // balloon's true content bounds without assuming the (possibly
-    // lopsided, since the arc's own y isn't symmetric around 0) raw
-    // slot positions already center themselves.
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    units.forEach((unit, i) => {
-      const slot = arcSlots[i];
-      const rad = (slot.angleDeg * Math.PI) / 180;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      const halfW = unit.unitWidth / 2;
-      const halfH = unitHeight / 2;
-      for (const [lx, ly] of [
-        [-halfW, -halfH],
-        [halfW, -halfH],
-        [halfW, halfH],
-        [-halfW, halfH],
-      ]) {
-        const x = slot.x + lx * cos - ly * sin;
-        const y = slot.y + lx * sin + ly * cos;
-        minX = Math.min(minX, x);
-        maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y);
-        maxY = Math.max(maxY, y);
-      }
-    });
+    // The circle every character sits on (see balloonGlyphArc.ts) is
+    // centered at local (0, glyphRadius) in this same coordinate frame
+    // — computeGlyphArc's x=R·sin(θ), y=R(1−cos θ) is exactly that
+    // circle's parametrization. The card body below is a band around
+    // that *same* circle (an inner arc and an outer arc, radially
+    // BAND_PAD_Y beyond the text on each side) rather than a flat
+    // rectangle — an actually curved card, not a box the curved text
+    // happens to sit inside.
+    const maxAngleDeg = Math.max(...arcSlots.map((s) => Math.abs(s.angleDeg)));
+    const endPadDeg = (BAND_PAD_X / glyphRadius) * (180 / Math.PI);
+    const halfSpanRad = ((maxAngleDeg + endPadDeg) * Math.PI) / 180;
+    const bandHalfThickness = unitHeight / 2 + BAND_PAD_Y;
+    const outerR = glyphRadius + bandHalfThickness;
+    const innerR = glyphRadius - bandHalfThickness;
 
-    // Recenter so the drawn card (and the catch hitbox other code
-    // derives from halfW/halfH around this container's own x/y) actually
-    // matches the curved content's real bounds, rather than assuming the
-    // raw arc slots were already centered on (0, 0) — they aren't (the
-    // arc's y grows away from its middle, never negative).
+    const pointOnCircle = (radius: number, theta: number): [number, number] => [radius * Math.sin(theta), glyphRadius - radius * Math.cos(theta)];
+
+    const ARC_STEPS = 12;
+    const outerPoints: [number, number][] = [];
+    const innerPoints: [number, number][] = [];
+    for (let i = 0; i <= ARC_STEPS; i++) {
+      const theta = -halfSpanRad + (2 * halfSpanRad * i) / ARC_STEPS;
+      outerPoints.push(pointOnCircle(outerR, theta));
+      innerPoints.push(pointOnCircle(innerR, theta));
+    }
+
+    // The card's true bounds come straight from the same points the
+    // path below is built from — no separate padding constant to keep
+    // in sync with the drawing.
+    const allPoints = [...outerPoints, ...innerPoints];
+    const minX = Math.min(...allPoints.map((p) => p[0]));
+    const maxX = Math.max(...allPoints.map((p) => p[0]));
+    const minY = Math.min(...allPoints.map((p) => p[1]));
+    const maxY = Math.max(...allPoints.map((p) => p[1]));
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
-    const contentHalfW = (maxX - minX) / 2;
-    const contentHalfH = (maxY - minY) / 2;
-    const halfW = contentHalfW + BALLOON_PAD_X;
-    const halfH = contentHalfH + BALLOON_PAD_Y;
+    const halfW = (maxX - minX) / 2;
+    const halfH = (maxY - minY) / 2;
 
     const gfx = this.add.graphics();
-    // A rounded "balloon card" body. Color is randomized per balloon
-    // (never tied to isCorrect — see balloonLevelContent.ts's
-    // colorIndex): the child has to judge which idiom fits the sentence,
-    // not learn to spot a color. Added to the container first so every
-    // character sits on top of it, not behind.
+    // The curved "balloon card" body, built from the outer arc followed
+    // by the inner arc walked backward, closing into one banner shape.
+    // Color is randomized per balloon (never tied to isCorrect — see
+    // balloonLevelContent.ts's colorIndex): the child has to judge which
+    // idiom fits the sentence, not learn to spot a color. Added to the
+    // container first so every character sits on top of it, not behind.
     const colorway = BALLOON_COLORWAYS[def.colorIndex % BALLOON_COLORWAYS.length];
     gfx.fillStyle(colorway.fill, 0.97);
-    gfx.fillRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
     gfx.lineStyle(3, colorway.border, 0.9);
-    gfx.strokeRoundedRect(-halfW, -halfH, halfW * 2, halfH * 2, 18);
+    gfx.beginPath();
+    gfx.moveTo(outerPoints[0][0] - centerX, outerPoints[0][1] - centerY);
+    for (const [x, y] of outerPoints) gfx.lineTo(x - centerX, y - centerY);
+    for (let i = innerPoints.length - 1; i >= 0; i--) gfx.lineTo(innerPoints[i][0] - centerX, innerPoints[i][1] - centerY);
+    gfx.closePath();
+    gfx.fillPath();
+    gfx.strokePath();
     container.add(gfx);
 
     units.forEach((unit, i) => {

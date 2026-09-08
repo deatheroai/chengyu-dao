@@ -86,7 +86,16 @@ export const DISTRACTOR_COUNT = 3;
 // so this can be looser than the old full-sentence balloons' jitter
 // without risking overlap — BalloonSentenceScene's cell sizing still
 // accounts for it exactly the same way.
-export const CELL_JITTER_FRACTION = 0.2;
+//
+// 2026-09-08 ("the balloons are too far apart... spread them evenly and
+// slightly tighter"): BalloonSentenceScene's cell size is divided by
+// (1 − 2·CELL_JITTER_FRACTION) specifically to keep this jitter from
+// ever causing an overlap — at 0.2 that's a ×1.67 inflation on top of
+// the balloons' own real size, the single biggest contributor to how
+// far apart the grid ended up. Down to 0.1 (×1.25) — still real
+// per-level randomization (not perfectly centered in each cell), just a
+// smaller share of the "why is there so much gap" total.
+export const CELL_JITTER_FRACTION = 0.1;
 
 const BLANK_CHAR = "○";
 
