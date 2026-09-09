@@ -23,6 +23,23 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-09 — Daily cycle: shipped the door-stage glyph-matching fix,
+  unblocking the last 3 idioms.** Pending Decisions was empty. No open
+  GitHub issues or PRs to check in on first. `BACKLOG.md`'s unblocked
+  `todo` items (writing/tracing stage + its HP gate, door-stage burning
+  tile, this glyph-matching fix, milestone-only matching, growing the
+  idiom pool) were all genuinely buildable — none needed a decision — so
+  picked the smallest, most self-contained one for one focused session:
+  door stage's catch check now matches a caught tile's actual glyph
+  against the next-needed character instead of a pre-baked position
+  index, which is what let 一心一意/有始有终/相亲相爱 (the 3 idioms that
+  repeat a character) join the eligible pool — see `BACKLOG.md`'s entry
+  for the full detail. All gates green (typecheck/test/build/e2e); PR
+  opened and merged per the standing 2026-08-26 auto-land policy. The
+  larger items (the writing/tracing stage + HP economy, burning tiles,
+  milestone-only matching, growing the idiom pool toward 100) are left
+  for future sessions — each is its own real scope, not a fit alongside
+  this one.
 - **2026-09-08 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. `BACKLOG.md`'s active sections
   (Chinese Idiom Discovery Game, Platform/infra) are all `done`; the only

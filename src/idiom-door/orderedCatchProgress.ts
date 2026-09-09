@@ -24,17 +24,25 @@ export interface GrabResult {
  * treated as a punishing failure — the caller decides how to phrase
  * that gently, this just reports what happened.
  *
- * `grabbedIndex` is the position (0-based) the grabbed tile represents
- * in the *current* idiom's character sequence, or `undefined` if the
- * tile belongs to a different idiom entirely (a decoy).
+ * `grabbedChar` is the glyph the grabbed tile actually shows, or
+ * `undefined` for a tile with no glyph at all. Matched against
+ * `expectedChars[nextIndex]` by *value*, not by which position the
+ * tile was originally built to represent — 2026-09-09: this is what
+ * lets a repeated-character idiom (一心一意, 有始有终, 相亲相爱) work at
+ * all. Those idioms need the *same* glyph to satisfy two different
+ * positions in the sequence (e.g. 一心一意's 0 and 2 are both 一); a
+ * tile tagged for the "wrong" occurrence of that glyph still has the
+ * right glyph, and the child grabbing it grabbed exactly what was
+ * asked for. Order between *distinct* characters is still enforced —
+ * only occurrences of the same repeated glyph are interchangeable.
  */
-export function attemptGrab(state: OrderedCatchState, grabbedIndex: number | undefined, total: number): GrabResult {
+export function attemptGrab(state: OrderedCatchState, grabbedChar: string | undefined, expectedChars: string[]): GrabResult {
   if (state.isComplete) {
     return { state, outcome: "already-complete" };
   }
-  if (grabbedIndex === state.nextIndex) {
+  if (grabbedChar !== undefined && grabbedChar === expectedChars[state.nextIndex]) {
     const nextIndex = state.nextIndex + 1;
-    return { state: { nextIndex, isComplete: nextIndex >= total }, outcome: "advanced" };
+    return { state: { nextIndex, isComplete: nextIndex >= expectedChars.length }, outcome: "advanced" };
   }
   return { state, outcome: "wrong" };
 }

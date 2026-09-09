@@ -2,20 +2,19 @@ import { idioms } from "../idioms/idioms";
 import { createRng, seedFromString, randInt } from "./seededRandom";
 
 /**
- * Idioms eligible for the door/balloon/match mechanics: a level needs 4
- * *distinct* characters per idiom (see levelContent.ts's buildLevel doc
- * comment — a repeated glyph would mean two physically different tiles
- * sharing one character where only one "counts" at a time, a real design
- * question of its own). Of the 15 approved idioms in idioms.ts, three
- * repeat a character (一心一意, 有始有终, 相亲相爱) and are excluded here;
- * the other 12 all qualify.
+ * Every approved idiom's id — the pool the door/balloon/match mechanics
+ * draw a session's idioms from. Used to exclude the three idioms that
+ * repeat a character (一心一意, 有始有终, 相亲相爱), back when
+ * `levelContent.ts`'s door puzzle matched a caught tile against a
+ * pre-baked position index — a repeated glyph produced two tiles that
+ * looked identical on screen but were tagged for different positions,
+ * so grabbing the exact glyph asked for could still read as "wrong".
+ * 2026-09-09: `orderedCatchProgress.ts`'s `attemptGrab` now matches a
+ * caught tile by its glyph against the *next needed* character instead
+ * of a baked-in index, so a repeated glyph just satisfies whichever
+ * occurrence is still outstanding — nothing left to exclude here.
  */
-export const ELIGIBLE_IDIOM_IDS: string[] = idioms
-  .filter((idiom) => {
-    const chars = Array.from(idiom.hanzi);
-    return new Set(chars).size === chars.length;
-  })
-  .map((idiom) => idiom.id);
+export const ELIGIBLE_IDIOM_IDS: string[] = idioms.map((idiom) => idiom.id);
 
 /** How many idioms make up one door/balloon/match session. */
 export const IDIOMS_PER_SESSION = 3;
