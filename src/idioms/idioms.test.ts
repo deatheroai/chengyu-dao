@@ -6,8 +6,11 @@ const VALID_AGE_BANDS = new Set(["lower-primary", "upper-primary"]);
 const REQUIRED_TEXT_FIELDS = ["hanzi", "pinyin", "literalMeaning", "meaning", "dailyLifeScenario", "sourceNotes"] as const;
 
 describe("idiom content integrity", () => {
-  it("has the expected Snippet 1 count", () => {
-    expect(idioms).toHaveLength(15);
+  // 2026-09-09: grown from the original Snippet 1 batch of 15 toward
+  // ~100 (see BACKLOG.md) — this now just guards against an accidental
+  // duplicate/drop rather than pinning an exact historical count.
+  it("has at least the original Snippet 1 count, growing toward ~100", () => {
+    expect(idioms.length).toBeGreaterThanOrEqual(15);
   });
 
   it("every idiom's id matches its registry key", () => {
