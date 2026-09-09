@@ -212,6 +212,53 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       last-two characters are still pairwise distinct.
       All green: `npm run typecheck`/`test` (290 passed, +1 new
       test)/`build`, plus the full e2e suite (60 passed, mobile+desktop).
+- [x] `done` — **Example sentences: fix 4 that were correct but didn't
+      illustrate their idiom's actual meaning (2026-09-09).** Per your "some
+      are not point on... although they are correct." Reviewed all 15
+      `exampleSentence.hanzi` in `src/idioms/idioms.ts` against each idiom's
+      `meaning`; four missed the point despite being grammatically valid
+      idiom usage:
+      - **拔苗助长** — old sentence ("can't rush learning to bike, practise
+        slowly") only conveyed "don't rush," never the idiom's actual point
+        that forcing it *backfires*. New sentence shows a child skipping
+        training wheels too early and falling repeatedly as a direct result.
+      - **温故知新** — old sentence ("review old words before a test") only
+        showed the "review the old" half, never connecting to the "so the
+        new becomes easier" payoff that's the whole causal point of the
+        idiom. New sentence makes that link explicit.
+      - **磨杵成针** — old sentence used reported speech ("Grandma often
+        says...") instead of a child living out the persistence-pays-off
+        meaning directly, and it used calligraphy while the idiom's own
+        `dailyLifeScenario` field is about recorder practice. New sentence
+        shows the child directly, in the same recorder-practice domain.
+      - **助人为乐** — old sentence showed the helping action but not the
+        "乐" (joy) that's specifically what the idiom names, not just
+        helping. New sentence keeps the same action and adds that it made
+        the child happy.
+      All four re-authored with matching `pinyin`/`english`/`charPinyin`
+      (charPinyin re-derived per character, punctuation-empty per the
+      existing convention). `idioms.test.ts`'s content-integrity suite
+      (own-hanzi inclusion, charPinyin length/punctuation alignment,
+      cross-idiom sentence distinctness) passed unchanged against the new
+      text — no test needed updating, which is the point of that suite
+      being generic. All green: `npm run typecheck`/`test` (290
+      passed)/`build`.
+- [ ] `todo` — **Standing track: review the rest of the example-sentence
+      pool the same way, and re-check any newly authored one against its
+      idiom's actual meaning before treating it as vetted (2026-09-09).**
+      The four fixed above were found by hand-reviewing all 15 sentences
+      against their `meaning` field, not from a repeatable check — no
+      automated way to catch "grammatically correct but off-point" (that's
+      a judgement call, not a lint rule). Two borderline ones were raised
+      and left as-is on your call: 助人为乐's "joy" framing is now folded
+      into the fix above, but revisit if it still reads thin; 井底之蛙's
+      more abstract lesson (flagged when it was authored, per its own
+      `sourceNotes`) is worth an occasional re-read too. As the pool grows
+      toward ~100 idioms (see the item below), do this same "does the
+      example actually demonstrate the idiom's real meaning, not just use
+      the characters correctly" pass on each new batch before treating it
+      as fully vetted, same "needs your review" status the rest of this
+      project's authored Chinese text already carries.
 - [ ] `todo` — **Remove the per-session match warm-up; matching becomes a
       milestone-finale-only mechanic (2026-09-08).** Per your steer:
       drop `beginMatchStage`/`showMatchIntro` from `main.ts`'s boot flow
