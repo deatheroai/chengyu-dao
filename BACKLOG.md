@@ -277,20 +277,40 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       a round-over-round trend are the same underlying data, just
       displayed two ways. Not hardcoded to a fixed number of rounds —
       just keeps going as the idiom pool grows.
-- [ ] `todo` — **Grow the idiom pool from 15 toward ~100 (2026-09-08).**
-      Same data-driven pattern `src/idioms/idioms.ts` already uses —
-      per `AUTONOMY.md` this doesn't need a decision, just doing it.
-      Authored in reviewable batches (matching this project's existing
-      "needs your review before treated as fully vetted" practice for
-      Chinese-language content), one flat age tier (no Upper Primary
-      split, per your steer). One construction-time fix needed
-      alongside it: `matchLevelContent.ts`'s no-collision guard (two
+- [ ] `todo` — **Grow the idiom pool from 15 toward ~100 (2026-09-08,
+      first batch landed 2026-09-09).** Same data-driven pattern
+      `src/idioms/idioms.ts` already uses — per `AUTONOMY.md` this
+      doesn't need a decision, just doing it. Authored in reviewable
+      batches (matching this project's existing "needs your review
+      before treated as fully vetted" practice for Chinese-language
+      content), one flat age tier (no Upper Primary split, per your
+      steer).
+      **Batch 1 (2026-09-09): 15 → 30.** Added 持之以恒/全神贯注/一丝不苟/
+      精益求精 (focus), 实事求是/光明正大/表里如一/诚心诚意 (honesty),
+      见义勇为/雪中送炭/同甘共苦 (kindness), 举一反三/未雨绸缪/融会贯通/
+      集思广益 (wisdom) — each with the full field set and meaning/origin
+      verified via zdic.net, Baidu Baike, and Taiwan's MOE 成語典 (not
+      from memory alone) before authoring, sourced per-entry in
+      `sourceNotes`. Applied the previous cycle's own lesson (PR #33):
+      each `exampleSentence` was written to actually demonstrate the
+      idiom's causal meaning, not just use it grammatically. Checked by
+      hand and by the existing `sessionIdioms.test.ts` (already generic
+      over the *whole* pool, not a fixed subset) for zero first-half/
+      last-half collisions — no code changes needed for that yet.
+      `idioms.test.ts`'s hardcoded `expect 15` count is now a `>= 15`
+      floor, since the rest of the suite validates new content
+      generically per-idiom already. All green: typecheck/test (290
+      passed)/build/e2e (60 passed, mobile+desktop). PR #34, merged.
+      **Remaining**: ~70 more idioms across further batches to reach
+      ~100. One construction-time fix still needed before the pool gets
+      much larger: `matchLevelContent.ts`'s no-collision guard (two
       idioms can't share the same first-two or last-two characters)
-      currently assumes a small, hand-verified pool; at ~100 idioms,
-      collisions within a given milestone's 15-idiom batch become
-      realistic. Needs to become an active collision-avoiding grouping
-      step when assembling each milestone's batch, not just a guard that
-      throws.
+      currently assumes a small, hand-verified pool; collisions within a
+      given milestone's 15-idiom batch become realistic well before 100.
+      Needs to become an active collision-avoiding grouping step when
+      assembling each milestone's batch, not just a guard that throws —
+      tied to the separate "milestone-only matching" item below, not
+      urgent yet at 30.
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
