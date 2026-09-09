@@ -118,10 +118,10 @@ export const idioms: IdiomContent[] = [
     dailyLifeScenario:
       "You've been trying to master a difficult piece on the recorder for weeks and want to quit — a parent might tell you the story of 磨杵成针 to encourage you that persistence pays off.",
     exampleSentence: {
-      hanzi: "奶奶常说磨杵成针，只要不放弃，一定能把毛笔字写好。",
-      pinyin: "Nǎinai cháng shuō móchǔ-chéngzhēn, zhǐyào bú fàngqì, yídìng néng bǎ máobǐzì xiě hǎo.",
-      english: "Grandma often says even an iron rod can be ground into a needle — never give up.",
-      charPinyin: ["nǎi", "nai", "cháng", "shuō", "mó", "chǔ", "chéng", "zhēn", "", "zhǐ", "yào", "bú", "fàng", "qì", "", "yí", "dìng", "néng", "bǎ", "máo", "bǐ", "zì", "xiě", "hǎo", ""],
+      hanzi: "他每天坚持练习吹竖笛，几个月后终于吹得又快又好，这就是磨杵成针。",
+      pinyin: "Tā měitiān jiānchí liànxí chuī shùdí, jǐ ge yuè hòu zhōngyú chuī de yòu kuài yòu hǎo, zhè jiùshì móchǔ-chéngzhēn.",
+      english: "He practises the recorder every day, and months later he can finally play it well — patience made the impossible possible.",
+      charPinyin: ["tā", "měi", "tiān", "jiān", "chí", "liàn", "xí", "chuī", "shù", "dí", "", "jǐ", "ge", "yuè", "hòu", "zhōng", "yú", "chuī", "de", "yòu", "kuài", "yòu", "hǎo", "", "zhè", "jiù", "shì", "mó", "chǔ", "chéng", "zhēn", ""],
     },
     ageBand: "lower-primary",
     theme: "focus",
@@ -143,10 +143,10 @@ export const idioms: IdiomContent[] = [
     dailyLifeScenario:
       "You want to learn to ride a bicycle without training wheels right away, without practising the basics first, and keep falling. A parent might explain that rushing it is like 拔苗助长.",
     exampleSentence: {
-      hanzi: "妈妈说学骑脚踏车不能拔苗助长，要慢慢练习。",
-      pinyin: "Māma shuō xué qí jiǎotàchē bùnéng bámiáo-zhùzhǎng, yào mànmàn liànxí.",
-      english: "Mum said learning to ride a bicycle can't be rushed — practise slowly, step by step.",
-      charPinyin: ["mā", "ma", "shuō", "xué", "qí", "jiǎo", "tà", "chē", "bù", "néng", "bá", "miáo", "zhù", "zhǎng", "", "yào", "màn", "màn", "liàn", "xí", ""],
+      hanzi: "哥哥急着拆辅助轮学骑车，结果摔了好几次，真是拔苗助长。",
+      pinyin: "Gēge jízhe chāi fǔzhùlún xué qíchē, jiéguǒ shuāi le hǎo jǐ cì, zhēnshi bámiáo-zhùzhǎng.",
+      english: "My brother rushed to take off his training wheels before he was ready, and kept falling — that's forcing growth before it's ready.",
+      charPinyin: ["gē", "ge", "jí", "zhe", "chāi", "fǔ", "zhù", "lún", "xué", "qí", "chē", "", "jié", "guǒ", "shuāi", "le", "hǎo", "jǐ", "cì", "", "zhēn", "shi", "bá", "miáo", "zhù", "zhǎng", ""],
     },
     ageBand: "lower-primary",
     theme: "focus",
@@ -219,10 +219,10 @@ export const idioms: IdiomContent[] = [
     dailyLifeScenario:
       "At recess, you see a classmate trip and drop all their books. Instead of walking past, you stop to help pick them up — that's living out 助人为乐.",
     exampleSentence: {
-      hanzi: "小华助人为乐，看到同学摔倒了马上跑过去扶他。",
-      pinyin: "Xiǎohuá zhùrén-wéilè, kàndào tóngxué shuāidǎo le mǎshàng pǎo guòqù fú tā.",
-      english: "Xiaohua loves helping others — he ran to help his classmate up right away.",
-      charPinyin: ["xiǎo", "huá", "zhù", "rén", "wéi", "lè", "", "kàn", "dào", "tóng", "xué", "shuāi", "dǎo", "le", "mǎ", "shàng", "pǎo", "guò", "qù", "fú", "tā", ""],
+      hanzi: "小华助人为乐，看到同学摔倒了马上跑过去扶他，心里觉得很开心。",
+      pinyin: "Xiǎohuá zhùrén-wéilè, kàndào tóngxué shuāidǎo le mǎshàng pǎo guòqù fú tā, xīnli juéde hěn kāixīn.",
+      english: "Xiaohua loves helping others — he ran to help a classmate up right away, and it made him happy.",
+      charPinyin: ["xiǎo", "huá", "zhù", "rén", "wéi", "lè", "", "kàn", "dào", "tóng", "xué", "shuāi", "dǎo", "le", "mǎ", "shàng", "pǎo", "guò", "qù", "fú", "tā", "", "xīn", "li", "jué", "de", "hěn", "kāi", "xīn", ""],
     },
     ageBand: "lower-primary",
     theme: "kindness",
@@ -291,10 +291,10 @@ export const idioms: IdiomContent[] = [
     dailyLifeScenario:
       "Before a spelling test, you flip back through last month's word lists to review them — this helps the new words make more sense too. That's 温故知新.",
     exampleSentence: {
-      hanzi: "考试前温故知新，把学过的生字再看一遍。",
-      pinyin: "Kǎoshì qián wēngù-zhīxīn, bǎ xuéguò de shēngzì zài kàn yí biàn.",
-      english: "Before the test, review the old lessons — go over words you've learned again.",
-      charPinyin: ["kǎo", "shì", "qián", "wēn", "gù", "zhī", "xīn", "", "bǎ", "xué", "guò", "de", "shēng", "zì", "zài", "kàn", "yí", "biàn", ""],
+      hanzi: "他每天温故知新，先复习旧的生字，读新课文时就觉得容易多了。",
+      pinyin: "Tā měitiān wēngù-zhīxīn, xiān fùxí jiù de shēngzì, dú xīn kèwén shí jiù juéde róngyì duō le.",
+      english: "He reviews old lessons every day — that's why new lessons feel much easier to read.",
+      charPinyin: ["tā", "měi", "tiān", "wēn", "gù", "zhī", "xīn", "", "xiān", "fù", "xí", "jiù", "de", "shēng", "zì", "", "dú", "xīn", "kè", "wén", "shí", "jiù", "jué", "de", "róng", "yì", "duō", "le", ""],
     },
     ageBand: "lower-primary",
     theme: "wisdom",
