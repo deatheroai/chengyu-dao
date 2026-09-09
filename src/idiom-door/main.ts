@@ -8,13 +8,14 @@ import { matchLevel } from "./matchLevelContent";
 import { hideMatchHint } from "./matchHintStatus";
 import { updateSessionProgress } from "./sessionProgressStatus";
 import { renderRubyText } from "../shared/rubyText";
-import { pickResurfaceIdiomId, recordCompletedSession, clearHistory, seedFakePriorSession, exportForCloud } from "../shared/sessionHistory";
+import { pickResurfaceIdiomId, recordCompletedSession, completedSessionCount, clearHistory, seedFakePriorSession, exportForCloud } from "../shared/sessionHistory";
 import { getLocalCloudCode, pushToCloud } from "../shared/cloudSync";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode } from "./cloudSaveStatus";
 import { idiomsById } from "../idioms/idioms";
 import type { IdiomContent } from "../idioms/types";
 import { setDevIdiomSeedOverride, clearDevIdiomSeedOverride } from "./sessionIdioms";
 import { runWritingStage } from "./writingStage";
+import { shouldSkipStrokeDemo } from "./writingScore";
 
 function showMeaning(index: number): void {
   const el = document.getElementById("meaning-prompt");
@@ -347,9 +348,19 @@ function bootstrap(): void {
   // stage actually starts. Its own onComplete hands back this idiom's
   // starting door-stage HP (writingScore.ts), which beginDoorLevel below
   // then actually starts the door scene with.
+  //
+  // skipDemo (re-checked fresh on every call, not cached once at
+  // bootstrap) — per your "can we skip the example tracing" feedback
+  // for more experienced children: once this device has completed
+  // enough sessions (writingScore.ts's shouldSkipStrokeDemo), each
+  // character's stroke-order animation is skipped in favor of jumping
+  // straight to its quiz. Re-checked per call (not just once per page
+  // load) so the exact session that crosses the threshold already
+  // benefits from it on its very next idiom, not just future sessions.
   const beginWritingStage = (index: number): void => {
     showWritingStageUI();
-    runWritingStage(doorLevels[index].idiom, (startingHp) => {
+    const skipDemo = shouldSkipStrokeDemo(completedSessionCount());
+    runWritingStage(doorLevels[index].idiom, skipDemo, (startingHp) => {
       beginDoorLevel(index, startingHp);
     });
   };

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   recordCompletedSession,
   hasPriorSession,
+  completedSessionCount,
   allDiscoveredIdiomIds,
   pickResurfaceIdiomId,
   clearHistory,
@@ -22,6 +23,18 @@ describe("hasPriorSession", () => {
   it("is true after recording a completed session", () => {
     recordCompletedSession(["a", "b", "c"]);
     expect(hasPriorSession()).toBe(true);
+  });
+});
+
+describe("completedSessionCount", () => {
+  it("is 0 with no history", () => {
+    expect(completedSessionCount()).toBe(0);
+  });
+
+  it("counts every completed session, not just distinct idioms", () => {
+    recordCompletedSession(["a", "b", "c"]);
+    recordCompletedSession(["a", "b", "c"]); // same 3 idioms again — still 2 sessions
+    expect(completedSessionCount()).toBe(2);
   });
 });
 

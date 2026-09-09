@@ -58,8 +58,17 @@ function charDataLoader(char: string, onLoad: (data: WritingCharacterData) => vo
  * focused full-screen cards (level-intro-card, balloon-intro-card) are
  * already plain DOM over the Phaser canvas rather than Phaser text —
  * there's no game physics here for a Scene to usefully own.
+ *
+ * `skipDemo` (writingScore.ts's `shouldSkipStrokeDemo`, decided by
+ * main.ts from how many sessions this device has already completed)
+ * skips straight to the quiz for every character instead of first
+ * playing its stroke-order animation — per your "the child may get
+ * impatient waiting if he already knew the strokes" feedback for a
+ * more experienced child. Quiz mode still shows a faint outline of the
+ * character as a guide either way (`showOutline: true` below); only the
+ * *animated* demo is skipped.
  */
-export function runWritingStage(idiom: IdiomContent, onComplete: (startingHp: number) => void): void {
+export function runWritingStage(idiom: IdiomContent, skipDemo: boolean, onComplete: (startingHp: number) => void): void {
   const chars = Array.from(idiom.hanzi);
   const target = document.getElementById("writing-target");
   if (!target || chars.length === 0) {
@@ -82,39 +91,44 @@ export function runWritingStage(idiom: IdiomContent, onComplete: (startingHp: nu
     charDataLoader,
   });
 
-  const traceChar = (index: number): void => {
+  const startQuiz = (index: number): void => {
     const char = chars[index];
-    updateWritingStatus(index, chars.length, char, "watch");
-    writer.animateCharacter({
-      onComplete: () => {
-        updateWritingStatus(index, chars.length, char, "trace", 0);
-        writer.quiz({
-          showHintAfterMisses: 3,
-          // Direction (drawing a stroke backwards) is a common, harmless
-          // learning-stage mistake for a 7-9 year old — accepted as
-          // correct rather than marked a scored mistake, same "gentle"
-          // ethos as every other mechanic in this project.
-          acceptBackwardsStrokes: true,
-          // A generous cap, not `false` (HanziWriter's own default,
-          // "never move on") — no fail state: a child (or a bad run)
-          // stuck on one stroke still reaches the end of the quiz
-          // rather than being stuck on it forever. Its own mistakes
-          // still count fully toward this character's score either way.
-          markStrokeCorrectAfterMisses: 8,
-          onCorrectStroke: (strokeData) => {
-            updateWritingStatus(index, chars.length, char, "trace", strokeData.strokeNum + 1);
-          },
-          onMistake: (strokeData) => {
-            // Still waiting on the same stroke — strokeIndex unchanged.
-            updateWritingStatus(index, chars.length, char, "trace", strokeData.strokeNum);
-          },
-          onComplete: (summary) => {
-            results.push({ char, totalMistakes: summary.totalMistakes });
-            advance(index + 1);
-          },
-        });
+    updateWritingStatus(index, chars.length, char, "trace", 0);
+    writer.quiz({
+      showHintAfterMisses: 3,
+      // Direction (drawing a stroke backwards) is a common, harmless
+      // learning-stage mistake for a 7-9 year old — accepted as
+      // correct rather than marked a scored mistake, same "gentle"
+      // ethos as every other mechanic in this project.
+      acceptBackwardsStrokes: true,
+      // A generous cap, not `false` (HanziWriter's own default,
+      // "never move on") — no fail state: a child (or a bad run)
+      // stuck on one stroke still reaches the end of the quiz
+      // rather than being stuck on it forever. Its own mistakes
+      // still count fully toward this character's score either way.
+      markStrokeCorrectAfterMisses: 8,
+      onCorrectStroke: (strokeData) => {
+        updateWritingStatus(index, chars.length, char, "trace", strokeData.strokeNum + 1);
+      },
+      onMistake: (strokeData) => {
+        // Still waiting on the same stroke — strokeIndex unchanged.
+        updateWritingStatus(index, chars.length, char, "trace", strokeData.strokeNum);
+      },
+      onComplete: (summary) => {
+        results.push({ char, totalMistakes: summary.totalMistakes });
+        advance(index + 1);
       },
     });
+  };
+
+  const traceChar = (index: number): void => {
+    const char = chars[index];
+    if (skipDemo) {
+      startQuiz(index);
+      return;
+    }
+    updateWritingStatus(index, chars.length, char, "watch");
+    writer.animateCharacter({ onComplete: () => startQuiz(index) });
   };
 
   const advance = (index: number): void => {

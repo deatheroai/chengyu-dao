@@ -72,3 +72,26 @@ export function idiomTraceAccuracy(results: CharacterTraceResult[]): number {
 export function startingDoorHp(results: CharacterTraceResult[]): number {
   return Math.round(PERFECT_TRACE_STARTING_HP * idiomTraceAccuracy(results));
 }
+
+/**
+ * After this many completed sessions (shared/sessionHistory.ts's
+ * `completedSessionCount` — each one ends at the celebratory
+ * session-summary card), the writing stage skips straight to the quiz
+ * for each character instead of first playing its stroke-order demo
+ * animation. Per your "the child may get impatient waiting if he
+ * already knew the strokes" — a child who's sat through the same 51
+ * characters' demos across 3 full sessions has plausibly already
+ * learned the strokes; still no fail state either way, since skipping
+ * the demo only skips the *animation*, not the outline hanzi-writer's
+ * quiz mode already shows as a faint guide while tracing. Starting
+ * number, tune after playtest — same as every other constant in this
+ * project (see BACKLOG.md).
+ */
+export const SESSIONS_BEFORE_SKIPPING_STROKE_DEMO = 3;
+
+/** Whether the writing stage should skip the stroke-order demo for a
+ * device with this many completed sessions — see
+ * `SESSIONS_BEFORE_SKIPPING_STROKE_DEMO` above. */
+export function shouldSkipStrokeDemo(completedSessions: number): boolean {
+  return completedSessions >= SESSIONS_BEFORE_SKIPPING_STROKE_DEMO;
+}

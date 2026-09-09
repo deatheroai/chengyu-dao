@@ -42,6 +42,14 @@ export function hasPriorSession(): boolean {
   return load().completedSessions.length > 0;
 }
 
+/** How many sessions this device has ever completed — `hasPriorSession`
+ * only needed "any at all," but the writing/tracing stage's own
+ * skip-the-demo-once-experienced gate (writingScore.ts's
+ * `shouldSkipStrokeDemo`) needs the actual count. */
+export function completedSessionCount(): number {
+  return load().completedSessions.length;
+}
+
 /** Every idiom id discovered across every completed session, deduplicated. */
 export function allDiscoveredIdiomIds(): string[] {
   const seen = new Set<string>();

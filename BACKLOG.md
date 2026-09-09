@@ -526,6 +526,46 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       interaction.
       All green: `npm run typecheck`/`test` (306 passed, +16 new)/`build`,
       plus the full e2e suite (mobile+desktop).
+- [x] `done` — **Skip the stroke-order demo for an experienced child; a
+      distinct pop animation for a wrong balloon (2026-09-09).** Two
+      small follow-ups from live feedback on the writing stage/balloon
+      stage above.
+      - **"For the more advanced phases maybe after three
+        celebrations, can we skip the example tracing? The child may
+        get impatient waiting if he already knew the strokes."** —
+        `writingScore.ts`'s new `shouldSkipStrokeDemo` gates
+        `writingStage.ts`'s per-character stroke-order animation
+        (`HanziWriter.animateCharacter`) on how many sessions this
+        device has already completed (`sessionHistory.ts`'s new
+        `completedSessionCount` — each session ends at the celebratory
+        summary card, "celebrations" per your phrasing).
+        `SESSIONS_BEFORE_SKIPPING_STROKE_DEMO` (3) or more behind it,
+        and every character's quiz starts immediately instead — the
+        animated demo is skipped, not the quiz's own outline guide
+        (`showOutline: true`, unchanged), so there's still a faint
+        reference while tracing. Re-checked on every call
+        (`main.ts`'s `beginWritingStage`), not cached once at
+        bootstrap, so the exact session crossing the threshold already
+        benefits on its very next idiom.
+      - **"For the balloon stage can we add some animation when we
+        burst the wrong balloon? Like explode into tiny rubber pieces
+        or confetti like?"** — `BalloonSentenceScene`'s wrong-catch
+        handling used to reuse the same golden `spawnSparkBurst` a
+        correct catch gets (just fewer sparks) before the plain
+        shrink-and-fade. New `spawnPopBurst` replaces that with ~14
+        small rotated-rectangle shards, colored from the popped
+        balloon's own colorway (fill + border) mixed with a couple of
+        fixed accent colors for a multi-colored confetti feel, tumbling
+        outward and downward (a light gravity-like bias, not real
+        physics) while spinning and fading — reads as distinctly *not*
+        the correct-catch flourish, per your ask.
+      All green: `npm run typecheck`/`test` (312 passed, +6 new)/`build`,
+      plus targeted e2e coverage (new `writing-stage.spec.ts` tests
+      confirming a fresh device still sees the demo, a device with 2
+      prior sessions still sees it, and one with 3+ skips straight to
+      the quiz; a one-off manual check confirmed the balloon pop-burst
+      runs with no page errors and the expected HP deduction) plus a
+      full mobile+desktop e2e suite run.
 
 ## Platform / infra
 

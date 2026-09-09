@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { characterTraceAccuracy, idiomTraceAccuracy, startingDoorHp, PERFECT_TRACE_STARTING_HP, MISTAKE_ACCURACY_PENALTY } from "./writingScore";
+import {
+  characterTraceAccuracy,
+  idiomTraceAccuracy,
+  startingDoorHp,
+  PERFECT_TRACE_STARTING_HP,
+  MISTAKE_ACCURACY_PENALTY,
+  shouldSkipStrokeDemo,
+  SESSIONS_BEFORE_SKIPPING_STROKE_DEMO,
+} from "./writingScore";
 
 describe("writing stage scoring", () => {
   it("scores a mistake-free character at full accuracy", () => {
@@ -70,5 +78,23 @@ describe("writing stage scoring", () => {
     // average = 0.9625 -> 96.25 -> rounds to 96
     expect(startingDoorHp(results)).toBe(96);
     expect(Number.isInteger(startingDoorHp(results))).toBe(true);
+  });
+});
+
+describe("shouldSkipStrokeDemo", () => {
+  it("does not skip for a brand-new device (0 completed sessions)", () => {
+    expect(shouldSkipStrokeDemo(0)).toBe(false);
+  });
+
+  it("does not skip right up until the threshold", () => {
+    expect(shouldSkipStrokeDemo(SESSIONS_BEFORE_SKIPPING_STROKE_DEMO - 1)).toBe(false);
+  });
+
+  it("skips once the threshold is reached", () => {
+    expect(shouldSkipStrokeDemo(SESSIONS_BEFORE_SKIPPING_STROKE_DEMO)).toBe(true);
+  });
+
+  it("keeps skipping well past the threshold", () => {
+    expect(shouldSkipStrokeDemo(SESSIONS_BEFORE_SKIPPING_STROKE_DEMO + 50)).toBe(true);
   });
 });
