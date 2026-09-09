@@ -135,6 +135,16 @@ rt {
   min-height: 1.1em;
 }
 
+/* 2026-09-09: this idiom's door-stage HP (doorHp.ts) — earned by the
+   writing stage just before it, spent per jump (more on a wrong catch),
+   a real gate rather than #balloon-hp's running score. Same visual
+   treatment as that one (bold, pink-red — reads as "health"). */
+#door-hp {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #c2185b;
+}
+
 /* Match stage — a green/teal accent, distinct from the door puzzle's
    warm tones and the balloon stage's blue, matching
    IdiomMatchScene's own green/teal background. */
@@ -264,6 +274,73 @@ rt {
   color: #c2185b;
 }
 
+/* Writing/tracing stage (2026-09-09, BACKLOG.md) — a fresh ink-purple
+   accent, distinct from the door puzzle's warm amber/orange, the
+   balloon stage's blue, and the match stage's green, so which stage
+   is showing always reads at a glance. Full-viewport (not a thin top
+   strip like catch-ui-layer/balloon-ui-layer/match-ui-layer) since
+   there's no Phaser scene running behind it for the child to see —
+   this *is* the whole stage, not a HUD over one. */
+#writing-ui-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: #fff8ef;
+  z-index: 4;
+}
+
+.writing-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 22rem;
+  width: 100%;
+  text-align: center;
+}
+
+.writing-eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #8a6bc2;
+}
+
+#writing-status {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #5a3d8a;
+  min-height: 1.4em;
+}
+
+/* Fixed size, matching writingStage.ts's WRITER_SIZE/WRITER_PADDING
+   exactly — not left to responsive/container sizing, so the
+   character-space-to-screen-pixel transform an E2E test computes from
+   those two constants alone stays correct regardless of viewport (see
+   writingStage.ts's doc comment). A simple paper-like card behind the
+   SVG HanziWriter itself renders into. */
+.writing-target {
+  width: 260px;
+  height: 260px;
+  background: #fff;
+  border: 2px solid #d9c7f0;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(90, 61, 138, 0.15);
+  touch-action: none;
+}
+
+.writing-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #7a5636;
+}
 
 /* 2026-08-30: opens the cloud-save panel — mirrors #session-progress's
    corner-pill look (same top edge, opposite side) but is a real,

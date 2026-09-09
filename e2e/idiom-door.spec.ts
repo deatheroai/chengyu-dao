@@ -1,37 +1,51 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { doorLevels } from "../src/idiom-door/levelContent";
 import { balloonLevels } from "../src/idiom-door/balloonLevelContent";
+import { JUMP_HP_COST, WRONG_CATCH_HP_PENALTY } from "../src/idiom-door/doorHp";
 import { completeMatchStage } from "./helpers/idiomMatch";
+import { traceWholeIdiomPerfectly } from "./helpers/writingStage";
+import { solveDoorLevel, catchCharacter, jumpForTile, pressJumpButton, takeoffXForTile } from "./helpers/doorJump";
 
 /**
  * Auto-runner puzzle (CATCH_MECHANIC_PLAN.md's 2026-08-23 revision):
  * the character runs forward on its own — no left/right control, no
  * separate grab button — and jumping is the one action, catching
- * whatever floating character it reaches automatically. Per your
- * feedback that walking backward to press GRAB felt clunky.
+ * whatever floating character it reaches automatically.
  *
  * Each level now opens with a full-screen intro card showing the
- * meaning (2026-08-23's follow-up feedback: give the child reading/
- * thinking time on a big screen before the run starts) — the scene
- * doesn't even start running until its Start button is pressed, so
- * every test needs to dismiss that intro before expecting any motion.
+ * meaning (2026-08-23's follow-up feedback), then — 2026-09-09's
+ * writing/tracing stage (BACKLOG.md) — each of the idiom's own 4
+ * characters shown one at a time for the child to trace, before the
+ * door scene actually starts. `helpers/writingStage.ts`'s
+ * `traceWholeIdiomPerfectly` drives that with *real* freehand pointer
+ * strokes along each character's own bundled median stroke points
+ * (writingStrokeData.ts) — genuine input through hanzi-writer's own
+ * stroke matching, landing with 0 mistakes every time (confirmed
+ * during development), so every test below opens its door stage at
+ * the full `PERFECT_TRACE_STARTING_HP` (writingScore.ts) unless it's
+ * deliberately testing the HP economy itself.
  *
- * Because motion is unconditional once running (always forward, at a
- * fixed runSpeed), most of what the previous walking-era suite had to
- * work around — predicting exact stop positions, backtracking,
- * deliberate grab timing — doesn't apply. These tests mostly just spam
- * JUMP on an interval and poll `#door-status` / `#player-position` for
- * the effect, which the pure-logic unit tests (orderedCatchProgress,
- * levelContent) already cover precisely — this suite's job is
- * confirming the pieces are wired together correctly, not re-proving
- * the logic.
+ * That HP is a *real* gate on jumping (doorHp.ts) — this suite's
+ * earlier "just spam JUMP on an interval" strategy (most jumps landing
+ * on nothing at all) would burn through a level's whole HP pool long
+ * before catching every character, so `helpers/doorJump.ts` replaces
+ * it with *aimed* jumps: each tile's own already-known, deterministic
+ * world position (levelContent.ts) plus the door stage's own exported
+ * jump physics (runPhysics.ts) work out exactly when to press jump for
+ * a given tile, the same way `flyUntilResolved` below steers directly
+ * to a balloon's live position rather than guessing a blind search
+ * pattern. The pure-logic unit tests (orderedCatchProgress.ts,
+ * doorHp.ts, writingScore.ts) already cover timing/scoring precisely —
+ * this suite's job is confirming the pieces are wired together
+ * correctly, not re-proving the logic.
  *
- * 2026-08-24: the session now opens with a one-time "join the two
- * halves" match warm-up *before* the first level's own intro (see
+ * 2026-08-24: the session opens with a one-time "join the two halves"
+ * match warm-up *before* the first level's own intro (see
  * IdiomMatchScene / matchLevelContent.ts) — every test here calls
  * `completeMatchStage` (e2e/helpers/idiomMatch.ts) right after
  * `page.goto` to get past it quickly, since this suite's job is the
- * door/balloon stages; idiom-match.spec.ts tests the warm-up itself.
+ * writing/door/balloon stages; idiom-match.spec.ts tests the warm-up
+ * itself.
  */
 async function getPlayerX(page: Page): Promise<number> {
   const attr = await page.locator("#player-position").getAttribute("data-x");
@@ -91,14 +105,30 @@ async function expectIntroShowing(page: Page, levelIndex: number): Promise<void>
 }
 
 /** Dismisses the level-intro screen (reading/thinking pause) so the
- * run actually starts. Every test needs this right after `page.goto()`,
- * and again after every level transition — each new level shows its
- * own intro. The one exception is the in-scene "reached the door
- * unsolved" restart, which deliberately does *not* re-show the intro. */
+ * writing/tracing stage (traceIdiomAndEnterDoor below) actually starts.
+ * Every test needs this right after `page.goto()`, and again after
+ * every level transition — each new level shows its own intro. The one
+ * exception is the in-scene "reached the door unsolved" retrace, which
+ * deliberately does *not* re-show the intro. */
 async function startPlaying(page: Page): Promise<void> {
   await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
   await page.click("#start-level-btn");
   await expect(page.locator("#level-intro-card")).not.toHaveClass(/visible/);
+}
+
+/**
+ * 2026-09-09: traces the level-intro card's idiom (real freehand
+ * strokes, see this file's own top doc comment) and waits for the door
+ * stage to actually start. Every test that needs the door scene running
+ * calls this right after `startPlaying` — the door scene doesn't exist
+ * on screen (nor does `#meaning-prompt`/`#door-status` carry this
+ * level's content) until the writing stage's last character resolves.
+ */
+async function traceIdiomAndEnterDoor(page: Page, levelIndex: number): Promise<void> {
+  const level = doorLevels[levelIndex];
+  await expect(page.locator("#writing-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
+  await traceWholeIdiomPerfectly(page, level.idiom.hanzi.length);
+  await expect(page.locator("#catch-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
 }
 
 /** Dismisses the balloon stage's own intro screen (2026-09-07 addition —
@@ -118,28 +148,6 @@ async function startBalloonStage(page: Page, levelIndex: number): Promise<void> 
   await expect.poll(() => rubyBaseText(sentence)).not.toContain(idiom.hanzi);
   await page.click("#start-balloon-btn");
   await expect(card).not.toHaveClass(/visible/);
-}
-
-async function tapJump(page: Page): Promise<void> {
-  await page.keyboard.down("Space");
-  await page.waitForTimeout(80);
-  await page.keyboard.up("Space");
-}
-
-/** Jumps on a steady interval until `predicate` is satisfied, or gives
- * up after `maxMs`. Jump timing doesn't need to be precise — every
- * correct character appears several times (see levelContent.ts's
- * REPEATS_PER_CHARACTER), scattered across a wide window rather than
- * lined up, so a steady, not-especially-aimed jump cadence reaches one
- * of them soon enough. */
-async function spamJumpUntil(page: Page, predicate: () => Promise<boolean>, maxMs = 45000, intervalMs = 360): Promise<void> {
-  const deadline = Date.now() + maxMs;
-  while (Date.now() < deadline) {
-    await tapJump(page);
-    await page.waitForTimeout(intervalMs - 80);
-    if (await predicate()) return;
-  }
-  throw new Error("spamJumpUntil timed out");
 }
 
 /** Asserts the balloon-sentence stage (2026-08-25: a stage after each
@@ -278,9 +286,11 @@ async function continueFromBalloonSuccess(page: Page): Promise<void> {
  * small pixel overlap is easy to miss in a screenshot.
  */
 test("the dev-only controls never overlap the jump button", async ({ page }) => {
+  test.setTimeout(60000);
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
 
   const jumpBox = await page.locator("#jump-btn").boundingBox();
   const devBox = await page.locator("#dev-controls").boundingBox();
@@ -299,12 +309,14 @@ test("the dev-only controls never overlap the jump button", async ({ page }) => 
  * the *content itself* (not just the override key) to today's
  * deterministic set — not just that the mechanism runs without error. */
 test("the dev 'new idioms' control rerolls this session's idiom set, and 'clear history' reverts it to today's normal set", async ({ page }) => {
+  test.setTimeout(90000);
   await page.goto("/idiom-door.html");
   const readOverride = () => page.evaluate(() => localStorage.getItem("chengyu-dao-dev-idiom-seed-override"));
   expect(await readOverride()).toBeNull();
 
   await completeMatchStage(page);
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
   const todaysMeaning = await page.locator("#meaning-prompt").textContent();
 
   // Both dev buttons below reload the page (main.ts's wireDevControls).
@@ -323,10 +335,12 @@ test("the dev 'new idioms' control rerolls this session's idiom set, and 'clear 
 
   await completeMatchStage(page);
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
   await expect(page.locator("#meaning-prompt")).toHaveText(todaysMeaning ?? "");
 });
 
 test("shows a full-screen intro with the meaning before the level starts, and nothing moves until Start is pressed", async ({ page }) => {
+  test.setTimeout(60000);
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await expect(page.locator("#game-container canvas")).toBeVisible();
@@ -339,14 +353,24 @@ test("shows a full-screen intro with the meaning before the level starts, and no
   expect(x2).toBe(x1); // frozen behind the intro card, no auto-run yet
 
   await startPlaying(page);
+  // 2026-09-09: the writing stage runs next, before the door scene
+  // itself — still nothing moving (there's no door scene running yet
+  // to move).
+  await expect(page.locator("#writing-ui-layer")).not.toHaveClass(/stage-hidden/);
+  const x3 = await getPlayerX(page);
+  await page.waitForTimeout(500);
+  const x4 = await getPlayerX(page);
+  expect(x4).toBe(x3); // still frozen — tracing hasn't finished yet
+
+  await traceIdiomAndEnterDoor(page, 0);
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${doorLevels[0].idiom.meaning}"`);
   const s = await status(page);
   expect(s).toEqual({ nextIndex: "0", complete: "false" });
 
-  const x3 = await getPlayerX(page);
+  const x5 = await getPlayerX(page);
   await page.waitForTimeout(500);
-  const x4 = await getPlayerX(page);
-  expect(x4).toBeGreaterThan(x3); // now running forward on its own, no input needed
+  const x6 = await getPlayerX(page);
+  expect(x6).toBeGreaterThan(x5); // now running forward on its own, no input needed
 });
 
 test("the intro's English explanation stays hidden until the 🤔 icon is tapped", async ({ page }) => {
@@ -362,57 +386,121 @@ test("the intro's English explanation stays hidden until the 🤔 icon is tapped
 });
 
 test("running without ever jumping never catches anything", async ({ page }) => {
+  test.setTimeout(60000);
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
   await page.waitForTimeout(4000); // several floating characters would have been run past by now
   const s = await status(page);
   expect(s).toEqual({ nextIndex: "0", complete: "false" });
 });
 
-test("jumping repeatedly eventually catches the correct next character", async ({ page }) => {
+test("a well-timed jump catches the correct next character", async ({ page }) => {
+  test.setTimeout(60000);
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
-  await spamJumpUntil(page, async () => (await status(page)).nextIndex !== "0");
+  await traceIdiomAndEnterDoor(page, 0);
+  await catchCharacter(page, doorLevels[0], 0);
+  expect((await status(page)).nextIndex).not.toBe("0");
 });
 
-test("reaching the door without completing the level gently restarts it from the start, without re-showing the intro", async ({ page }) => {
-  test.setTimeout(120000);
+/** 2026-09-09: doorHp.ts's real HP gate — earned from the writing stage
+ * (100 here, since traceIdiomAndEnterDoor traces perfectly), spent per
+ * jump, with an extra penalty on top for a jump that lands on the
+ * *wrong* character. */
+test("each jump costs HP, and a wrong catch costs extra on top", async ({ page }) => {
+  test.setTimeout(60000);
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
   const level = doorLevels[0];
 
-  // Never jump — the character will run the whole (unsolved) track and
-  // hit the closed door. Detect the reset by a sudden drop in x, rather
-  // than polling for x to cross some threshold near the door: the
-  // door's own trigger window is narrower than one polling interval's
-  // worth of travel, so a poll can straddle it every single lap without
-  // ever sampling a value inside it — which looked identical to an
-  // infinite loop before this fix (x approached the door, reset, and
-  // repeated identically forever, since motion is fully deterministic).
-  let prevX = await getPlayerX(page);
-  let resetDetected = false;
-  const deadline = Date.now() + 90000;
-  while (Date.now() < deadline) {
-    await page.waitForTimeout(200);
-    const x = await getPlayerX(page);
-    if (x < prevX - 100) {
-      resetDetected = true;
-      break;
-    }
-    prevX = x;
-  }
-  expect(resetDetected).toBe(true);
-  await page.waitForTimeout(400);
+  await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", "100");
 
-  const restartedX = await getPlayerX(page);
-  expect(restartedX).toBeLessThan(level.length * 0.1); // back near the start
+  await catchCharacter(page, level, 0);
+  const afterOneCatch = 100 - JUMP_HP_COST;
+  await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", String(afterOneCatch));
+
+  // Deliberately jump for a tile that does *not* match the next-needed
+  // character — guaranteed "wrong" per orderedCatchProgress.ts's strict
+  // ordering, whichever character it actually belongs to. Its own real
+  // *takeoff* point (not just `tile.x`) needs to be safely ahead of the
+  // runner — a tile whose takeoff point (up to ~80px *before* `tile.x`,
+  // see takeoffXForTile) already fell behind the runner would make
+  // `jumpForTile` press immediately/late and badly mistimed, risking a
+  // clean miss rather than the deliberate wrong catch this test needs.
+  //
+  // levelContent.ts packs every slot (no gaps — SLOT_WIDTH±SLOT_JITTER
+  // puts adjacent tiles as close as MIN_SLOT_GAP, 110px), tighter than
+  // one jump's own ~190px ground footprint (confirmed live: even a
+  // precisely-*aimed* jump can chain-catch a densely-packed neighbor a
+  // frame before or after the intended tile — `checkCatches` runs every
+  // frame of the whole arc, not once at takeoff, so this is real game
+  // behavior, not an aiming bug). So rather than asserting one *exact*
+  // resulting HP (fragile against however many neighbors a given day's
+  // level layout happens to pack in), this only asserts what's
+  // guaranteed regardless of how many extra tiles a wide/lucky arc
+  // happens to sweep up: at least the one deliberate wrong catch's own
+  // full cost (`JUMP_HP_COST` + `WRONG_CATCH_HP_PENALTY`) came off, and
+  // progress never advances from a catch that wasn't the correct
+  // character (whether the one aimed at or a chained-in neighbor).
+  const nextChar = Array.from(level.idiom.hanzi)[1];
+  const currentX = await getPlayerX(page);
+  const wrongTile = level.tiles
+    .filter((t) => t.char !== nextChar && takeoffXForTile(t) > currentX + 30)
+    .sort((a, b) => a.x - b.x)[0];
+  if (!wrongTile) throw new Error("expected a reachable non-matching tile ahead of the runner in this level");
+
+  await jumpForTile(page, wrongTile);
+  await expect(page.locator("#door-status")).toHaveAttribute("data-outcome", "wrong", { timeout: 5000 });
+  // Let the frame(s) right after the press finish resolving (see
+  // catchCharacter's own use of the same short settle wait) before
+  // reading a final HP value to assert against.
+  await page.waitForTimeout(500);
+  const hpAfterWrongCatch = Number(await page.locator("#door-hp").getAttribute("data-hp"));
+  expect(hpAfterWrongCatch).toBeLessThanOrEqual(afterOneCatch - JUMP_HP_COST - WRONG_CATCH_HP_PENALTY);
+  // The wrong catch (or catches) never advanced progress.
+  expect((await status(page)).nextIndex).toBe("1");
+});
+
+/** 2026-09-09: reaching the door unsolved (BACKLOG.md's "HP: earned
+ * from tracing, spent in the door stage, a real gate" entry) now routes
+ * back out to retracing this same idiom (a fresh HP pool) rather than
+ * an in-place respawn of the same tiles with an already-spent one — see
+ * IdiomDoorSceneData.onUnsolvedDoorReached's doc comment. */
+test("reaching the door unsolved sends the child back to retrace the same idiom, not the next one", async ({ page }) => {
+  test.setTimeout(150000);
+  await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
+  await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
+  const level = doorLevels[0];
+
+  await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", "100");
+
+  // Never jump — the character runs the whole (unsolved) track and hits
+  // the closed door.
+  await expect(page.locator("#writing-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: DOOR_REACH_TIMEOUT_MS });
+  await expect(page.locator("#catch-ui-layer")).toHaveClass(/stage-hidden/);
+
+  // Same idiom, not the next one — no level-intro re-shown, no session
+  // progress advanced, same "quick nudge to try again" ethos the old
+  // in-place restart had.
+  await expect(page.locator("#level-intro-card")).not.toHaveClass(/visible/);
+  await expect(page.locator("[data-progress-fraction]")).toHaveText("1/3");
+  await expect.poll(() => page.locator("#writing-status").getAttribute("data-char")).toBe(Array.from(level.idiom.hanzi)[0]);
+
+  // Retracing perfectly again opens the door stage at a fresh, full HP
+  // pool — not whatever was left of the old one.
+  await traceWholeIdiomPerfectly(page, level.idiom.hanzi.length);
+  await expect(page.locator("#catch-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
+  await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", "100");
+  await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${level.idiom.meaning}"`);
   const s = await status(page);
-  expect(s).toEqual({ nextIndex: "0", complete: "false" }); // progress reset too
-  await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${level.idiom.meaning}"`); // same level, not advanced
-  await expect(page.locator("#level-intro-card")).not.toHaveClass(/visible/); // same-level restart, no intro re-shown
+  expect(s).toEqual({ nextIndex: "0", complete: "false" });
 });
 
 test("solving a level opens the door into the balloon stage, and resolving that shows the next level's intro; Start begins it", async ({ page }) => {
@@ -420,8 +508,10 @@ test("solving a level opens the door into the balloon stage, and resolving that 
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
 
-  await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+  await solveDoorLevel(page, doorLevels[0]);
+  await expect(page.locator("#door-status")).toHaveAttribute("data-complete", "true");
 
   await startBalloonStage(page, 0);
   await expectBalloonStageShowing(page, 0);
@@ -433,6 +523,7 @@ test("solving a level opens the door into the balloon stage, and resolving that 
   await expectIntroShowing(page, 1);
 
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 1);
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${doorLevels[1].idiom.meaning}"`);
   const s = await status(page);
   expect(s).toEqual({ nextIndex: "0", complete: "false" });
@@ -443,7 +534,8 @@ test("the balloon stage shows the sentence with the idiom blanked out, and flyin
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
-  await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+  await traceIdiomAndEnterDoor(page, 0);
+  await solveDoorLevel(page, doorLevels[0]);
 
   await startBalloonStage(page, 0);
   await expectBalloonStageShowing(page, 0);
@@ -458,7 +550,8 @@ test("dragging the pointer steers the avatar toward it (2026-08-26: replaced the
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
-  await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+  await traceIdiomAndEnterDoor(page, 0);
+  await solveDoorLevel(page, doorLevels[0]);
   await startBalloonStage(page, 0);
   await expectBalloonStageShowing(page, 0);
 
@@ -489,10 +582,12 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
   const summary = page.locator("#session-summary-card");
   await expect(summary).not.toBeVisible();
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
   await expect(page.locator("[data-progress-fraction]")).toHaveText("1/3");
 
   for (let i = 0; i < doorLevels.length; i++) {
-    await spamJumpUntil(page, async () => (await status(page)).complete === "true");
+    await solveDoorLevel(page, doorLevels[i]);
+    await expect(page.locator("#door-status")).toHaveAttribute("data-complete", "true");
     await startBalloonStage(page, i);
     await expectBalloonStageShowing(page, i);
     await flyUntilResolved(page);
@@ -512,6 +607,7 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
       await expectIntroShowing(page, i + 1);
       await expect(page.locator("[data-progress-fraction]")).toHaveText(`${i + 2}/${doorLevels.length}`);
       await startPlaying(page);
+      await traceIdiomAndEnterDoor(page, i + 1);
     }
   }
 
@@ -524,6 +620,7 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
   await expect(page.locator("[data-progress-fraction]")).toHaveText("1/3");
 
   await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${doorLevels[0].idiom.meaning}"`);
   const s = await status(page);
   expect(s).toEqual({ nextIndex: "0", complete: "false" });
@@ -542,16 +639,11 @@ test("solving all 3 levels shows the session summary, and Play again shows the f
 });
 
 test("the on-screen JUMP button works the same as the keyboard", async ({ page }) => {
+  test.setTimeout(60000);
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
-  const btn = page.locator("#jump-btn");
-
-  const deadline = Date.now() + 45000;
-  while (Date.now() < deadline) {
-    await btn.dispatchEvent("pointerdown");
-    await page.waitForTimeout(280);
-    if ((await status(page)).nextIndex !== "0") break;
-  }
+  await traceIdiomAndEnterDoor(page, 0);
+  await catchCharacter(page, doorLevels[0], 0, pressJumpButton);
   expect((await status(page)).nextIndex).not.toBe("0");
 });

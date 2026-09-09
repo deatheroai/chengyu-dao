@@ -31,6 +31,43 @@
       <div id="catch-ui-layer">
         <p id="meaning-prompt"></p>
         <div id="door-status" aria-live="polite" data-next-index="0" data-total="4" data-complete="false"></div>
+        <!-- 2026-09-09: this idiom's door-stage HP, earned by the
+             writing/tracing stage just before it (doorHp.ts/
+             writingScore.ts) — same small counter shape as the balloon
+             stage's own #balloon-hp below, just a real gate here rather
+             than a running score (see doorHp.ts's doc comment). -->
+        <div id="door-hp" aria-live="polite" data-hp="100"></div>
+      </div>
+      <!-- 2026-09-09 addition: BACKLOG.md's "writing/tracing stage: teach
+           each character before the door" — runs right after each
+           level's intro card (main.ts's beginLevel), before that idiom's
+           door stage. Each of the idiom's 4 characters is shown one at a
+           time: a stroke-order animation, then a HanziWriter quiz the
+           child traces themselves (real freehand pointer input, graded
+           stroke-by-stroke), scored on accuracy (writingScore.ts) into
+           the door stage's starting HP (doorHp.ts). Deliberately plain
+           DOM rather than a Phaser scene — HanziWriter owns its own SVG
+           rendering target and pointer input directly, same reason the
+           level-intro/balloon-intro cards are already plain DOM over the
+           canvas rather than Phaser text (see writingStage.ts's doc
+           comment). No Start/Continue button: the child advances by
+           actually tracing each character correctly, not by tapping
+           through — writingStage.ts's HanziWriter quiz `onComplete`
+           drives the advance to the next character (or, on the last one,
+           out to main.ts's onComplete). Shown/hidden in the same
+           stage-hidden lockstep as catch-ui-layer/balloon-ui-layer/
+           match-ui-layer (main.ts's showWritingStageUI). -->
+      <div id="writing-ui-layer" class="stage-hidden">
+        <div class="writing-card">
+          <p class="writing-eyebrow">Learn to write it</p>
+          <!-- Also this stage's test-only hook — see writingStatus.ts's
+               doc comment for why a freehand stroke can't be polled the
+               way #player-position/#balloon-position poll a game
+               position, and how an E2E test uses this instead. -->
+          <p id="writing-status" aria-live="polite" data-char-index="0" data-total="4" data-char="" data-phase="watch" data-stroke-index="0"></p>
+          <div id="writing-target" class="writing-target"></div>
+          <p class="writing-hint">Watch how it's drawn, then trace it yourself.</p>
+        </div>
       </div>
       <!-- Test-only hook mirroring the character's x position, same as
            platform-catch's — not part of the child-facing UI. -->

@@ -4,12 +4,39 @@ import { updateDoorStatus } from "./doorStatus";
 import type { DoorLevel, LevelCharacterTile } from "./levelContent";
 import { drawPlayerFigure } from "../shared/playerFigure";
 import { updatePlayerPosition } from "../shared/positionStatus";
-import { stepRun, type RunState, type RunConfig } from "./runPhysics";
+import { stepRun, type RunState, type RunConfig, RUN_SPEED, JUMP_GRAVITY, JUMP_VELOCITY, FALL_GRAVITY_MULTIPLIER } from "./runPhysics";
 import { pickCatchCandidate, CATCH_RADIUS_X, CATCH_RADIUS_Y } from "./catchSelection";
+import { initialDoorHpState, canJump, spendJumpHp, spendWrongCatchHp, type DoorHpState } from "./doorHp";
+import { updateDoorHpStatus } from "./doorHpStatus";
+import { PERFECT_TRACE_STARTING_HP } from "./writingScore";
 
 export interface IdiomDoorSceneData {
   level: DoorLevel;
+  /** Earned by the writing/tracing stage that now runs before every
+   * door level (writingScore.ts's `startingDoorHp`) — see doorHp.ts's
+   * doc comment for what it gates. Optional so a caller that hasn't
+   * (yet, or ever) wired the writing stage in front of this scene still
+   * gets a sensible full pool, same "perfect trace" ceiling
+   * writingScore.ts itself uses, rather than starting HP-gated with no
+   * HP at all. */
+  startingHp?: number;
   onDoorReached?: () => void;
+  /**
+   * 2026-09-09: reaching the door *unsolved* (always possible in
+   * principle — every repeat of some character missed, or jumping
+   * gated off by 0 HP, see doorHp.ts) used to just call `restartLevel`
+   * internally, respawning the same tiles with whatever HP pool was
+   * already spent. Per BACKLOG.md's "that restart needs to route back
+   * to retracing this idiom... not just respawn the same door tiles
+   * with an already-spent pool" — when provided, this callback (same
+   * pattern as `onDoorReached`) is called instead, so main.ts can send
+   * the child back through the writing stage for a fresh HP pool
+   * before relaunching this scene. Falls back to the old in-scene
+   * `restartLevel` when absent, so a caller that hasn't wired this
+   * (e.g. a test constructing the scene directly) still gets a
+   * never-stuck level rather than one that silently stops responding
+   * to jump input forever. */
+  onUnsolvedDoorReached?: () => void;
 }
 
 const BG_TOP = 0xfff6e6;
@@ -29,53 +56,17 @@ const DOOR_RIM = 0xf0b429;
 const CHAR_SIZE = 64;
 const TILE_SIZE = 60;
 const FOOT_OFFSET = CHAR_SIZE * 0.4;
-// Each tile floats at its own height (levelContent.ts's HEIGHT_MIN..
-// HEIGHT_MAX, ≈90-160px) rather than one uniform line — per your
-// 2026-08-23 feedback that a single fixed height felt too neatly
-// arranged. That whole range stays comfortably inside the jump arc's
-// max height (jumpVelocity²/(2·gravity) ≈ 175px with the physics
-// constants below). CATCH_RADIUS_X/Y themselves live in
-// catchSelection.ts (2026-09-04) — sized from real tile/player extents
-// rather than picked independently, see that file's doc comment.
-// 2026-08-24 feedback: 200px/s read as "way too slow." Bumped 60% —
-// the jump arc's shape (and therefore how forgiving catching is)
-// doesn't depend on run speed at all, since gravity/jumpVelocity are
-// unchanged; a faster run just covers more ground per second, both
-// approaching a tile and during the jump arc itself.
-const RUN_SPEED = 320;
-// 2026-08-31 feedback ("touch and go" — after the nearest-tile catch
-// fix (2026-08-30) still left too many side-catches): the remaining
-// problem wasn't just catch-zone overlap between adjacent tiles (that
-// fix still stands), it was how *long* the character lingers near a
-// given height. Near a parabola's apex, vertical speed is close to
-// zero, so the character drifts sideways for a while while staying
-// inside CATCH_RADIUS_Y of whatever height it peaked at — sweeping
-// through several tiles at similar heights during one "floaty" jump.
-// Scaling gravity and jumpVelocity up together by the same factor
-// keeps the arc's *max height* — and therefore which tiles it can
-// reach — essentially unchanged (jumpVelocity²/(2·gravity) ≈ 175px
-// either way, same as the CATCH_RADIUS_Y comment above still
-// describes), but shrinks the arc's *duration*: a steeper rise and
-// fall means less time (so less horizontal distance, at the same
-// runSpeed) spent hovering near any one height band. Time-to-apex
-// drops from 0.5s to ≈0.35s (jumpVelocity/gravity), about 30% snappier.
-const JUMP_GRAVITY = 2850;
-const JUMP_VELOCITY = -1000;
-// 2026-09-04 feedback ("land vertical instead of curved or slow" — the
-// touch-and-go tuning above and the real-sized catch hitboxes
-// (catchSelection.ts) still weren't quite enough): rather than freezing
-// horizontal movement mid-jump (a bigger change to the auto-runner's
-// core feel — the character always advances, jump timing and catching
-// aside), the fall itself now uses stronger gravity than the rise does
-// (runPhysics.ts's fallGravityMultiplier) — the classic "float up, drop
-// like a rock" platformer trick. Jump *height* is untouched (still
-// governed by JUMP_VELOCITY/JUMP_GRAVITY alone, same ≈175px apex as
-// before) — only how quickly it comes back down. At 2x, the descent
-// takes ≈71% (1/√2) as long as the rise that preceded it, instead of
-// the ≈100% a symmetric arc would — a shorter fall means less time (so
-// less horizontal drift, at the same runSpeed) spent descending through
-// a tile's height band, on top of the touch-and-go/hitbox fixes above.
-const FALL_GRAVITY_MULTIPLIER = 2;
+// RUN_SPEED/JUMP_GRAVITY/JUMP_VELOCITY/FALL_GRAVITY_MULTIPLIER (the
+// actual tuned physics numbers, and the full tuning history behind
+// each) now live in runPhysics.ts, imported above — moved there
+// 2026-09-09 so e2e/helpers/doorJump.ts (which needs them to work out
+// exactly when to press jump, now that doorHp.ts's real per-jump HP
+// cost makes blind spamming too expensive to rely on — see that
+// helper's own doc comment) can import them without pulling in Phaser
+// itself, which runPhysics.ts (unlike this file) never touches. See
+// runPhysics.ts for what each constant does and why it's tuned the way
+// it is; CATCH_RADIUS_X/Y (catchSelection.ts, imported above) are this
+// mechanic's other tuned half.
 // Once the idiom is solved, the child shouldn't have to keep running
 // (and possibly jumping) through however much unsolved track happens
 // to remain — per your feedback, the win should feel immediate. This
@@ -99,8 +90,11 @@ interface RuntimeTile {
 
 export class IdiomDoorScene extends Phaser.Scene {
   private level!: DoorLevel;
+  private startingHp = PERFECT_TRACE_STARTING_HP;
   private onDoorReached?: () => void;
+  private onUnsolvedDoorReached?: () => void;
   private orderedState: OrderedCatchState = initialOrderedCatchState();
+  private hpState: DoorHpState = initialDoorHpState(PERFECT_TRACE_STARTING_HP);
 
   private bg?: Phaser.GameObjects.Graphics;
   private slotsLayer!: Phaser.GameObjects.Container;
@@ -127,8 +121,11 @@ export class IdiomDoorScene extends Phaser.Scene {
 
   init(data: IdiomDoorSceneData): void {
     this.level = data.level;
+    this.startingHp = data.startingHp ?? PERFECT_TRACE_STARTING_HP;
     this.onDoorReached = data.onDoorReached;
+    this.onUnsolvedDoorReached = data.onUnsolvedDoorReached;
     this.orderedState = initialOrderedCatchState();
+    this.hpState = initialDoorHpState(this.startingHp);
     this.tiles = [];
     this.jumpRequested = false;
     this.doorTriggered = false;
@@ -154,6 +151,7 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.setupInput();
 
     updateDoorStatus(0, this.characters.length, false, this.characters[0]);
+    updateDoorHpStatus(this.hpState.hp);
 
     this.scale.on(Phaser.Scale.Events.RESIZE, () => {
       this.renderBackground();
@@ -367,9 +365,25 @@ export class IdiomDoorScene extends Phaser.Scene {
       Phaser.Input.Keyboard.JustDown(this.cursors.up!) || Phaser.Input.Keyboard.JustDown(this.cursors.space!) || Phaser.Input.Keyboard.JustDown(this.spaceKey) || this.jumpRequested;
     this.jumpRequested = false;
 
+    // doorHp.ts's real gate: at 0 HP, jump input is swallowed here
+    // rather than queued for later — the character keeps auto-running
+    // (stepRun still runs every frame) but simply can't leave the
+    // ground again until this idiom is retraced for a fresh HP pool
+    // (see onUnsolvedDoorReached above). Mirrors stepRun's own
+    // `state.grounded && jumpPressed` condition to detect a jump that's
+    // actually about to execute (not e.g. a jump press while already
+    // airborne, which stepRun ignores) — only an executed jump costs HP.
+    const gatedJumpPressed = jumpPressed && canJump(this.hpState);
+    const jumpExecuting = this.character.grounded && gatedJumpPressed;
+
     const prevChar = this.character;
-    this.character = stepRun(this.character, jumpPressed, dt, this.runConfig);
+    this.character = stepRun(this.character, gatedJumpPressed, dt, this.runConfig);
     this.characterContainer.setPosition(this.character.x, this.character.y - FOOT_OFFSET);
+
+    if (jumpExecuting) {
+      this.hpState = spendJumpHp(this.hpState);
+      updateDoorHpStatus(this.hpState.hp);
+    }
 
     if (!this.orderedState.isComplete) this.checkCatches(prevChar);
     this.checkDoor();
@@ -413,6 +427,10 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.orderedState = state;
 
     if (outcome !== "advanced") {
+      // doorHp.ts's own penalty — on top of the JUMP_HP_COST already
+      // spent for the jump that produced this catch, not instead of it.
+      this.hpState = spendWrongCatchHp(this.hpState);
+      updateDoorHpStatus(this.hpState.hp);
       this.spawnSparkBurst(tile.def.x, this.groundY - tile.def.height, 3);
       updateDoorStatus(this.orderedState.nextIndex, this.characters.length, false, this.characters[this.orderedState.nextIndex], "wrong");
       return;
@@ -482,13 +500,23 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.doorTriggered = true;
     if (this.orderedState.isComplete) {
       this.onDoorReached?.();
+    } else if (this.onUnsolvedDoorReached) {
+      // 2026-09-09: routes back out to main.ts to retrace this idiom
+      // for a fresh HP pool, rather than respawning the same tiles with
+      // whatever's left of an already-spent one — see
+      // IdiomDoorSceneData.onUnsolvedDoorReached's doc comment.
+      this.onUnsolvedDoorReached();
     } else {
+      // No retrace callback wired (e.g. a test driving this scene
+      // directly) — falls back to the old in-scene restart so the level
+      // still isn't a dead end, just without a fresh HP pool.
       this.restartLevel();
     }
   }
 
   private restartLevel(): void {
     this.orderedState = initialOrderedCatchState();
+    this.hpState = initialDoorHpState(this.startingHp);
     this.character = { x: PLAYER_START_X, y: this.groundY, vy: 0, grounded: true };
     this.characterContainer.setPosition(this.character.x, this.character.y - FOOT_OFFSET);
     this.doorTriggered = false;
@@ -496,6 +524,7 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.spawnTiles();
     this.renderSlots();
     updateDoorStatus(0, this.characters.length, false, this.characters[0]);
+    updateDoorHpStatus(this.hpState.hp);
   }
 
   private spawnSparkBurst(x: number, y: number, count: number): void {

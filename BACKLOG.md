@@ -460,6 +460,72 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       historical notes about the retired `session.html` prototype code
       was ported from, not stale branding of `idiom-door` itself, so left
       as-is.
+- [x] `done` — **Writing/tracing stage: teach each character before the
+      door (2026-09-09).** Lands the two `todo` entries above it
+      together (teaching the characters, and the HP economy that
+      connects them to the door stage) — the second needed the first to
+      exist, per that entry's own note.
+      A new stage now runs between each idiom's intro card and its door:
+      the idiom's 4 characters shown one at a time, a stroke-order
+      animation (`HanziWriter.animateCharacter`) then a real freehand
+      quiz (`HanziWriter.quiz` — genuine pointer-drawn strokes, graded
+      stroke-by-stroke by the library itself, not reimplemented here).
+      Stroke data (`writingStage/writingData/writingStrokeData.ts`)
+      is a *derived subset* of `hanzi-writer-data` 2.0.1 — just the 51
+      distinct characters across this project's own 15-idiom set, not
+      the full corpus — carried with its Arphic Public License text
+      alongside it per that license's redistribution terms.
+      `writingScore.ts` (pure, unit-tested) turns each character's own
+      mistake count into a 0-1 accuracy, averaged across the idiom (one
+      badly-traced character doesn't zero out the whole thing) into
+      `startingDoorHp` — up to `PERFECT_TRACE_STARTING_HP` (100) for a
+      mistake-free trace, no baseline freebie for a bad one, per your
+      "decent writing should enable the child to pass the door stage but
+      if badly written the child should have to restart."
+      `doorHp.ts` (pure, unit-tested) spends that pool in the door stage
+      itself: `JUMP_HP_COST` (5) per *executed* jump, plus
+      `WRONG_CATCH_HP_PENALTY` (10) on top for one that lands on the
+      wrong character. `canJump` goes false at 0 HP —
+      `IdiomDoorScene.update` swallows jump input rather than queuing it,
+      so the character keeps auto-running but can't catch anything.
+      Reaching the door unsolved (always possible, same as before) no
+      longer just respawns the same tiles in place — a new
+      `onUnsolvedDoorReached` callback (same pattern as `onDoorReached`)
+      sends the child back through the writing stage for the same idiom,
+      earning a fresh HP pool, before the door scene restarts. Falls back
+      to the old in-place `restartLevel` when that callback isn't wired
+      (e.g. a caller driving the scene directly), so nothing that doesn't
+      opt in loses its "never truly stuck" guarantee.
+      Deliberately plain DOM (`writingStage.ts` + a new
+      `#writing-ui-layer`), not a Phaser Scene — HanziWriter owns its own
+      SVG rendering target and pointer input directly, the same reason
+      this project's reading-focused full-screen cards (level-intro-card,
+      balloon-intro-card) are already plain DOM over the canvas rather
+      than Phaser text. There's no game physics here for a Scene to
+      usefully own.
+      `idiom-door.spec.ts`'s old "just spam JUMP on an interval" e2e
+      strategy no longer holds up against a real HP budget — most blind
+      jumps land on nothing, and each one still costs HP. Replaced with
+      *aimed* jumps (new `e2e/helpers/doorJump.ts`): each tile's own
+      already-known, deterministic world position plus the door stage's
+      own jump physics (now exported from `runPhysics.ts`, moved there
+      from `IdiomDoorScene.ts` so they're importable without pulling
+      Phaser into a Node test process) work out exactly when to press
+      jump for a one-shot, reliably-landing catch — the same "expose the
+      exact position, aim deterministically" approach `flyUntilResolved`
+      already used for the balloon stage. A parallel helper
+      (`e2e/helpers/writingStage.ts`) drives the writing stage itself
+      with real freehand strokes along each character's own bundled
+      median points, landing 0 mistakes every time, so every e2e test
+      opens its door stage at the full starting HP unless it's
+      deliberately testing the HP economy. New `writing-stage.spec.ts`
+      covers the stage on its own (mirroring `idiom-match.spec.ts`'s
+      relationship to the match warm-up); `idiom-door.spec.ts` gained
+      dedicated HP-economy and retrace-routing tests alongside its
+      existing coverage, rewritten throughout to trace before every door
+      interaction.
+      All green: `npm run typecheck`/`test` (306 passed, +16 new)/`build`,
+      plus the full e2e suite (mobile+desktop).
 
 ## Platform / infra
 
