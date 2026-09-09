@@ -7,9 +7,14 @@ export interface LevelCharacterTile {
   id: string;
   char: string;
   /** Position (0-based) in this level's idiom character sequence this
-   * tile represents — the thing `orderedCatchProgress.ts` checks a
-   * catch against. `undefined` for a decoy tile belonging to a
-   * different idiom entirely. */
+   * tile was generated for — `undefined` for a decoy tile belonging to
+   * a different idiom entirely. 2026-09-09: the actual catch check
+   * (`orderedCatchProgress.ts`'s `attemptGrab`) no longer keys off this
+   * directly — it compares `char` against the *next needed* glyph, so a
+   * repeated-character idiom's two tiles for the same glyph (e.g.
+   * 一心一意's two 一 tiles, tagged 0 and 2 here) are interchangeable at
+   * catch time. Still used for pinyin lookup and test assertions about
+   * which position a tile was built to represent. */
   correctIndex?: number;
   /** Which idiom this glyph actually comes from — always populated,
    * including for decoys. Not used by the current core-puzzle build;

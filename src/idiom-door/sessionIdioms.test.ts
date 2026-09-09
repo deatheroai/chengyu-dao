@@ -16,12 +16,8 @@ describe("ELIGIBLE_IDIOM_IDS", () => {
     for (const id of ELIGIBLE_IDIOM_IDS) expect(idiomsById[id]).toBeDefined();
   });
 
-  it("contains every idiom whose 4 characters are all distinct, and excludes every idiom that repeats one", () => {
-    for (const idiom of idioms) {
-      const chars = Array.from(idiom.hanzi);
-      const isDistinct = new Set(chars).size === chars.length;
-      expect(ELIGIBLE_IDIOM_IDS.includes(idiom.id), idiom.id).toBe(isDistinct);
-    }
+  it("contains every idiom in idioms.ts, including ones that repeat a character (2026-09-09: the door puzzle matches caught tiles by glyph, not a pre-baked position, so a repeated glyph like 一心一意's two 一 no longer needs excluding)", () => {
+    expect(ELIGIBLE_IDIOM_IDS).toEqual(idioms.map((idiom) => idiom.id));
   });
 
   it("has at least IDIOMS_PER_SESSION entries to draw from", () => {

@@ -174,23 +174,44 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       afterward — so one mistimed jump lingering near it (the exact
       "touch-and-go" problem past door-feel PRs fought hard to fix)
       doesn't rack up repeat HP penalties for a single mistake.
-- [ ] `todo` — **Door stage: match caught tiles by glyph, not a
-      pre-baked index — unlocks repeated-character idioms (2026-09-08).**
-      `ELIGIBLE_IDIOM_IDS` currently excludes 一心一意/有始有终/相亲相爱
+- [x] `done` — **Door stage: match caught tiles by glyph, not a
+      pre-baked index — unlocks repeated-character idioms (2026-09-09).**
+      `ELIGIBLE_IDIOM_IDS` used to exclude 一心一意/有始有终/相亲相爱
       because they repeat a character, and the door puzzle's catch
       logic (`orderedCatchProgress.ts`, `IdiomDoorScene.handleCatch`)
-      pre-assigns each tile to a specific character *position* at
-      level-build time — for a repeated glyph that produces two
-      tiles that look identical on screen but are internally tagged for
-      different positions, so a child can get told "wrong" for grabbing
-      the exact glyph asked for. Fix: match a caught tile by comparing
-      its glyph against `characters[nextIndex]` (the next character
-      still needed) rather than a positional index. Order stays enforced
-      between *distinct* characters (still teaches the idiom's real
-      character order); repeated glyphs just satisfy whichever
-      occurrence is still outstanding. Removes the need for
-      `ELIGIBLE_IDIOM_IDS` to exclude anything — the whole idiom pool
-      becomes door/balloon-playable.
+      pre-assigned each tile to a specific character *position* at
+      level-build time — for a repeated glyph that produced two tiles
+      that looked identical on screen but were internally tagged for
+      different positions, so a child could get told "wrong" for
+      grabbing the exact glyph asked for. Fixed: `attemptGrab` now takes
+      the grabbed tile's actual glyph plus the idiom's full character
+      array and compares against `expectedChars[nextIndex]` by value,
+      instead of a `grabbedIndex`/`total` pair keyed to a baked-in
+      position — `IdiomDoorScene.handleCatch` now passes
+      `tile.def.char`/`this.characters`. Order stays enforced between
+      *distinct* characters (still teaches the idiom's real character
+      order); repeated glyphs just satisfy whichever occurrence is still
+      outstanding — new `orderedCatchProgress.test.ts` case walks
+      一心一意's actual 一-心-一-意 sequence end to end to confirm it.
+      `levelContent.ts`'s tile-building (per-position repeats/decoys)
+      didn't need to change — it already tagged each occurrence of a
+      repeated glyph with its own `correctIndex` independently, that
+      index just no longer gates the catch check directly. Decoys still
+      can't collide with this ambiguity: `buildLevel`'s `validDecoys`
+      filter already excluded every glyph in the idiom's own (deduped)
+      character set, repeats included.
+      `ELIGIBLE_IDIOM_IDS` (`sessionIdioms.ts`) now includes all 15
+      idioms — nothing left to exclude — so 一心一意/有始有终/相亲相爱 are
+      playable in the door/balloon/match rotation from today onward, not
+      just the 12-idiom subset. Checked the one other place that name
+      mattered: `matchLevelContent.ts`'s cross-idiom first-half/last-half
+      collision guard is about *different* idioms sharing the same half,
+      unrelated to a single idiom repeating its own character — verified
+      by hand (and by `matchLevelContent.test.ts`'s existing
+      whole-pool-no-collision test) that all 15 idioms' first-two/
+      last-two characters are still pairwise distinct.
+      All green: `npm run typecheck`/`test` (290 passed, +1 new
+      test)/`build`, plus the full e2e suite (60 passed, mobile+desktop).
 - [ ] `todo` — **Remove the per-session match warm-up; matching becomes a
       milestone-finale-only mechanic (2026-09-08).** Per your steer:
       drop `beginMatchStage`/`showMatchIntro` from `main.ts`'s boot flow

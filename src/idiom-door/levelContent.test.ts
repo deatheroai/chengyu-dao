@@ -115,14 +115,14 @@ describe("doorLevels data integrity", () => {
       // This exercises the same `attemptGrab` transition the real game
       // uses, against the real generated content, rather than testing a
       // proxy invariant.
-      it("is solvable: a greedy playthrough (always catching the earliest reachable correct-next tile) completes it", () => {
+      it("is solvable: a greedy playthrough (always catching the earliest reachable correct-next glyph) completes it", () => {
         const chars = Array.from(level.idiom.hanzi);
         const sortedByX = [...level.tiles].sort((a, b) => a.x - b.x);
         let state = initialOrderedCatchState();
         for (const tile of sortedByX) {
           if (state.isComplete) break;
-          if (tile.correctIndex !== state.nextIndex) continue;
-          state = attemptGrab(state, tile.correctIndex, chars.length).state;
+          if (tile.char !== chars[state.nextIndex]) continue;
+          state = attemptGrab(state, tile.char, chars).state;
         }
         expect(state.isComplete).toBe(true);
       });

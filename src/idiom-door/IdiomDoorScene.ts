@@ -409,7 +409,7 @@ export class IdiomDoorScene extends Phaser.Scene {
   }
 
   private handleCatch(tile: RuntimeTile): void {
-    const { state, outcome } = attemptGrab(this.orderedState, tile.def.correctIndex, this.characters.length);
+    const { state, outcome } = attemptGrab(this.orderedState, tile.def.char, this.characters);
     this.orderedState = state;
 
     if (outcome !== "advanced") {
