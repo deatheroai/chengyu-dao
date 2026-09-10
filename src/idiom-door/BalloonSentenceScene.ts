@@ -20,6 +20,15 @@ const SKY_BOTTOM = 0xeef9ff;
 const CLOUD_COLOR = 0xffffff;
 const BALLOON_TEXT = "#4a3420";
 const SPARK_COLOR = 0xffd76a;
+// 2026-09-09 ("add some animation when we burst the wrong balloon...
+// like explode into tiny rubber pieces or confetti"): a couple of fixed
+// accent colors mixed in with the popped balloon's own colorway (fill +
+// border) below — pure gold sparks alone (the correct-catch flourish's
+// SPARK_COLOR) read as a *win*, and this needs to read as the opposite.
+// White reads as a highlight/glint on a rubber shard; the same warm gold
+// as the sparks doubles as one of the "confetti" colors without adding a
+// whole new palette to keep in sync with BALLOON_COLORWAYS.
+const CONFETTI_ACCENT_COLORS = [0xffffff, SPARK_COLOR];
 
 // 2026-08-26 redesign: a balloon now holds exactly one short (4-
 // character) idiom instead of a whole spliced example sentence (which
@@ -744,7 +753,15 @@ export class BalloonSentenceScene extends Phaser.Scene {
         this.hpState = applyWrongCatchPenalty(this.hpState);
         updateBalloonHpStatus(this.hpState.hp);
         balloon.popped = true;
-        this.spawnSparkBurst(balloon.container.x, balloon.container.y, 3);
+        // 2026-09-09: a burst of tumbling rubber-colored shards (see
+        // spawnPopBurst below) replaces the plain shrink-and-fade this
+        // used to have alone — a wrong catch should read as distinctly
+        // *not* the golden spawnSparkBurst flourish a correct catch
+        // gets, per your "explode into tiny rubber pieces or confetti"
+        // feedback. The balloon container itself still fades/shrinks in
+        // parallel (kept from before) so the balloon shape doesn't just
+        // hang there behind its own debris.
+        this.spawnPopBurst(balloon.container.x, balloon.container.y, balloon.colorway);
         updateBalloonStatus(false, "wrong");
         this.tweens.add({
           targets: balloon.container,
@@ -784,6 +801,59 @@ export class BalloonSentenceScene extends Phaser.Scene {
         duration: 480,
         ease: "Cubic.easeOut",
         onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  /**
+   * 2026-09-09: a wrong catch's own distinct flourish — small rectangular
+   * "rubber shard"/confetti pieces scattering outward and tumbling as
+   * they go, per your "explode into tiny rubber pieces or confetti like"
+   * feedback. Colored from the popped balloon's own colorway (fill +
+   * border — its own "rubber" reads as actually belonging to *that*
+   * balloon) mixed with a couple of fixed accent colors
+   * (CONFETTI_ACCENT_COLORS) for the multi-colored confetti feel a
+   * single balloon's two-tone colorway alone wouldn't give.
+   *
+   * Each piece is a small rotated rectangle (not a circle, like
+   * spawnSparkBurst's sparks — a flat rubber shard/paper scrap reads
+   * differently from a round spark) that spins continuously
+   * (`angle` tweened well past a full rotation, direction randomized per
+   * piece) while flying outward and settling downward — a light
+   * gravity-like bias on the burst angle, not real physics, same
+   * "just enough to read as falling debris" approach spawnSparkBurst's
+   * own simple radial burst already uses.
+   */
+  private spawnPopBurst(x: number, y: number, colorway: BalloonColorway): void {
+    const PIECE_COUNT = 14;
+    const colors = [colorway.fill, colorway.border, ...CONFETTI_ACCENT_COLORS];
+
+    for (let i = 0; i < PIECE_COUNT; i++) {
+      // Full circle of directions, but weighted toward "outward and
+      // down" (see fallBias below) rather than an even burst — real
+      // confetti scatters sideways/up initially, then gravity wins.
+      const angle = (Math.PI * 2 * i) / PIECE_COUNT + Math.random() * 0.5;
+      const distance = 22 + Math.random() * 30;
+      const fallBias = 16 + Math.random() * 20;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const w = 4 + Math.random() * 5;
+      const h = 3 + Math.random() * 4;
+
+      const piece = this.add.rectangle(x, y, w, h, color, 1);
+      piece.setAngle(Math.random() * 360);
+      // Tumbles at least a full rotation, in a random direction per
+      // piece — spinning debris, not every piece rotating in lockstep.
+      const spin = (Math.random() < 0.5 ? -1 : 1) * (360 + Math.random() * 360);
+
+      this.tweens.add({
+        targets: piece,
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance + fallBias,
+        angle: piece.angle + spin,
+        alpha: 0,
+        duration: 600 + Math.random() * 200,
+        ease: "Cubic.easeOut",
+        onComplete: () => piece.destroy(),
       });
     }
   }

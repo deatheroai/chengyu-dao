@@ -8,12 +8,14 @@ import { matchLevel } from "./matchLevelContent";
 import { hideMatchHint } from "./matchHintStatus";
 import { updateSessionProgress } from "./sessionProgressStatus";
 import { renderRubyText } from "../shared/rubyText";
-import { pickResurfaceIdiomId, recordCompletedSession, clearHistory, seedFakePriorSession, exportForCloud } from "../shared/sessionHistory";
+import { pickResurfaceIdiomId, recordCompletedSession, completedSessionCount, clearHistory, seedFakePriorSession, exportForCloud } from "../shared/sessionHistory";
 import { getLocalCloudCode, pushToCloud } from "../shared/cloudSync";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode } from "./cloudSaveStatus";
 import { idiomsById } from "../idioms/idioms";
 import type { IdiomContent } from "../idioms/types";
 import { setDevIdiomSeedOverride, clearDevIdiomSeedOverride } from "./sessionIdioms";
+import { runWritingStage } from "./writingStage";
+import { shouldSkipStrokeDemo, traceRatingForAccuracy, PERFECT_TRACE_STARTING_HP } from "./writingScore";
 
 function showMeaning(index: number): void {
   const el = document.getElementById("meaning-prompt");
@@ -90,6 +92,49 @@ function showBalloonIntro(index: number, onStart: () => void): void {
     onStart();
   };
   startBtn?.addEventListener("click", onClick);
+}
+
+/**
+ * 2026-09-09 ("there should be some feedback on the writing to explain
+ * to child how well he wrote and eventually how many points he got"):
+ * shown once every one of the idiom's characters has been traced
+ * (writingStage.ts's `onComplete`), before the door stage actually
+ * starts — restates which idiom was just traced, its overall star
+ * rating (writingScore.ts's `traceRatingForAccuracy`, fed the same
+ * fraction of `PERFECT_TRACE_STARTING_HP` the door stage is about to
+ * open with), and the literal HP number earned, so "how many points he
+ * got" has an actual on-screen answer. Gated behind a Continue tap, not
+ * a timer — same "the child sets the pace" philosophy every other
+ * stage-to-stage transition in this game already uses (see
+ * showBalloonSuccessCard below).
+ */
+function showWritingSummaryCard(index: number, startingHp: number, onContinue: () => void): void {
+  const idiom = doorLevels[index].idiom;
+  const card = document.getElementById("writing-summary-card");
+  if (!card) {
+    onContinue();
+    return;
+  }
+
+  const hanziEl = card.querySelector<HTMLElement>("[data-writing-summary-hanzi]");
+  if (hanziEl) renderRubyText(hanziEl, idiom.hanzi, idiom.pinyin.split(" "));
+
+  const rating = traceRatingForAccuracy(startingHp / PERFECT_TRACE_STARTING_HP);
+  const ratingEl = card.querySelector<HTMLElement>("[data-writing-summary-rating]");
+  if (ratingEl) ratingEl.textContent = `${"⭐".repeat(rating.stars)}${"☆".repeat(Math.max(0, 3 - rating.stars))} ${rating.label}`;
+
+  const hpEl = card.querySelector<HTMLElement>("[data-writing-summary-hp]");
+  if (hpEl) hpEl.textContent = `❤️ ${startingHp} HP for the door!`;
+
+  card.classList.add("visible");
+
+  const continueBtn = document.getElementById("writing-continue-btn");
+  const onClick = (): void => {
+    card.classList.remove("visible");
+    continueBtn?.removeEventListener("click", onClick);
+    onContinue();
+  };
+  continueBtn?.addEventListener("click", onClick);
 }
 
 /**
@@ -209,6 +254,7 @@ function showDoorStageUI(): void {
   document.getElementById("controls-layer")?.classList.remove("stage-hidden");
   document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
   document.getElementById("match-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("writing-ui-layer")?.classList.add("stage-hidden");
 }
 
 function showBalloonStageUI(): void {
@@ -216,6 +262,7 @@ function showBalloonStageUI(): void {
   document.getElementById("controls-layer")?.classList.add("stage-hidden");
   document.getElementById("balloon-ui-layer")?.classList.remove("stage-hidden");
   document.getElementById("match-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("writing-ui-layer")?.classList.add("stage-hidden");
 }
 
 function showMatchStageUI(): void {
@@ -223,6 +270,22 @@ function showMatchStageUI(): void {
   document.getElementById("controls-layer")?.classList.add("stage-hidden");
   document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
   document.getElementById("match-ui-layer")?.classList.remove("stage-hidden");
+  document.getElementById("writing-ui-layer")?.classList.add("stage-hidden");
+}
+
+/** 2026-09-09: the writing/tracing stage that now runs before every door
+ * level (main.ts's beginWritingStage) — same show/hide-in-lockstep
+ * pattern as the three functions above, just for writing-ui-layer
+ * instead. No on-screen movement controls to toggle here either (same
+ * as the match/balloon stages) — the child interacts by tracing
+ * directly inside #writing-target (writingStage.ts, via Phaser's peer,
+ * HanziWriter's own pointer input). */
+function showWritingStageUI(): void {
+  document.getElementById("catch-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("controls-layer")?.classList.add("stage-hidden");
+  document.getElementById("balloon-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("match-ui-layer")?.classList.add("stage-hidden");
+  document.getElementById("writing-ui-layer")?.classList.remove("stage-hidden");
 }
 
 function bootstrap(): void {
@@ -323,18 +386,78 @@ function bootstrap(): void {
     startBtn?.addEventListener("click", onClick);
   };
 
+  // 2026-09-09: BACKLOG.md's writing/tracing stage — runs right after
+  // the level-intro screen (beginLevel below), before this idiom's door
+  // stage actually starts. Its own onComplete hands back this idiom's
+  // starting door-stage HP (writingScore.ts) — shown to the child via
+  // showWritingSummaryCard (per "how many points he got"), which then
+  // hands off to beginDoorLevel once Continue is tapped.
+  //
+  // skipDemo (re-checked fresh on every call, not cached once at
+  // bootstrap) — per your "can we skip the example tracing" feedback
+  // for more experienced children: once this device has completed
+  // enough sessions (writingScore.ts's shouldSkipStrokeDemo), each
+  // character's stroke-order animation is skipped in favor of jumping
+  // straight to its quiz. Re-checked per call (not just once per page
+  // load) so the exact session that crosses the threshold already
+  // benefits from it on its very next idiom, not just future sessions.
+  const beginWritingStage = (index: number): void => {
+    showWritingStageUI();
+    const skipDemo = shouldSkipStrokeDemo(completedSessionCount());
+    runWritingStage(doorLevels[index].idiom, skipDemo, (startingHp) => {
+      // Hide this stage's own chrome the moment we're leaving it —
+      // same "leave the stage the instant we know we're leaving it"
+      // lesson as handleDoorReached/afterBalloonStage below — otherwise
+      // #writing-status/#writing-target kept showing behind the summary
+      // card until Continue was pressed.
+      document.getElementById("writing-ui-layer")?.classList.add("stage-hidden");
+      showWritingSummaryCard(index, startingHp, () => beginDoorLevel(index, startingHp));
+    });
+  };
+
   // Actually starts the Phaser scene running (the character begins
-  // auto-running immediately). Called once the child has dismissed that
-  // level's intro screen — never directly on a level transition, so
-  // there's always reading/thinking time first (2026-08-23 feedback).
-  const beginLevel = (index: number): void => {
+  // auto-running immediately) with the HP the writing stage just
+  // earned. Called once that stage's last character has been traced —
+  // never directly on a level transition, so there's always
+  // reading/thinking (now tracing) time first (2026-08-23 feedback,
+  // extended 2026-09-09).
+  const beginDoorLevel = (index: number, startingHp: number): void => {
     document.getElementById("session-summary-card")?.classList.remove("visible");
     showDoorStageUI();
     showMeaning(index);
     game.scene.start("IdiomDoorScene", {
       level: doorLevels[index],
+      startingHp,
       onDoorReached: () => handleDoorReached(index),
+      onUnsolvedDoorReached: () => handleUnsolvedDoorReached(index),
     });
+  };
+
+  // Called once the child has dismissed that level's intro screen (see
+  // showLevelIntro/startLevelWithIntro below) — kicks off the writing
+  // stage first, which itself hands off to beginDoorLevel above once
+  // done. Kept as its own function (rather than inlining
+  // beginWritingStage at every call site) since showLevelIntro's
+  // onStart callback already refers to it by this name.
+  const beginLevel = (index: number): void => {
+    beginWritingStage(index);
+  };
+
+  // 2026-09-09: reaching the door unsolved (every repeat of some
+  // character missed, or jumping gated off entirely by 0 HP — see
+  // doorHp.ts) used to just restart this same level in place, respawning
+  // the same tiles with whatever was left of an already-spent HP pool.
+  // Per BACKLOG.md's "that restart needs to route back to retracing this
+  // idiom... not just respawn the same door tiles with an already-spent
+  // pool": sends the child back through the writing stage for the same
+  // idiom (a fresh HP pool), then back into the door stage — no
+  // level-intro re-shown, same "quick nudge to try again, not a fresh
+  // level" ethos IdiomDoorScene's own doc comment already described.
+  const handleUnsolvedDoorReached = (index: number): void => {
+    stopGameplayScene("IdiomDoorScene");
+    document.getElementById("catch-ui-layer")?.classList.add("stage-hidden");
+    document.getElementById("controls-layer")?.classList.add("stage-hidden");
+    beginWritingStage(index);
   };
 
   // 2026-08-25: a stage after each idiom's door — catch the balloon

@@ -35,6 +35,65 @@ export interface RunConfig {
   fallGravityMultiplier: number;
 }
 
+// The door stage's actual tuned physics numbers — moved here from
+// IdiomDoorScene.ts 2026-09-09 (which now just imports them) so they
+// can be used without pulling Phaser itself along: this module, unlike
+// IdiomDoorScene.ts, is plain logic with no browser dependency, safe to
+// import from a Node context that never touches a DOM. That's exactly
+// what e2e/helpers/doorJump.ts needs — doorHp.ts's real per-jump HP
+// cost made blind, untimed jump-spamming too HP-expensive for e2e
+// coverage to keep relying on, so that helper works out precisely when
+// to press jump from these same numbers instead of guessing (see its
+// own doc comment).
+//
+// Each tile floats at its own height (levelContent.ts's HEIGHT_MIN..
+// HEIGHT_MAX, ≈90-160px) rather than one uniform line — per your
+// 2026-08-23 feedback that a single fixed height felt too neatly
+// arranged. That whole range stays comfortably inside the jump arc's
+// max height (jumpVelocity²/(2·gravity) ≈ 175px with the physics
+// constants below). CATCH_RADIUS_X/Y themselves live in
+// catchSelection.ts (2026-09-04) — sized from real tile/player extents
+// rather than picked independently, see that file's doc comment.
+// 2026-08-24 feedback: 200px/s read as "way too slow." Bumped 60% —
+// the jump arc's shape (and therefore how forgiving catching is)
+// doesn't depend on run speed at all, since gravity/jumpVelocity are
+// unchanged; a faster run just covers more ground per second, both
+// approaching a tile and during the jump arc itself.
+export const RUN_SPEED = 320;
+// 2026-08-31 feedback ("touch and go" — after the nearest-tile catch
+// fix (2026-08-30) still left too many side-catches): the remaining
+// problem wasn't just catch-zone overlap between adjacent tiles (that
+// fix still stands), it was how *long* the character lingers near a
+// given height. Near a parabola's apex, vertical speed is close to
+// zero, so the character drifts sideways for a while while staying
+// inside CATCH_RADIUS_Y of whatever height it peaked at — sweeping
+// through several tiles at similar heights during one "floaty" jump.
+// Scaling gravity and jumpVelocity up together by the same factor
+// keeps the arc's *max height* — and therefore which tiles it can
+// reach — essentially unchanged (jumpVelocity²/(2·gravity) ≈ 175px
+// either way, same as the CATCH_RADIUS_Y comment above still
+// describes), but shrinks the arc's *duration*: a steeper rise and
+// fall means less time (so less horizontal distance, at the same
+// runSpeed) spent hovering near any one height band. Time-to-apex
+// drops from 0.5s to ≈0.35s (jumpVelocity/gravity), about 30% snappier.
+export const JUMP_GRAVITY = 2850;
+export const JUMP_VELOCITY = -1000;
+// 2026-09-04 feedback ("land vertical instead of curved or slow" — the
+// touch-and-go tuning above and the real-sized catch hitboxes
+// (catchSelection.ts) still weren't quite enough): rather than freezing
+// horizontal movement mid-jump (a bigger change to the auto-runner's
+// core feel — the character always advances, jump timing and catching
+// aside), the fall itself now uses stronger gravity than the rise does
+// (this file's own fallGravityMultiplier) — the classic "float up, drop
+// like a rock" platformer trick. Jump *height* is untouched (still
+// governed by JUMP_VELOCITY/JUMP_GRAVITY alone, same ≈175px apex as
+// before) — only how quickly it comes back down. At 2x, the descent
+// takes ≈71% (1/√2) as long as the rise that preceded it, instead of
+// the ≈100% a symmetric arc would — a shorter fall means less time (so
+// less horizontal drift, at the same runSpeed) spent descending through
+// a tile's height band, on top of the touch-and-go/hitbox fixes above.
+export const FALL_GRAVITY_MULTIPLIER = 2;
+
 export function stepRun(state: RunState, jumpPressed: boolean, dt: number, cfg: RunConfig): RunState {
   const nextX = state.x + cfg.runSpeed * dt;
 

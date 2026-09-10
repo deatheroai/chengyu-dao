@@ -30,6 +30,13 @@ describe("updateDoorStatus", () => {
     expect(el.textContent).toBe("Not that one — look for 苗!");
   });
 
+  it("announces running out of HP, explaining why it's about to restart", () => {
+    updateDoorStatus(1, 4, false, "苗", "depleted");
+    const el = document.getElementById("door-status")!;
+    expect(el.getAttribute("data-outcome")).toBe("depleted");
+    expect(el.textContent).toBe("Out of energy! Let's trace it again...");
+  });
+
   it("shows a completion message pointing at the door when done", () => {
     updateDoorStatus(4, 4, true, undefined, "advanced");
     const el = document.getElementById("door-status")!;

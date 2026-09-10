@@ -576,6 +576,226 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       historical notes about the retired `session.html` prototype code
       was ported from, not stale branding of `idiom-door` itself, so left
       as-is.
+- [x] `done` — **Writing/tracing stage: teach each character before the
+      door (2026-09-09).** Lands the two `todo` entries above it
+      together (teaching the characters, and the HP economy that
+      connects them to the door stage) — the second needed the first to
+      exist, per that entry's own note.
+      A new stage now runs between each idiom's intro card and its door:
+      the idiom's 4 characters shown one at a time, a stroke-order
+      animation (`HanziWriter.animateCharacter`) then a real freehand
+      quiz (`HanziWriter.quiz` — genuine pointer-drawn strokes, graded
+      stroke-by-stroke by the library itself, not reimplemented here).
+      Stroke data (`writingStage/writingData/writingStrokeData.ts`)
+      is a *derived subset* of `hanzi-writer-data` 2.0.1 — just the 51
+      distinct characters across this project's own 15-idiom set, not
+      the full corpus — carried with its Arphic Public License text
+      alongside it per that license's redistribution terms.
+      `writingScore.ts` (pure, unit-tested) turns each character's own
+      mistake count into a 0-1 accuracy, averaged across the idiom (one
+      badly-traced character doesn't zero out the whole thing) into
+      `startingDoorHp` — up to `PERFECT_TRACE_STARTING_HP` (100) for a
+      mistake-free trace, no baseline freebie for a bad one, per your
+      "decent writing should enable the child to pass the door stage but
+      if badly written the child should have to restart."
+      `doorHp.ts` (pure, unit-tested) spends that pool in the door stage
+      itself: `JUMP_HP_COST` (5) per *executed* jump, plus
+      `WRONG_CATCH_HP_PENALTY` (10) on top for one that lands on the
+      wrong character. `canJump` goes false at 0 HP —
+      `IdiomDoorScene.update` swallows jump input rather than queuing it,
+      so the character keeps auto-running but can't catch anything.
+      Reaching the door unsolved (always possible, same as before) no
+      longer just respawns the same tiles in place — a new
+      `onUnsolvedDoorReached` callback (same pattern as `onDoorReached`)
+      sends the child back through the writing stage for the same idiom,
+      earning a fresh HP pool, before the door scene restarts. Falls back
+      to the old in-place `restartLevel` when that callback isn't wired
+      (e.g. a caller driving the scene directly), so nothing that doesn't
+      opt in loses its "never truly stuck" guarantee.
+      Deliberately plain DOM (`writingStage.ts` + a new
+      `#writing-ui-layer`), not a Phaser Scene — HanziWriter owns its own
+      SVG rendering target and pointer input directly, the same reason
+      this project's reading-focused full-screen cards (level-intro-card,
+      balloon-intro-card) are already plain DOM over the canvas rather
+      than Phaser text. There's no game physics here for a Scene to
+      usefully own.
+      `idiom-door.spec.ts`'s old "just spam JUMP on an interval" e2e
+      strategy no longer holds up against a real HP budget — most blind
+      jumps land on nothing, and each one still costs HP. Replaced with
+      *aimed* jumps (new `e2e/helpers/doorJump.ts`): each tile's own
+      already-known, deterministic world position plus the door stage's
+      own jump physics (now exported from `runPhysics.ts`, moved there
+      from `IdiomDoorScene.ts` so they're importable without pulling
+      Phaser into a Node test process) work out exactly when to press
+      jump for a one-shot, reliably-landing catch — the same "expose the
+      exact position, aim deterministically" approach `flyUntilResolved`
+      already used for the balloon stage. A parallel helper
+      (`e2e/helpers/writingStage.ts`) drives the writing stage itself
+      with real freehand strokes along each character's own bundled
+      median points, landing 0 mistakes every time, so every e2e test
+      opens its door stage at the full starting HP unless it's
+      deliberately testing the HP economy. New `writing-stage.spec.ts`
+      covers the stage on its own (mirroring `idiom-match.spec.ts`'s
+      relationship to the match warm-up); `idiom-door.spec.ts` gained
+      dedicated HP-economy and retrace-routing tests alongside its
+      existing coverage, rewritten throughout to trace before every door
+      interaction.
+      All green: `npm run typecheck`/`test` (306 passed, +16 new)/`build`,
+      plus the full e2e suite (mobile+desktop).
+- [x] `done` — **Skip the stroke-order demo for an experienced child; a
+      distinct pop animation for a wrong balloon (2026-09-09).** Two
+      small follow-ups from live feedback on the writing stage/balloon
+      stage above.
+      - **"For the more advanced phases maybe after three
+        celebrations, can we skip the example tracing? The child may
+        get impatient waiting if he already knew the strokes."** —
+        `writingScore.ts`'s new `shouldSkipStrokeDemo` gates
+        `writingStage.ts`'s per-character stroke-order animation
+        (`HanziWriter.animateCharacter`) on how many sessions this
+        device has already completed (`sessionHistory.ts`'s new
+        `completedSessionCount` — each session ends at the celebratory
+        summary card, "celebrations" per your phrasing).
+        `SESSIONS_BEFORE_SKIPPING_STROKE_DEMO` (3) or more behind it,
+        and every character's quiz starts immediately instead — the
+        animated demo is skipped, not the quiz's own outline guide
+        (`showOutline: true`, unchanged), so there's still a faint
+        reference while tracing. Re-checked on every call
+        (`main.ts`'s `beginWritingStage`), not cached once at
+        bootstrap, so the exact session crossing the threshold already
+        benefits on its very next idiom.
+      - **"For the balloon stage can we add some animation when we
+        burst the wrong balloon? Like explode into tiny rubber pieces
+        or confetti like?"** — `BalloonSentenceScene`'s wrong-catch
+        handling used to reuse the same golden `spawnSparkBurst` a
+        correct catch gets (just fewer sparks) before the plain
+        shrink-and-fade. New `spawnPopBurst` replaces that with ~14
+        small rotated-rectangle shards, colored from the popped
+        balloon's own colorway (fill + border) mixed with a couple of
+        fixed accent colors for a multi-colored confetti feel, tumbling
+        outward and downward (a light gravity-like bias, not real
+        physics) while spinning and fading — reads as distinctly *not*
+        the correct-catch flourish, per your ask.
+      All green: `npm run typecheck`/`test` (312 passed, +6 new)/`build`,
+      plus targeted e2e coverage (new `writing-stage.spec.ts` tests
+      confirming a fresh device still sees the demo, a device with 2
+      prior sessions still sees it, and one with 3+ skips straight to
+      the quiz; a one-off manual check confirmed the balloon pop-burst
+      runs with no page errors and the expected HP deduction) plus a
+      full mobile+desktop e2e suite run.
+- [x] `done` — **Writing feedback, immediate restart at 0 HP, and a
+      low-HP warning (2026-09-10).** Three fixes from live feedback on
+      the writing/door stages above.
+      - **"there should be some feedback on the writing to explain to
+        child how well he wrote and eventually how many points he
+        got"** — `writingScore.ts`'s new `traceRatingForAccuracy` maps
+        a character's trace accuracy to a 3-star rating and an
+        always-encouraging label (never "fail"/"bad"/"wrong", matching
+        this project's no-fail-state ethos even at 0 stars). New
+        `#writing-feedback` shows that rating right after each
+        character's own quiz resolves (`writingStage.ts`, a short
+        `FEEDBACK_DISPLAY_MS` beat before the next character begins);
+        `writingStatus.ts` gained a third `"feedback"` phase (alongside
+        `"watch"`/`"trace"`) so `#writing-status`'s own `data-phase`
+        doesn't linger stale on `"trace"` for that whole beat — found
+        because an e2e helper polling for `"trace"` to know it's safe
+        to draw the next stroke could otherwise match immediately on
+        the stale value and re-trace the character that just finished.
+        Once every character is done, a new `#writing-summary-card`
+        (`main.ts`'s `showWritingSummaryCard`, gated behind its own
+        Continue tap like every other card in this project) restates
+        the idiom, its overall star rating, and the literal HP number
+        earned for the door stage — the "how many points he got" half.
+      - **"once the hp reaches 0 at the door stage, it should
+        immediately restart instead of continuing without ability to
+        jump"** — `IdiomDoorScene`'s new `checkHpDepleted` (checked
+        every frame, alongside the existing `checkDoor`) fires as soon
+        as HP hits 0 while the idiom is still unsolved, instead of
+        waiting for the character to physically run the remaining
+        track to the door with jumping disabled the whole way. Shows a
+        brief "Out of energy! Let's trace it again..." door-status
+        message (new `"depleted"` `GrabOutcome`) for
+        `OUT_OF_HP_RESTART_DELAY_MS` (900ms — long enough to read, far
+        short of actually running to the door) before retracing via the
+        same `onUnsolvedDoorReached` path the door-reached-unsolved
+        case already used. Refactored both call sites into a shared
+        `triggerRetrace`.
+      - **"give the player some warning when hp is running low or
+        insufficient to jump thru the door phase"** — `doorHp.ts`'s new
+        `isHpLow`/`LOW_HP_THRESHOLD` (20 — below which a single wrong
+        catch's full cost, `JUMP_HP_COST` + `WRONG_CATCH_HP_PENALTY` =
+        15, would leave 5 or less) flags the on-screen `#door-hp`
+        counter (`doorHpStatus.ts`, rewritten) with a `⚠️` prefix and a
+        `data-low` attribute plus a pulsing red animation, so running
+        low never comes as a total surprise before the immediate
+        restart above.
+      - **Bug found while e2e-testing the low-HP warning, fixed
+        alongside it:** a *wrong* catch never marked its tile `caught`
+        (unlike a correct one — the same physical tile still needs to
+        be catchable later, once it's actually that character's turn),
+        but `checkCatches` runs every frame of a jump's whole arc, and a
+        tile tall enough to sit close to the jump's own apex could stay
+        within catch radius for several consecutive frames — without a
+        guard, every one of those frames re-ran the same wrong catch,
+        each charging another `WRONG_CATCH_HP_PENALTY` on top of the
+        last. A single mistimed jump near a tall wrong tile could burn
+        through most or all of a level's starting HP pool in one jump —
+        nowhere close to the "one wrong catch, one penalty" cost every
+        other mechanic (and the child) expects, and a real fairness bug
+        the new low-HP warning would otherwise have had no chance to
+        catch. Fixed with a new `wrongCaughtThisArc` flag per tile, set
+        on a wrong catch and cleared the next time the character lands
+        — a fresh takeoff gets a fresh chance to catch it, only that
+        jump's own lingering re-catch was ever the problem.
+      All green: `npm run typecheck`/`test` (335 passed, +23 new)/
+      `build`, plus the full mobile+desktop e2e suite (new coverage:
+      per-character feedback and the writing-summary card in
+      `writing-stage.spec.ts`; immediate-restart-on-depletion with the
+      low-HP warning confirmed via a `MutationObserver` watching
+      `#door-hp`'s own `data-low` attribute, catching the warning even
+      when it only shows for a single frame between two catches in the
+      same jump, in `idiom-door.spec.ts`). Also hardened
+      `e2e/helpers/doorJump.ts` along the way: `jumpForTile` now waits
+      out a jump's own full airborne duration after pressing (so a
+      caller chaining aimed jumps back to back never presses again
+      while still mid-arc from the previous one — `IdiomDoorScene` only
+      accepts jump input while grounded), and new
+      `jumpForFirstReachableWrongTile` tries candidate tiles in track
+      order rather than trusting a single nearest one's own timing
+      margin, same shape as `catchCharacter`'s existing per-tile retry.
+- [x] `done` — **Fix: 47 of the grown idiom pool's 98 characters had no
+      writing/tracing-stage stroke data at all (2026-09-10).** Found
+      while merging the writing-feedback work above onto main after the
+      idiom pool grew 15 → 30 idioms (98 distinct characters): this
+      project's own `writingStrokeData.ts` — a hand-curated subset of
+      `hanzi-writer-data`, deliberately not the full corpus — still only
+      covered the *original* 15-idiom pool's 51 characters. The 15 new
+      idioms' extra 47 characters were silently missing, which
+      `writingStage.ts`'s `charDataLoader` would only ever surface as a
+      quietly-swallowed load error (not a crash) — the writing stage for
+      any of those 15 idioms would just hang, never reaching the trace
+      phase, with nothing on screen to explain why. Regenerated the file
+      (per its own documented one-off procedure) against the full
+      current idiom set — all 98 characters now covered, checked by
+      diffing every idiom's distinct hanzi against the bundle's own
+      keys before landing this, not just re-running the generator and
+      trusting it.
+      Also bumped `idiom-door.spec.ts`'s "dev 'new idioms' control"
+      test's own timeout (90000ms → 180000ms): it's the only test in
+      that file running a full match + writing-stage + door-entry cycle
+      *twice*, and a real freehand trace of one idiom's 4 characters
+      (writingStage.ts's `FEEDBACK_DISPLAY_MS` beat included) measured
+      ~40-50s on its own — two back to back left essentially no slack
+      against the old budget even under normal conditions, which is
+      exactly what started actually missing the deadline (not just
+      occasionally flaking) once this session's feedback-beat additions
+      lengthened every playthrough. Sized against this file's own
+      established "budget to the actual workload" pattern (see the
+      3-level session-summary test's 600000ms).
+      All green: `npm run typecheck`/`test` (335 passed)/`build`, plus
+      the full mobile+desktop e2e suite, with the previously-hanging
+      "dev 'new idioms'" test re-run several times in isolation (with
+      and without other tests competing for the sandbox) to confirm the
+      fix rather than trusting one clean pass.
 
 ## Platform / infra
 

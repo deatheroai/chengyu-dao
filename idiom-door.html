@@ -31,6 +31,51 @@
       <div id="catch-ui-layer">
         <p id="meaning-prompt"></p>
         <div id="door-status" aria-live="polite" data-next-index="0" data-total="4" data-complete="false"></div>
+        <!-- 2026-09-09: this idiom's door-stage HP, earned by the
+             writing/tracing stage just before it (doorHp.ts/
+             writingScore.ts) — same small counter shape as the balloon
+             stage's own #balloon-hp below, just a real gate here rather
+             than a running score (see doorHp.ts's doc comment). -->
+        <div id="door-hp" aria-live="polite" data-hp="100"></div>
+      </div>
+      <!-- 2026-09-09 addition: BACKLOG.md's "writing/tracing stage: teach
+           each character before the door" — runs right after each
+           level's intro card (main.ts's beginLevel), before that idiom's
+           door stage. Each of the idiom's 4 characters is shown one at a
+           time: a stroke-order animation, then a HanziWriter quiz the
+           child traces themselves (real freehand pointer input, graded
+           stroke-by-stroke), scored on accuracy (writingScore.ts) into
+           the door stage's starting HP (doorHp.ts). Deliberately plain
+           DOM rather than a Phaser scene — HanziWriter owns its own SVG
+           rendering target and pointer input directly, same reason the
+           level-intro/balloon-intro cards are already plain DOM over the
+           canvas rather than Phaser text (see writingStage.ts's doc
+           comment). No Start/Continue button *between* characters: the
+           child advances by actually tracing each one correctly, not by
+           tapping through — writingStage.ts's HanziWriter quiz
+           `onComplete` drives the advance to the next character, after a
+           short beat showing that character's own star rating
+           (`#writing-feedback`, per your "some feedback on the writing
+           to explain to child how well he wrote" — see
+           writingStatus.ts's updateWritingFeedback). Once every
+           character is done, main.ts's own `#writing-summary-card`
+           (below, near balloon-success-card) shows the whole idiom's
+           earned points and *does* gate behind a Continue tap, same as
+           every other stage-to-stage transition in this game. Shown/
+           hidden in the same stage-hidden lockstep as catch-ui-layer/
+           balloon-ui-layer/match-ui-layer (main.ts's showWritingStageUI). -->
+      <div id="writing-ui-layer" class="stage-hidden">
+        <div class="writing-card">
+          <p class="writing-eyebrow">Learn to write it</p>
+          <!-- Also this stage's test-only hook — see writingStatus.ts's
+               doc comment for why a freehand stroke can't be polled the
+               way #player-position/#balloon-position poll a game
+               position, and how an E2E test uses this instead. -->
+          <p id="writing-status" aria-live="polite" data-char-index="0" data-total="4" data-char="" data-phase="watch" data-stroke-index="0"></p>
+          <div id="writing-target" class="writing-target"></div>
+          <p id="writing-feedback" aria-live="polite" data-stars="0" data-mistakes="0"></p>
+          <p class="writing-hint">Watch how it's drawn, then trace it yourself.</p>
+        </div>
       </div>
       <!-- Test-only hook mirroring the character's x position, same as
            platform-catch's — not part of the child-facing UI. -->
@@ -134,6 +179,32 @@
           </button>
           <p data-intro-meaning-en class="intro-meaning-en hidden"></p>
           <button id="start-level-btn" type="button">▶ Start</button>
+        </div>
+      </div>
+      <!-- 2026-09-09 ("there should be some feedback on the writing to
+           explain to child how well he wrote and eventually how many
+           points he got"): shown once every one of the idiom's
+           characters has been traced (main.ts's beginWritingStage, right
+           after writingStage.ts's onComplete), before the door stage
+           actually starts — the whole idiom's own star rating
+           (writingScore.ts's traceRatingForAccuracy, fed the same
+           startingDoorHp fraction the door stage is about to open with)
+           plus the literal HP number earned. Gated behind a Continue
+           tap, not a timer — same "the child sets the pace" philosophy
+           as every other stage-to-stage transition (level-intro-card's
+           Start, balloon-success-card's Continue) already uses; unlike
+           the per-character feedback inside writing-ui-layer itself
+           (`#writing-feedback`, a timed beat, not tap-gated — a child
+           shouldn't have to tap through all 4 characters individually),
+           this is the one moment worth letting the child actually stop
+           and read. -->
+      <div id="writing-summary-card">
+        <div class="card">
+          <p class="eyebrow">✏️ Writing complete!</p>
+          <p data-writing-summary-hanzi class="writing-summary-hanzi" lang="zh-Hans"></p>
+          <p data-writing-summary-rating class="writing-summary-rating"></p>
+          <p data-writing-summary-hp class="writing-summary-hp"></p>
+          <button id="writing-continue-btn" type="button">▶ Continue</button>
         </div>
       </div>
       <!-- 2026-09-07: shown before each balloon stage begins, right after

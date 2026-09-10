@@ -135,6 +135,37 @@ rt {
   min-height: 1.1em;
 }
 
+/* 2026-09-09: this idiom's door-stage HP (doorHp.ts) — earned by the
+   writing stage just before it, spent per jump (more on a wrong catch),
+   a real gate rather than #balloon-hp's running score. Same visual
+   treatment as that one (bold, pink-red — reads as "health"). */
+#door-hp {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #c2185b;
+}
+
+/* 2026-09-09 ("give the player some warning when hp is running low"):
+   doorHp.ts's isHpLow/doorHpStatus.ts's data-low — a pulsing scale +
+   a brighter, more urgent red, so the warning doesn't rely on the ⚠️
+   text alone. Stops as soon as the counter leaves this state (a
+   successful catch can raise HP back... actually it never does here,
+   but retracing resets it to a fresh pool, same reasoning as
+   #dev-controls' other transient states). */
+#door-hp[data-low="true"] {
+  color: #e0164b;
+  animation: hp-low-pulse 0.9s ease-in-out infinite;
+}
+@keyframes hp-low-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+
 /* Match stage — a green/teal accent, distinct from the door puzzle's
    warm tones and the balloon stage's blue, matching
    IdiomMatchScene's own green/teal background. */
@@ -264,6 +295,113 @@ rt {
   color: #c2185b;
 }
 
+/* Writing/tracing stage (2026-09-09, BACKLOG.md) — a fresh ink-purple
+   accent, distinct from the door puzzle's warm amber/orange, the
+   balloon stage's blue, and the match stage's green, so which stage
+   is showing always reads at a glance. Full-viewport (not a thin top
+   strip like catch-ui-layer/balloon-ui-layer/match-ui-layer) since
+   there's no Phaser scene running behind it for the child to see —
+   this *is* the whole stage, not a HUD over one. */
+#writing-ui-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: #fff8ef;
+  z-index: 4;
+}
+
+.writing-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 22rem;
+  width: 100%;
+  text-align: center;
+}
+
+.writing-eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #8a6bc2;
+}
+
+#writing-status {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #5a3d8a;
+  min-height: 1.4em;
+}
+
+/* Fixed size, matching writingStage.ts's WRITER_SIZE/WRITER_PADDING
+   exactly — not left to responsive/container sizing, so the
+   character-space-to-screen-pixel transform an E2E test computes from
+   those two constants alone stays correct regardless of viewport (see
+   writingStage.ts's doc comment). A simple paper-like card behind the
+   SVG HanziWriter itself renders into. */
+.writing-target {
+  width: 260px;
+  height: 260px;
+  background: #fff;
+  border: 2px solid #d9c7f0;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(90, 61, 138, 0.15);
+  touch-action: none;
+}
+
+.writing-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #7a5636;
+}
+
+/* 2026-09-09 ("there should be some feedback on the writing to explain
+   to child how well he wrote"): this character's own star rating,
+   shown for a short beat right after its quiz resolves
+   (writingStage.ts's FEEDBACK_DISPLAY_MS) — hidden the rest of the
+   time via the same .visible toggle every other card in this game
+   uses, rather than reserving layout space for it constantly. */
+#writing-feedback {
+  margin: 0;
+  min-height: 1.6em;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #5a3d8a;
+  display: none;
+}
+#writing-feedback.visible {
+  display: block;
+}
+
+/* --- Writing-summary card (2026-09-09) --- */
+
+#writing-summary-card .writing-summary-hanzi {
+  margin: 0.9rem 0 0.5rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 2.3;
+  color: #4a3420;
+}
+
+#writing-summary-card .writing-summary-rating {
+  margin: 0.3rem 0 0.6rem;
+  font-size: 1.3rem;
+}
+
+#writing-summary-card .writing-summary-hp {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #c2185b;
+}
 
 /* 2026-08-30: opens the cloud-save panel — mirrors #session-progress's
    corner-pill look (same top edge, opposite side) but is a real,
@@ -293,6 +431,7 @@ rt {
 
 #session-summary-card,
 #level-intro-card,
+#writing-summary-card,
 #balloon-intro-card,
 #balloon-success-card,
 #match-intro-card,
@@ -309,6 +448,7 @@ rt {
 }
 #session-summary-card.visible,
 #level-intro-card.visible,
+#writing-summary-card.visible,
 #balloon-intro-card.visible,
 #balloon-success-card.visible,
 #match-intro-card.visible,
@@ -320,6 +460,7 @@ rt {
 
 #session-summary-card .card,
 #level-intro-card .card,
+#writing-summary-card .card,
 #balloon-intro-card .card,
 #balloon-success-card .card,
 #match-intro-card .card,
@@ -336,6 +477,7 @@ rt {
 }
 
 #level-intro-card .eyebrow,
+#writing-summary-card .eyebrow,
 #balloon-intro-card .eyebrow,
 #match-intro-card .eyebrow,
 #resurface-card .eyebrow,
@@ -419,6 +561,7 @@ rt {
 }
 
 #start-level-btn,
+#writing-continue-btn,
 #start-balloon-btn,
 #balloon-continue-btn,
 #start-match-btn,
@@ -434,6 +577,7 @@ rt {
   cursor: pointer;
 }
 #start-level-btn:hover,
+#writing-continue-btn:hover,
 #start-balloon-btn:hover,
 #balloon-continue-btn:hover,
 #start-match-btn:hover,
@@ -442,6 +586,7 @@ rt {
   background: #a83618;
 }
 #start-level-btn:focus-visible,
+#writing-continue-btn:focus-visible,
 #start-balloon-btn:focus-visible,
 #balloon-continue-btn:focus-visible,
 #start-match-btn:focus-visible,
