@@ -245,6 +245,75 @@ export const idioms: IdiomContent[] = [
     theme: "focus",
     sourceNotes: "Meaning/origin (论语·学而, by way of 朱熹's commentary) confirmed via zdic.net and Baidu Baike (2026-09-09 search).",
   },
+  {
+    id: "you-tiao-bu-wen",
+    hanzi: "有条不紊",
+    pinyin: "yǒu tiáo bù wěn",
+    literalMeaning: "有 (have) 条 (order) 不 (not) 紊 (chaotic) — having order to it, not chaotic.",
+    meaning: "Doing things in an organized, methodical way — everything in its proper order, nothing chaotic.",
+    meaningZh: {
+      hanzi: "做事情很有次序，一步一步来，不会乱七八糟。",
+      pinyin: "Zuò shìqing hěn yǒu cìxù, yí bù yí bù lái, bú huì luànqībāzāo.",
+      charPinyin: ["zuò", "shì", "qing", "hěn", "yǒu", "cì", "xù", "", "yí", "bù", "yí", "bù", "lái", "", "bú", "huì", "luàn", "qī", "bā", "zāo", ""],
+    },
+    dailyLifeScenario:
+      "You tidy your room by putting toys in one box, books on the shelf, and clothes in the drawer, one thing at a time, instead of just shoving everything in a pile. That organized way of doing it is 有条不紊.",
+    exampleSentence: {
+      hanzi: "整理书包时，他有条不紊，把每样东西都放回原位。",
+      pinyin: "Zhěnglǐ shūbāo shí, tā yǒutiáo-bùwěn, bǎ měi yàng dōngxi dōu fàng huí yuánwèi.",
+      english: "When packing his school bag, he's methodical — he puts every single thing back in its proper place.",
+      charPinyin: ["zhěng", "lǐ", "shū", "bāo", "shí", "", "tā", "yǒu", "tiáo", "bù", "wěn", "", "bǎ", "měi", "yàng", "dōng", "xi", "dōu", "fàng", "huí", "yuán", "wèi", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning/origin (《尚书·盘庚上》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "chu-bian-bu-jing",
+    hanzi: "处变不惊",
+    pinyin: "chǔ biàn bù jīng",
+    literalMeaning: "处 (face) 变 (a sudden change) 不 (not) 惊 (panic) — facing a sudden change without panicking.",
+    meaning: "Staying calm and steady even when something unexpected or alarming suddenly happens.",
+    meaningZh: {
+      hanzi: "遇到突然发生的事情，也能保持冷静，不慌张。",
+      pinyin: "Yùdào tūrán fāshēng de shìqing, yě néng bǎochí lěngjìng, bù huāngzhāng.",
+      charPinyin: ["yù", "dào", "tū", "rán", "fā", "shēng", "de", "shì", "qing", "", "yě", "néng", "bǎo", "chí", "lěng", "jìng", "", "bù", "huāng", "zhāng", ""],
+    },
+    dailyLifeScenario:
+      "During a class presentation, you suddenly forget your next line in front of everyone — instead of panicking, you take a breath, glance at your notes, and calmly continue. That steady calm under pressure is 处变不惊.",
+    exampleSentence: {
+      hanzi: "台上突然停电，他处变不惊，冷静地继续表演。",
+      pinyin: "Táishàng tūrán tíngdiàn, tā chǔbiàn-bùjīng, lěngjìng de jìxù biǎoyǎn.",
+      english: "The power suddenly went out on stage, but he stayed calm and steady, and kept performing without missing a beat.",
+      charPinyin: ["tái", "shàng", "tū", "rán", "tíng", "diàn", "", "tā", "chǔ", "biàn", "bù", "jīng", "", "lěng", "jìng", "de", "jì", "xù", "biǎo", "yǎn", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning confirmed via zdic.net and Baidu Baike (2026-09-10 search); Taiwan MOE 成語典 entry also confirms the reading and usage.",
+  },
+  {
+    id: "quan-li-yi-fu",
+    hanzi: "全力以赴",
+    pinyin: "quán lì yǐ fù",
+    literalMeaning: "全 (all) 力 (strength) 以 (with) 赴 (throw oneself into) — throwing all one's strength into it.",
+    meaning: "Giving something everything you've got, holding nothing back.",
+    meaningZh: {
+      hanzi: "把所有的力气和精神都用上，一点也不保留。",
+      pinyin: "Bǎ suǒyǒu de lìqi hé jīngshén dōu yòng shàng, yìdiǎn yě bù bǎoliú.",
+      charPinyin: ["bǎ", "suǒ", "yǒu", "de", "lì", "qi", "hé", "jīng", "shén", "dōu", "yòng", "shàng", "", "yì", "diǎn", "yě", "bù", "bǎo", "liú", ""],
+    },
+    dailyLifeScenario:
+      "It's the final race of Sports Day, and even though your legs are tired, you push as hard as you possibly can all the way to the finish line, holding nothing back. That's giving it 全力以赴.",
+    exampleSentence: {
+      hanzi: "运动会接力赛时，他全力以赴，冲过了终点线。",
+      pinyin: "Yùndònghuì jiēlìsài shí, tā quánlì-yǐfù, chōngguò le zhōngdiǎnxiàn.",
+      english: "During the relay race on Sports Day, he gave it everything he had and sprinted across the finish line.",
+      charPinyin: ["yùn", "dòng", "huì", "jiē", "lì", "sài", "shí", "", "tā", "quán", "lì", "yǐ", "fù", "", "chōng", "guò", "le", "zhōng", "diǎn", "xiàn", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning/origin (清·赵翼《廿二史札记》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
 
   // --- Honesty & Character ---
   {
@@ -387,6 +456,98 @@ export const idioms: IdiomContent[] = [
     theme: "honesty",
     sourceNotes: "Meaning confirmed via zdic.net (origin traced to 《后汉书·马援传》); Baidu Baike cross-check 2026-09-09.",
   },
+  {
+    id: "qian-xu-jin-shen",
+    hanzi: "谦虚谨慎",
+    pinyin: "qiān xū jǐn shèn",
+    literalMeaning: "谦 (modest) 虚 (humble) 谨 (careful) 慎 (cautious) — modest and humble, careful and cautious.",
+    meaning: "Being humble about what you're good at, and careful/thoughtful rather than boastful or careless.",
+    meaningZh: {
+      hanzi: "不骄傲自大，做事说话都小心，不随便夸耀自己。",
+      pinyin: "Bù jiāo'ào zìdà, zuò shì shuō huà dōu xiǎoxīn, bù suíbiàn kuāyào zìjǐ.",
+      charPinyin: ["bù", "jiāo", "ào", "zì", "dà", "", "zuò", "shì", "shuō", "huà", "dōu", "xiǎo", "xīn", "", "bù", "suí", "biàn", "kuā", "yào", "zì", "jǐ", ""],
+    },
+    dailyLifeScenario:
+      "You won first place in the spelling competition, but instead of bragging about it, you quietly thank your teacher and keep practising just as carefully as before. That humble, careful attitude is 谦虚谨慎.",
+    exampleSentence: {
+      hanzi: "得了第一名，他还是谦虚谨慎，没有到处炫耀。",
+      pinyin: "Déle dì-yī míng, tā háishi qiānxū-jǐnshèn, méiyǒu dàochù xuànyào.",
+      english: "Even after winning first place, he stayed humble and careful, instead of showing off to everyone.",
+      charPinyin: ["dé", "le", "dì", "yī", "míng", "", "tā", "hái", "shi", "qiān", "xū", "jǐn", "shèn", "", "méi", "yǒu", "dào", "chù", "xuàn", "yào", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (《晋书·张宾载记》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "zhi-en-tu-bao",
+    hanzi: "知恩图报",
+    pinyin: "zhī ēn tú bào",
+    literalMeaning: "知 (know) 恩 (kindness received) 图 (plan to) 报 (repay) — knowing a kindness done to you, and planning to repay it.",
+    meaning: "Remembering when someone has helped you, and looking for a way to repay their kindness.",
+    meaningZh: {
+      hanzi: "记得别人对自己的好，并且想办法回报他。",
+      pinyin: "Jìde biérén duì zìjǐ de hǎo, bìngqiě xiǎng bànfǎ huíbào tā.",
+      charPinyin: ["jì", "de", "bié", "rén", "duì", "zì", "jǐ", "de", "hǎo", "", "bìng", "qiě", "xiǎng", "bàn", "fǎ", "huí", "bào", "tā", ""],
+    },
+    dailyLifeScenario:
+      "Your neighbour helped you find your lost cat last month, so this weekend you bake some cookies and bring them over to say thank you. Remembering and repaying that kindness is 知恩图报.",
+    exampleSentence: {
+      hanzi: "邻居曾经帮过他，他知恩图报，做了饼干送去感谢。",
+      pinyin: "Línjū céngjīng bāngguò tā, tā zhī'ēn-túbào, zuò le bǐnggān sòng qù gǎnxiè.",
+      english: "His neighbour had once helped him, so he remembered and repaid that kindness by baking cookies to say thanks.",
+      charPinyin: ["lín", "jū", "céng", "jīng", "bāng", "guò", "tā", "", "tā", "zhī", "ēn", "tú", "bào", "", "zuò", "le", "bǐng", "gān", "sòng", "qù", "gǎn", "xiè", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning confirmed via Baidu Baike and multiple 成语词典 aggregators (early form traced to the Spring-and-Autumn-era Zhao Xuanzi/Ling Zhe story; later usage in 元·李致远《还牢末》); 2026-09-10 search.",
+  },
+  {
+    id: "yan-yu-lv-ji",
+    hanzi: "严于律己",
+    pinyin: "yán yú lǜ jǐ",
+    literalMeaning: "严 (strict) 于 (with) 律 (regulate) 己 (oneself) — being strict with yourself, holding yourself to a high standard.",
+    meaning: "Holding yourself to strict, high standards — even when nobody's watching.",
+    meaningZh: {
+      hanzi: "对自己的要求很严格，不放松，不找借口。",
+      pinyin: "Duì zìjǐ de yāoqiú hěn yángé, bú fàngsōng, bù zhǎo jièkǒu.",
+      charPinyin: ["duì", "zì", "jǐ", "de", "yāo", "qiú", "hěn", "yán", "gé", "", "bú", "fàng", "sōng", "", "bù", "zhǎo", "jiè", "kǒu", ""],
+    },
+    dailyLifeScenario:
+      "Nobody would notice if you skipped the last few questions on your practice worksheet, but you finish every single one anyway, because that's the standard you hold yourself to. That's 严于律己.",
+    exampleSentence: {
+      hanzi: "就算没有人检查，他也严于律己，认真做完每一题。",
+      pinyin: "Jiùsuàn méiyǒu rén jiǎnchá, tā yě yányú-lǜjǐ, rènzhēn zuò wán měi yì tí.",
+      english: "Even with no one checking, he still held himself to a strict standard and carefully finished every question.",
+      charPinyin: ["jiù", "suàn", "méi", "yǒu", "rén", "jiǎn", "chá", "", "tā", "yě", "yán", "yú", "lǜ", "jǐ", "", "rèn", "zhēn", "zuò", "wán", "měi", "yì", "tí", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning confirmed via zdic.net and Baidu Baike (2026-09-10 search); traditionally paired with 宽以待人 (宋·陈亮《谢曾察院启》), used standalone here for a single clear lesson.",
+  },
+  {
+    id: "kuan-yi-dai-ren",
+    hanzi: "宽以待人",
+    pinyin: "kuān yǐ dài rén",
+    literalMeaning: "宽 (generous) 以 (with) 待 (treat) 人 (people) — treating people with generosity and tolerance.",
+    meaning: "Being patient, forgiving, and generous toward others, instead of being harsh or quick to judge.",
+    meaningZh: {
+      hanzi: "对别人宽容大方，不轻易责怪别人的小错。",
+      pinyin: "Duì biérén kuānróng dàfāng, bù qīngyì zéguài biérén de xiǎo cuò.",
+      charPinyin: ["duì", "bié", "rén", "kuān", "róng", "dà", "fāng", "", "bù", "qīng", "yì", "zé", "guài", "bié", "rén", "de", "xiǎo", "cuò", ""],
+    },
+    dailyLifeScenario:
+      "Your friend accidentally breaks your favourite pencil while borrowing it. Instead of getting angry, you tell them it's okay and it was just an accident. That patient, forgiving attitude is 宽以待人.",
+    exampleSentence: {
+      hanzi: "朋友不小心弄坏了他的东西，他宽以待人，没有生气。",
+      pinyin: "Péngyou bù xiǎoxīn nòng huài le tā de dōngxi, tā kuānyǐ-dàirén, méiyǒu shēngqì.",
+      english: "A friend accidentally broke his thing, but he was patient and forgiving, and didn't get angry.",
+      charPinyin: ["péng", "you", "bù", "xiǎo", "xīn", "nòng", "huài", "le", "tā", "de", "dōng", "xi", "", "tā", "kuān", "yǐ", "dài", "rén", "", "méi", "yǒu", "shēng", "qì", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning confirmed via zdic.net and Baidu Baike (2026-09-10 search); origin traced to 罗贯中《三国演义》第60回, traditionally paired with 严于律己.",
+  },
 
   // --- Kindness & Community ---
   {
@@ -527,6 +688,98 @@ export const idioms: IdiomContent[] = [
     ageBand: "lower-primary",
     theme: "kindness",
     sourceNotes: "Meaning/origin (《战国策·燕策一》, the Yan Zhaowang story) confirmed via zdic.net and Baidu Baike (2026-09-09 search).",
+  },
+  {
+    id: "fu-lao-xie-you",
+    hanzi: "扶老携幼",
+    pinyin: "fú lǎo xié yòu",
+    literalMeaning: "扶 (support) 老 (the elderly) 携 (lead by hand) 幼 (the young) — supporting the elderly and leading the young by the hand.",
+    meaning: "Everyone helping and caring for each other across generations — supporting the old and looking after the young together.",
+    meaningZh: {
+      hanzi: "大家一起出门的时候，照顾年纪大的和年纪小的。",
+      pinyin: "Dàjiā yìqǐ chūmén de shíhou, zhàogù niánjì dà de hé niánjì xiǎo de.",
+      charPinyin: ["dà", "jiā", "yì", "qǐ", "chū", "mén", "de", "shí", "hou", "", "zhào", "gù", "nián", "jì", "dà", "de", "hé", "nián", "jì", "xiǎo", "de", ""],
+    },
+    dailyLifeScenario:
+      "On a family hike, the big kids help grandma along the rocky path while also holding your little cousin's hand so nobody gets left behind. That caring for every generation together is 扶老携幼.",
+    exampleSentence: {
+      hanzi: "一家人去爬山，扶老携幼，互相照顾着走完全程。",
+      pinyin: "Yìjiā rén qù páshān, fúlǎo-xiéyòu, hùxiāng zhàogù zhe zǒuwán quánchéng.",
+      english: "The whole family went hiking, helping the old and looking after the young, caring for each other the whole way.",
+      charPinyin: ["yì", "jiā", "rén", "qù", "pá", "shān", "", "fú", "lǎo", "xié", "yòu", "", "hù", "xiāng", "zhào", "gù", "zhe", "zǒu", "wán", "quán", "chéng", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (《战国策·齐策四》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "shou-zu-qing-shen",
+    hanzi: "手足情深",
+    pinyin: "shǒu zú qíng shēn",
+    literalMeaning: "手 (hand) 足 (foot) 情 (affection) 深 (deep) — \"hands and feet\" (a classical way of referring to siblings), with deep affection between them.",
+    meaning: "Deep, close affection between brothers and sisters.",
+    meaningZh: {
+      hanzi: "兄弟姐妹之间的感情很深厚，互相关心。",
+      pinyin: "Xiōngdì jiěmèi zhījiān de gǎnqíng hěn shēnhòu, hùxiāng guānxīn.",
+      charPinyin: ["xiōng", "dì", "jiě", "mèi", "zhī", "jiān", "de", "gǎn", "qíng", "hěn", "shēn", "hòu", "", "hù", "xiāng", "guān", "xīn", ""],
+    },
+    dailyLifeScenario:
+      "Your older brother gives up his last piece of cake for you without even being asked, and you always look out for him too when he's upset. That closeness between siblings is 手足情深.",
+    exampleSentence: {
+      hanzi: "哥哥和弟弟手足情深，什么事都互相帮忙。",
+      pinyin: "Gēge hé dìdi shǒuzú-qíngshēn, shénme shì dōu hùxiāng bāngmáng.",
+      english: "The older and younger brother have deep sibling affection — they help each other with everything.",
+      charPinyin: ["gē", "ge", "hé", "dì", "di", "shǒu", "zú", "qíng", "shēn", "", "shén", "me", "shì", "dōu", "hù", "xiāng", "bāng", "máng", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning confirmed via zdic.net and Baidu Baike (2026-09-10 search); classical usage traced to 唐·李华《吊古战场文》and 宋·苏辙《为兄轼下狱上书》.",
+  },
+  {
+    id: "yu-ren-wei-shan",
+    hanzi: "与人为善",
+    pinyin: "yǔ rén wéi shàn",
+    literalMeaning: "与 (with) 人 (people) 为 (do) 善 (good) — doing good together with others; treating people with kindness.",
+    meaning: "Treating people with kindness and good intentions in how you interact with them, not just in big helpful acts.",
+    meaningZh: {
+      hanzi: "对待身边的人友善和气，抱着好意去相处。",
+      pinyin: "Duìdài shēnbiān de rén yǒushàn héqi, bàozhe hǎoyì qù xiāngchǔ.",
+      charPinyin: ["duì", "dài", "shēn", "biān", "de", "rén", "yǒu", "shàn", "hé", "qi", "", "bào", "zhe", "hǎo", "yì", "qù", "xiāng", "chǔ", ""],
+    },
+    dailyLifeScenario:
+      "A new classmate seems shy and unsure on their first day, so you smile, say hello, and invite them to sit with you at lunch. Treating people with that kind of warmth is 与人为善.",
+    exampleSentence: {
+      hanzi: "对新同学，他与人为善，主动邀请对方一起玩。",
+      pinyin: "Duì xīn tóngxué, tā yǔrén-wéishàn, zhǔdòng yāoqǐng duìfāng yìqǐ wán.",
+      english: "Toward the new classmate, he was warm and kind — he went out of his way to invite them to play together.",
+      charPinyin: ["duì", "xīn", "tóng", "xué", "", "tā", "yǔ", "rén", "wéi", "shàn", "", "zhǔ", "dòng", "yāo", "qǐng", "duì", "fāng", "yì", "qǐ", "wán", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (《孟子·公孙丑上》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "le-shan-hao-shi",
+    hanzi: "乐善好施",
+    pinyin: "lè shàn hào shī",
+    literalMeaning: "乐 (joyfully) 善 (good deeds) 好 (fond of) 施 (giving) — joyfully fond of doing good deeds and giving to others.",
+    meaning: "Being genuinely happy to give and be generous to others, not just when asked.",
+    meaningZh: {
+      hanzi: "喜欢做好事，很愿意把自己的东西分给别人。",
+      pinyin: "Xǐhuan zuò hǎoshì, hěn yuànyì bǎ zìjǐ de dōngxi fēn gěi biérén.",
+      charPinyin: ["xǐ", "huan", "zuò", "hǎo", "shì", "", "hěn", "yuàn", "yì", "bǎ", "zì", "jǐ", "de", "dōng", "xi", "fēn", "gěi", "bié", "rén", ""],
+    },
+    dailyLifeScenario:
+      "When your school collects toys and books for children who don't have many, you happily go through your own shelf and give away some of your favourites, without being asked twice. That eager generosity is 乐善好施.",
+    exampleSentence: {
+      hanzi: "学校募捐时，他乐善好施，捐出了好几本图书。",
+      pinyin: "Xuéxiào mùjuān shí, tā lèshàn-hàoshī, juānchū le hǎo jǐ běn túshū.",
+      english: "During the school donation drive, he was joyfully generous and donated several of his own books.",
+      charPinyin: ["xué", "xiào", "mù", "juān", "shí", "", "tā", "lè", "shàn", "hào", "shī", "", "juān", "chū", "le", "hǎo", "jǐ", "běn", "tú", "shū", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (《史记·乐书二》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
   },
 
   // --- Wisdom & Learning ---
@@ -714,6 +967,98 @@ export const idioms: IdiomContent[] = [
     ageBand: "lower-primary",
     theme: "wisdom",
     sourceNotes: "Meaning/origin (三国·蜀·诸葛亮《教与军师长史参军掾属》) confirmed via zdic.net and Baidu Baike (2026-09-09 search).",
+  },
+  {
+    id: "ming-cha-qiu-hao",
+    hanzi: "明察秋毫",
+    pinyin: "míng chá qiū háo",
+    literalMeaning: "明 (clearly) 察 (perceive) 秋 (autumn) 毫 (fine down) — perceiving clearly even the fine down an animal grows in autumn.",
+    meaning: "Noticing even the tiniest details that most people would miss.",
+    meaningZh: {
+      hanzi: "观察事情非常仔细，连很小的细节都能发现。",
+      pinyin: "Guānchá shìqing fēicháng zǐxì, lián hěn xiǎo de xìjié dōu néng fāxiàn.",
+      charPinyin: ["guān", "chá", "shì", "qing", "fēi", "cháng", "zǐ", "xì", "", "lián", "hěn", "xiǎo", "de", "xì", "jié", "dōu", "néng", "fā", "xiàn", ""],
+    },
+    dailyLifeScenario:
+      "While looking for your missing eraser, you notice a tiny mark on the floor that nobody else saw, and it leads you straight to where it rolled. Spotting details that small is 明察秋毫.",
+    exampleSentence: {
+      hanzi: "老师明察秋毫，一下子就看出作业是抄来的。",
+      pinyin: "Lǎoshī míngchá-qiūháo, yíxiàzi jiù kàn chū zuòyè shì chāo lái de.",
+      english: "The teacher notices even the smallest details — she spotted right away that the homework had been copied.",
+      charPinyin: ["lǎo", "shī", "míng", "chá", "qiū", "háo", "", "yí", "xià", "zi", "jiù", "kàn", "chū", "zuò", "yè", "shì", "chāo", "lái", "de", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (《孟子·梁惠王上》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "xue-yi-zhi-yong",
+    hanzi: "学以致用",
+    pinyin: "xué yǐ zhì yòng",
+    literalMeaning: "学 (study) 以 (in order to) 致 (bring about) 用 (application) — studying in order to put it to actual use.",
+    meaning: "Actually using what you've learned in real life, not just memorizing it for a test.",
+    meaningZh: {
+      hanzi: "把学过的知识真正用在实际生活当中。",
+      pinyin: "Bǎ xuéguò de zhīshi zhēnzhèng yòng zài shíjì shēnghuó dāngzhōng.",
+      charPinyin: ["bǎ", "xué", "guò", "de", "zhī", "shi", "zhēn", "zhèng", "yòng", "zài", "shí", "jì", "shēng", "huó", "dāng", "zhōng", ""],
+    },
+    dailyLifeScenario:
+      "After learning about fractions in class, you use them to split a pizza fairly between four friends at home. Actually putting what you learned to real use like that is 学以致用.",
+    exampleSentence: {
+      hanzi: "学了分数以后，他学以致用，公平地分好了披萨。",
+      pinyin: "Xué le fēnshù yǐhòu, tā xuéyǐ-zhìyòng, gōngpíng de fēn hǎo le pīsà.",
+      english: "After learning about fractions, he put what he learned to real use, dividing the pizza fairly.",
+      charPinyin: ["xué", "le", "fēn", "shù", "yǐ", "hòu", "", "tā", "xué", "yǐ", "zhì", "yòng", "", "gōng", "píng", "de", "fēn", "hǎo", "le", "pī", "sà", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "yin-di-zhi-yi",
+    hanzi: "因地制宜",
+    pinyin: "yīn dì zhì yí",
+    literalMeaning: "因 (according to) 地 (the place) 制 (decide) 宜 (what's suitable) — deciding what's suitable according to the actual place/situation.",
+    meaning: "Adjusting your plan to fit the actual situation you're in, instead of using the same approach everywhere.",
+    meaningZh: {
+      hanzi: "根据实际的情况，想出最合适的办法。",
+      pinyin: "Gēnjù shíjì de qíngkuàng, xiǎngchū zuì héshì de bànfǎ.",
+      charPinyin: ["gēn", "jù", "shí", "jì", "de", "qíng", "kuàng", "", "xiǎng", "chū", "zuì", "hé", "shì", "de", "bàn", "fǎ", ""],
+    },
+    dailyLifeScenario:
+      "Your class wants to grow a vegetable garden, but the sunny side of the yard is best for tomatoes while the shady side suits lettuce better — so you plant each vegetable where it actually grows best. That's 因地制宜.",
+    exampleSentence: {
+      hanzi: "种菜的时候，他们因地制宜，把不同的菜种在合适的地方。",
+      pinyin: "Zhòng cài de shíhou, tāmen yīndì-zhìyí, bǎ bùtóng de cài zhòng zài héshì de dìfang.",
+      english: "While planting vegetables, they adapted to the actual conditions, planting each vegetable where it suited best.",
+      charPinyin: ["zhòng", "cài", "de", "shí", "hou", "", "tā", "men", "yīn", "dì", "zhì", "yí", "", "bǎ", "bù", "tóng", "de", "cài", "zhòng", "zài", "hé", "shì", "de", "dì", "fang", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (汉·赵晔《吴越春秋·阖闾内传》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "shen-si-shu-lv",
+    hanzi: "深思熟虑",
+    pinyin: "shēn sī shú lǜ",
+    literalMeaning: "深 (deeply) 思 (think) 熟 (thoroughly) 虑 (consider) — thinking deeply and considering thoroughly.",
+    meaning: "Thinking carefully and thoroughly about something before deciding, instead of rushing into it.",
+    meaningZh: {
+      hanzi: "做决定之前认真仔细地想清楚，不急着做。",
+      pinyin: "Zuò juédìng zhīqián rènzhēn zǐxì de xiǎng qīngchu, bù jízhe zuò.",
+      charPinyin: ["zuò", "jué", "dìng", "zhī", "qián", "rèn", "zhēn", "zǐ", "xì", "de", "xiǎng", "qīng", "chu", "", "bù", "jí", "zhe", "zuò", ""],
+    },
+    dailyLifeScenario:
+      "Before choosing which club to join, you think carefully about what you actually enjoy and how much time you have, instead of just picking whatever your friend picked. That careful thinking-it-through is 深思熟虑.",
+    exampleSentence: {
+      hanzi: "选兴趣班之前，他深思熟虑，考虑了很久才决定。",
+      pinyin: "Xuǎn xìngqùbān zhīqián, tā shēnsī-shúlǜ, kǎolǜ le hěn jiǔ cái juédìng.",
+      english: "Before choosing an enrichment class, he thought it through carefully, considering it for a long time before deciding.",
+      charPinyin: ["xuǎn", "xìng", "qù", "bān", "zhī", "qián", "", "tā", "shēn", "sī", "shú", "lǜ", "", "kǎo", "lǜ", "le", "hěn", "jiǔ", "cái", "jué", "dìng", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (《楚辞·渔父》/《史记·穰侯列传》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
   },
 ];
 
