@@ -1,7 +1,19 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
 import { doorLevels } from "../src/idiom-door/levelContent";
 import { completeMatchStage } from "./helpers/idiomMatch";
-import { traceCurrentCharacterPerfectly } from "./helpers/writingStage";
+import { traceCurrentCharacterPerfectly, continueFromWritingSummary } from "./helpers/writingStage";
+
+/** Strips ruby `<rt>` pinyin annotations from a clone, recovering just
+ * the base hanzi text — same approach as idiom-door.spec.ts's
+ * rubyBaseText, needed here too since the writing-summary card's hanzi
+ * line is ruby-annotated the same way. */
+async function rubyBaseText(locator: Locator): Promise<string> {
+  return locator.evaluate((el) => {
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("rt").forEach((rt) => rt.remove());
+    return clone.textContent ?? "";
+  });
+}
 
 /**
  * The writing/tracing stage itself (BACKLOG.md's 2026-09-08 "teach each
@@ -37,7 +49,8 @@ test("shows each of the idiom's 4 characters in turn, with a real HanziWriter ta
     await traceCurrentCharacterPerfectly(page);
   }
 
-  // The door stage starts right after the last character resolves.
+  // The writing-summary card gates the actual move into the door stage.
+  await continueFromWritingSummary(page);
   await expect(page.locator("#catch-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
   await expect(page.locator("#writing-ui-layer")).toHaveClass(/stage-hidden/);
 });
@@ -50,9 +63,72 @@ test("tracing every character with 0 mistakes opens the door stage at the full s
   for (let i = 0; i < Array.from(idiom.hanzi).length; i++) {
     await traceCurrentCharacterPerfectly(page);
   }
+  await continueFromWritingSummary(page);
 
   await expect(page.locator("#catch-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
   await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", "100");
+});
+
+/**
+ * 2026-09-09 ("there should be some feedback on the writing to explain
+ * to child how well he wrote"): right after each character's own quiz
+ * resolves, `#writing-feedback` shows a star rating (writingScore.ts's
+ * `traceRatingForAccuracy`) for a short beat before the next character
+ * begins — a perfect (0-mistake) trace, same as every other e2e trace
+ * in this suite, always rates the max 3 stars.
+ */
+test("shows a star-rated feedback message after each character, before moving to the next one", async ({ page }) => {
+  test.setTimeout(90000);
+  await enterFirstLevelsWritingStage(page);
+  const chars = Array.from(doorLevels[0].idiom.hanzi);
+
+  for (let i = 0; i < chars.length; i++) {
+    await traceCurrentCharacterPerfectly(page);
+    const feedback = page.locator("#writing-feedback");
+    await expect(feedback).toHaveClass(/visible/, { timeout: 2000 });
+    await expect(feedback).toHaveAttribute("data-stars", "3");
+    await expect(feedback).toHaveAttribute("data-mistakes", "0");
+    await expect.poll(() => feedback.textContent()).toContain("⭐⭐⭐");
+
+    const isLast = i === chars.length - 1;
+    if (isLast) {
+      // The last character's feedback beat is what leads into the
+      // writing-summary card, not another character's own watch/trace.
+      await continueFromWritingSummary(page);
+    } else {
+      // The feedback clears once the *next* character's own watch/trace
+      // phase begins, so it doesn't linger on screen past its beat.
+      await expect.poll(() => page.locator("#writing-status").getAttribute("data-char-index")).toBe(String(i + 1));
+      await expect(feedback).not.toHaveClass(/visible/);
+    }
+  }
+});
+
+/**
+ * 2026-09-09 ("...eventually how many points he got"): once every
+ * character is traced, main.ts's writing-summary card restates the
+ * idiom, its overall star rating, and the literal HP number earned —
+ * checked here directly rather than only through
+ * `continueFromWritingSummary`'s own bare visibility check.
+ */
+test("the writing-summary card shows the idiom, its rating, and the HP points earned", async ({ page }) => {
+  test.setTimeout(90000);
+  await enterFirstLevelsWritingStage(page);
+  const idiom = doorLevels[0].idiom;
+
+  for (let i = 0; i < Array.from(idiom.hanzi).length; i++) {
+    await traceCurrentCharacterPerfectly(page);
+  }
+
+  const card = page.locator("#writing-summary-card");
+  await expect(card).toHaveClass(/visible/, { timeout: 5000 });
+  await expect.poll(() => rubyBaseText(card.locator("[data-writing-summary-hanzi]"))).toBe(idiom.hanzi);
+  await expect(card.locator("[data-writing-summary-rating]")).toContainText("⭐⭐⭐");
+  await expect(card.locator("[data-writing-summary-hp]")).toContainText("100");
+
+  await page.click("#writing-continue-btn");
+  await expect(card).not.toHaveClass(/visible/);
+  await expect(page.locator("#catch-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
 });
 
 test("the writing stage's own chrome is hidden during the match warm-up", async ({ page }) => {

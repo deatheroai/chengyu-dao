@@ -7,6 +7,8 @@ import {
   MISTAKE_ACCURACY_PENALTY,
   shouldSkipStrokeDemo,
   SESSIONS_BEFORE_SKIPPING_STROKE_DEMO,
+  traceRatingForAccuracy,
+  TRACE_RATING_MAX_STARS,
 } from "./writingScore";
 
 describe("writing stage scoring", () => {
@@ -96,5 +98,38 @@ describe("shouldSkipStrokeDemo", () => {
 
   it("keeps skipping well past the threshold", () => {
     expect(shouldSkipStrokeDemo(SESSIONS_BEFORE_SKIPPING_STROKE_DEMO + 50)).toBe(true);
+  });
+});
+
+describe("traceRatingForAccuracy", () => {
+  it("rates a perfect trace at the max stars, with an encouraging label", () => {
+    const rating = traceRatingForAccuracy(1);
+    expect(rating.stars).toBe(TRACE_RATING_MAX_STARS);
+    expect(rating.label.length).toBeGreaterThan(0);
+  });
+
+  it("still rates a near-perfect trace (one small mistake) at the top tier", () => {
+    // characterTraceAccuracy(1) = 1 - MISTAKE_ACCURACY_PENALTY = 0.85
+    expect(traceRatingForAccuracy(0.85).stars).toBe(3);
+  });
+
+  it("rates a middling trace lower, but never at 0 stars until it's genuinely poor", () => {
+    expect(traceRatingForAccuracy(0.6).stars).toBe(2);
+    expect(traceRatingForAccuracy(0.3).stars).toBe(1);
+  });
+
+  it("rates a hopeless trace (0 accuracy) at 0 stars, still with a non-empty (encouraging, not scolding) label", () => {
+    const rating = traceRatingForAccuracy(0);
+    expect(rating.stars).toBe(0);
+    expect(rating.label.length).toBeGreaterThan(0);
+    expect(rating.label.toLowerCase()).not.toMatch(/fail|bad|wrong|poor/);
+  });
+
+  it("stars only ever fall within 0..TRACE_RATING_MAX_STARS", () => {
+    for (const accuracy of [0, 0.1, 0.19, 0.2, 0.4, 0.49, 0.5, 0.7, 0.84, 0.85, 0.99, 1]) {
+      const { stars } = traceRatingForAccuracy(accuracy);
+      expect(stars).toBeGreaterThanOrEqual(0);
+      expect(stars).toBeLessThanOrEqual(TRACE_RATING_MAX_STARS);
+    }
   });
 });

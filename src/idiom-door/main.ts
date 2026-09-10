@@ -15,7 +15,7 @@ import { idiomsById } from "../idioms/idioms";
 import type { IdiomContent } from "../idioms/types";
 import { setDevIdiomSeedOverride, clearDevIdiomSeedOverride } from "./sessionIdioms";
 import { runWritingStage } from "./writingStage";
-import { shouldSkipStrokeDemo } from "./writingScore";
+import { shouldSkipStrokeDemo, traceRatingForAccuracy, PERFECT_TRACE_STARTING_HP } from "./writingScore";
 
 function showMeaning(index: number): void {
   const el = document.getElementById("meaning-prompt");
@@ -92,6 +92,49 @@ function showBalloonIntro(index: number, onStart: () => void): void {
     onStart();
   };
   startBtn?.addEventListener("click", onClick);
+}
+
+/**
+ * 2026-09-09 ("there should be some feedback on the writing to explain
+ * to child how well he wrote and eventually how many points he got"):
+ * shown once every one of the idiom's characters has been traced
+ * (writingStage.ts's `onComplete`), before the door stage actually
+ * starts — restates which idiom was just traced, its overall star
+ * rating (writingScore.ts's `traceRatingForAccuracy`, fed the same
+ * fraction of `PERFECT_TRACE_STARTING_HP` the door stage is about to
+ * open with), and the literal HP number earned, so "how many points he
+ * got" has an actual on-screen answer. Gated behind a Continue tap, not
+ * a timer — same "the child sets the pace" philosophy every other
+ * stage-to-stage transition in this game already uses (see
+ * showBalloonSuccessCard below).
+ */
+function showWritingSummaryCard(index: number, startingHp: number, onContinue: () => void): void {
+  const idiom = doorLevels[index].idiom;
+  const card = document.getElementById("writing-summary-card");
+  if (!card) {
+    onContinue();
+    return;
+  }
+
+  const hanziEl = card.querySelector<HTMLElement>("[data-writing-summary-hanzi]");
+  if (hanziEl) renderRubyText(hanziEl, idiom.hanzi, idiom.pinyin.split(" "));
+
+  const rating = traceRatingForAccuracy(startingHp / PERFECT_TRACE_STARTING_HP);
+  const ratingEl = card.querySelector<HTMLElement>("[data-writing-summary-rating]");
+  if (ratingEl) ratingEl.textContent = `${"⭐".repeat(rating.stars)}${"☆".repeat(Math.max(0, 3 - rating.stars))} ${rating.label}`;
+
+  const hpEl = card.querySelector<HTMLElement>("[data-writing-summary-hp]");
+  if (hpEl) hpEl.textContent = `❤️ ${startingHp} HP for the door!`;
+
+  card.classList.add("visible");
+
+  const continueBtn = document.getElementById("writing-continue-btn");
+  const onClick = (): void => {
+    card.classList.remove("visible");
+    continueBtn?.removeEventListener("click", onClick);
+    onContinue();
+  };
+  continueBtn?.addEventListener("click", onClick);
 }
 
 /**
@@ -346,8 +389,9 @@ function bootstrap(): void {
   // 2026-09-09: BACKLOG.md's writing/tracing stage — runs right after
   // the level-intro screen (beginLevel below), before this idiom's door
   // stage actually starts. Its own onComplete hands back this idiom's
-  // starting door-stage HP (writingScore.ts), which beginDoorLevel below
-  // then actually starts the door scene with.
+  // starting door-stage HP (writingScore.ts) — shown to the child via
+  // showWritingSummaryCard (per "how many points he got"), which then
+  // hands off to beginDoorLevel once Continue is tapped.
   //
   // skipDemo (re-checked fresh on every call, not cached once at
   // bootstrap) — per your "can we skip the example tracing" feedback
@@ -361,7 +405,13 @@ function bootstrap(): void {
     showWritingStageUI();
     const skipDemo = shouldSkipStrokeDemo(completedSessionCount());
     runWritingStage(doorLevels[index].idiom, skipDemo, (startingHp) => {
-      beginDoorLevel(index, startingHp);
+      // Hide this stage's own chrome the moment we're leaving it —
+      // same "leave the stage the instant we know we're leaving it"
+      // lesson as handleDoorReached/afterBalloonStage below — otherwise
+      // #writing-status/#writing-target kept showing behind the summary
+      // card until Continue was pressed.
+      document.getElementById("writing-ui-layer")?.classList.add("stage-hidden");
+      showWritingSummaryCard(index, startingHp, () => beginDoorLevel(index, startingHp));
     });
   };
 

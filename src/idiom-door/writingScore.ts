@@ -74,6 +74,40 @@ export function startingDoorHp(results: CharacterTraceResult[]): number {
 }
 
 /**
+ * 2026-09-09 ("there should be some feedback on the writing to explain
+ * to child how well he wrote and eventually how many points he got"):
+ * turns a 0-1 accuracy into child-facing feedback — a star rating (0-3)
+ * plus a short encouraging label. Used both per-character (right after
+ * each quiz resolves, writingStage.ts) and for the whole idiom (the
+ * writing-summary card, main.ts) — same rating scale either way, since
+ * both are ultimately "how accurately was this traced."
+ *
+ * Thresholds picked so a single stroke mistake or two (accuracy ≈0.85+,
+ * see `MISTAKE_ACCURACY_PENALTY`) still reads as "great," not knocked
+ * down to a middling rating over a near-perfect trace. Every tier still
+ * gets an encouraging label, never a scolding one — "no fail state, no
+ * punishing failure" ethos this project keeps everywhere else.
+ */
+export interface TraceRating {
+  /** 0-3 — how many of `TRACE_RATING_MAX_STARS` to actually fill in. */
+  stars: number;
+  label: string;
+}
+
+export const TRACE_RATING_MAX_STARS = 3;
+
+const GREAT_ACCURACY_THRESHOLD = 0.85;
+const GOOD_ACCURACY_THRESHOLD = 0.5;
+const OKAY_ACCURACY_THRESHOLD = 0.2;
+
+export function traceRatingForAccuracy(accuracy: number): TraceRating {
+  if (accuracy >= GREAT_ACCURACY_THRESHOLD) return { stars: 3, label: "Perfect writing!" };
+  if (accuracy >= GOOD_ACCURACY_THRESHOLD) return { stars: 2, label: "Great job!" };
+  if (accuracy >= OKAY_ACCURACY_THRESHOLD) return { stars: 1, label: "Nice try!" };
+  return { stars: 0, label: "Keep practicing!" };
+}
+
+/**
  * After this many completed sessions (shared/sessionHistory.ts's
  * `completedSessionCount` — each one ends at the celebratory
  * session-summary card), the writing stage skips straight to the quiz

@@ -1,5 +1,5 @@
 import { type Page } from "@playwright/test";
-import { RUN_SPEED, JUMP_GRAVITY, JUMP_VELOCITY } from "../../src/idiom-door/runPhysics";
+import { RUN_SPEED, JUMP_GRAVITY, JUMP_VELOCITY, FALL_GRAVITY_MULTIPLIER } from "../../src/idiom-door/runPhysics";
 import type { DoorLevel, LevelCharacterTile } from "../../src/idiom-door/levelContent";
 
 /**
@@ -56,6 +56,36 @@ const TAKEOFF_TOLERANCE_X = 15;
  * late — the caller tries this character's next repeat instead. */
 const GIVE_UP_PAST_TAKEOFF_X = 60;
 
+/**
+ * Total real time (ms) a jump spends airborne, start to landing — the
+ * rise to apex (`-JUMP_VELOCITY / JUMP_GRAVITY`) plus the (steeper,
+ * `FALL_GRAVITY_MULTIPLIER`) fall back down from that same apex height,
+ * independent of which tile (if any) it actually catches along the way
+ * — `stepRun`'s own trajectory only cares about `grounded`/`vy`, never
+ * what got caught. IdiomDoorScene only accepts a jump input while
+ * `grounded` (see its own `jumpExecuting` check) — a press while still
+ * airborne from a *previous* jump is silently swallowed, not queued.
+ * `jumpForTile` below waits out this whole duration after its own press
+ * before returning, so a caller chaining several aimed jumps back to
+ * back (catchCharacter, jumpForFirstReachableWrongTile) never fires a
+ * second press before the runner has actually landed from the first —
+ * discovered 2026-09-10 as the real cause of an intermittent "pressed
+ * but nothing happened" miss on a level whose tiles happened to sit
+ * close enough together that the old fixed ~150ms settle wait wasn't
+ * long enough for the *previous* jump to land before this helper judged
+ * it time to press the next one.
+ */
+const JUMP_FLIGHT_DURATION_MS = (() => {
+  const apexTimeS = -JUMP_VELOCITY / JUMP_GRAVITY;
+  const apexHeight = (JUMP_VELOCITY * JUMP_VELOCITY) / (2 * JUMP_GRAVITY);
+  const fallTimeS = Math.sqrt((2 * apexHeight) / (JUMP_GRAVITY * FALL_GRAVITY_MULTIPLIER));
+  return (apexTimeS + fallTimeS) * 1000;
+})();
+/** Small buffer on top of `JUMP_FLIGHT_DURATION_MS` for real frame
+ * timing/polling slop, so this helper doesn't race the game's own
+ * landing frame. */
+const LANDING_SETTLE_BUFFER_MS = 80;
+
 async function playerX(page: Page): Promise<number> {
   return Number(await page.locator("#player-position").getAttribute("data-x"));
 }
@@ -87,6 +117,15 @@ export async function pressJumpButton(page: Page): Promise<void> {
  * "missed" without ever pressing if the runner's already past the
  * window (or the deadline elapses) — no jump means no HP spent chasing
  * a tile the timing already missed.
+ *
+ * After a real press, waits out the jump's own full airborne duration
+ * (`JUMP_FLIGHT_DURATION_MS` + a settle buffer) before resolving —
+ * IdiomDoorScene only accepts a jump input while grounded, so a caller
+ * that chains another `jumpForTile` call immediately after this one
+ * returns is guaranteed the runner has actually landed by then, not
+ * still mid-arc from *this* press (see `JUMP_FLIGHT_DURATION_MS`'s own
+ * doc comment for how that silent "pressed but nothing happened" miss
+ * was found).
  */
 export async function jumpForTile(
   page: Page,
@@ -101,6 +140,7 @@ export async function jumpForTile(
     if (px > takeoffX + GIVE_UP_PAST_TAKEOFF_X) return "missed";
     if (px >= takeoffX - TAKEOFF_TOLERANCE_X) {
       await press(page);
+      await page.waitForTimeout(JUMP_FLIGHT_DURATION_MS + LANDING_SETTLE_BUFFER_MS);
       return "pressed";
     }
     await page.waitForTimeout(20);
@@ -142,4 +182,34 @@ export async function solveDoorLevel(page: Page, level: DoorLevel, press: JumpPr
   for (let i = 0; i < chars.length; i++) {
     await catchCharacter(page, level, i, press);
   }
+}
+
+/**
+ * Jumps for the first still-reachable tile whose char *isn't*
+ * `excludeChar` — guaranteed "wrong" per orderedCatchProgress.ts's
+ * strict ordering, whichever character it actually belongs to (used by
+ * idiom-door.spec.ts's deliberate-wrong-catch HP tests). Tries each
+ * candidate in track order rather than trusting a single
+ * caller-computed one's timing margin, same "skip a miss and try the
+ * next one" shape as `catchCharacter` above and for the same reason:
+ * the async round-trip to read the runner's position and pick a
+ * candidate can itself eat into whatever margin looked safe at
+ * selection time — especially under load — so a genuine miss on the
+ * nearest candidate shouldn't fail the whole test when a later,
+ * still-reachable one would have worked. Throws if every candidate
+ * before the level's own end is missed, since that's a real bug worth
+ * failing loudly on (see `jumpForTile`'s own doc comment).
+ */
+export async function jumpForFirstReachableWrongTile(
+  page: Page,
+  tiles: LevelCharacterTile[],
+  excludeChar: string,
+  press: JumpPresser = pressSpaceKey,
+): Promise<LevelCharacterTile> {
+  const candidates = tiles.filter((t) => t.char !== excludeChar).sort((a, b) => a.x - b.x);
+  for (const tile of candidates) {
+    const result = await jumpForTile(page, tile, 30000, press);
+    if (result === "pressed") return tile;
+  }
+  throw new Error(`jumpForFirstReachableWrongTile: no reachable tile (excluding "${excludeChar}") could be caught before the level ended`);
 }

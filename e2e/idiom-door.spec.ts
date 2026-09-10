@@ -3,8 +3,8 @@ import { doorLevels } from "../src/idiom-door/levelContent";
 import { balloonLevels } from "../src/idiom-door/balloonLevelContent";
 import { JUMP_HP_COST, WRONG_CATCH_HP_PENALTY } from "../src/idiom-door/doorHp";
 import { completeMatchStage } from "./helpers/idiomMatch";
-import { traceWholeIdiomPerfectly } from "./helpers/writingStage";
-import { solveDoorLevel, catchCharacter, jumpForTile, pressJumpButton, takeoffXForTile } from "./helpers/doorJump";
+import { traceWholeIdiomPerfectly, continueFromWritingSummary } from "./helpers/writingStage";
+import { solveDoorLevel, catchCharacter, jumpForFirstReachableWrongTile, pressJumpButton } from "./helpers/doorJump";
 
 /**
  * Auto-runner puzzle (CATCH_MECHANIC_PLAN.md's 2026-08-23 revision):
@@ -118,16 +118,20 @@ async function startPlaying(page: Page): Promise<void> {
 
 /**
  * 2026-09-09: traces the level-intro card's idiom (real freehand
- * strokes, see this file's own top doc comment) and waits for the door
- * stage to actually start. Every test that needs the door scene running
- * calls this right after `startPlaying` — the door scene doesn't exist
- * on screen (nor does `#meaning-prompt`/`#door-status` carry this
- * level's content) until the writing stage's last character resolves.
+ * strokes, see this file's own top doc comment), dismisses the
+ * writing-summary card's own Continue gate (main.ts's
+ * showWritingSummaryCard, per "how well he wrote and eventually how
+ * many points he got"), and waits for the door stage to actually start.
+ * Every test that needs the door scene running calls this right after
+ * `startPlaying` — the door scene doesn't exist on screen (nor does
+ * `#meaning-prompt`/`#door-status` carry this level's content) until
+ * the summary card is dismissed.
  */
 async function traceIdiomAndEnterDoor(page: Page, levelIndex: number): Promise<void> {
   const level = doorLevels[levelIndex];
   await expect(page.locator("#writing-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
   await traceWholeIdiomPerfectly(page, level.idiom.hanzi.length);
+  await continueFromWritingSummary(page);
   await expect(page.locator("#catch-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
 }
 
@@ -421,40 +425,40 @@ test("each jump costs HP, and a wrong catch costs extra on top", async ({ page }
   await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", "100");
 
   await catchCharacter(page, level, 0);
-  const afterOneCatch = 100 - JUMP_HP_COST;
-  await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", String(afterOneCatch));
+  // At most JUMP_HP_COST alone (a clean catch, the common case) — but
+  // same chain-catch caveat as the deliberate wrong catch below applies
+  // here too: catchCharacter's own aimed jump can, on a tightly-packed
+  // level, sweep a neighboring tile a frame or two before/after landing
+  // on the intended one, so an exact equality here would be fragile
+  // against however many neighbors a given day's level layout happens
+  // to pack in right around this character's own first tile. Reading
+  // the real value back (rather than assuming the clean-case number)
+  // keeps the wrong-catch threshold math below correct either way.
+  const afterOneCatch = Number(await page.locator("#door-hp").getAttribute("data-hp"));
+  expect(afterOneCatch).toBeLessThanOrEqual(100 - JUMP_HP_COST);
 
   // Deliberately jump for a tile that does *not* match the next-needed
   // character — guaranteed "wrong" per orderedCatchProgress.ts's strict
-  // ordering, whichever character it actually belongs to. Its own real
-  // *takeoff* point (not just `tile.x`) needs to be safely ahead of the
-  // runner — a tile whose takeoff point (up to ~80px *before* `tile.x`,
-  // see takeoffXForTile) already fell behind the runner would make
-  // `jumpForTile` press immediately/late and badly mistimed, risking a
-  // clean miss rather than the deliberate wrong catch this test needs.
-  //
-  // levelContent.ts packs every slot (no gaps — SLOT_WIDTH±SLOT_JITTER
-  // puts adjacent tiles as close as MIN_SLOT_GAP, 110px), tighter than
-  // one jump's own ~190px ground footprint (confirmed live: even a
-  // precisely-*aimed* jump can chain-catch a densely-packed neighbor a
-  // frame before or after the intended tile — `checkCatches` runs every
-  // frame of the whole arc, not once at takeoff, so this is real game
-  // behavior, not an aiming bug). So rather than asserting one *exact*
-  // resulting HP (fragile against however many neighbors a given day's
-  // level layout happens to pack in), this only asserts what's
-  // guaranteed regardless of how many extra tiles a wide/lucky arc
-  // happens to sweep up: at least the one deliberate wrong catch's own
-  // full cost (`JUMP_HP_COST` + `WRONG_CATCH_HP_PENALTY`) came off, and
-  // progress never advances from a catch that wasn't the correct
-  // character (whether the one aimed at or a chained-in neighbor).
+  // ordering, whichever character it actually belongs to.
+  // `jumpForFirstReachableWrongTile` tries candidates in track order
+  // (rather than trusting a single nearest one's own timing margin, per
+  // its own doc comment) — needed since levelContent.ts packs every
+  // slot (no gaps — SLOT_WIDTH±SLOT_JITTER puts adjacent tiles as close
+  // as MIN_SLOT_GAP, 110px), tighter than one jump's own ~190px ground
+  // footprint (confirmed live: even a precisely-*aimed* jump can
+  // chain-catch a densely-packed neighbor a frame before or after the
+  // intended tile — `checkCatches` runs every frame of the whole arc,
+  // not once at takeoff, so this is real game behavior, not an aiming
+  // bug). So rather than asserting one *exact* resulting HP (fragile
+  // against however many neighbors a given day's level layout happens
+  // to pack in), this only asserts what's guaranteed regardless of how
+  // many extra tiles a wide/lucky arc happens to sweep up: at least the
+  // one deliberate wrong catch's own full cost (`JUMP_HP_COST` +
+  // `WRONG_CATCH_HP_PENALTY`) came off, and progress never advances
+  // from a catch that wasn't the correct character (whether the one
+  // aimed at or a chained-in neighbor).
   const nextChar = Array.from(level.idiom.hanzi)[1];
-  const currentX = await getPlayerX(page);
-  const wrongTile = level.tiles
-    .filter((t) => t.char !== nextChar && takeoffXForTile(t) > currentX + 30)
-    .sort((a, b) => a.x - b.x)[0];
-  if (!wrongTile) throw new Error("expected a reachable non-matching tile ahead of the runner in this level");
-
-  await jumpForTile(page, wrongTile);
+  await jumpForFirstReachableWrongTile(page, level.tiles, nextChar);
   await expect(page.locator("#door-status")).toHaveAttribute("data-outcome", "wrong", { timeout: 5000 });
   // Let the frame(s) right after the press finish resolving (see
   // catchCharacter's own use of the same short settle wait) before
@@ -464,6 +468,82 @@ test("each jump costs HP, and a wrong catch costs extra on top", async ({ page }
   expect(hpAfterWrongCatch).toBeLessThanOrEqual(afterOneCatch - JUMP_HP_COST - WRONG_CATCH_HP_PENALTY);
   // The wrong catch (or catches) never advanced progress.
   expect((await status(page)).nextIndex).toBe("1");
+});
+
+/**
+ * 2026-09-09 ("once the hp reaches 0 at the door stage, it should
+ * immediately restart instead of continuing without ability to jump...
+ * give the player some warning when hp is running low"): drains this
+ * idiom's HP down to 0 via a run of deliberate wrong catches (aimed at
+ * tiles that don't match the still-outstanding first character, so
+ * every one of them is guaranteed "wrong"), then confirms two things:
+ * the low-HP warning (`doorHp.ts`'s `isHpLow`) fires before HP actually
+ * hits 0, and reaching 0 sends the child back to retrace *immediately*
+ * — well within `OUT_OF_HP_RESTART_DELAY_MS`'s short beat, not the
+ * (up to ~70s, see DOOR_REACH_TIMEOUT_MS) wait it would take to
+ * actually run the remaining track to the door the old behavior needed.
+ */
+test("running out of HP warns first, then immediately restarts rather than running on to the door", async ({ page }) => {
+  test.setTimeout(90000);
+  await page.goto("/idiom-door.html");
+  await completeMatchStage(page);
+  await startPlaying(page);
+  await traceIdiomAndEnterDoor(page, 0);
+  const level = doorLevels[0];
+
+  await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", "100");
+  await expect(page.locator("#door-hp")).toHaveAttribute("data-low", "false");
+
+  // A single jump only ever costs JUMP_HP_COST + WRONG_CATCH_HP_PENALTY
+  // (15) against the LOW_HP_THRESHOLD (20) window, so one *isolated*
+  // wrong catch can never step clean over the whole "low" band — but
+  // levelContent.ts packs tiles tightly enough (see the wrong-catch-HP
+  // test's own comment above) that a single jump can chain-catch more
+  // than one tile across its arc, and those land on separate animation
+  // frames a few ms apart, not one shared moment this loop's own
+  // before/after-each-jump sampling is guaranteed to observe. So rather
+  // than polling #door-hp only between our own jumps, a MutationObserver
+  // installed directly in the page catches every real data-low flip the
+  // instant it happens, however many frames a single jump's arc spans.
+  await page.evaluate(() => {
+    const el = document.getElementById("door-hp");
+    if (!el) return;
+    (window as unknown as { __sawLowWarning: boolean }).__sawLowWarning = false;
+    const observer = new MutationObserver(() => {
+      if (el.getAttribute("data-low") === "true") {
+        (window as unknown as { __sawLowWarning: boolean }).__sawLowWarning = true;
+      }
+    });
+    observer.observe(el, { attributes: true, attributeFilter: ["data-low"] });
+  });
+
+  // Nothing ever gets caught correctly here (every jump deliberately
+  // targets a tile that doesn't match the idiom's first character), so
+  // the next-needed character — and therefore "any tile with a
+  // different char is guaranteed wrong" — stays true for the whole test.
+  const nextChar = Array.from(level.idiom.hanzi)[0];
+
+  const deadline = Date.now() + 60000;
+  while (Date.now() < deadline) {
+    const hpNow = Number(await page.locator("#door-hp").getAttribute("data-hp"));
+    if (hpNow <= 0) break;
+
+    await jumpForFirstReachableWrongTile(page, level.tiles, nextChar);
+    await page.waitForTimeout(150);
+  }
+
+  const sawLowWarning = await page.evaluate(() => (window as unknown as { __sawLowWarning: boolean }).__sawLowWarning);
+  expect(sawLowWarning).toBe(true);
+
+  // The restart should already be well underway within a few seconds —
+  // nowhere near DOOR_REACH_TIMEOUT_MS's "actually ran to the door"
+  // scale, since it's no longer waiting for that at all.
+  await expect(page.locator("#writing-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 5000 });
+  await expect(page.locator("#catch-ui-layer")).toHaveClass(/stage-hidden/);
+  // Explains why, rather than just silently swapping screens.
+  await expect(page.locator("#door-status")).toHaveAttribute("data-outcome", "depleted");
+  // Same idiom, not the next one, no session progress lost.
+  await expect(page.locator("[data-progress-fraction]")).toHaveText("1/3");
 });
 
 /** 2026-09-09: reaching the door unsolved (BACKLOG.md's "HP: earned
@@ -496,6 +576,7 @@ test("reaching the door unsolved sends the child back to retrace the same idiom,
   // Retracing perfectly again opens the door stage at a fresh, full HP
   // pool — not whatever was left of the old one.
   await traceWholeIdiomPerfectly(page, level.idiom.hanzi.length);
+  await continueFromWritingSummary(page);
   await expect(page.locator("#catch-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
   await expect(page.locator("#door-hp")).toHaveAttribute("data-hp", "100");
   await expect(page.locator("#meaning-prompt")).toHaveText(`Which idiom means: "${level.idiom.meaning}"`);

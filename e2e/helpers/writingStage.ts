@@ -90,3 +90,19 @@ export async function traceWholeIdiomPerfectly(page: Page, characterCount: numbe
     await traceCurrentCharacterPerfectly(page);
   }
 }
+
+/**
+ * 2026-09-09: once every character is traced, main.ts's
+ * `showWritingSummaryCard` gates the actual move into the door stage
+ * behind a Continue tap (per "there should be some feedback on the
+ * writing to explain to child how well he wrote and eventually how
+ * many points he got") — every caller that traces a whole idiom needs
+ * this right after `traceWholeIdiomPerfectly`, same
+ * "dismiss the tap-gated card" shape as `continueFromBalloonSuccess`
+ * in idiom-door.spec.ts.
+ */
+export async function continueFromWritingSummary(page: Page): Promise<void> {
+  await expect(page.locator("#writing-summary-card")).toHaveClass(/visible/, { timeout: 5000 });
+  await page.click("#writing-continue-btn");
+  await expect(page.locator("#writing-summary-card")).not.toHaveClass(/visible/);
+}

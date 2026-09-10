@@ -1,8 +1,16 @@
 import HanziWriter from "hanzi-writer";
 import type { IdiomContent } from "../idioms/types";
 import { writingStrokeData, type WritingCharacterData } from "./writingData/writingStrokeData";
-import { startingDoorHp, type CharacterTraceResult } from "./writingScore";
-import { updateWritingStatus } from "./writingStatus";
+import { startingDoorHp, characterTraceAccuracy, traceRatingForAccuracy, type CharacterTraceResult } from "./writingScore";
+import { updateWritingStatus, updateWritingFeedback, clearWritingFeedback } from "./writingStatus";
+
+/** How long each character's own star-rating feedback stays on screen
+ * before advancing to the next one — long enough to actually read (a
+ * star count + a short label), short enough not to feel like a stall
+ * between four back-to-back characters. Starting number, tune after
+ * playtest — same as every other constant in this project (see
+ * BACKLOG.md). */
+const FEEDBACK_DISPLAY_MS = 1300;
 
 /**
  * Fixed render size (and padding) for the tracing target — deliberately
@@ -116,13 +124,25 @@ export function runWritingStage(idiom: IdiomContent, skipDemo: boolean, onComple
       },
       onComplete: (summary) => {
         results.push({ char, totalMistakes: summary.totalMistakes });
-        advance(index + 1);
+        // 2026-09-09 ("there should be some feedback on the writing to
+        // explain to child how well he wrote"): this character's own
+        // star rating, shown for a short beat before moving on — the
+        // idiom-level total (writing-summary card) comes later, once
+        // every character is done, but a child shouldn't have to wait
+        // that long to find out how *this* one went. Also flips
+        // #writing-status into its own "feedback" phase so `data-phase`
+        // doesn't linger stale as "trace" for this whole beat.
+        updateWritingStatus(index, chars.length, char, "feedback");
+        const rating = traceRatingForAccuracy(characterTraceAccuracy(summary.totalMistakes));
+        updateWritingFeedback(rating.stars, rating.label, summary.totalMistakes);
+        setTimeout(() => advance(index + 1), FEEDBACK_DISPLAY_MS);
       },
     });
   };
 
   const traceChar = (index: number): void => {
     const char = chars[index];
+    clearWritingFeedback();
     if (skipDemo) {
       startQuiz(index);
       return;

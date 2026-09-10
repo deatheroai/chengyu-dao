@@ -75,6 +75,18 @@ const FOOT_OFFSET = CHAR_SIZE * 0.4;
 // always feels like a short, satisfying dash rather than a wait that
 // scales with how early in the track the puzzle happened to complete.
 const FAST_FORWARD_DASH_MS = 700;
+// 2026-09-09 ("once the hp reaches 0 at the door stage, it should
+// immediately restart instead of continuing without ability to jump"):
+// a short beat (not 0ms — an instant cut felt like a bug rather than
+// deliberate feedback in a quick check) between HP actually hitting 0
+// and checkHpDepleted routing back to retrace, so the child sees
+// #door-status's "Out of energy!" message (and the already-flashing
+// low-HP counter, doorHp.ts's isHpLow) land before the scene changes
+// out from under them — same "give the win/loss a beat to register"
+// reasoning FAST_FORWARD_DASH_MS above uses for the opposite (solved)
+// case, just much shorter since there's no dash animation to also wait
+// out here.
+const OUT_OF_HP_RESTART_DELAY_MS = 900;
 const PLAYER_START_X = 30;
 // Camera sits the character roughly a third of the way from the left
 // edge rather than centered — a runner needs more preview room ahead
@@ -86,6 +98,28 @@ interface RuntimeTile {
   def: LevelCharacterTile;
   container: Phaser.GameObjects.Container;
   caught: boolean;
+  /**
+   * 2026-09-10: a *wrong* catch (unlike a correct one) never sets
+   * `caught` — the same physical tile still needs to be catchable later,
+   * once it's actually this character's turn. But `checkCatches` runs
+   * every frame of a jump's whole arc (see its own doc comment), and a
+   * tall enough tile can sit close enough to the jump's own apex that
+   * the character lingers within its catch radius for several
+   * consecutive frames (the "touch and go" issue runPhysics.ts's own
+   * `FALL_GRAVITY_MULTIPLIER` doc comment already describes) — without
+   * this flag, every one of those frames re-ran `handleCatch` on the
+   * *same* uncaught wrong tile, each one charging another
+   * `WRONG_CATCH_HP_PENALTY` on top of the last, so a single mistimed
+   * jump near a tall wrong tile could burn through most or all of a
+   * level's whole starting HP pool in one jump — nowhere close to the
+   * "one wrong catch, one penalty" cost every other mechanic in this
+   * project (and the child) expects. Set on a wrong catch, cleared the
+   * next time the character lands (see `update`'s own landing check) —
+   * a fresh takeoff means a fresh chance to actually catch it, wrong or
+   * right; only *this* jump's lingering re-catch is what's guarded
+   * against.
+   */
+  wrongCaughtThisArc: boolean;
 }
 
 export class IdiomDoorScene extends Phaser.Scene {
@@ -204,7 +238,7 @@ export class IdiomDoorScene extends Phaser.Scene {
       container.setPosition(def.x, this.groundY - def.height);
       container.setAngle(def.angle);
       this.tilesLayer.add(container);
-      return { def, container, caught: false };
+      return { def, container, caught: false, wrongCaughtThisArc: false };
     });
     this.renderGround();
   }
@@ -385,7 +419,16 @@ export class IdiomDoorScene extends Phaser.Scene {
       updateDoorHpStatus(this.hpState.hp);
     }
 
+    // A fresh landing clears every tile's own `wrongCaughtThisArc` guard
+    // (see its doc comment) — a new jump gets a fresh chance to catch
+    // (rightly or wrongly) whatever it reaches, only *this* jump's own
+    // lingering re-catch of the same tile was ever the problem.
+    if (!prevChar.grounded && this.character.grounded) {
+      for (const tile of this.tiles) tile.wrongCaughtThisArc = false;
+    }
+
     if (!this.orderedState.isComplete) this.checkCatches(prevChar);
+    this.checkHpDepleted();
     this.checkDoor();
 
     this.syncCameraAndPositionHook();
@@ -416,7 +459,7 @@ export class IdiomDoorScene extends Phaser.Scene {
    */
   private checkCatches(prevChar: RunState): void {
     const candidates = this.tiles
-      .filter((tile) => !tile.caught)
+      .filter((tile) => !tile.caught && !tile.wrongCaughtThisArc)
       .map((tile) => ({ tile, x: tile.def.x, y: this.groundY - tile.def.height }));
     const picked = pickCatchCandidate(candidates, prevChar, this.character, CATCH_RADIUS_X, CATCH_RADIUS_Y);
     if (picked) this.handleCatch(picked.tile);
@@ -433,6 +476,10 @@ export class IdiomDoorScene extends Phaser.Scene {
       updateDoorHpStatus(this.hpState.hp);
       this.spawnSparkBurst(tile.def.x, this.groundY - tile.def.height, 3);
       updateDoorStatus(this.orderedState.nextIndex, this.characters.length, false, this.characters[this.orderedState.nextIndex], "wrong");
+      // Not `caught` (this tile still needs to be catchable once it's
+      // actually its turn) but excluded from `checkCatches` until the
+      // next landing — see `wrongCaughtThisArc`'s own doc comment.
+      tile.wrongCaughtThisArc = true;
       return;
     }
 
@@ -487,11 +534,14 @@ export class IdiomDoorScene extends Phaser.Scene {
    * The door sits at the end of the (fixed-length, pre-authored) track.
    * Reaching it having solved the level moves on to the next idiom;
    * reaching it *without* solving — always possible in principle, if
-   * every repeat of some character got missed — gently restarts this
-   * same level from the top rather than dead-ending the child with
-   * nothing left to do. No fail state, same ethos as every other
+   * every repeat of some character got missed — routes back to
+   * retracing (see `triggerRetrace`) rather than dead-ending the child
+   * with nothing left to do. No fail state, same ethos as every other
    * snippet in this project; it just means "try again" instead of
-   * "stuck."
+   * "stuck." In practice this path now mostly covers "never jumped
+   * enough, but still had HP left" — running out of HP entirely is
+   * caught earlier, by `checkHpDepleted` below, well before the
+   * character would otherwise reach here.
    */
   private checkDoor(): void {
     if (this.doorTriggered) return;
@@ -500,7 +550,46 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.doorTriggered = true;
     if (this.orderedState.isComplete) {
       this.onDoorReached?.();
-    } else if (this.onUnsolvedDoorReached) {
+    } else {
+      this.triggerRetrace();
+    }
+  }
+
+  /**
+   * 2026-09-09 ("once the hp reaches 0 at the door stage, it should
+   * immediately restart instead of continuing without ability to
+   * jump"): used to only be caught once the character physically
+   * reached the door (`checkDoor` above) — on a long track, that meant
+   * however much distance remained kept scrolling by with jumping
+   * already useless the whole way, for no benefit to the child. Now
+   * checked every frame: the moment HP is actually depleted (and the
+   * idiom isn't *also* solved in that same frame — a last jump that
+   * both completes the idiom and spends the last HP doing it is still a
+   * win, not a reason to restart), this locks in the restart
+   * immediately (`doorTriggered = true`, so `checkDoor` won't also fire
+   * mid-beat) and gives it one short beat (`OUT_OF_HP_RESTART_DELAY_MS`)
+   * to actually land on screen — see that constant's own doc comment —
+   * before routing back to retrace via the same `triggerRetrace` path
+   * reaching the door unsolved already used.
+   */
+  private checkHpDepleted(): void {
+    if (this.doorTriggered) return;
+    if (this.orderedState.isComplete) return;
+    if (this.hpState.hp > 0) return;
+
+    this.doorTriggered = true;
+    updateDoorStatus(this.orderedState.nextIndex, this.characters.length, false, this.characters[this.orderedState.nextIndex], "depleted");
+    this.time.delayedCall(OUT_OF_HP_RESTART_DELAY_MS, () => this.triggerRetrace());
+  }
+
+  /** Sends the child back to retrace this idiom for a fresh HP pool —
+   * shared by `checkDoor` (reached the door unsolved) and
+   * `checkHpDepleted` (ran out of HP before ever reaching it). Callers
+   * are responsible for their own `doorTriggered` guard/assignment
+   * first (their timing needs differ — one fires on arrival, the other
+   * after its own short delay — so it isn't managed here). */
+  private triggerRetrace(): void {
+    if (this.onUnsolvedDoorReached) {
       // 2026-09-09: routes back out to main.ts to retrace this idiom
       // for a fresh HP pool, rather than respawning the same tiles with
       // whatever's left of an already-spent one — see

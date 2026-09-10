@@ -566,6 +566,86 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       the quiz; a one-off manual check confirmed the balloon pop-burst
       runs with no page errors and the expected HP deduction) plus a
       full mobile+desktop e2e suite run.
+- [x] `done` — **Writing feedback, immediate restart at 0 HP, and a
+      low-HP warning (2026-09-10).** Three fixes from live feedback on
+      the writing/door stages above.
+      - **"there should be some feedback on the writing to explain to
+        child how well he wrote and eventually how many points he
+        got"** — `writingScore.ts`'s new `traceRatingForAccuracy` maps
+        a character's trace accuracy to a 3-star rating and an
+        always-encouraging label (never "fail"/"bad"/"wrong", matching
+        this project's no-fail-state ethos even at 0 stars). New
+        `#writing-feedback` shows that rating right after each
+        character's own quiz resolves (`writingStage.ts`, a short
+        `FEEDBACK_DISPLAY_MS` beat before the next character begins);
+        `writingStatus.ts` gained a third `"feedback"` phase (alongside
+        `"watch"`/`"trace"`) so `#writing-status`'s own `data-phase`
+        doesn't linger stale on `"trace"` for that whole beat — found
+        because an e2e helper polling for `"trace"` to know it's safe
+        to draw the next stroke could otherwise match immediately on
+        the stale value and re-trace the character that just finished.
+        Once every character is done, a new `#writing-summary-card`
+        (`main.ts`'s `showWritingSummaryCard`, gated behind its own
+        Continue tap like every other card in this project) restates
+        the idiom, its overall star rating, and the literal HP number
+        earned for the door stage — the "how many points he got" half.
+      - **"once the hp reaches 0 at the door stage, it should
+        immediately restart instead of continuing without ability to
+        jump"** — `IdiomDoorScene`'s new `checkHpDepleted` (checked
+        every frame, alongside the existing `checkDoor`) fires as soon
+        as HP hits 0 while the idiom is still unsolved, instead of
+        waiting for the character to physically run the remaining
+        track to the door with jumping disabled the whole way. Shows a
+        brief "Out of energy! Let's trace it again..." door-status
+        message (new `"depleted"` `GrabOutcome`) for
+        `OUT_OF_HP_RESTART_DELAY_MS` (900ms — long enough to read, far
+        short of actually running to the door) before retracing via the
+        same `onUnsolvedDoorReached` path the door-reached-unsolved
+        case already used. Refactored both call sites into a shared
+        `triggerRetrace`.
+      - **"give the player some warning when hp is running low or
+        insufficient to jump thru the door phase"** — `doorHp.ts`'s new
+        `isHpLow`/`LOW_HP_THRESHOLD` (20 — below which a single wrong
+        catch's full cost, `JUMP_HP_COST` + `WRONG_CATCH_HP_PENALTY` =
+        15, would leave 5 or less) flags the on-screen `#door-hp`
+        counter (`doorHpStatus.ts`, rewritten) with a `⚠️` prefix and a
+        `data-low` attribute plus a pulsing red animation, so running
+        low never comes as a total surprise before the immediate
+        restart above.
+      - **Bug found while e2e-testing the low-HP warning, fixed
+        alongside it:** a *wrong* catch never marked its tile `caught`
+        (unlike a correct one — the same physical tile still needs to
+        be catchable later, once it's actually that character's turn),
+        but `checkCatches` runs every frame of a jump's whole arc, and a
+        tile tall enough to sit close to the jump's own apex could stay
+        within catch radius for several consecutive frames — without a
+        guard, every one of those frames re-ran the same wrong catch,
+        each charging another `WRONG_CATCH_HP_PENALTY` on top of the
+        last. A single mistimed jump near a tall wrong tile could burn
+        through most or all of a level's starting HP pool in one jump —
+        nowhere close to the "one wrong catch, one penalty" cost every
+        other mechanic (and the child) expects, and a real fairness bug
+        the new low-HP warning would otherwise have had no chance to
+        catch. Fixed with a new `wrongCaughtThisArc` flag per tile, set
+        on a wrong catch and cleared the next time the character lands
+        — a fresh takeoff gets a fresh chance to catch it, only that
+        jump's own lingering re-catch was ever the problem.
+      All green: `npm run typecheck`/`test` (335 passed, +23 new)/
+      `build`, plus the full mobile+desktop e2e suite (new coverage:
+      per-character feedback and the writing-summary card in
+      `writing-stage.spec.ts`; immediate-restart-on-depletion with the
+      low-HP warning confirmed via a `MutationObserver` watching
+      `#door-hp`'s own `data-low` attribute, catching the warning even
+      when it only shows for a single frame between two catches in the
+      same jump, in `idiom-door.spec.ts`). Also hardened
+      `e2e/helpers/doorJump.ts` along the way: `jumpForTile` now waits
+      out a jump's own full airborne duration after pressing (so a
+      caller chaining aimed jumps back to back never presses again
+      while still mid-arc from the previous one — `IdiomDoorScene` only
+      accepts jump input while grounded), and new
+      `jumpForFirstReachableWrongTile` tries candidate tiles in track
+      order rather than trusting a single nearest one's own timing
+      margin, same shape as `catchCharacter`'s existing per-tile retry.
 
 ## Platform / infra
 

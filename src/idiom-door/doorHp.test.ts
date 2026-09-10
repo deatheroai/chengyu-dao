@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { initialDoorHpState, canJump, spendJumpHp, spendWrongCatchHp, JUMP_HP_COST, WRONG_CATCH_HP_PENALTY } from "./doorHp";
+import { initialDoorHpState, canJump, spendJumpHp, spendWrongCatchHp, isHpLow, JUMP_HP_COST, WRONG_CATCH_HP_PENALTY, LOW_HP_THRESHOLD } from "./doorHp";
 
 describe("door HP", () => {
   it("starts at whatever the writing stage earned", () => {
@@ -36,5 +36,24 @@ describe("door HP", () => {
     state = spendWrongCatchHp(state);
     expect(state.hp).toBe(0);
     expect(canJump(state)).toBe(false);
+  });
+
+  describe("isHpLow", () => {
+    it("is false with plenty of HP left", () => {
+      expect(isHpLow(initialDoorHpState(100))).toBe(false);
+    });
+
+    it("is false right above the threshold", () => {
+      expect(isHpLow(initialDoorHpState(LOW_HP_THRESHOLD + 1))).toBe(false);
+    });
+
+    it("is true at and below the threshold", () => {
+      expect(isHpLow(initialDoorHpState(LOW_HP_THRESHOLD))).toBe(true);
+      expect(isHpLow(initialDoorHpState(1))).toBe(true);
+    });
+
+    it("is false at 0 HP — that's empty, not 'low', and handled as its own distinct case", () => {
+      expect(isHpLow(initialDoorHpState(0))).toBe(false);
+    });
   });
 });

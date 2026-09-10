@@ -6,7 +6,14 @@
  * "decoy") to warrant its own small module rather than overloading the
  * existing one.
  */
-export type GrabOutcome = "advanced" | "wrong";
+/** 2026-09-09: "depleted" — doorHp.ts's HP hit 0 (IdiomDoorScene's
+ * checkHpDepleted) — joins "advanced"/"wrong" as a third thing this
+ * status line can report. Distinct from the door-*reached*-unsolved
+ * path (no outcome of its own — that one's already self-explanatory
+ * from the level visibly restarting) because this one needs to explain
+ * *why* the level is about to restart immediately, before the child has
+ * even reached the door. */
+export type GrabOutcome = "advanced" | "wrong" | "depleted";
 
 export function updateDoorStatus(nextIndex: number, total: number, isComplete: boolean, nextChar: string | undefined, outcome?: GrabOutcome): void {
   const el = document.getElementById("door-status");
@@ -27,6 +34,8 @@ export function updateDoorStatus(nextIndex: number, total: number, isComplete: b
 
   if (isComplete) {
     el.textContent = "You found it! Keep running to the door →";
+  } else if (outcome === "depleted") {
+    el.textContent = "Out of energy! Let's trace it again...";
   } else if (outcome === "wrong") {
     el.textContent = `Not that one — look for ${nextChar ?? "the next character"}!`;
   } else if (outcome === "advanced") {
