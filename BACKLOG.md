@@ -310,7 +310,7 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       displayed two ways. Not hardcoded to a fixed number of rounds —
       just keeps going as the idiom pool grows.
 - [ ] `todo` — **Grow the idiom pool from 15 toward ~100 (2026-09-08,
-      first batch landed 2026-09-09).** Same data-driven pattern
+      batches 1-2 landed 2026-09-09/10).** Same data-driven pattern
       `src/idioms/idioms.ts` already uses — per `AUTONOMY.md` this
       doesn't need a decision, just doing it. Authored in reviewable
       batches (matching this project's existing "needs your review
@@ -333,7 +333,24 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       floor, since the rest of the suite validates new content
       generically per-idiom already. All green: typecheck/test (290
       passed)/build/e2e (60 passed, mobile+desktop). PR #34, merged.
-      **Remaining**: ~70 more idioms across further batches to reach
+      A follow-up (PR #37, same day) reworked 4 of these 15 sentences
+      after your read-through flagged them as grammatically correct but
+      weak illustrations (一丝不苟, 举一反三, 未雨绸缪, 融会贯通) — see
+      that PR for specifics; worth repeating for future batches too,
+      not a one-off.
+      **Batch 2 (2026-09-10): 30 → 45.** Added 有条不紊/处变不惊/全力以赴
+      (focus), 谦虚谨慎/知恩图报/严于律己/宽以待人 (honesty), 扶老携幼/
+      手足情深/与人为善/乐善好施 (kindness), 明察秋毫/学以致用/因地制宜/
+      深思熟虑 (wisdom) — same verification-before-authoring process as
+      batch 1. Two candidates originally drafted turned out not to hold
+      up under verification and were swapped before authoring: 眼见为实
+      has no standalone zdic.net entry (only appears paired with 耳听为虚
+      as a longer proverb) — replaced with 深思熟虑, which does; 尊老爱幼
+      likewise has no standalone zdic.net page (only listed as a
+      related term under other entries) — replaced with 扶老携幼, which
+      does. All green: typecheck/test (290 passed)/build/e2e (60 passed,
+      mobile+desktop). PR pending.
+      **Remaining**: ~55 more idioms across further batches to reach
       ~100. One construction-time fix still needed before the pool gets
       much larger: `matchLevelContent.ts`'s no-collision guard (two
       idioms can't share the same first-two or last-two characters)
@@ -342,7 +359,7 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       Needs to become an active collision-avoiding grouping step when
       assembling each milestone's batch, not just a guard that throws —
       tied to the separate "milestone-only matching" item below, not
-      urgent yet at 30.
+      urgent yet at 45.
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
