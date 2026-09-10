@@ -22,6 +22,18 @@ const SLOT_EMPTY_FILL = 0xfff1d6;
 const SLOT_BORDER = 0xf0b429;
 const SLOT_TEXT = "#7a5636";
 const SPARK_COLOR = 0xffd76a;
+// 2026-09-10: a wrong catch's spark burst uses its own angrier color
+// (hot orange-red vs. the correct-catch gold) — reusing spawnSparkBurst's
+// same system, just told to look upset instead of celebratory. Paired
+// with scorchTile's charred recolor below.
+const SPARK_COLOR_WRONG = 0xff5a36;
+// Scorched-tile palette for a wrongly-caught tile (scorchTile) — dark,
+// charcoal tones standing in stark contrast to the bright TILE_FILL/
+// TILE_BORDER a catchable tile uses, so "this one's spent" reads at a
+// glance without needing to remove the tile from the scene entirely.
+const SCORCH_FILL = 0x3a2a20;
+const SCORCH_BORDER = 0x1f1712;
+const SCORCH_TEXT = "#2a1c14";
 const DOOR_COLOR_CLOSED = 0x8a7360;
 const DOOR_COLOR_OPEN = 0x6b4a2f;
 const DOOR_RIM = 0xf0b429;
@@ -94,7 +106,14 @@ const DOOR_TRIGGER_RADIUS = 60;
 interface RuntimeTile {
   def: LevelCharacterTile;
   container: Phaser.GameObjects.Container;
+  gfx: Phaser.GameObjects.Graphics;
+  text: Phaser.GameObjects.Text;
+  pinyinText: Phaser.GameObjects.Text;
   caught: boolean;
+  // Set by scorchTile after a wrong catch on this specific tile — see
+  // that method's doc comment. Distinct from `caught`: an inert tile is
+  // still visible (charred, not destroyed), just no longer catchable.
+  inert: boolean;
 }
 
 export class IdiomDoorScene extends Phaser.Scene {
@@ -202,11 +221,11 @@ export class IdiomDoorScene extends Phaser.Scene {
   private spawnTiles(): void {
     this.tilesLayer.removeAll(true);
     this.tiles = this.level.tiles.map((def) => {
-      const container = this.buildTile(def);
+      const { container, gfx, text, pinyinText } = this.buildTile(def);
       container.setPosition(def.x, this.groundY - def.height);
       container.setAngle(def.angle);
       this.tilesLayer.add(container);
-      return { def, container, caught: false };
+      return { def, container, gfx, text, pinyinText, caught: false, inert: false };
     });
     this.renderGround();
   }
@@ -219,7 +238,12 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.renderGround();
   }
 
-  private buildTile(def: LevelCharacterTile): Phaser.GameObjects.Container {
+  private buildTile(def: LevelCharacterTile): {
+    container: Phaser.GameObjects.Container;
+    gfx: Phaser.GameObjects.Graphics;
+    text: Phaser.GameObjects.Text;
+    pinyinText: Phaser.GameObjects.Text;
+  } {
     const container = this.add.container(0, 0);
     const gfx = this.add.graphics();
     const half = TILE_SIZE / 2;
@@ -256,7 +280,7 @@ export class IdiomDoorScene extends Phaser.Scene {
     // logical catch position (that's tracked via `def.x`/`def.height`,
     // not this tween).
     this.tweens.add({ targets: container, y: "+=8", duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-    return container;
+    return { container, gfx, text, pinyinText };
   }
 
   private buildDoor(): void {
@@ -402,7 +426,7 @@ export class IdiomDoorScene extends Phaser.Scene {
    */
   private checkCatches(prevChar: RunState): void {
     const candidates = this.tiles
-      .filter((tile) => !tile.caught)
+      .filter((tile) => !tile.caught && !tile.inert)
       .map((tile) => ({ tile, x: tile.def.x, y: this.groundY - tile.def.height }));
     const picked = pickCatchCandidate(candidates, prevChar, this.character, CATCH_RADIUS_X, CATCH_RADIUS_Y);
     if (picked) this.handleCatch(picked.tile);
@@ -413,7 +437,8 @@ export class IdiomDoorScene extends Phaser.Scene {
     this.orderedState = state;
 
     if (outcome !== "advanced") {
-      this.spawnSparkBurst(tile.def.x, this.groundY - tile.def.height, 3);
+      this.spawnSparkBurst(tile.def.x, this.groundY - tile.def.height, 6, SPARK_COLOR_WRONG);
+      this.scorchTile(tile);
       updateDoorStatus(this.orderedState.nextIndex, this.characters.length, false, this.characters[this.orderedState.nextIndex], "wrong");
       return;
     }
@@ -498,11 +523,11 @@ export class IdiomDoorScene extends Phaser.Scene {
     updateDoorStatus(0, this.characters.length, false, this.characters[0]);
   }
 
-  private spawnSparkBurst(x: number, y: number, count: number): void {
+  private spawnSparkBurst(x: number, y: number, count: number, color: number = SPARK_COLOR): void {
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
       const distance = 18 + Math.random() * 22;
-      const spark = this.add.circle(x, y, 3 + Math.random() * 2, SPARK_COLOR, 0.9);
+      const spark = this.add.circle(x, y, 3 + Math.random() * 2, color, 0.9);
       this.tweens.add({
         targets: spark,
         x: x + Math.cos(angle) * distance,
@@ -514,6 +539,39 @@ export class IdiomDoorScene extends Phaser.Scene {
         onComplete: () => spark.destroy(),
       });
     }
+  }
+
+  /**
+   * A wrong catch on this specific tile: recolors it scorched/charred
+   * (dark, spent-looking) and marks it `inert` so `checkCatches` stops
+   * considering it a candidate at all. Reuses the tile's own existing
+   * graphics/text objects (recolored in place) rather than destroying and
+   * rebuilding — the tile stays visible, just clearly "used up," which is
+   * the point: per BACKLOG.md, one mistimed jump lingering near a tile
+   * (the exact "touch-and-go" scenario earlier door-feel PRs fought to
+   * fix — see catchSelection.ts) used to let the *same* wrong tile get
+   * caught repeatedly across several frames of one jump, each one firing
+   * its own "wrong" outcome. Scorching after the first wrong catch means
+   * a single mistake reads as a single mistake, not several.
+   *
+   * This never risks making a level unsolvable: `levelContent.ts`
+   * deliberately generates MIN_REPEATS_PER_CHARACTER..MAX_REPEATS_PER_CHARACTER
+   * (5-9) tiles per character, scattered across the track, specifically
+   * so any one tile — caught correctly, missed, or now scorched — still
+   * leaves plenty of others bearing the same glyph.
+   */
+  private scorchTile(tile: RuntimeTile): void {
+    if (tile.inert) return;
+    tile.inert = true;
+    const half = TILE_SIZE / 2;
+    tile.gfx.clear();
+    tile.gfx.fillStyle(SCORCH_FILL, 0.95);
+    tile.gfx.fillRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, TILE_SIZE * 0.16);
+    tile.gfx.lineStyle(3, SCORCH_BORDER, 0.9);
+    tile.gfx.strokeRoundedRect(-half, -half, TILE_SIZE, TILE_SIZE, TILE_SIZE * 0.16);
+    tile.text.setColor(SCORCH_TEXT);
+    tile.pinyinText.setColor(SCORCH_TEXT);
+    tile.container.setAlpha(0.7);
   }
 
   private playCompleteFlourish(): void {

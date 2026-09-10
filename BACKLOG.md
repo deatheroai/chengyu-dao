@@ -168,12 +168,44 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       numbers (tune after playtest, same as every other constant in
       this file): ~100 HP for a perfect trace, ~5 HP/jump, +~10 HP extra
       on a wrong catch.
-- [ ] `todo` — **Door stage: burning tile on a wrong catch (2026-09-08).**
-      Wrong catch recolors that specific tile scorched/charred (reuse
-      the existing spark-burst system, angrier) and marks it inert
-      afterward — so one mistimed jump lingering near it (the exact
-      "touch-and-go" problem past door-feel PRs fought hard to fix)
-      doesn't rack up repeat HP penalties for a single mistake.
+- [x] `done` — **Door stage: burning tile on a wrong catch (2026-09-08,
+      landed 2026-09-10).** A wrong catch now recolors that specific
+      tile scorched/charred (`IdiomDoorScene.scorchTile` — dark
+      charcoal fill/border/text in place of the bright catchable
+      palette) and marks it `inert`, so `checkCatches` stops
+      considering it a candidate for the rest of the level. The wrong
+      catch's own spark burst is reused (`spawnSparkBurst` now takes an
+      optional `color`) but with its own angrier palette
+      (`SPARK_COLOR_WRONG`, hot orange-red) and more particles (6 vs.
+      the correct-catch default of 3-8) instead of the celebratory gold.
+      This closes the exact "touch-and-go" gap noted here: near a jump
+      arc's apex the character can linger inside a tile's catch radius
+      for several frames (the same effect the jump-arc/hitbox-tuning
+      entries above fought to minimize, never fully eliminated), which
+      used to let one mistimed jump register the *same* wrong tile
+      several times in a row, each firing its own "wrong" outcome.
+      Scorching after the first wrong touch means one mistake reads as
+      one mistake.
+      Checked this can't make a level unsolvable before landing it:
+      `levelContent.ts` already generates
+      `MIN_REPEATS_PER_CHARACTER..MAX_REPEATS_PER_CHARACTER` (5-9) tiles
+      per character, scattered across the track, specifically so any
+      one tile being unavailable (caught, missed, or now scorched)
+      still leaves several others bearing the same glyph — including
+      for the three repeated-character idioms unblocked last cycle,
+      where both occurrences already draw from that same per-character
+      pool. A scorched tile stays visible (charred, not destroyed) and
+      resets automatically on a level restart (`spawnTiles` rebuilds
+      every tile's runtime state from scratch).
+      No HP economy exists in the door stage yet (that's the separate
+      HP entry above, gated on the writing/tracing stage) — this change
+      is scoped to the visual/UX fix only, but shares the same tile
+      object so wiring an HP deduction into `scorchTile`'s call site
+      later is a small addition, not a rework.
+      All green: `npm run typecheck`/`test` (290 passed, unchanged —
+      `IdiomDoorScene` is a thin Scene wrapper with no unit tests of its
+      own, same pattern as the rest of this stage)/`build`, plus the
+      full `idiom-door.spec.ts` e2e suite (60 passed, mobile+desktop).
 - [x] `done` — **Door stage: match caught tiles by glyph, not a
       pre-baked index — unlocks repeated-character idioms (2026-09-09).**
       `ELIGIBLE_IDIOM_IDS` used to exclude 一心一意/有始有终/相亲相爱
