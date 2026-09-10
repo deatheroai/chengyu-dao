@@ -313,7 +313,19 @@ test("the dev-only controls never overlap the jump button", async ({ page }) => 
  * the *content itself* (not just the override key) to today's
  * deterministic set — not just that the mechanism runs without error. */
 test("the dev 'new idioms' control rerolls this session's idiom set, and 'clear history' reverts it to today's normal set", async ({ page }) => {
-  test.setTimeout(90000);
+  // 2026-09-10: this is the only test in this file that runs a full
+  // match + writing-stage + door-entry cycle *twice* (today's set, then
+  // again after reroll+clear) — every other single-cycle test in this
+  // file budgets 60000-90000ms for exactly one. A real freehand trace
+  // of all 4 characters (writingStage.ts's FEEDBACK_DISPLAY_MS beat
+  // included) measured ~40-50s end to end on its own, so two of them
+  // back to back leaves this test with essentially no slack against
+  // 90000ms under perfectly normal conditions, let alone any real-world
+  // variance — found when this test started missing its deadline
+  // outright rather than flaking occasionally. 180000ms mirrors this
+  // file's own established "size the budget to the actual workload"
+  // pattern (see e.g. the 3-level session-summary test's 600000ms).
+  test.setTimeout(180000);
   await page.goto("/idiom-door.html");
   const readOverride = () => page.evaluate(() => localStorage.getItem("chengyu-dao-dev-idiom-seed-override"));
   expect(await readOverride()).toBeNull();

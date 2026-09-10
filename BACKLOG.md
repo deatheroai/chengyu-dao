@@ -745,6 +745,40 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       `jumpForFirstReachableWrongTile` tries candidate tiles in track
       order rather than trusting a single nearest one's own timing
       margin, same shape as `catchCharacter`'s existing per-tile retry.
+- [x] `done` — **Fix: 47 of the grown idiom pool's 98 characters had no
+      writing/tracing-stage stroke data at all (2026-09-10).** Found
+      while merging the writing-feedback work above onto main after the
+      idiom pool grew 15 → 30 idioms (98 distinct characters): this
+      project's own `writingStrokeData.ts` — a hand-curated subset of
+      `hanzi-writer-data`, deliberately not the full corpus — still only
+      covered the *original* 15-idiom pool's 51 characters. The 15 new
+      idioms' extra 47 characters were silently missing, which
+      `writingStage.ts`'s `charDataLoader` would only ever surface as a
+      quietly-swallowed load error (not a crash) — the writing stage for
+      any of those 15 idioms would just hang, never reaching the trace
+      phase, with nothing on screen to explain why. Regenerated the file
+      (per its own documented one-off procedure) against the full
+      current idiom set — all 98 characters now covered, checked by
+      diffing every idiom's distinct hanzi against the bundle's own
+      keys before landing this, not just re-running the generator and
+      trusting it.
+      Also bumped `idiom-door.spec.ts`'s "dev 'new idioms' control"
+      test's own timeout (90000ms → 180000ms): it's the only test in
+      that file running a full match + writing-stage + door-entry cycle
+      *twice*, and a real freehand trace of one idiom's 4 characters
+      (writingStage.ts's `FEEDBACK_DISPLAY_MS` beat included) measured
+      ~40-50s on its own — two back to back left essentially no slack
+      against the old budget even under normal conditions, which is
+      exactly what started actually missing the deadline (not just
+      occasionally flaking) once this session's feedback-beat additions
+      lengthened every playthrough. Sized against this file's own
+      established "budget to the actual workload" pattern (see the
+      3-level session-summary test's 600000ms).
+      All green: `npm run typecheck`/`test` (335 passed)/`build`, plus
+      the full mobile+desktop e2e suite, with the previously-hanging
+      "dev 'new idioms'" test re-run several times in isolation (with
+      and without other tests competing for the sandbox) to confirm the
+      fix rather than trusting one clean pass.
 
 ## Platform / infra
 
