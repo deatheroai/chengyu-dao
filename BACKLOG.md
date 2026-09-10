@@ -168,12 +168,44 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       numbers (tune after playtest, same as every other constant in
       this file): ~100 HP for a perfect trace, ~5 HP/jump, +~10 HP extra
       on a wrong catch.
-- [ ] `todo` — **Door stage: burning tile on a wrong catch (2026-09-08).**
-      Wrong catch recolors that specific tile scorched/charred (reuse
-      the existing spark-burst system, angrier) and marks it inert
-      afterward — so one mistimed jump lingering near it (the exact
-      "touch-and-go" problem past door-feel PRs fought hard to fix)
-      doesn't rack up repeat HP penalties for a single mistake.
+- [x] `done` — **Door stage: burning tile on a wrong catch (2026-09-08,
+      landed 2026-09-10).** A wrong catch now recolors that specific
+      tile scorched/charred (`IdiomDoorScene.scorchTile` — dark
+      charcoal fill/border/text in place of the bright catchable
+      palette) and marks it `inert`, so `checkCatches` stops
+      considering it a candidate for the rest of the level. The wrong
+      catch's own spark burst is reused (`spawnSparkBurst` now takes an
+      optional `color`) but with its own angrier palette
+      (`SPARK_COLOR_WRONG`, hot orange-red) and more particles (6 vs.
+      the correct-catch default of 3-8) instead of the celebratory gold.
+      This closes the exact "touch-and-go" gap noted here: near a jump
+      arc's apex the character can linger inside a tile's catch radius
+      for several frames (the same effect the jump-arc/hitbox-tuning
+      entries above fought to minimize, never fully eliminated), which
+      used to let one mistimed jump register the *same* wrong tile
+      several times in a row, each firing its own "wrong" outcome.
+      Scorching after the first wrong touch means one mistake reads as
+      one mistake.
+      Checked this can't make a level unsolvable before landing it:
+      `levelContent.ts` already generates
+      `MIN_REPEATS_PER_CHARACTER..MAX_REPEATS_PER_CHARACTER` (5-9) tiles
+      per character, scattered across the track, specifically so any
+      one tile being unavailable (caught, missed, or now scorched)
+      still leaves several others bearing the same glyph — including
+      for the three repeated-character idioms unblocked last cycle,
+      where both occurrences already draw from that same per-character
+      pool. A scorched tile stays visible (charred, not destroyed) and
+      resets automatically on a level restart (`spawnTiles` rebuilds
+      every tile's runtime state from scratch).
+      No HP economy exists in the door stage yet (that's the separate
+      HP entry above, gated on the writing/tracing stage) — this change
+      is scoped to the visual/UX fix only, but shares the same tile
+      object so wiring an HP deduction into `scorchTile`'s call site
+      later is a small addition, not a rework.
+      All green: `npm run typecheck`/`test` (290 passed, unchanged —
+      `IdiomDoorScene` is a thin Scene wrapper with no unit tests of its
+      own, same pattern as the rest of this stage)/`build`, plus the
+      full `idiom-door.spec.ts` e2e suite (60 passed, mobile+desktop).
 - [x] `done` — **Door stage: match caught tiles by glyph, not a
       pre-baked index — unlocks repeated-character idioms (2026-09-09).**
       `ELIGIBLE_IDIOM_IDS` used to exclude 一心一意/有始有终/相亲相爱
@@ -212,6 +244,53 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       last-two characters are still pairwise distinct.
       All green: `npm run typecheck`/`test` (290 passed, +1 new
       test)/`build`, plus the full e2e suite (60 passed, mobile+desktop).
+- [x] `done` — **Example sentences: fix 4 that were correct but didn't
+      illustrate their idiom's actual meaning (2026-09-09).** Per your "some
+      are not point on... although they are correct." Reviewed all 15
+      `exampleSentence.hanzi` in `src/idioms/idioms.ts` against each idiom's
+      `meaning`; four missed the point despite being grammatically valid
+      idiom usage:
+      - **拔苗助长** — old sentence ("can't rush learning to bike, practise
+        slowly") only conveyed "don't rush," never the idiom's actual point
+        that forcing it *backfires*. New sentence shows a child skipping
+        training wheels too early and falling repeatedly as a direct result.
+      - **温故知新** — old sentence ("review old words before a test") only
+        showed the "review the old" half, never connecting to the "so the
+        new becomes easier" payoff that's the whole causal point of the
+        idiom. New sentence makes that link explicit.
+      - **磨杵成针** — old sentence used reported speech ("Grandma often
+        says...") instead of a child living out the persistence-pays-off
+        meaning directly, and it used calligraphy while the idiom's own
+        `dailyLifeScenario` field is about recorder practice. New sentence
+        shows the child directly, in the same recorder-practice domain.
+      - **助人为乐** — old sentence showed the helping action but not the
+        "乐" (joy) that's specifically what the idiom names, not just
+        helping. New sentence keeps the same action and adds that it made
+        the child happy.
+      All four re-authored with matching `pinyin`/`english`/`charPinyin`
+      (charPinyin re-derived per character, punctuation-empty per the
+      existing convention). `idioms.test.ts`'s content-integrity suite
+      (own-hanzi inclusion, charPinyin length/punctuation alignment,
+      cross-idiom sentence distinctness) passed unchanged against the new
+      text — no test needed updating, which is the point of that suite
+      being generic. All green: `npm run typecheck`/`test` (290
+      passed)/`build`.
+- [ ] `todo` — **Standing track: review the rest of the example-sentence
+      pool the same way, and re-check any newly authored one against its
+      idiom's actual meaning before treating it as vetted (2026-09-09).**
+      The four fixed above were found by hand-reviewing all 15 sentences
+      against their `meaning` field, not from a repeatable check — no
+      automated way to catch "grammatically correct but off-point" (that's
+      a judgement call, not a lint rule). Two borderline ones were raised
+      and left as-is on your call: 助人为乐's "joy" framing is now folded
+      into the fix above, but revisit if it still reads thin; 井底之蛙's
+      more abstract lesson (flagged when it was authored, per its own
+      `sourceNotes`) is worth an occasional re-read too. As the pool grows
+      toward ~100 idioms (see the item below), do this same "does the
+      example actually demonstrate the idiom's real meaning, not just use
+      the characters correctly" pass on each new batch before treating it
+      as fully vetted, same "needs your review" status the rest of this
+      project's authored Chinese text already carries.
 - [ ] `todo` — **Remove the per-session match warm-up; matching becomes a
       milestone-finale-only mechanic (2026-09-08).** Per your steer:
       drop `beginMatchStage`/`showMatchIntro` from `main.ts`'s boot flow
@@ -230,20 +309,40 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       a round-over-round trend are the same underlying data, just
       displayed two ways. Not hardcoded to a fixed number of rounds —
       just keeps going as the idiom pool grows.
-- [ ] `todo` — **Grow the idiom pool from 15 toward ~100 (2026-09-08).**
-      Same data-driven pattern `src/idioms/idioms.ts` already uses —
-      per `AUTONOMY.md` this doesn't need a decision, just doing it.
-      Authored in reviewable batches (matching this project's existing
-      "needs your review before treated as fully vetted" practice for
-      Chinese-language content), one flat age tier (no Upper Primary
-      split, per your steer). One construction-time fix needed
-      alongside it: `matchLevelContent.ts`'s no-collision guard (two
+- [ ] `todo` — **Grow the idiom pool from 15 toward ~100 (2026-09-08,
+      first batch landed 2026-09-09).** Same data-driven pattern
+      `src/idioms/idioms.ts` already uses — per `AUTONOMY.md` this
+      doesn't need a decision, just doing it. Authored in reviewable
+      batches (matching this project's existing "needs your review
+      before treated as fully vetted" practice for Chinese-language
+      content), one flat age tier (no Upper Primary split, per your
+      steer).
+      **Batch 1 (2026-09-09): 15 → 30.** Added 持之以恒/全神贯注/一丝不苟/
+      精益求精 (focus), 实事求是/光明正大/表里如一/诚心诚意 (honesty),
+      见义勇为/雪中送炭/同甘共苦 (kindness), 举一反三/未雨绸缪/融会贯通/
+      集思广益 (wisdom) — each with the full field set and meaning/origin
+      verified via zdic.net, Baidu Baike, and Taiwan's MOE 成語典 (not
+      from memory alone) before authoring, sourced per-entry in
+      `sourceNotes`. Applied the previous cycle's own lesson (PR #33):
+      each `exampleSentence` was written to actually demonstrate the
+      idiom's causal meaning, not just use it grammatically. Checked by
+      hand and by the existing `sessionIdioms.test.ts` (already generic
+      over the *whole* pool, not a fixed subset) for zero first-half/
+      last-half collisions — no code changes needed for that yet.
+      `idioms.test.ts`'s hardcoded `expect 15` count is now a `>= 15`
+      floor, since the rest of the suite validates new content
+      generically per-idiom already. All green: typecheck/test (290
+      passed)/build/e2e (60 passed, mobile+desktop). PR #34, merged.
+      **Remaining**: ~70 more idioms across further batches to reach
+      ~100. One construction-time fix still needed before the pool gets
+      much larger: `matchLevelContent.ts`'s no-collision guard (two
       idioms can't share the same first-two or last-two characters)
-      currently assumes a small, hand-verified pool; at ~100 idioms,
-      collisions within a given milestone's 15-idiom batch become
-      realistic. Needs to become an active collision-avoiding grouping
-      step when assembling each milestone's batch, not just a guard that
-      throws.
+      currently assumes a small, hand-verified pool; collisions within a
+      given milestone's 15-idiom batch become realistic well before 100.
+      Needs to become an active collision-avoiding grouping step when
+      assembling each milestone's batch, not just a guard that throws —
+      tied to the separate "milestone-only matching" item below, not
+      urgent yet at 30.
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting

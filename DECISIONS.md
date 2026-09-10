@@ -23,6 +23,25 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-10 — Daily cycle: shipped the door-stage burning-tile fix.**
+  Pending Decisions was empty. No open GitHub issues or PRs to check in on
+  first. `BACKLOG.md`'s unblocked `todo` items (writing/tracing stage + its
+  HP gate, door-stage burning tile, standing example-sentence review track,
+  milestone-only matching, growing the idiom pool toward 100) were all
+  genuinely buildable — none needed a decision — so picked the smallest,
+  self-contained one that was pure implementation rather than a fresh
+  content-authoring/sourcing pass or a scope decision of its own: a wrong
+  catch in the door stage now scorches that specific tile and marks it
+  inert, so one lingering "touch-and-go" jump near a tile can't register
+  several repeat wrong catches on the same tile. Checked first that this
+  can't soft-lock a level — `levelContent.ts` already generates 5-9 tiles
+  per character specifically for this kind of redundancy — before landing
+  it; see `BACKLOG.md`'s entry for the full detail. All gates green
+  (typecheck/test/build/e2e); PR opened and merged per the standing
+  2026-08-26 auto-land policy. The writing/tracing stage (new mechanic +
+  bundled HanziWriter data), its HP-gate follow-up, milestone-only
+  matching, and the next idiom-pool batch are left for future sessions —
+  each is its own real scope, not a fit alongside this one.
 - **2026-09-09 — Daily cycle: shipped the door-stage glyph-matching fix,
   unblocking the last 3 idioms.** Pending Decisions was empty. No open
   GitHub issues or PRs to check in on first. `BACKLOG.md`'s unblocked
