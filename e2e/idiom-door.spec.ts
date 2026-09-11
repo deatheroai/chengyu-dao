@@ -496,7 +496,19 @@ test("each jump costs HP, and a wrong catch costs extra on top", async ({ page }
  * actually run the remaining track to the door the old behavior needed.
  */
 test("running out of HP warns first, then immediately restarts rather than running on to the door", async ({ page }) => {
-  test.setTimeout(90000);
+  // 2026-09-11: jumpForFirstReachableWrongTile now also excludes any
+  // "wrong" candidate within one jump's own footprint of the excluded
+  // (actually-needed) tile (see JUMP_FOOTPRINT_X's own doc comment) —
+  // correctness-critical (it's what stops a "deliberate wrong catch"
+  // from accidentally landing the correct one too, see the wrong-catch
+  // HP test above), but it shrinks how many valid candidates are left
+  // on a level whose targeted character (here, the idiom's first one)
+  // recurs often across the track, so draining a whole HP pool via
+  // repeated deliberate wrong catches can need noticeably more real
+  // travel time between them than before. Budgeted up accordingly,
+  // same "size the timeout to the actual workload" reasoning as the
+  // 'dev new idioms' test's own timeout bump.
+  test.setTimeout(150000);
   await page.goto("/idiom-door.html");
   await completeMatchStage(page);
   await startPlaying(page);
@@ -535,7 +547,7 @@ test("running out of HP warns first, then immediately restarts rather than runni
   // different char is guaranteed wrong" — stays true for the whole test.
   const nextChar = Array.from(level.idiom.hanzi)[0];
 
-  const deadline = Date.now() + 60000;
+  const deadline = Date.now() + 110000;
   while (Date.now() < deadline) {
     const hpNow = Number(await page.locator("#door-hp").getAttribute("data-hp"));
     if (hpNow <= 0) break;
