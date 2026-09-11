@@ -134,7 +134,22 @@ const ROW_OVERLAP_FRACTION = 0.82;
 // rather than trying to cram content into an unpredictable viewport.
 const SKY_MARGIN_X = 60;
 const SKY_MARGIN_Y_TOP = 70;
-const SKY_MARGIN_Y_BOTTOM = 160;
+// 2026-09-10 feedback ("can't see the balloons, blocked by the
+// sentence... place the sentence at the bottom 1/3 and the avatar just
+// above the sentence"): the DOM sentence panel (#balloon-ui-layer in
+// idiom-door.html/style.css) is now pinned to the *bottom* of the
+// viewport instead of the top, so the space this world reserves below
+// the balloon grid has to be big enough to keep that panel clear of
+// both the balloon grid above and the avatar's own roaming area — and
+// unlike SKY_MARGIN_Y_TOP (a fixed pixel gap that only ever has to
+// clear the balloons' own strings), how much of the *screen* a bottom-
+// pinned DOM panel needs is inherently a fraction of the real viewport,
+// not a fixed pixel count. See layoutBalloons' bottomReserve for how
+// this is actually used — this constant is now just the floor for
+// viewports too short (or a zero/unset scale — e.g. in a test harness
+// before the canvas has ever sized itself) for a third of it to be
+// enough room on its own.
+const SKY_MARGIN_Y_BOTTOM_MIN = 160;
 // How far beyond the balloon grid itself the avatar can roam.
 const AVATAR_MARGIN = 70;
 
@@ -184,6 +199,11 @@ export class BalloonSentenceScene extends Phaser.Scene {
   private balloons: RuntimeBalloon[] = [];
   private worldW = 0;
   private worldH = 0;
+  /** The slice of worldH (measured from the bottom) reserved for the
+   * bottom-pinned sentence DOM panel — see SKY_MARGIN_Y_BOTTOM_MIN's
+   * comment. Kept so setupFlightConfig can stop the avatar's roam area
+   * just above it, rather than at the world's bottom edge. */
+  private bottomReserve = 0;
 
   private avatar!: FlightState;
   private avatarContainer!: Phaser.GameObjects.Container;
@@ -274,7 +294,10 @@ export class BalloonSentenceScene extends Phaser.Scene {
         minX: AVATAR_MARGIN,
         maxX: this.worldW - AVATAR_MARGIN,
         minY: AVATAR_MARGIN,
-        maxY: this.worldH - AVATAR_MARGIN,
+        // Stops at the top edge of the reserved bottom-panel space (see
+        // bottomReserve), not the world's actual bottom edge — otherwise
+        // the avatar could fly down underneath the sentence panel.
+        maxY: this.worldH - this.bottomReserve - AVATAR_MARGIN,
       },
     };
   }
@@ -335,7 +358,18 @@ export class BalloonSentenceScene extends Phaser.Scene {
     const skyX0 = SKY_MARGIN_X;
     const skyY0 = SKY_MARGIN_Y_TOP;
     this.worldW = cols * rowCellW + SKY_MARGIN_X * 2;
-    this.worldH = cellH + SKY_MARGIN_Y_TOP + SKY_MARGIN_Y_BOTTOM;
+    // A third of the real viewport (see SKY_MARGIN_Y_BOTTOM_MIN's
+    // comment), floored at the fixed minimum for a viewport too short
+    // (or not yet sized) for that third to be enough clearance on its
+    // own. `this.scale.height` is 0 before Phaser has sized the canvas
+    // to its container at least once, which the fixed floor also covers.
+    this.bottomReserve = Math.max(SKY_MARGIN_Y_BOTTOM_MIN, this.scale.height / 3);
+    // At least tall enough for the grid + reserved bottom panel, but
+    // never shorter than the viewport itself — otherwise the world
+    // would end (and the avatar's floor along with it) above the
+    // bottom-pinned panel with dead space in between, rather than the
+    // avatar sitting right above it.
+    this.worldH = Math.max(cellH + SKY_MARGIN_Y_TOP + this.bottomReserve, this.scale.height);
 
     for (const balloon of this.balloons) {
       const col = balloon.def.slotIndex;
