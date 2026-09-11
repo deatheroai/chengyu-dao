@@ -15,6 +15,145 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Fix: a wrong catch chain-caught during the out-of-HP
+      retrace epilogue silently overwrote "depleted" back to "wrong" on
+      `#door-status` (2026-09-11).** Found while merging the fall-gravity
+      change below onto `main`: `idiom-door.spec.ts`'s "running out of
+      HP..." test started intermittently failing (CI: 2 separate full
+      runs, both mobile — Playwright's own internal retry hit it both
+      times too; locally reproduced ~66% of the time regardless of
+      `FALL_GRAVITY_MULTIPLIER`, confirmed at the original 2x too, so not
+      caused by that change). Root-caused with a real `MutationObserver`
+      trace on `#door-status`/`#door-hp` (not just theorized) rather than
+      guessed at: `checkHpDepleted` *does* correctly set `data-outcome`
+      to `"depleted"` the instant HP hits 0 and schedules the retrace —
+      but nothing stops `checkCatches` from still running every
+      subsequent frame afterward, unlike the *solved* path (frozen by
+      `fastForwarding`'s early-return in `update()`). If the character
+      was still mid-air from whatever jump depleted the HP (or catches
+      another jump's arc before `OUT_OF_HP_RESTART_DELAY_MS`'s 900ms
+      beat elapses) and chain-catches a second wrong tile in a later
+      frame, `handleCatch`'s own wrong-catch branch calls
+      `updateDoorStatus(..., "wrong")` again — clobbering "depleted"
+      back to "wrong" a frame or two later (confirmed: `depleted` → `wrong`
+      within ~70ms in the trace, HP already at 0 either way), which is
+      exactly what the test's own `data-outcome` assertion then caught.
+      Fixed by extending `update()`'s existing `!this.orderedState.isComplete`
+      guard on `checkCatches` to also require `!this.doorTriggered` — once
+      this run's fate is sealed (depleted *or* solved), no further catch
+      should still be mutating UI/state, matching the solved path's own
+      `fastForwarding` freeze. Purely a display/consistency fix — HP and
+      catch-ordering were never actually wrong, just the label a child
+      would briefly see before the already-queued retrace fired.
+      Verified against the exact scenario that exposed it: 8/8 clean
+      repeats of the previously-flaky test (4x mobile+desktop) after the
+      fix, plus the full `idiom-door.spec.ts` suite (28 passed,
+      mobile+desktop) and the standing `npm run typecheck`/`test` (336
+      passed)/`build`.
+- [x] `done` — **Door stage: fall even faster — 2x still read as a curve,
+      not a drop (2026-09-11).** Follow-up to the 2026-09-04 "land
+      vertical instead of curved or slow" entry below — per your "the
+      door stage seems to have lost one of the PRs that fixed the jump.
+      The jump should come down much faster vertically instead of like a
+      curve slowly." It hadn't actually regressed (checked git history —
+      `FALL_GRAVITY_MULTIPLIER` was still 2, unchanged since 2026-09-04),
+      it just wasn't steep enough to read as "much faster" once you
+      looked again. `runPhysics.ts`'s `FALL_GRAVITY_MULTIPLIER` 2 → 4:
+      the fall now takes ≈50% (1/√4) as long as the rise, down from 2x's
+      ≈71% (1/√2) — noticeably closer to a straight vertical drop. Jump
+      height and run speed are untouched either way (still governed by
+      `JUMP_VELOCITY`/`JUMP_GRAVITY`/`RUN_SPEED` alone).
+      "It should never touch adjacent tiles" is already a separate,
+      physics-independent guarantee — `catchSelection.ts`'s
+      `CATCH_RADIUS_X` is sized (and asserted,
+      `catchSelection.test.ts`'s `2 * CATCH_RADIUS_X < MIN_SLOT_GAP`) so
+      two neighboring tiles' catch zones can never overlap at all,
+      regardless of gravity — confirmed unaffected, not just assumed.
+      A steeper fall is still a net positive for it though: less time (so
+      less horizontal drift, at the same `runSpeed`) spent descending
+      through any one tile's height band.
+      While re-validating this against the full e2e suite, found (and
+      fixed) a real, pre-existing bug in the *test* helpers, unrelated to
+      this change (confirmed reproducible at the original 2x too, 3/3
+      runs) — `doorJump.ts`'s `jumpForFirstReachableWrongTile` picked
+      *any* reachable tile that didn't match the character it was told to
+      avoid, with no regard for how close that tile sat to one that
+      *does* match — on today's specific date-seeded level
+      (`sessionIdioms.ts`), a chosen "wrong" tile sometimes sat close
+      enough to the genuinely-next tile that the same jump's arc (which
+      `checkCatches` evaluates every frame, not once at takeoff) caught
+      *both*: the deliberate wrong catch, immediately followed by a
+      genuine catch of the real next character a few frames later,
+      racing `idiom-door.spec.ts`'s "each jump costs HP..." test's
+      `data-outcome === "wrong"` assertion past a state it moved through
+      only transiently. Not a game bug — chain-catching an incidental
+      second tile mid-arc is already intended, relied-on behavior
+      elsewhere in this project — just an e2e helper that wasn't actually
+      guaranteeing the isolated wrong catch its own name promises. Fixed
+      by skipping any "wrong" candidate within `JUMP_ISOLATION_DISTANCE_X`
+      (derived from the same real jump-footprint/`CATCH_RADIUS_X`
+      geometry `doorJump.ts` already aims with, not a guessed number) of
+      a same-char tile, so a jump aimed at a picked "wrong" tile
+      genuinely can't also reach a real one.
+      Verified empirically, not just reasoned about: the previously-
+      failing test reproduced 3/3 at the original 2x and 2/3 at 4x before
+      the fix (confirming the gravity bump wasn't the cause — if
+      anything it slightly reduced the failure rate, consistent with less
+      horizontal drift), then passed 4/4 after the `doorJump.ts` fix, at
+      4x. All green: `npm run typecheck`/`test` (335 passed, unchanged)/
+      `build`, plus the full `idiom-door.spec.ts` suite (28 passed,
+      mobile+desktop) re-run clean after landing both fixes.
+- [x] `done` — **Writing stage: a "show me again" button to re-request
+      the stroke demo per character, not just device-wide
+      (2026-09-11).** Per your "I think there's a design for the writing
+      guide to be turned off after a challenge. However this assumes the
+      words are all already familiar to the player. can we include a
+      button for players to review the strokes when he has forgotten?" —
+      `shouldSkipStrokeDemo` (writingScore.ts, landed 2026-09-09) already
+      turns off the automatic stroke-order animation device-wide once a
+      device has a few completed sessions behind it, but that's a blunt
+      guess: it can't tell "the child knows this specific character"
+      apart from "the child is experienced enough that the rest of
+      today's characters don't need the demo, but not this one."
+      New `#writing-review-btn` (idiom-door.html, same `.icon-btn` shape
+      as `#reveal-english-btn`'s "I don't understand" affordance),
+      visible only while a quiz is actually waiting on a stroke
+      (writingStatus.ts's existing phase toggle now also drives this
+      button's `.visible` class, alongside `#writing-status`/
+      `#writing-feedback`) — hidden while a demo is already animating or
+      a just-finished character's rating is showing, since neither state
+      has anything to "show again" yet. Tapping it (writingStage.ts's new
+      `reviewChar`) replays that one character's own stroke-order
+      animation (the same `animateCharacter` call `traceChar` already
+      uses when the automatic demo isn't skipped) and hands back into a
+      fresh quiz for it once the replay finishes — available whether or
+      not `skipDemo` is in effect, since the whole point is covering the
+      gap that device-wide flag can't.
+      Deliberately a *fresh* quiz on return, not a resume from the
+      stroke the child was stuck on: hanzi-writer's own `quiz()` always
+      restarts a character's mistake tally at 0, so asking for the demo
+      again also wipes whatever mistakes prompted asking — same "no fail
+      state, nothing held against you" ethos every other mechanic here
+      already keeps (backwards-stroke forgiveness, the 8-miss
+      auto-advance cap, balloonHp/doorHp's floor-at-0). The button's own
+      click handler is re-wired per character (`setReviewHandler`,
+      removing the previous one before attaching the next — same manual
+      "un-register on the way out" shape `showWritingSummaryCard`
+      (main.ts) already uses for its own per-idiom Continue handler),
+      since the button element itself persists across every
+      character/idiom a writing-stage run drives, rather than being
+      recreated like `#writing-target`'s own SVG content is.
+      New e2e coverage in `writing-stage.spec.ts`: the button's
+      visibility tracks the phase correctly, clicking it actually
+      replays the demo and lands back in a completable quiz for the same
+      character, and — the actual point of this feature — it still works
+      on a device with the automatic demo skipped (3+ completed
+      sessions). All green: `npm run typecheck`/`test` (335 passed,
+      unchanged — no new pure logic to unit test, this is DOM/HanziWriter
+      wiring the same way the rest of writingStage.ts already is)/
+      `build`, plus the two new e2e tests (mobile+desktop) and the full
+      existing `writing-stage.spec.ts`/`idiom-door.spec.ts` suites
+      re-run clean.
 - [x] `done` — **Balloon stage: curve each balloon's own idiom text and
       card, tighten the grid (2026-09-08).** Per your "curve the balloon
       so they don't take up so much horizontal space." Two false starts

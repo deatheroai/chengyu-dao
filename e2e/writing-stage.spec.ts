@@ -194,6 +194,77 @@ test("a device with 3+ completed sessions behind it skips straight to the quiz",
   await expect(page.locator("#writing-status")).toHaveAttribute("data-char-index", "0");
 });
 
+/**
+ * 2026-09-11 ("this assumes the words are all already familiar to the
+ * player... can we include a button for players to review the strokes
+ * when he has forgotten?"): `#writing-review-btn` (writingStage.ts's
+ * `reviewChar`) is a per-character escape hatch, available regardless
+ * of `shouldSkipStrokeDemo` — checked here on a brand-new device (which
+ * already sees the automatic demo) so this is testing the button
+ * itself, not standing in for the skip-demo case (the next test covers
+ * that one specifically).
+ */
+test("the review button replays the current character's stroke demo, then returns to a fresh quiz for it", async ({ page }) => {
+  test.setTimeout(60000);
+  await enterFirstLevelsWritingStage(page);
+  const status = page.locator("#writing-status");
+  const reviewBtn = page.locator("#writing-review-btn");
+
+  // Hidden while the demo is still animating — nothing to "show again"
+  // yet.
+  await expect(status).toHaveAttribute("data-phase", "watch");
+  await expect(reviewBtn).not.toHaveClass(/visible/);
+
+  // Once the quiz is actually waiting on a stroke, the button appears.
+  await expect(status).toHaveAttribute("data-phase", "trace", { timeout: 15000 });
+  await expect(reviewBtn).toHaveClass(/visible/);
+  const char = await status.getAttribute("data-char");
+
+  await reviewBtn.click();
+  // Replaying the demo flips back to "watch" for the same character —
+  // and the button hides again for the same reason it did the first
+  // time around.
+  await expect(status).toHaveAttribute("data-phase", "watch", { timeout: 2000 });
+  await expect(status).toHaveAttribute("data-char", char ?? "");
+  await expect(reviewBtn).not.toHaveClass(/visible/);
+
+  // The replay hands back into a real, completable quiz for the same
+  // character — tracing it perfectly still lands cleanly.
+  await expect(status).toHaveAttribute("data-phase", "trace", { timeout: 15000 });
+  await expect(reviewBtn).toHaveClass(/visible/);
+  await traceCurrentCharacterPerfectly(page);
+  const feedback = page.locator("#writing-feedback");
+  await expect(feedback).toHaveClass(/visible/, { timeout: 2000 });
+  await expect(feedback).toHaveAttribute("data-mistakes", "0");
+});
+
+/**
+ * The whole point of this button: `shouldSkipStrokeDemo` skips the
+ * automatic demo device-wide, but a device that experienced can still
+ * hit a character it doesn't actually remember — the button has to work
+ * there too, not just on a brand-new device that would have seen the
+ * demo anyway.
+ */
+test("the review button still works when the automatic demo is skipped", async ({ page }) => {
+  test.setTimeout(60000);
+  await page.goto("/idiom-door.html");
+  await seedCompletedSessions(page, 3);
+  await completeMatchStage(page);
+  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
+  await page.click("#start-level-btn");
+
+  const status = page.locator("#writing-status");
+  const reviewBtn = page.locator("#writing-review-btn");
+  await expect(status).toHaveAttribute("data-phase", "trace", { timeout: 10000 });
+  await expect(reviewBtn).toHaveClass(/visible/);
+
+  await reviewBtn.click();
+  await expect(status).toHaveAttribute("data-phase", "watch", { timeout: 2000 });
+  await expect(status).toHaveAttribute("data-char-index", "0");
+  await expect(status).toHaveAttribute("data-phase", "trace", { timeout: 15000 });
+  await traceCurrentCharacterPerfectly(page);
+});
+
 test("a device with only 2 completed sessions still sees the demo (right up to the threshold)", async ({ page }) => {
   test.setTimeout(60000);
   await page.goto("/idiom-door.html");

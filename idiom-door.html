@@ -84,6 +84,25 @@
                position, and how an E2E test uses this instead. -->
           <p id="writing-status" aria-live="polite" data-char-index="0" data-total="4" data-char="" data-phase="watch" data-stroke-index="0"></p>
           <div id="writing-target" class="writing-target"></div>
+          <!-- 2026-09-11 ("can we include a button for players to review
+               the strokes when he has forgotten?"): `shouldSkipStrokeDemo`
+               (writingScore.ts) turns off the automatic stroke-order demo
+               once a device has a few completed sessions behind it — but
+               that assumes every character it then skips straight to the
+               quiz for is one the child actually still remembers. This
+               button, shown only while a quiz is waiting on a stroke
+               (writingStatus.ts's phase toggle — same "trace"-only
+               visibility whether or not the auto demo ran), replays that
+               one character's own stroke-order animation on request
+               (writingStage.ts's reviewChar) and hands back into a fresh
+               quiz once it finishes — an escape hatch for exactly the
+               "I've seen this idiom before, but not *this* character, not
+               today" gap the auto-skip alone can't tell apart. Same
+               `.icon-btn` shape as `#reveal-english-btn`'s "I don't
+               understand" affordance in level-intro-card. -->
+          <button id="writing-review-btn" class="icon-btn writing-review-btn" type="button" aria-label="Forgotten how to write it? Watch the strokes again">
+            👀<span class="icon-btn-label">Forgot? Show me again</span>
+          </button>
           <p id="writing-feedback" aria-live="polite" data-stars="0" data-mistakes="0"></p>
           <p class="writing-hint">Watch how it's drawn, then trace it yourself.</p>
         </div>

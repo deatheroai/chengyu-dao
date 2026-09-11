@@ -430,6 +430,20 @@ rt {
   color: #7a5636;
 }
 
+/* 2026-09-11 ("a button for players to review the strokes when he has
+   forgotten"): `.icon-btn` already gives this the same look as
+   `#reveal-english-btn` — this just adds the phase-gated show/hide
+   (writingStatus.ts toggles `.visible` in lockstep with `data-phase`,
+   same `.visible` pattern #writing-feedback uses above), since the
+   button only makes sense while a quiz is actually waiting on input. */
+.writing-review-btn {
+  display: none;
+  margin: 0;
+}
+.writing-review-btn.visible {
+  display: flex;
+}
+
 /* 2026-09-09 ("there should be some feedback on the writing to explain
    to child how well he wrote"): this character's own star rating,
    shown for a short beat right after its quiz resolves
