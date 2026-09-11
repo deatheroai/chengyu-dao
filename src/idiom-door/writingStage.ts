@@ -75,6 +75,25 @@ function charDataLoader(char: string, onLoad: (data: WritingCharacterData) => vo
  * more experienced child. Quiz mode still shows a faint outline of the
  * character as a guide either way (`showOutline: true` below); only the
  * *animated* demo is skipped.
+ *
+ * 2026-09-11 ("this assumes the words are all already familiar to the
+ * player... can we include a button for players to review the strokes
+ * when he has forgotten?"): `skipDemo` is a blunt, device-wide guess —
+ * it can't know that *this particular* character is one the child
+ * hasn't actually got yet, on a day he's otherwise experienced enough
+ * to skip the rest. `#writing-review-btn` (wired below by `startQuiz`,
+ * shown only during the `"trace"` phase — see writingStatus.ts's own
+ * phase-toggle) is the per-character escape hatch: tapping it cancels
+ * whatever quiz is in progress and replays that one character's
+ * stroke-order animation (`reviewChar`, the same `animateCharacter`
+ * call `traceChar` uses when `skipDemo` is false) before handing back
+ * into a fresh quiz for it — available whether or not the automatic
+ * demo ran. Deliberately a *fresh* quiz, not a resume: hanzi-writer's
+ * own `quiz()` always starts a character's mistake tally at 0 (see its
+ * `Quiz.startQuiz`), so asking to see it again also gives that
+ * character a clean slate rather than carrying forward the mistakes
+ * that prompted asking — the same "no fail state, nothing held against
+ * you" ethos every other mechanic here already keeps.
  */
 export function runWritingStage(idiom: IdiomContent, skipDemo: boolean, onComplete: (startingHp: number) => void): void {
   const chars = Array.from(idiom.hanzi);
@@ -99,9 +118,29 @@ export function runWritingStage(idiom: IdiomContent, skipDemo: boolean, onComple
     charDataLoader,
   });
 
+  // The "show me again" button (see this function's own doc comment)
+  // persists in the DOM across every character/idiom this one run (and
+  // every run after it) drives, so its click handler has to be swapped
+  // out per character rather than added once — `setReviewHandler` always
+  // removes whatever handler it last attached before attaching the new
+  // one, the same manual "un-register on the way out" shape
+  // `showWritingSummaryCard` (main.ts) already uses for its own
+  // per-idiom Continue handler. Belt-and-suspenders alongside
+  // writingStatus.ts's `.visible` phase-gating, not a substitute for
+  // it — a stray leftover handler firing while the button is hidden is
+  // harmless either way, since a hidden button can't be tapped.
+  const reviewBtn = document.getElementById("writing-review-btn");
+  let reviewHandler: (() => void) | null = null;
+  const setReviewHandler = (handler: (() => void) | null): void => {
+    if (reviewHandler) reviewBtn?.removeEventListener("click", reviewHandler);
+    reviewHandler = handler;
+    if (reviewHandler) reviewBtn?.addEventListener("click", reviewHandler);
+  };
+
   const startQuiz = (index: number): void => {
     const char = chars[index];
     updateWritingStatus(index, chars.length, char, "trace", 0);
+    setReviewHandler(() => reviewChar(index));
     writer.quiz({
       showHintAfterMisses: 3,
       // Direction (drawing a stroke backwards) is a common, harmless
@@ -143,6 +182,7 @@ export function runWritingStage(idiom: IdiomContent, skipDemo: boolean, onComple
   const traceChar = (index: number): void => {
     const char = chars[index];
     clearWritingFeedback();
+    setReviewHandler(null);
     if (skipDemo) {
       startQuiz(index);
       return;
@@ -151,8 +191,24 @@ export function runWritingStage(idiom: IdiomContent, skipDemo: boolean, onComple
     writer.animateCharacter({ onComplete: () => startQuiz(index) });
   };
 
+  /** The `#writing-review-btn` handler `startQuiz` wires up for whichever
+   * character is currently being traced — replays that one character's
+   * own stroke-order animation on request, then hands back into a fresh
+   * quiz for it (`startQuiz`'s own `onComplete` callback below still
+   * fires exactly once, whether that quiz that resolves it is the
+   * child's first attempt or a post-review one). `writer.animateCharacter`
+   * cancels any quiz still waiting on input itself (hanzi-writer's own
+   * `animateCharacter`/`cancelQuiz`), so there's nothing else to tear
+   * down here first. */
+  const reviewChar = (index: number): void => {
+    const char = chars[index];
+    updateWritingStatus(index, chars.length, char, "watch");
+    writer.animateCharacter({ onComplete: () => startQuiz(index) });
+  };
+
   const advance = (index: number): void => {
     if (index >= chars.length) {
+      setReviewHandler(null);
       onComplete(startingDoorHp(results));
       return;
     }

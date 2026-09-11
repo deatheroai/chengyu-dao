@@ -15,6 +15,57 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Writing stage: a "show me again" button to re-request
+      the stroke demo per character, not just device-wide
+      (2026-09-11).** Per your "I think there's a design for the writing
+      guide to be turned off after a challenge. However this assumes the
+      words are all already familiar to the player. can we include a
+      button for players to review the strokes when he has forgotten?" —
+      `shouldSkipStrokeDemo` (writingScore.ts, landed 2026-09-09) already
+      turns off the automatic stroke-order animation device-wide once a
+      device has a few completed sessions behind it, but that's a blunt
+      guess: it can't tell "the child knows this specific character"
+      apart from "the child is experienced enough that the rest of
+      today's characters don't need the demo, but not this one."
+      New `#writing-review-btn` (idiom-door.html, same `.icon-btn` shape
+      as `#reveal-english-btn`'s "I don't understand" affordance),
+      visible only while a quiz is actually waiting on a stroke
+      (writingStatus.ts's existing phase toggle now also drives this
+      button's `.visible` class, alongside `#writing-status`/
+      `#writing-feedback`) — hidden while a demo is already animating or
+      a just-finished character's rating is showing, since neither state
+      has anything to "show again" yet. Tapping it (writingStage.ts's new
+      `reviewChar`) replays that one character's own stroke-order
+      animation (the same `animateCharacter` call `traceChar` already
+      uses when the automatic demo isn't skipped) and hands back into a
+      fresh quiz for it once the replay finishes — available whether or
+      not `skipDemo` is in effect, since the whole point is covering the
+      gap that device-wide flag can't.
+      Deliberately a *fresh* quiz on return, not a resume from the
+      stroke the child was stuck on: hanzi-writer's own `quiz()` always
+      restarts a character's mistake tally at 0, so asking for the demo
+      again also wipes whatever mistakes prompted asking — same "no fail
+      state, nothing held against you" ethos every other mechanic here
+      already keeps (backwards-stroke forgiveness, the 8-miss
+      auto-advance cap, balloonHp/doorHp's floor-at-0). The button's own
+      click handler is re-wired per character (`setReviewHandler`,
+      removing the previous one before attaching the next — same manual
+      "un-register on the way out" shape `showWritingSummaryCard`
+      (main.ts) already uses for its own per-idiom Continue handler),
+      since the button element itself persists across every
+      character/idiom a writing-stage run drives, rather than being
+      recreated like `#writing-target`'s own SVG content is.
+      New e2e coverage in `writing-stage.spec.ts`: the button's
+      visibility tracks the phase correctly, clicking it actually
+      replays the demo and lands back in a completable quiz for the same
+      character, and — the actual point of this feature — it still works
+      on a device with the automatic demo skipped (3+ completed
+      sessions). All green: `npm run typecheck`/`test` (335 passed,
+      unchanged — no new pure logic to unit test, this is DOM/HanziWriter
+      wiring the same way the rest of writingStage.ts already is)/
+      `build`, plus the two new e2e tests (mobile+desktop) and the full
+      existing `writing-stage.spec.ts`/`idiom-door.spec.ts` suites
+      re-run clean.
 - [x] `done` — **Balloon stage: curve each balloon's own idiom text and
       card, tighten the grid (2026-09-08).** Per your "curve the balloon
       so they don't take up so much horizontal space." Two false starts

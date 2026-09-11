@@ -19,6 +19,16 @@
  * next stroke could match immediately on the stale value and re-trace
  * the character that just finished instead of waiting for the real
  * next one.
+ *
+ * 2026-09-11: also toggles `#writing-review-btn`'s own `.visible` class
+ * in lockstep with `data-phase` — it only makes sense to offer "show me
+ * the strokes again" while a quiz is actually waiting on input, not
+ * while one's already animating on screen (`"watch"`) or a just-finished
+ * character's rating is showing (`"feedback"`). writingStage.ts owns
+ * *what* the button does when tapped (`reviewChar`); this is just the
+ * one place that already decides the phase deciding *whether it's
+ * there* to tap, same as every other `#writing-*` element this function
+ * already drives off the same phase value.
  */
 export type WritingStagePhase = "watch" | "trace" | "feedback";
 
@@ -38,6 +48,8 @@ export function updateWritingStatus(charIndex: number, total: number, char: stri
   } else {
     el.textContent = `Your turn — trace ${char}`;
   }
+
+  document.getElementById("writing-review-btn")?.classList.toggle("visible", phase === "trace");
 }
 
 /**
