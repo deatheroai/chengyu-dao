@@ -23,6 +23,48 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-11 — Ported 15 improved example sentences from
+  `deatheroai/chengyu-battle`'s own content review.** That sibling
+  project forked this repo's 30-idiom pool, then went through every
+  single example sentence with you in batches of 5 — the standing
+  "review example sentences against their idiom's actual meaning, not
+  just correct idiom usage" track this repo's own `BACKLOG.md` already
+  flags. 15 of the 30 came back changed there; ported the same
+  `exampleSentence` (hanzi/pinyin/english/charPinyin) and, for the 2
+  where the underlying scenario changed, the matching `dailyLifeScenario`
+  too, into this repo's `idioms.ts`. `sourceNotes` left untouched (pure
+  provenance here, not a changelog) — this entry is the record instead.
+
+  Idioms touched: `you-shi-you-zhong`, `ban-tu-er-fei`,
+  `shu-neng-sheng-qiao`, `mo-chu-cheng-zhen`, `ba-miao-zhu-zhang`,
+  `chi-zhi-yi-heng`, `yi-si-bu-gou`, `jing-yi-qiu-jing`,
+  `zhi-cuo-jiu-gai`, `shi-shi-qiu-shi`, `guang-ming-zheng-da`,
+  `shou-zhu-dai-tu`, `jing-di-zhi-wa`, `ju-yi-fan-san`,
+  `rong-hui-guan-tong`. Representative fixes: sentences that stated an
+  idiom's moral without showing it happen (`ban-tu-er-fei`,
+  `shou-zhu-dai-tu`); two pairs that read as near-duplicates of each
+  other even though the idioms aren't interchangeable
+  (`shu-neng-sheng-qiao`/`mo-chu-cheng-zhen`,
+  `zhi-cuo-jiu-gai`/`shi-shi-qiu-shi`); a usage that was flatly wrong
+  for how the idiom is actually used (`ju-yi-fan-san`'s
+  character-radical framing replaced with "one learned technique
+  applied to new tasks," via paper-folding).
+
+  5 of these 15 (`mo-chu-cheng-zhen`, `ba-miao-zhu-zhang`,
+  `yi-si-bu-gou`, `ju-yi-fan-san`, `rong-hui-guan-tong`) overlap with
+  this repo's own two earlier independent fix rounds (#33, #37) — in
+  each case the version here is a further refinement on top of what
+  those PRs already improved, not a reversal of them; the other 10 are
+  net-new fixes this repo's own review passes hadn't reached yet.
+
+  `npm run typecheck`, `npm test` (336 tests, unchanged pass count —
+  content-integrity suite validates structure, not wording), and
+  `npm run build` all green. Pushed directly to
+  `claude/chinese-idiom-battle-5ao9dc` (the branch this session was
+  given for chengyu-battle-related work) rather than opening a PR,
+  since none was requested — flag if you'd rather this go through the
+  usual PR review instead.
+
 - **2026-09-10 — Daily cycle: shipped the door-stage burning-tile fix.**
   Pending Decisions was empty. No open GitHub issues or PRs to check in on
   first. `BACKLOG.md`'s unblocked `todo` items (writing/tracing stage + its

@@ -291,6 +291,18 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       the characters correctly" pass on each new batch before treating it
       as fully vetted, same "needs your review" status the rest of this
       project's authored Chinese text already carries.
+
+      **Original 30-idiom pool: fully covered as of 2026-09-11.** Between
+      this backlog's own two rounds (#33, #37 — 8 idioms) and
+      `deatheroai/chengyu-battle`'s full sentence-by-sentence pass across
+      all 30 (ported back here — see `DECISIONS.md`'s 2026-09-11 entry;
+      10 more changed there, 15 read and confirmed fine as-is, 5 overlap
+      and got a further refinement beyond what #33/#37 already did),
+      every one of the original 30 has now actually been read against its
+      `meaning` field by a human, not just spot-checked. Track stays open
+      — it's "standing" specifically because it needs re-running on each
+      new batch as the pool grows toward ~100, not because the first 30
+      still need it.
 - [ ] `todo` — **Remove the per-session match warm-up; matching becomes a
       milestone-finale-only mechanic (2026-09-08).** Per your steer:
       drop `beginMatchStage`/`showMatchIntro` from `main.ts`'s boot flow
