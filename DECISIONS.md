@@ -23,6 +23,35 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-11 — Daily cycle: shipped the standing example-sentence
+  review pass, found (but didn't land) a real e2e robustness bug along
+  the way — pushed and opened a PR without merging.** Pending Decisions
+  was empty; no open GitHub issues or PRs to check in on first.
+  `BACKLOG.md`'s unblocked `todo` items were all genuinely buildable, so
+  picked the top-to-bottom next one, the standing "review the
+  example-sentence pool" track: hand-read all 45 idioms'
+  `exampleSentence.hanzi` against their own `meaning` field, found and
+  fixed one (同甘共苦 only showed half of its "sweet times and bitter
+  times together" meaning) — see `BACKLOG.md`'s entry for detail.
+  `npm run typecheck`/`test` (335 passed, unchanged)/`build` all green.
+  `npm run test:e2e` was not: one mobile test
+  (`idiom-door.spec.ts`'s "each jump costs HP, and a wrong catch costs
+  extra on top") failed. Before treating that as this cycle's own
+  regression, checked it against an unmodified `origin/main` worktree
+  (`git worktree add`, no code changes) — same failure, identically,
+  confirming it's pre-existing and unrelated to a content-only sentence
+  edit. Root-caused and logged as its own `BACKLOG.md` `todo` entry
+  (a date-seeded level-layout edge case where a deliberate "wrong tile"
+  jump chain-catches into the actually-correct tile within the same
+  arc) rather than attempting a fix in the same sitting — out of scope
+  for this cycle's chosen item, and worth its own focused session per
+  this file's "don't manufacture busywork" guidance in reverse (don't
+  bolt an unrelated fix onto an unrelated PR either). Per `AUTONOMY.md`'s
+  landing gate (typecheck/test/build/test:e2e must **all** be green
+  before the daily cycle auto-merges its own PR) and this cycle's own
+  explicit instructions, did not merge: pushed
+  `claude/daily-2026-09-11` and opened a PR describing the sentence fix
+  and this e2e finding, then stopped rather than merging with red CI.
 - **2026-09-10 — Daily cycle: shipped the door-stage burning-tile fix.**
   Pending Decisions was empty. No open GitHub issues or PRs to check in on
   first. `BACKLOG.md`'s unblocked `todo` items (writing/tracing stage + its

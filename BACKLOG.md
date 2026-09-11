@@ -140,6 +140,41 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       pick are still pending — waiting on the actual hex values (the
       picker had no save feature, so nothing from your session there
       reached this repo).
+- [ ] `todo` — **Fix: e2e "each jump costs HP, and a wrong catch costs
+      extra on top" can fail on some days' level layouts — a
+      deliberate wrong-tile jump chain-catches into the actual next
+      tile in the same arc (2026-09-11).** Found while validating this
+      cycle's (unrelated, content-only) change — confirmed by running
+      the exact same test against an unmodified `origin/main` worktree
+      (`git worktree add … origin/main`, same commit CI already has
+      green), so this isn't a regression from anything landed here,
+      just a pre-existing gap this cycle's date happened to trigger.
+      For 2026-09-11's date-seeded session (`doorLevels[0]` =
+      表里如一), `e2e/helpers/doorJump.ts`'s
+      `jumpForFirstReachableWrongTile` aims for the first tile whose
+      glyph isn't the correct next character (里) — but the test's own
+      doc comment already documents that a single jump's arc can
+      chain-catch a *second*, adjacent tile a frame or two later
+      (`checkCatches` runs every frame, not once at takeoff, and
+      `levelContent.ts` packs tiles as close as `MIN_SLOT_GAP` ≈110px,
+      tighter than a jump's ~190px ground footprint). The test's HP
+      assertions already account for this (`toBeLessThanOrEqual`, not
+      exact equality) — but the very next line still asserts
+      `#door-status`'s `data-outcome` *is* `"wrong"`, which breaks if
+      the same arc's chain-catch happens to land on the actual correct
+      "里" tile right after the deliberate wrong one: the final
+      settled outcome reads `"advanced"` (progress genuinely did
+      advance, so this isn't a false failure — the *assertion* is what
+      needs to tolerate this, not the game). Likely fix: assert on HP
+      dropping enough to prove the wrong catch was charged (same
+      approach the surrounding HP checks already use), or explicitly
+      pick a wrong-tile candidate `jumpForFirstReachableWrongTile`
+      confirms isn't within one jump's footprint of the correct tile,
+      rather than asserting the immediate post-jump `data-outcome`
+      value. Whether this reproduces depends on the day's own
+      date-seeded level layout (packing is random per level), so it may
+      not show up every day — confirm against the actual date before
+      assuming it's already gone.
 - [ ] `todo` — **Writing/tracing stage: teach each character before the
       door (2026-09-08).** New stage between an idiom's intro and its
       door: each of the idiom's 4 characters shown one at a time over a
@@ -275,22 +310,30 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       text — no test needed updating, which is the point of that suite
       being generic. All green: `npm run typecheck`/`test` (290
       passed)/`build`.
-- [ ] `todo` — **Standing track: review the rest of the example-sentence
-      pool the same way, and re-check any newly authored one against its
-      idiom's actual meaning before treating it as vetted (2026-09-09).**
-      The four fixed above were found by hand-reviewing all 15 sentences
-      against their `meaning` field, not from a repeatable check — no
-      automated way to catch "grammatically correct but off-point" (that's
-      a judgement call, not a lint rule). Two borderline ones were raised
-      and left as-is on your call: 助人为乐's "joy" framing is now folded
-      into the fix above, but revisit if it still reads thin; 井底之蛙's
-      more abstract lesson (flagged when it was authored, per its own
-      `sourceNotes`) is worth an occasional re-read too. As the pool grows
-      toward ~100 idioms (see the item below), do this same "does the
-      example actually demonstrate the idiom's real meaning, not just use
-      the characters correctly" pass on each new batch before treating it
-      as fully vetted, same "needs your review" status the rest of this
-      project's authored Chinese text already carries.
+- [x] `done` — **Standing track: reviewed the full 45-idiom
+      example-sentence pool against this same "does it actually
+      demonstrate the meaning, not just use the idiom grammatically"
+      bar (2026-09-11).** The four fixed on 2026-09-09 (original
+      15-idiom batch) and three more fixed in PR #37 (30-idiom batch)
+      were found this same way — not a repeatable/automated check (no
+      lint rule for "grammatically correct but off-point"), so this
+      pass hand-read all 45 `exampleSentence.hanzi` against their own
+      `meaning` field one more time. Found one: 同甘共苦 means "sharing
+      both the sweet times *and* the bitter times together," but its
+      sentence only ever depicted the bitter half (a team losing a
+      match and cheering each other up) — nothing showed a *shared good
+      time*, the same "only shows half the idiom's causal structure"
+      issue 温故知新's original sentence had. Fixed with a sentence
+      showing the same team both celebrating a win together and
+      encouraging each other after a loss. The other 44 held up on
+      review, including 井底之蛙 (its own `sourceNotes` already flags
+      its more abstract lesson for periodic re-reads; still a faithful
+      illustration on this pass). All green: typecheck/test (335
+      passed, unchanged — content-only edit)/build.
+      Re-run this same pass on each future idiom-pool batch before
+      treating it as fully vetted, same "needs review" status the rest
+      of this project's authored Chinese text already carries — not a
+      one-off, standing practice.
 - [ ] `todo` — **Remove the per-session match warm-up; matching becomes a
       milestone-finale-only mechanic (2026-09-08).** Per your steer:
       drop `beginMatchStage`/`showMatchIntro` from `main.ts`'s boot flow
