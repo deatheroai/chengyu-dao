@@ -243,17 +243,29 @@ rt {
    bottom instead — BalloonSentenceScene's worldH/bottomReserve now
    keeps that same reserved-bottom-third space clear of both the
    balloon grid above and the avatar's own roaming area, so the avatar
-   ends up floating just above this panel rather than underneath it. */
+   ends up floating just above this panel rather than underneath it.
+   2026-09-11 ("it is now right at the bottom... should be at bottom
+   2/3 of screen"): sitting the text flush against the physical bottom
+   edge (`justify-content: flex-end` in a bottom:0 box) read as jammed
+   into the corner rather than occupying its own third of the screen.
+   `height: 33vh` carves out that same reserved third as its own box
+   (matching BalloonSentenceScene's bottomReserve, a third of the real
+   viewport height), and `justify-content: flex-start` sits the panel
+   at the *top* of that box — right at the 2/3-down line, immediately
+   below where the avatar floats — leaving the rest of the box as
+   genuine breathing room beneath it, above the physical edge, instead
+   of the panel being the thing flush against that edge. */
 #balloon-ui-layer {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
+  height: 33vh;
   padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 0.3rem;
   pointer-events: none;
 }
