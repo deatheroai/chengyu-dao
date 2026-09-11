@@ -680,10 +680,14 @@ export const idioms: IdiomContent[] = [
     dailyLifeScenario:
       "Your football team loses badly in the first half but you all cheer each other up and give it your all together in the second half — win or lose, you stick together. That's 同甘共苦.",
     exampleSentence: {
-      hanzi: "队友之间同甘共苦，输球时也互相鼓励。",
-      pinyin: "Duìyǒu zhījiān tónggān-gòngkǔ, shūqiú shí yě hùxiāng gǔlì.",
-      english: "Teammates share both good times and hard times — even after losing a match, they still cheer each other on.",
-      charPinyin: ["duì", "yǒu", "zhī", "jiān", "tóng", "gān", "gòng", "kǔ", "", "shū", "qiú", "shí", "yě", "hù", "xiāng", "gǔ", "lì", ""],
+      hanzi: "篮球队赢球时大家一起欢呼，输球时也互相鼓励，一直同甘共苦。",
+      pinyin: "Lánqiú duì yíngqiú shí dàjiā yìqǐ huānhū, shūqiú shí yě hùxiāng gǔlì, yìzhí tónggān-gòngkǔ.",
+      english: "When the basketball team wins, everyone cheers together; when they lose, they encourage each other too — always sharing both the sweet times and the bitter ones.",
+      charPinyin: [
+        "lán", "qiú", "duì", "yíng", "qiú", "shí", "dà", "jiā", "yì", "qǐ", "huān", "hū", "",
+        "shū", "qiú", "shí", "yě", "hù", "xiāng", "gǔ", "lì", "",
+        "yì", "zhí", "tóng", "gān", "gòng", "kǔ", "",
+      ],
     },
     ageBand: "lower-primary",
     theme: "kindness",
