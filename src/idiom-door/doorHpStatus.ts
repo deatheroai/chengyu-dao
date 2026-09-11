@@ -13,6 +13,12 @@ import { isHpLow } from "./doorHp";
  * doesn't rely on color alone. Computed here (from `hp` alone) rather
  * than threaded through every call site, so IdiomDoorScene's existing
  * `updateDoorHpStatus(this.hpState.hp)` calls don't need to change.
+ *
+ * 2026-09-11 ("low hp needs to be more obvious, it is now a tiny icon
+ * on screen"): the same `low` value also drives `#low-hp-vignette`'s
+ * `data-visible` — a full-viewport pulsing edge glow (style.css), so
+ * the warning doesn't live only in a small corner chip a child's eyes
+ * may not be on mid-jump.
  */
 export function updateDoorHpStatus(hp: number): void {
   const el = document.getElementById("door-hp");
@@ -22,4 +28,7 @@ export function updateDoorHpStatus(hp: number): void {
   el.setAttribute("data-hp", String(hp));
   el.setAttribute("data-low", String(low));
   el.textContent = low ? `⚠️ ❤️ ${hp}` : `❤️ ${hp}`;
+
+  const vignette = document.getElementById("low-hp-vignette");
+  vignette?.setAttribute("data-visible", String(low));
 }

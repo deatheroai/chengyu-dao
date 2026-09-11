@@ -37,6 +37,17 @@
              stage's own #balloon-hp below, just a real gate here rather
              than a running score (see doorHp.ts's doc comment). -->
         <div id="door-hp" aria-live="polite" data-hp="100"></div>
+        <!-- 2026-09-11 ("low hp needs to be more obvious, it is now a
+             tiny icon on screen"): a full-viewport pulsing red edge
+             glow, toggled by the same `data-low` state as #door-hp
+             above (doorHpStatus.ts) — a child of #catch-ui-layer so it
+             disappears the instant that layer does (leaving the door
+             stage) even though nothing separately clears `data-low`
+             itself, but `position: fixed` so it isn't boxed into that
+             layer's own thin top-strip layout. Peripheral-vision-sized
+             on purpose: a child's eyes are on the runner/jump action in
+             the middle of the screen, not a small corner status chip. -->
+        <div id="low-hp-vignette" aria-hidden="true" data-visible="false"></div>
       </div>
       <!-- 2026-09-09 addition: BACKLOG.md's "writing/tracing stage: teach
            each character before the door" — runs right after each

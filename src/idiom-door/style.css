@@ -145,15 +145,25 @@ rt {
   color: #c2185b;
 }
 
-/* 2026-09-09 ("give the player some warning when hp is running low"):
-   doorHp.ts's isHpLow/doorHpStatus.ts's data-low — a pulsing scale +
-   a brighter, more urgent red, so the warning doesn't rely on the ⚠️
-   text alone. Stops as soon as the counter leaves this state (a
-   successful catch can raise HP back... actually it never does here,
-   but retracing resets it to a fresh pool, same reasoning as
-   #dev-controls' other transient states). */
+/* 2026-09-09 ("give the player some warning when hp is running low"),
+   2026-09-11 follow-up ("low hp needs to be more obvious, it is now a
+   tiny icon on screen"): doorHp.ts's isHpLow/doorHpStatus.ts's
+   data-low now gets a much louder treatment than a same-size color
+   swap — a filled red pill, visibly bigger than the counter's own
+   normal size (not just a subtle scale pulse), so it reads as a real
+   alert even at a glance. Stops as soon as the counter leaves this
+   state (a successful catch can raise HP back... actually it never
+   does here, but retracing resets it to a fresh pool, same reasoning
+   as #dev-controls' other transient states). See #low-hp-vignette
+   below for the *other* half of "more obvious" — this chip still sits
+   in the same corner strip a child's eyes may not be on mid-jump. */
 #door-hp[data-low="true"] {
-  color: #e0164b;
+  color: #fff;
+  background: #e0164b;
+  font-size: 1.15rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  box-shadow: 0 2px 12px rgba(224, 22, 75, 0.55);
   animation: hp-low-pulse 0.9s ease-in-out infinite;
 }
 @keyframes hp-low-pulse {
@@ -162,7 +172,40 @@ rt {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.12);
+    transform: scale(1.15);
+  }
+}
+
+/* 2026-09-11 ("low hp needs to be more obvious"): a full-viewport
+   pulsing red edge glow — peripheral-vision-sized, unlike the corner
+   HP chip above, since a child's attention during a jump is on the
+   runner in the middle of the screen, not a status strip. `position:
+   fixed` (not `absolute`) so it fills the real viewport rather than
+   #catch-ui-layer's own thin top-strip box, while still a child of
+   that layer so `.stage-hidden` hides it the instant the door stage
+   isn't showing — nothing separately clears #door-hp's own `data-low`
+   when the stage changes, so relying on the parent's own visibility
+   is what keeps this from lingering into the next stage. `inset`
+   (the glow shape) rather than `opacity`/`display` is what's animated,
+   so this never intercepts a tap even for a single frame — paired
+   with `pointer-events: none` as the belt-and-braces version of that. */
+#low-hp-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  box-shadow: inset 0 0 0 0 rgba(224, 22, 75, 0);
+}
+#low-hp-vignette[data-visible="true"] {
+  animation: low-hp-vignette-pulse 0.9s ease-in-out infinite;
+}
+@keyframes low-hp-vignette-pulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 3rem 0.5rem rgba(224, 22, 75, 0.3);
+  }
+  50% {
+    box-shadow: inset 0 0 5.5rem 1.5rem rgba(224, 22, 75, 0.62);
   }
 }
 
