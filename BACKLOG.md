@@ -900,6 +900,52 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       "dev 'new idioms'" test re-run several times in isolation (with
       and without other tests competing for the sandbox) to confirm the
       fix rather than trusting one clean pass.
+- [x] `done` — **Low-HP warning: a full-screen pulsing vignette, not
+      just a tiny corner icon (2026-09-11).** Per your "low hp needs to
+      be more obvious, it is now a tiny icon on screen" — direct
+      follow-up to the low-HP warning entry above.
+      `#door-hp[data-low="true"]` (style.css) now gets a real alert
+      treatment — a filled red pill visibly bigger than the counter's
+      own normal size, not just the previous same-size color swap —
+      but the bigger change is new `#low-hp-vignette`: a full-viewport
+      pulsing red edge glow (`position: fixed`, `pointer-events: none`),
+      toggled by the same `data-low` state (`doorHpStatus.ts`).
+      Peripheral-vision-sized on purpose: a child's eyes are on the
+      runner mid-jump, not a small corner status chip. Nested inside
+      `#catch-ui-layer` (rather than absolutely positioned within it,
+      which would've boxed it into that layer's own thin top-strip
+      height) specifically so `.stage-hidden` hiding that layer also
+      hides the vignette the instant the door stage isn't showing, with
+      no separate cleanup needed. Checked with a real screenshot before
+      landing (`#door-hp` forced low via `page.evaluate`), not just
+      trusted from the CSS alone.
+      Also fixed two real, pre-existing e2e test-helper bugs found
+      while re-validating the full suite against this (both in
+      `e2e/helpers/doorJump.ts`, unrelated to the CSS/DOM change
+      itself, exposed by which idioms happened to be in today's
+      session): (1) `jumpForFirstReachableWrongTile` (used by the
+      deliberate-wrong-catch HP tests) could pick a "wrong" tile
+      sitting close enough to the actually-needed tile that the same
+      jump chain-caught *both* — turning a deliberate wrong catch into
+      an accidental correct one. Fixed with a new safety margin (new
+      `JUMP_FOOTPRINT_X`/`WRONG_TILE_BACK_MARGIN_X`, derived from the
+      jump's own real flight distance, not guessed) excluding any
+      "wrong" candidate whose own arc could sweep into the needed tile;
+      a first, simpler symmetric-margin pass at this fixed the bug but
+      was overly conservative, occasionally starving a different test
+      (draining a whole HP pool via repeated wrong catches) of enough
+      safe candidates to finish before the runner reached the end of a
+      level whose target character recurred often — narrowed to the
+      real (mostly-forward) danger zone once caught live, not just
+      assumed correct from the first pass. (2) That draining test's own
+      timeout budget got a matching bump for the same "size it to the
+      real workload" reasoning as the 'dev new idioms' test's own fix
+      above.
+      All green: `npm run typecheck`/`test` (336 passed)/`build`, plus
+      the full mobile+desktop e2e suite (80 passed) — both doorJump.ts
+      fixes specifically re-run several times each (not just once) to
+      confirm they held rather than happened to pass by chance, given
+      how timing-sensitive this exact area of the suite already was.
 
 ## Platform / infra
 

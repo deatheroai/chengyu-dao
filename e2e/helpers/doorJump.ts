@@ -1,6 +1,5 @@
 import { type Page } from "@playwright/test";
 import { RUN_SPEED, JUMP_GRAVITY, JUMP_VELOCITY, FALL_GRAVITY_MULTIPLIER } from "../../src/idiom-door/runPhysics";
-import { CATCH_RADIUS_X } from "../../src/idiom-door/catchSelection";
 import type { DoorLevel, LevelCharacterTile } from "../../src/idiom-door/levelContent";
 
 /**
@@ -88,32 +87,44 @@ const JUMP_FLIGHT_DURATION_MS = (() => {
 const LANDING_SETTLE_BUFFER_MS = 80;
 
 /**
- * 2026-09-11: found live while re-validating the door stage's jump feel
- * (BACKLOG.md) — `jumpForFirstReachableWrongTile` below used to pick
- * *any* reachable non-matching tile, with no regard for how close it
- * sat to a tile that *does* match the character it's deliberately
- * avoiding. `IdiomDoorScene.checkCatches` runs every frame of a jump's
- * whole arc (not once at takeoff — see catchSelection.ts's own doc
- * comment), so a "wrong" tile picked too close to a real one can have
- * the *same* jump sweep through both: the deliberate wrong catch (which
- * still correctly charges its own HP penalty) immediately followed, a
- * couple of frames later in the same arc, by a genuine catch of the
- * *other* tile too — which is normal, intended chain-catch behavior
- * (this project already relies on it landing correct catches from a
- * slightly-off jump), not a bug. It just makes a *deliberately wrong*
- * jump an unreliable way to test "only a wrong catch happened" in
- * isolation, on a level whose tile layout (levelContent.ts's own
- * `MIN_SLOT_GAP`-packed, per-day-seeded positions) happens to place a
- * same-char tile within one jump's reach of the chosen decoy.
- * `JUMP_ISOLATION_DISTANCE_X` is the same real geometry `doorJump.ts`
- * already aims jumps with, not a guessed number: the *full* horizontal
- * distance one jump can cover in the air (`RUN_SPEED` ×
- * `JUMP_FLIGHT_DURATION_MS`, a conservative upper bound — a jump aimed
- * partway into that span still can't reach past its own full footprint)
- * plus `CATCH_RADIUS_X`'s own reach on top, so a same-char tile outside
- * this distance genuinely cannot be swept by the same arc.
+ * Total horizontal distance one jump's own arc covers, start (takeoff)
+ * to landing — `JUMP_FLIGHT_DURATION_MS` converted to world px at
+ * `RUN_SPEED`. `jumpForFirstReachableWrongTile` below uses this (plus
+ * `WRONG_TILE_BACK_MARGIN_X`) as a safety margin: `checkCatches` runs
+ * every frame of a jump's *whole* arc, not just at the one candidate
+ * tile it was aimed at (see this file's own top doc comment and
+ * IdiomDoorScene's matching comment on `checkCatches`) — so a "wrong"
+ * candidate whose own arc sweeps close to the *excluded* (the
+ * actually-needed) tile risks chain-catching that excluded tile too,
+ * especially when both tiles sit near the jump's own apex height
+ * (where the character lingers longest, covering the most horizontal
+ * ground before landing — see runPhysics.ts's own
+ * `FALL_GRAVITY_MULTIPLIER` doc comment on this "touch and go" effect).
+ * That turns a deliberate wrong catch into an accidental *correct*
+ * one — the opposite of what a caller asking for a guaranteed wrong
+ * catch needs. Found 2026-09-11 as a genuine, 100%-reproducible gap
+ * for a level layout that happened to pack a non-matching tile this
+ * close ahead of the next-needed one.
  */
-const JUMP_ISOLATION_DISTANCE_X = RUN_SPEED * (JUMP_FLIGHT_DURATION_MS / 1000) + CATCH_RADIUS_X;
+const JUMP_FOOTPRINT_X = (JUMP_FLIGHT_DURATION_MS / 1000) * RUN_SPEED;
+/**
+ * How far *behind* a candidate's own x an excluded tile still counts as
+ * dangerous — much smaller than `JUMP_FOOTPRINT_X` (the *forward* risk,
+ * from the candidate's takeoff through its landing) since a jump timed
+ * for this candidate only ever runs *through* an already-passed x on
+ * its own rise, not lingering there — real risk there is only the
+ * catch-radius slop right around takeoff, not the whole arc. A first
+ * pass at this filter used `JUMP_FOOTPRINT_X` symmetrically on both
+ * sides (double the actual forward-only danger zone), which correctly
+ * fixed the chain-catch above but — confirmed live — sometimes left
+ * the "drain a whole HP pool via repeated *wrong* catches" e2e test too
+ * few safe candidates to finish before the runner's own auto-run
+ * reached the end of a level whose first character recurs often. This
+ * narrower, still-safe window (checked against the same reproduced bug
+ * before landing, not just assumed) gives that test its candidate
+ * density back.
+ */
+const WRONG_TILE_BACK_MARGIN_X = GIVE_UP_PAST_TAKEOFF_X;
 
 async function playerX(page: Page): Promise<number> {
   return Number(await page.locator("#player-position").getAttribute("data-x"));
@@ -217,22 +228,21 @@ export async function solveDoorLevel(page: Page, level: DoorLevel, press: JumpPr
  * Jumps for the first still-reachable tile whose char *isn't*
  * `excludeChar` — guaranteed "wrong" per orderedCatchProgress.ts's
  * strict ordering, whichever character it actually belongs to (used by
- * idiom-door.spec.ts's deliberate-wrong-catch HP tests). Tries each
- * candidate in track order rather than trusting a single
- * caller-computed one's timing margin, same "skip a miss and try the
- * next one" shape as `catchCharacter` above and for the same reason:
- * the async round-trip to read the runner's position and pick a
+ * idiom-door.spec.ts's deliberate-wrong-catch HP tests). Also excludes
+ * any candidate within one jump's own footprint (`JUMP_FOOTPRINT_X`) of
+ * an *excluded*-char tile — see that constant's own doc comment for why
+ * a candidate too close to the actually-needed tile risks chain-catching
+ * it instead, defeating the whole point of a *deliberate* wrong catch.
+ * Tries each remaining candidate in track order rather than trusting a
+ * single caller-computed one's timing margin, same "skip a miss and try
+ * the next one" shape as `catchCharacter` above and for the same
+ * reason: the async round-trip to read the runner's position and pick a
  * candidate can itself eat into whatever margin looked safe at
  * selection time — especially under load — so a genuine miss on the
  * nearest candidate shouldn't fail the whole test when a later,
  * still-reachable one would have worked. Throws if every candidate
  * before the level's own end is missed, since that's a real bug worth
  * failing loudly on (see `jumpForTile`'s own doc comment).
- *
- * 2026-09-11: also skips any candidate sitting within
- * `JUMP_ISOLATION_DISTANCE_X` of an `excludeChar` tile — see that
- * constant's own doc comment for why a "wrong" tile picked too close to
- * a real one isn't actually safe to treat as an isolated wrong catch.
  */
 export async function jumpForFirstReachableWrongTile(
   page: Page,
@@ -240,14 +250,14 @@ export async function jumpForFirstReachableWrongTile(
   excludeChar: string,
   press: JumpPresser = pressSpaceKey,
 ): Promise<LevelCharacterTile> {
-  const excluded = tiles.filter((t) => t.char === excludeChar);
+  const excludedTiles = tiles.filter((t) => t.char === excludeChar);
   const candidates = tiles
     .filter((t) => t.char !== excludeChar)
-    .filter((t) => excluded.every((e) => Math.abs(e.x - t.x) >= JUMP_ISOLATION_DISTANCE_X))
+    .filter((t) => !excludedTiles.some((ex) => ex.x > t.x - WRONG_TILE_BACK_MARGIN_X && ex.x < t.x + JUMP_FOOTPRINT_X))
     .sort((a, b) => a.x - b.x);
   for (const tile of candidates) {
     const result = await jumpForTile(page, tile, 30000, press);
     if (result === "pressed") return tile;
   }
-  throw new Error(`jumpForFirstReachableWrongTile: no reachable tile (excluding "${excludeChar}", and isolated from it by ${JUMP_ISOLATION_DISTANCE_X.toFixed(0)}px) could be caught before the level ended`);
+  throw new Error(`jumpForFirstReachableWrongTile: no reachable tile (excluding "${excludeChar}", and far enough from it to avoid a chain-catch) could be caught before the level ended`);
 }
