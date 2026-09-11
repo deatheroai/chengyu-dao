@@ -15,6 +15,41 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Fix: a wrong catch chain-caught during the out-of-HP
+      retrace epilogue silently overwrote "depleted" back to "wrong" on
+      `#door-status` (2026-09-11).** Found while merging the fall-gravity
+      change below onto `main`: `idiom-door.spec.ts`'s "running out of
+      HP..." test started intermittently failing (CI: 2 separate full
+      runs, both mobile — Playwright's own internal retry hit it both
+      times too; locally reproduced ~66% of the time regardless of
+      `FALL_GRAVITY_MULTIPLIER`, confirmed at the original 2x too, so not
+      caused by that change). Root-caused with a real `MutationObserver`
+      trace on `#door-status`/`#door-hp` (not just theorized) rather than
+      guessed at: `checkHpDepleted` *does* correctly set `data-outcome`
+      to `"depleted"` the instant HP hits 0 and schedules the retrace —
+      but nothing stops `checkCatches` from still running every
+      subsequent frame afterward, unlike the *solved* path (frozen by
+      `fastForwarding`'s early-return in `update()`). If the character
+      was still mid-air from whatever jump depleted the HP (or catches
+      another jump's arc before `OUT_OF_HP_RESTART_DELAY_MS`'s 900ms
+      beat elapses) and chain-catches a second wrong tile in a later
+      frame, `handleCatch`'s own wrong-catch branch calls
+      `updateDoorStatus(..., "wrong")` again — clobbering "depleted"
+      back to "wrong" a frame or two later (confirmed: `depleted` → `wrong`
+      within ~70ms in the trace, HP already at 0 either way), which is
+      exactly what the test's own `data-outcome` assertion then caught.
+      Fixed by extending `update()`'s existing `!this.orderedState.isComplete`
+      guard on `checkCatches` to also require `!this.doorTriggered` — once
+      this run's fate is sealed (depleted *or* solved), no further catch
+      should still be mutating UI/state, matching the solved path's own
+      `fastForwarding` freeze. Purely a display/consistency fix — HP and
+      catch-ordering were never actually wrong, just the label a child
+      would briefly see before the already-queued retrace fired.
+      Verified against the exact scenario that exposed it: 8/8 clean
+      repeats of the previously-flaky test (4x mobile+desktop) after the
+      fix, plus the full `idiom-door.spec.ts` suite (28 passed,
+      mobile+desktop) and the standing `npm run typecheck`/`test` (336
+      passed)/`build`.
 - [x] `done` — **Door stage: fall even faster — 2x still read as a curve,
       not a drop (2026-09-11).** Follow-up to the 2026-09-04 "land
       vertical instead of curved or slow" entry below — per your "the

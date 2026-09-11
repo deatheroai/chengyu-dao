@@ -426,7 +426,26 @@ export class IdiomDoorScene extends Phaser.Scene {
       updateDoorHpStatus(this.hpState.hp);
     }
 
-    if (!this.orderedState.isComplete) this.checkCatches(prevChar);
+    // 2026-09-11: also guarded on `!this.doorTriggered` — once this run's
+    // fate is already sealed (checkHpDepleted below, or checkDoor on a
+    // prior frame), the character can still be mid-air from whatever
+    // jump sealed it and keep sweeping through more tiles before it
+    // lands (nothing freezes physics the way `fastForwarding` does for
+    // the solved case — see its own early-return at the top of this
+    // method). Without this guard, a chain-caught tile in that
+    // now-meaningless epilogue window still ran through `handleCatch`,
+    // silently overwriting `checkHpDepleted`'s own "depleted"
+    // `#door-status` text back to "wrong" a frame or two later — found
+    // live via idiom-door.spec.ts's "running out of HP..." test
+    // intermittently seeing "wrong" instead of "depleted" (confirmed via
+    // a real MutationObserver trace on `#door-status`, not just
+    // theorized: `data-outcome` genuinely flipped depleted → wrong within
+    // ~70ms, HP already at 0 either way). Purely a display/consistency
+    // fix — `doorHp.ts`'s own HP floor and `orderedState`'s own ordering
+    // rules were never actually violated, just the *label* of an outcome
+    // nobody was going to see acted on anyway (a retrace is already
+    // queued the instant `doorTriggered` flips true).
+    if (!this.orderedState.isComplete && !this.doorTriggered) this.checkCatches(prevChar);
     this.checkHpDepleted();
     this.checkDoor();
 
