@@ -87,12 +87,25 @@ export const JUMP_VELOCITY = -1000;
 // (this file's own fallGravityMultiplier) — the classic "float up, drop
 // like a rock" platformer trick. Jump *height* is untouched (still
 // governed by JUMP_VELOCITY/JUMP_GRAVITY alone, same ≈175px apex as
-// before) — only how quickly it comes back down. At 2x, the descent
-// takes ≈71% (1/√2) as long as the rise that preceded it, instead of
-// the ≈100% a symmetric arc would — a shorter fall means less time (so
-// less horizontal drift, at the same runSpeed) spent descending through
-// a tile's height band, on top of the touch-and-go/hitbox fixes above.
-export const FALL_GRAVITY_MULTIPLIER = 2;
+// before) — only how quickly it comes back down.
+// 2026-09-11 follow-up ("the jump should come down much faster
+// vertically instead of like a curve slowly... increase the downward
+// motion of the jump speed"): 2x still read as a curve, not a drop —
+// bumped to 4x. The descent now takes only ≈50% (1/√4) as long as the
+// rise that preceded it, down from 2x's ≈71% (1/√2) — noticeably closer
+// to a straight vertical fall, same "rise is a gentle arc, fall is a
+// drop" shape, just leaned into harder. Still doesn't touch jump height
+// or run speed, and still can't make a jump land on an *adjacent* tile:
+// that's a separate, physics-independent guarantee — catchSelection.ts's
+// CATCH_RADIUS_X is sized (and asserted, catchSelection.test.ts) to
+// always be less than half of levelContent.ts's own MIN_SLOT_GAP, so two
+// neighboring tiles' catch zones can't overlap at all, regardless of how
+// fast or slow the fall between them is. What a steeper fall *does* still
+// help with is the same thing 2x already did, just more of it: less time
+// (so less horizontal drift, at the same runSpeed) spent descending
+// through any one tile's height band, which is what actually cuts down
+// on catching a wrong neighbor's zone in the first place.
+export const FALL_GRAVITY_MULTIPLIER = 4;
 
 export function stepRun(state: RunState, jumpPressed: boolean, dt: number, cfg: RunConfig): RunState {
   const nextX = state.x + cfg.runSpeed * dt;

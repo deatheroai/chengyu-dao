@@ -15,6 +15,59 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Door stage: fall even faster — 2x still read as a curve,
+      not a drop (2026-09-11).** Follow-up to the 2026-09-04 "land
+      vertical instead of curved or slow" entry below — per your "the
+      door stage seems to have lost one of the PRs that fixed the jump.
+      The jump should come down much faster vertically instead of like a
+      curve slowly." It hadn't actually regressed (checked git history —
+      `FALL_GRAVITY_MULTIPLIER` was still 2, unchanged since 2026-09-04),
+      it just wasn't steep enough to read as "much faster" once you
+      looked again. `runPhysics.ts`'s `FALL_GRAVITY_MULTIPLIER` 2 → 4:
+      the fall now takes ≈50% (1/√4) as long as the rise, down from 2x's
+      ≈71% (1/√2) — noticeably closer to a straight vertical drop. Jump
+      height and run speed are untouched either way (still governed by
+      `JUMP_VELOCITY`/`JUMP_GRAVITY`/`RUN_SPEED` alone).
+      "It should never touch adjacent tiles" is already a separate,
+      physics-independent guarantee — `catchSelection.ts`'s
+      `CATCH_RADIUS_X` is sized (and asserted,
+      `catchSelection.test.ts`'s `2 * CATCH_RADIUS_X < MIN_SLOT_GAP`) so
+      two neighboring tiles' catch zones can never overlap at all,
+      regardless of gravity — confirmed unaffected, not just assumed.
+      A steeper fall is still a net positive for it though: less time (so
+      less horizontal drift, at the same `runSpeed`) spent descending
+      through any one tile's height band.
+      While re-validating this against the full e2e suite, found (and
+      fixed) a real, pre-existing bug in the *test* helpers, unrelated to
+      this change (confirmed reproducible at the original 2x too, 3/3
+      runs) — `doorJump.ts`'s `jumpForFirstReachableWrongTile` picked
+      *any* reachable tile that didn't match the character it was told to
+      avoid, with no regard for how close that tile sat to one that
+      *does* match — on today's specific date-seeded level
+      (`sessionIdioms.ts`), a chosen "wrong" tile sometimes sat close
+      enough to the genuinely-next tile that the same jump's arc (which
+      `checkCatches` evaluates every frame, not once at takeoff) caught
+      *both*: the deliberate wrong catch, immediately followed by a
+      genuine catch of the real next character a few frames later,
+      racing `idiom-door.spec.ts`'s "each jump costs HP..." test's
+      `data-outcome === "wrong"` assertion past a state it moved through
+      only transiently. Not a game bug — chain-catching an incidental
+      second tile mid-arc is already intended, relied-on behavior
+      elsewhere in this project — just an e2e helper that wasn't actually
+      guaranteeing the isolated wrong catch its own name promises. Fixed
+      by skipping any "wrong" candidate within `JUMP_ISOLATION_DISTANCE_X`
+      (derived from the same real jump-footprint/`CATCH_RADIUS_X`
+      geometry `doorJump.ts` already aims with, not a guessed number) of
+      a same-char tile, so a jump aimed at a picked "wrong" tile
+      genuinely can't also reach a real one.
+      Verified empirically, not just reasoned about: the previously-
+      failing test reproduced 3/3 at the original 2x and 2/3 at 4x before
+      the fix (confirming the gravity bump wasn't the cause — if
+      anything it slightly reduced the failure rate, consistent with less
+      horizontal drift), then passed 4/4 after the `doorJump.ts` fix, at
+      4x. All green: `npm run typecheck`/`test` (335 passed, unchanged)/
+      `build`, plus the full `idiom-door.spec.ts` suite (28 passed,
+      mobile+desktop) re-run clean after landing both fixes.
 - [x] `done` — **Writing stage: a "show me again" button to re-request
       the stroke demo per character, not just device-wide
       (2026-09-11).** Per your "I think there's a design for the writing

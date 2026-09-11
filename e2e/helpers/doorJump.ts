@@ -1,5 +1,6 @@
 import { type Page } from "@playwright/test";
 import { RUN_SPEED, JUMP_GRAVITY, JUMP_VELOCITY, FALL_GRAVITY_MULTIPLIER } from "../../src/idiom-door/runPhysics";
+import { CATCH_RADIUS_X } from "../../src/idiom-door/catchSelection";
 import type { DoorLevel, LevelCharacterTile } from "../../src/idiom-door/levelContent";
 
 /**
@@ -85,6 +86,34 @@ const JUMP_FLIGHT_DURATION_MS = (() => {
  * timing/polling slop, so this helper doesn't race the game's own
  * landing frame. */
 const LANDING_SETTLE_BUFFER_MS = 80;
+
+/**
+ * 2026-09-11: found live while re-validating the door stage's jump feel
+ * (BACKLOG.md) — `jumpForFirstReachableWrongTile` below used to pick
+ * *any* reachable non-matching tile, with no regard for how close it
+ * sat to a tile that *does* match the character it's deliberately
+ * avoiding. `IdiomDoorScene.checkCatches` runs every frame of a jump's
+ * whole arc (not once at takeoff — see catchSelection.ts's own doc
+ * comment), so a "wrong" tile picked too close to a real one can have
+ * the *same* jump sweep through both: the deliberate wrong catch (which
+ * still correctly charges its own HP penalty) immediately followed, a
+ * couple of frames later in the same arc, by a genuine catch of the
+ * *other* tile too — which is normal, intended chain-catch behavior
+ * (this project already relies on it landing correct catches from a
+ * slightly-off jump), not a bug. It just makes a *deliberately wrong*
+ * jump an unreliable way to test "only a wrong catch happened" in
+ * isolation, on a level whose tile layout (levelContent.ts's own
+ * `MIN_SLOT_GAP`-packed, per-day-seeded positions) happens to place a
+ * same-char tile within one jump's reach of the chosen decoy.
+ * `JUMP_ISOLATION_DISTANCE_X` is the same real geometry `doorJump.ts`
+ * already aims jumps with, not a guessed number: the *full* horizontal
+ * distance one jump can cover in the air (`RUN_SPEED` ×
+ * `JUMP_FLIGHT_DURATION_MS`, a conservative upper bound — a jump aimed
+ * partway into that span still can't reach past its own full footprint)
+ * plus `CATCH_RADIUS_X`'s own reach on top, so a same-char tile outside
+ * this distance genuinely cannot be swept by the same arc.
+ */
+const JUMP_ISOLATION_DISTANCE_X = RUN_SPEED * (JUMP_FLIGHT_DURATION_MS / 1000) + CATCH_RADIUS_X;
 
 async function playerX(page: Page): Promise<number> {
   return Number(await page.locator("#player-position").getAttribute("data-x"));
@@ -199,6 +228,11 @@ export async function solveDoorLevel(page: Page, level: DoorLevel, press: JumpPr
  * still-reachable one would have worked. Throws if every candidate
  * before the level's own end is missed, since that's a real bug worth
  * failing loudly on (see `jumpForTile`'s own doc comment).
+ *
+ * 2026-09-11: also skips any candidate sitting within
+ * `JUMP_ISOLATION_DISTANCE_X` of an `excludeChar` tile — see that
+ * constant's own doc comment for why a "wrong" tile picked too close to
+ * a real one isn't actually safe to treat as an isolated wrong catch.
  */
 export async function jumpForFirstReachableWrongTile(
   page: Page,
@@ -206,10 +240,14 @@ export async function jumpForFirstReachableWrongTile(
   excludeChar: string,
   press: JumpPresser = pressSpaceKey,
 ): Promise<LevelCharacterTile> {
-  const candidates = tiles.filter((t) => t.char !== excludeChar).sort((a, b) => a.x - b.x);
+  const excluded = tiles.filter((t) => t.char === excludeChar);
+  const candidates = tiles
+    .filter((t) => t.char !== excludeChar)
+    .filter((t) => excluded.every((e) => Math.abs(e.x - t.x) >= JUMP_ISOLATION_DISTANCE_X))
+    .sort((a, b) => a.x - b.x);
   for (const tile of candidates) {
     const result = await jumpForTile(page, tile, 30000, press);
     if (result === "pressed") return tile;
   }
-  throw new Error(`jumpForFirstReachableWrongTile: no reachable tile (excluding "${excludeChar}") could be caught before the level ended`);
+  throw new Error(`jumpForFirstReachableWrongTile: no reachable tile (excluding "${excludeChar}", and isolated from it by ${JUMP_ISOLATION_DISTANCE_X.toFixed(0)}px) could be caught before the level ended`);
 }
