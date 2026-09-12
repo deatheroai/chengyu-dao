@@ -399,6 +399,64 @@ rt {
   color: #8a6bc2;
 }
 
+/* 2026-09-12 ("can the writing stage display the meaning and the
+   progress of the 4 character writing at the top?"): both sit above
+   #writing-status/#writing-target in .writing-card's own flex column,
+   so they add height rather than overlapping anything — see
+   idiom-door.html's doc comment on #writing-meaning/#writing-progress
+   for why. */
+.writing-meaning {
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #7a5636;
+}
+
+.writing-progress {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.writing-progress-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid #d9c7f0;
+  background: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #b8a6d9;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s,
+    transform 0.2s;
+}
+
+/* The character currently being watched/traced. */
+.writing-progress-dot.active {
+  border-color: #8a6bc2;
+  background: #efe6fa;
+  color: #5a3d8a;
+  transform: scale(1.12);
+}
+
+/* A character whose quiz has already resolved (past characters, plus
+   the current one during its own "feedback" beat — see
+   writingStatus.ts's setWritingProgressState). */
+.writing-progress-dot.done {
+  border-color: #8a6bc2;
+  background: #8a6bc2;
+  color: #fff;
+}
+
 #writing-status {
   margin: 0;
   font-size: 1.1rem;

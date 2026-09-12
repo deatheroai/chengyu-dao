@@ -78,6 +78,19 @@
       <div id="writing-ui-layer" class="stage-hidden">
         <div class="writing-card">
           <p class="writing-eyebrow">Learn to write it</p>
+          <!-- 2026-09-12 ("can the writing stage display the meaning
+               and the progress of the 4 character writing at the
+               top?"): both set once per idiom (writingStage.ts, via
+               writingStatus.ts's updateWritingMeaning/
+               initWritingProgress), above #writing-status/
+               #writing-target so neither ever overlaps them or the
+               fixed-size tracing target below — see style.css's
+               .writing-meaning/.writing-progress. #writing-progress is
+               aria-hidden since it's a purely visual echo of the same
+               character-index progress #writing-status already
+               announces via aria-live. -->
+          <p id="writing-meaning" class="writing-meaning"></p>
+          <div id="writing-progress" class="writing-progress" aria-hidden="true"></div>
           <!-- Also this stage's test-only hook — see writingStatus.ts's
                doc comment for why a freehand stroke can't be polled the
                way #player-position/#balloon-position poll a game

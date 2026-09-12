@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { updateWritingStatus, updateWritingFeedback, clearWritingFeedback } from "./writingStatus";
+import { updateWritingStatus, updateWritingFeedback, clearWritingFeedback, updateWritingMeaning, initWritingProgress } from "./writingStatus";
 
 beforeEach(() => {
-  document.body.innerHTML = `<div id="writing-status"></div><div id="writing-feedback"></div>`;
+  document.body.innerHTML = `<div id="writing-status"></div><div id="writing-feedback"></div><p id="writing-meaning"></p><div id="writing-progress"></div>`;
 });
 
 describe("updateWritingStatus", () => {
@@ -73,5 +73,57 @@ describe("updateWritingFeedback / clearWritingFeedback", () => {
     document.body.innerHTML = "";
     expect(() => updateWritingFeedback(2, "Great job!", 1)).not.toThrow();
     expect(() => clearWritingFeedback()).not.toThrow();
+  });
+});
+
+describe("updateWritingMeaning", () => {
+  it("shows the idiom's meaning", () => {
+    updateWritingMeaning("to persevere despite difficulty");
+    expect(document.getElementById("writing-meaning")!.textContent).toBe('Means: "to persevere despite difficulty"');
+  });
+
+  it("does nothing (and does not throw) if the element is missing", () => {
+    document.body.innerHTML = "";
+    expect(() => updateWritingMeaning("anything")).not.toThrow();
+  });
+});
+
+describe("initWritingProgress / updateWritingStatus's progress trail", () => {
+  it("renders one dot per character, labeled with that character", () => {
+    initWritingProgress(["拔", "苗", "助", "长"]);
+    const dots = document.querySelectorAll("#writing-progress .writing-progress-dot");
+    expect(dots).toHaveLength(4);
+    expect(Array.from(dots).map((d) => d.textContent)).toEqual(["拔", "苗", "助", "长"]);
+  });
+
+  it("re-rendering (a fresh idiom) replaces the previous dots rather than appending", () => {
+    initWritingProgress(["拔", "苗"]);
+    initWritingProgress(["再", "接", "再", "厉"]);
+    expect(document.querySelectorAll("#writing-progress .writing-progress-dot")).toHaveLength(4);
+  });
+
+  it("marks the current character's dot active, and leaves later ones untouched", () => {
+    initWritingProgress(["拔", "苗", "助", "长"]);
+    updateWritingStatus(1, 4, "苗", "trace", 2);
+    const dots = document.querySelectorAll(".writing-progress-dot");
+    expect(dots[0].classList.contains("done")).toBe(true);
+    expect(dots[1].classList.contains("active")).toBe(true);
+    expect(dots[1].classList.contains("done")).toBe(false);
+    expect(dots[2].classList.contains("active")).toBe(false);
+    expect(dots[2].classList.contains("done")).toBe(false);
+  });
+
+  it("marks the current character's dot done once its feedback beat starts, ahead of charIndex advancing", () => {
+    initWritingProgress(["拔", "苗", "助", "长"]);
+    updateWritingStatus(1, 4, "苗", "feedback");
+    const dots = document.querySelectorAll(".writing-progress-dot");
+    expect(dots[1].classList.contains("done")).toBe(true);
+    expect(dots[1].classList.contains("active")).toBe(false);
+  });
+
+  it("does nothing (and does not throw) if the progress element is missing", () => {
+    document.body.innerHTML = "";
+    expect(() => initWritingProgress(["拔"])).not.toThrow();
+    expect(() => updateWritingStatus(0, 4, "拔", "watch")).not.toThrow();
   });
 });

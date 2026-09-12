@@ -2,7 +2,7 @@ import HanziWriter from "hanzi-writer";
 import type { IdiomContent } from "../idioms/types";
 import { writingStrokeData, type WritingCharacterData } from "./writingData/writingStrokeData";
 import { startingDoorHp, characterTraceAccuracy, traceRatingForAccuracy, type CharacterTraceResult } from "./writingScore";
-import { updateWritingStatus, updateWritingFeedback, clearWritingFeedback } from "./writingStatus";
+import { updateWritingStatus, updateWritingFeedback, clearWritingFeedback, updateWritingMeaning, initWritingProgress } from "./writingStatus";
 
 /** How long each character's own star-rating feedback stays on screen
  * before advancing to the next one — long enough to actually read (a
@@ -106,6 +106,13 @@ export function runWritingStage(idiom: IdiomContent, skipDemo: boolean, onComple
     return;
   }
   target.innerHTML = "";
+
+  // 2026-09-12 ("can it show the meaning and progress of the 4
+  // character writing at the top?"): both are per-idiom, not
+  // per-character — set once here rather than repeated on every
+  // updateWritingStatus call below.
+  updateWritingMeaning(idiom.meaning);
+  initWritingProgress(chars);
 
   const results: CharacterTraceResult[] = [];
   const writer = HanziWriter.create(target, chars[0], {
