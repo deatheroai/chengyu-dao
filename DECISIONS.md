@@ -23,6 +23,33 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-12 — Daily cycle: idiom pool batch 3 (45 → 60), plus a
+  pre-existing writing-stage stroke-data gap found and fixed.** Pending
+  Decisions was empty. Two other open PRs existed (#40: one
+  example-sentence fix, pushed but not merged since its own e2e run hit
+  an unrelated pre-existing flake; #44: porting 15 example-sentence
+  fixes from a fork's review pass) — left both alone rather than
+  merging or duplicating their work, since neither was created by this
+  session and this cycle's own scope (`BACKLOG.md`'s idiom-pool-growth
+  item) didn't overlap their content. Picked idiom-pool growth over the
+  standing example-sentence review track specifically because two
+  sessions were already actively working that track; growing the pool
+  was the highest-priority *unclaimed* unblocked item.
+  Added 15 new idioms (锲而不舍/废寝忘食/孜孜不倦/专心致志, 一诺千金/童叟无欺/
+  襟怀坦白/大公无私, 舍己为人/扶危济困/慷慨解囊/古道热肠, 触类旁通/见微知著/
+  前车之鉴), each verified via zdic.net/Baidu Baike/Taiwan MOE 成語典
+  before authoring, same as batches 1-2 — full detail in `BACKLOG.md`.
+  While validating, the full e2e suite failed everywhere past the
+  resurface tests on the first run — root-caused (not guessed) to
+  `writingStrokeData.ts` having silently missed the *previous* batch's
+  characters too: the 2026-09-10 stroke-data regeneration only covered
+  the 15→30 growth its own PR was against, and the 30→45 batch (PR #39,
+  same day) never got a matching regeneration. 82 of 180 distinct
+  characters were missing, not just this batch's own share. Regenerated
+  against the full current 60-idiom set and re-ran the full suite clean
+  before landing anything. All gates green (typecheck/test 336/build/
+  e2e 84 passed, mobile+desktop); PR opened and merged per the standing
+  2026-08-26 auto-land policy.
 - **2026-09-10 — Daily cycle: shipped the door-stage burning-tile fix.**
   Pending Decisions was empty. No open GitHub issues or PRs to check in on
   first. `BACKLOG.md`'s unblocked `todo` items (writing/tracing stage + its
