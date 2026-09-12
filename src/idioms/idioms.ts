@@ -314,6 +314,99 @@ export const idioms: IdiomContent[] = [
     theme: "focus",
     sourceNotes: "Meaning/origin (清·赵翼《廿二史札记》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
   },
+  {
+    id: "qie-er-bu-she",
+    hanzi: "锲而不舍",
+    pinyin: "qiè ér bù shě",
+    literalMeaning: "锲 (carve) 而 (and) 不 (not) 舍 (stop) — carving without stopping.",
+    meaning: "Keeping at something steadily without giving up, the way patiently carving through hard stone eventually works.",
+    meaningZh: {
+      hanzi: "做事情不管多难，都坚持不放弃，一直努力到底。",
+      pinyin: "Zuò shìqing bùguǎn duō nán, dōu jiānchí bú fàngqì, yìzhí nǔlì dào dǐ.",
+      charPinyin: ["zuò", "shì", "qing", "bù", "guǎn", "duō", "nán", "", "dōu", "jiān", "chí", "bú", "fàng", "qì", "", "yì", "zhí", "nǔ", "lì", "dào", "dǐ", ""],
+    },
+    dailyLifeScenario:
+      "You're trying to solve a tricky math problem. Your first three tries are wrong, but instead of quitting, you try a fourth and fifth way until you finally get it. That refusal to give up is 锲而不舍.",
+    exampleSentence: {
+      hanzi: "他一次又一次尝试，锲而不舍地解开了那道难题。",
+      pinyin: "Tā yí cì yòu yí cì chángshì, qiè'ér-bùshě de jiěkāi le nà dào nántí.",
+      english: "He tried again and again, and with steady, unyielding effort finally solved that hard problem.",
+      charPinyin: ["tā", "yí", "cì", "yòu", "yí", "cì", "cháng", "shì", "", "qiè", "ér", "bù", "shě", "de", "jiě", "kāi", "le", "nà", "dào", "nán", "tí", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes:
+      "Meaning/origin (《荀子·劝学》) confirmed via zdic.net and Taiwan MOE 成語典 (注音 ㄅㄨˋ, i.e. 不 stays bù rather than bú since 舍/捨 is 3rd tone, not 4th); 2026-09-12 search.",
+  },
+  {
+    id: "fei-qin-wang-shi",
+    hanzi: "废寝忘食",
+    pinyin: "fèi qǐn wàng shí",
+    literalMeaning: "废 (give up) 寝 (sleep) 忘 (forget) 食 (food) — giving up sleep and forgetting to eat.",
+    meaning: "Being so absorbed in what you're doing that you forget to eat or sleep.",
+    meaningZh: {
+      hanzi: "做一件事情做得太投入，连吃饭和睡觉都忘记了。",
+      pinyin: "Zuò yí jiàn shìqing zuò de tài tóurù, lián chīfàn hé shuìjiào dōu wàngjì le.",
+      charPinyin: ["zuò", "yí", "jiàn", "shì", "qing", "zuò", "de", "tài", "tóu", "rù", "", "lián", "chī", "fàn", "hé", "shuì", "jiào", "dōu", "wàng", "jì", "le", ""],
+    },
+    dailyLifeScenario:
+      "You're building an enormous Lego castle on a Saturday, and you're having so much fun that you don't notice it's way past lunchtime until your tummy growls. That's 废寝忘食.",
+    exampleSentence: {
+      hanzi: "他搭积木搭得废寝忘食，妈妈叫了好几次才想起来吃饭。",
+      pinyin: "Tā dā jīmù dā de fèiqǐn-wàngshí, māma jiào le hǎojǐ cì cái xiǎngqǐlái chīfàn.",
+      english: "He was so absorbed in building blocks that he forgot to eat or sleep — his mom had to call him several times before he remembered lunch.",
+      charPinyin: ["tā", "dā", "jī", "mù", "dā", "de", "fèi", "qǐn", "wàng", "shí", "", "mā", "ma", "jiào", "le", "hǎo", "jǐ", "cì", "cái", "xiǎng", "qǐ", "lái", "chī", "fàn", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning/origin (《列子·仲尼》; 南朝·王融《曲水诗序》) confirmed via zdic.net and Baidu Baike; 2026-09-12 search.",
+  },
+  {
+    id: "zi-zi-bu-juan",
+    hanzi: "孜孜不倦",
+    pinyin: "zī zī bù juàn",
+    literalMeaning: "孜孜 (diligently) 不 (not) 倦 (tired) — working diligently without ever tiring of it.",
+    meaning: "Working hard at something steadily, without ever losing energy or interest.",
+    meaningZh: {
+      hanzi: "一直很努力地做一件事，从来不觉得累或厌烦。",
+      pinyin: "Yìzhí hěn nǔlì de zuò yí jiàn shì, cónglái bù juéde lèi huò yànfán.",
+      charPinyin: ["yì", "zhí", "hěn", "nǔ", "lì", "de", "zuò", "yí", "jiàn", "shì", "", "cóng", "lái", "bù", "jué", "de", "lèi", "huò", "yàn", "fán", ""],
+    },
+    dailyLifeScenario:
+      "Every single evening this month, you've practised your violin for half an hour without ever needing a reminder or losing interest. That steady, tireless effort is 孜孜不倦.",
+    exampleSentence: {
+      hanzi: "他每天晚上孜孜不倦地练习小提琴，从来没有喊过累。",
+      pinyin: "Tā měitiān wǎnshang zīzī-bùjuàn de liànxí xiǎotíqín, cónglái méiyǒu hǎnguò lèi.",
+      english: "Every evening he practises the violin diligently and tirelessly, never once complaining of being tired.",
+      charPinyin: ["tā", "měi", "tiān", "wǎn", "shang", "zī", "zī", "bù", "juàn", "de", "liàn", "xí", "xiǎo", "tí", "qín", "", "cóng", "lái", "méi", "yǒu", "hǎn", "guò", "lèi", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning/origin (《尚书·君陈》) confirmed via zdic.net and Baidu Baike; 2026-09-12 search.",
+  },
+  {
+    id: "zhuan-xin-zhi-zhi",
+    hanzi: "专心致志",
+    pinyin: "zhuān xīn zhì zhì",
+    literalMeaning: "专 (concentrate) 心 (mind) 致 (bring to) 志 (one's will) — bringing your whole mind and will to one point.",
+    meaning: "Giving something your complete, focused attention, without letting your mind wander.",
+    meaningZh: {
+      hanzi: "把全部的心思都放在一件事情上，不想别的。",
+      pinyin: "Bǎ quánbù de xīnsi dōu fàng zài yí jiàn shìqing shàng, bù xiǎng bié de.",
+      charPinyin: ["bǎ", "quán", "bù", "de", "xīn", "si", "dōu", "fàng", "zài", "yí", "jiàn", "shì", "qing", "shàng", "", "bù", "xiǎng", "bié", "de", ""],
+    },
+    dailyLifeScenario:
+      "While reading your favourite storybook, you don't hear your little brother calling your name from the next room — your whole mind is on the story. That total focus is 专心致志.",
+    exampleSentence: {
+      hanzi: "他专心致志地看书，弟弟在旁边叫他都没听见。",
+      pinyin: "Tā zhuānxīn-zhìzhì de kàn shū, dìdi zài pángbiān jiào tā dōu méi tīngjiàn.",
+      english: "He was so completely focused on his book that he didn't even hear his little brother calling him nearby.",
+      charPinyin: ["tā", "zhuān", "xīn", "zhì", "zhì", "de", "kàn", "shū", "", "dì", "di", "zài", "páng", "biān", "jiào", "tā", "dōu", "méi", "tīng", "jiàn", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning/origin (《孟子·告子上》, the 弈秋 chess-teaching story) confirmed via zdic.net and Baidu Baike; 2026-09-12 search.",
+  },
 
   // --- Honesty & Character ---
   {
@@ -548,6 +641,98 @@ export const idioms: IdiomContent[] = [
     theme: "honesty",
     sourceNotes: "Meaning confirmed via zdic.net and Baidu Baike (2026-09-10 search); origin traced to 罗贯中《三国演义》第60回, traditionally paired with 严于律己.",
   },
+  {
+    id: "yi-nuo-qian-jin",
+    hanzi: "一诺千金",
+    pinyin: "yí nuò qiān jīn",
+    literalMeaning: "一 (one) 诺 (promise) 千 (thousand) 金 (gold) — one promise worth a thousand pieces of gold.",
+    meaning: "Keeping your word so reliably that a single promise from you is as good as gold.",
+    meaningZh: {
+      hanzi: "答应别人的事情非常有信用，说到就一定做到。",
+      pinyin: "Dāying biérén de shìqing fēicháng yǒu xìnyòng, shuō dào jiù yídìng zuòdào.",
+      charPinyin: ["dā", "ying", "bié", "rén", "de", "shì", "qing", "fēi", "cháng", "yǒu", "xìn", "yòng", "", "shuō", "dào", "jiù", "yí", "dìng", "zuò", "dào", ""],
+    },
+    dailyLifeScenario:
+      "You promised your classmate you'd return their pencil case the next day — and even though you forgot at first, you biked back to school just to keep your word. That kind of reliable promise-keeping is 一诺千金.",
+    exampleSentence: {
+      hanzi: "他答应的事情一诺千金，说了就一定会做到。",
+      pinyin: "Tā dāying de shìqing yínuò-qiānjīn, shuō le jiù yídìng huì zuòdào.",
+      english: "Whatever he promises is as good as gold — once he says it, he always follows through.",
+      charPinyin: ["tā", "dā", "ying", "de", "shì", "qing", "yí", "nuò", "qiān", "jīn", "", "shuō", "le", "jiù", "yí", "dìng", "huì", "zuò", "dào", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (《史记·季布栾布列传》, the Ji Bu story) confirmed via zdic.net and Baidu Baike; 2026-09-12 search.",
+  },
+  {
+    id: "tong-sou-wu-qi",
+    hanzi: "童叟无欺",
+    pinyin: "tóng sǒu wú qī",
+    literalMeaning: "童 (child) 叟 (old man) 无 (without) 欺 (deceit) — cheating neither children nor old people.",
+    meaning: "Being completely fair and honest in dealing with everyone, never trying to trick anybody.",
+    meaningZh: {
+      hanzi: "不管是对小孩还是对老人，做买卖都很诚实公平，不骗人。",
+      pinyin: "Bùguǎn shì duì xiǎohái háishi duì lǎorén, zuò mǎimài dōu hěn chéngshí gōngpíng, bú piàn rén.",
+      charPinyin: ["bù", "guǎn", "shì", "duì", "xiǎo", "hái", "hái", "shi", "duì", "lǎo", "rén", "", "zuò", "mǎi", "mài", "dōu", "hěn", "chéng", "shí", "gōng", "píng", "", "bú", "piàn", "rén", ""],
+    },
+    dailyLifeScenario:
+      "At the school fun fair, you're running a lemonade stand, and you charge the little kindergarteners the exact same fair price as the teachers — no tricks, no overcharging anyone. That's 童叟无欺.",
+    exampleSentence: {
+      hanzi: "爷爷卖水果一直童叟无欺，不管是小孩还是老人都给一样公道的价钱。",
+      pinyin: "Yéye mài shuǐguǒ yìzhí tóngsǒu-wúqī, bùguǎn shì xiǎohái háishi lǎorén dōu gěi yíyàng gōngdào de jiàqián.",
+      english: "Grandpa always sells fruit fairly to everyone — children and elders alike get the exact same honest price.",
+      charPinyin: ["yé", "ye", "mài", "shuǐ", "guǒ", "yì", "zhí", "tóng", "sǒu", "wú", "qī", "", "bù", "guǎn", "shì", "xiǎo", "hái", "hái", "shi", "lǎo", "rén", "dōu", "gěi", "yí", "yàng", "gōng", "dào", "de", "jià", "qián", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (清·吴趼人《二十年目睹之怪现状》) confirmed via zdic.net (hans & hant entries) and Baidu Baike; 2026-09-12 search.",
+  },
+  {
+    id: "jin-huai-tan-bai",
+    hanzi: "襟怀坦白",
+    pinyin: "jīn huái tǎn bái",
+    literalMeaning: "襟怀 (one's heart) 坦白 (open and honest) — an open, honest heart.",
+    meaning: "Being open-hearted and honest, with nothing hidden or sneaky about you.",
+    meaningZh: {
+      hanzi: "心里很坦白，光明正大，没有隐瞒或者坏心思。",
+      pinyin: "Xīnli hěn tǎnbái, guāngmíng-zhèngdà, méiyǒu yǐnmán huòzhě huài xīnsi.",
+      charPinyin: ["xīn", "li", "hěn", "tǎn", "bái", "", "guāng", "míng", "zhèng", "dà", "", "méi", "yǒu", "yǐn", "mán", "huò", "zhě", "huài", "xīn", "si", ""],
+    },
+    dailyLifeScenario:
+      "When your friend asks what you really think of her drawing, you kindly but honestly tell her your true opinion instead of hiding what you feel. That open, honest heart is 襟怀坦白.",
+    exampleSentence: {
+      hanzi: "他为人襟怀坦白，心里想什么就说什么，从不藏着掖着。",
+      pinyin: "Tā wéirén jīnhuái-tǎnbái, xīnli xiǎng shénme jiù shuō shénme, cóng bù cángzhe yēzhe.",
+      english: "He's completely open-hearted — he says exactly what he thinks and never hides anything.",
+      charPinyin: ["tā", "wéi", "rén", "jīn", "huái", "tǎn", "bái", "", "xīn", "li", "xiǎng", "shén", "me", "jiù", "shuō", "shén", "me", "", "cóng", "bù", "cáng", "zhe", "yē", "zhe", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (宋·黄榦《黄勉斋文集》; also used in 毛泽东《反对自由主义》) confirmed via zdic.net (hans & hant entries); 2026-09-12 search.",
+  },
+  {
+    id: "da-gong-wu-si",
+    hanzi: "大公无私",
+    pinyin: "dà gōng wú sī",
+    literalMeaning: "大公 (greatly fair) 无私 (without selfishness) — completely fair, with no private motives.",
+    meaning: "Being completely fair and impartial, never letting your own personal interest sway a decision.",
+    meaningZh: {
+      hanzi: "做事情非常公平，完全不考虑自己的私人利益。",
+      pinyin: "Zuò shìqing fēicháng gōngpíng, wánquán bù kǎolǜ zìjǐ de sīrén lìyì.",
+      charPinyin: ["zuò", "shì", "qing", "fēi", "cháng", "gōng", "píng", "", "wán", "quán", "bù", "kǎo", "lǜ", "zì", "jǐ", "de", "sī", "rén", "lì", "yì", ""],
+    },
+    dailyLifeScenario:
+      "As class monitor, you have to pick two students for the clean-up team, and even though your best friend wants the job, you choose fairly based on the roster instead. That fairness is 大公无私.",
+    exampleSentence: {
+      hanzi: "班长选值日生时大公无私，就算是好朋友也照规矩排队。",
+      pinyin: "Bānzhǎng xuǎn zhírìshēng shí dàgōng-wúsī, jiùsuàn shì hǎo péngyou yě zhào guīju páiduì.",
+      english: "The class monitor is completely fair when choosing classroom helpers — even a good friend has to wait their turn in order.",
+      charPinyin: ["bān", "zhǎng", "xuǎn", "zhí", "rì", "shēng", "shí", "dà", "gōng", "wú", "sī", "", "jiù", "suàn", "shì", "hǎo", "péng", "you", "yě", "zhào", "guī", "ju", "pái", "duì", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (汉·马融《忠经》; also 《管子·形势解》) confirmed via zdic.net (hans & hant) and Baidu Baike; 2026-09-12 search.",
+  },
 
   // --- Kindness & Community ---
   {
@@ -780,6 +965,98 @@ export const idioms: IdiomContent[] = [
     ageBand: "lower-primary",
     theme: "kindness",
     sourceNotes: "Meaning/origin (《史记·乐书二》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "she-ji-wei-ren",
+    hanzi: "舍己为人",
+    pinyin: "shě jǐ wèi rén",
+    literalMeaning: "舍 (give up) 己 (oneself) 为 (for) 人 (others) — giving up your own interest for the sake of others.",
+    meaning: "Putting others' needs ahead of your own, even at some cost to yourself.",
+    meaningZh: {
+      hanzi: "为了帮助别人，愿意放弃自己的利益，不计较自己会不会吃亏。",
+      pinyin: "Wèile bāngzhù biérén, yuànyì fàngqì zìjǐ de lìyì, bú jìjiào zìjǐ huì bú huì chīkuī.",
+      charPinyin: ["wèi", "le", "bāng", "zhù", "bié", "rén", "", "yuàn", "yì", "fàng", "qì", "zì", "jǐ", "de", "lì", "yì", "", "bú", "jì", "jiào", "zì", "jǐ", "huì", "bú", "huì", "chī", "kuī", ""],
+    },
+    dailyLifeScenario:
+      "There's only one life jacket left on the small boat, and you give it to your younger cousin instead of keeping it for yourself. Putting someone else's safety ahead of your own is 舍己为人.",
+    exampleSentence: {
+      hanzi: "船上只剩一件救生衣，他舍己为人，让给了年纪比较小的表弟。",
+      pinyin: "Chuán shàng zhǐ shèng yí jiàn jiùshēngyī, tā shějǐ-wèirén, ràng gěi le niánjì bǐjiào xiǎo de biǎodì.",
+      english: "There was only one life jacket left on the boat, and he put his cousin first, giving it to the younger boy instead of keeping it.",
+      charPinyin: ["chuán", "shàng", "zhǐ", "shèng", "yí", "jiàn", "jiù", "shēng", "yī", "", "tā", "shě", "jǐ", "wèi", "rén", "", "ràng", "gěi", "le", "nián", "jì", "bǐ", "jiào", "xiǎo", "de", "biǎo", "dì", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (《论语·先进》, via Zhu Xi's commentary) confirmed via zdic.net (hans & hant) and Baidu Baike; 2026-09-12 search.",
+  },
+  {
+    id: "fu-wei-ji-kun",
+    hanzi: "扶危济困",
+    pinyin: "fú wēi jì kùn",
+    literalMeaning: "扶 (support) 危 (those in danger) 济 (aid) 困 (those in hardship) — helping people in danger and hardship.",
+    meaning: "Helping people who are in danger or difficulty, especially when they badly need it.",
+    meaningZh: {
+      hanzi: "帮助遇到危险或者生活困难的人。",
+      pinyin: "Bāngzhù yùdào wēixiǎn huòzhě shēnghuó kùnnan de rén.",
+      charPinyin: ["bāng", "zhù", "yù", "dào", "wēi", "xiǎn", "huò", "zhě", "shēng", "huó", "kùn", "nan", "de", "rén", ""],
+    },
+    dailyLifeScenario:
+      "After the big storm flooded a neighbour's house, your family brings over blankets and food and helps them clean up for days. Helping people through real danger and hardship like that is 扶危济困.",
+    exampleSentence: {
+      hanzi: "台风过后，他们全家扶危济困，帮邻居清理淹坏的家具。",
+      pinyin: "Táifēng guòhòu, tāmen quánjiā fúwēi-jìkùn, bāng línjū qīnglǐ yānhuài de jiājù.",
+      english: "After the typhoon, his whole family pitched in to help those in trouble, clearing out the neighbours' flood-damaged furniture.",
+      charPinyin: ["tái", "fēng", "guò", "hòu", "", "tā", "men", "quán", "jiā", "fú", "wēi", "jì", "kùn", "", "bāng", "lín", "jū", "qīng", "lǐ", "yān", "huài", "de", "jiā", "jù", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (明·施耐庵《水浒传》第二十一回) confirmed via Baidu Baike and multiple 成语词典 aggregators; 2026-09-12 search.",
+  },
+  {
+    id: "kang-kai-jie-nang",
+    hanzi: "慷慨解囊",
+    pinyin: "kāng kǎi jiě náng",
+    literalMeaning: "慷慨 (generous) 解囊 (open one's money pouch) — generously opening your purse to help.",
+    meaning: "Being generous with your own money or things to help someone in need.",
+    meaningZh: {
+      hanzi: "很大方地拿出自己的钱或者东西来帮助别人。",
+      pinyin: "Hěn dàfang de ná chū zìjǐ de qián huòzhě dōngxi lái bāngzhù biérén.",
+      charPinyin: ["hěn", "dà", "fang", "de", "ná", "chū", "zì", "jǐ", "de", "qián", "huò", "zhě", "dōng", "xi", "lái", "bāng", "zhù", "bié", "rén", ""],
+    },
+    dailyLifeScenario:
+      "When your school runs a charity drive for a flood-hit village, you take money from your own piggy bank to donate, without anyone asking you to. That generous giving is 慷慨解囊.",
+    exampleSentence: {
+      hanzi: "学校为水灾灾民募捐时，他慷慨解囊，捐出了自己存了很久的零用钱。",
+      pinyin: "Xuéxiào wèi shuǐzāi zāimín mùjuān shí, tā kāngkǎi-jiěnáng, juān chū le zìjǐ cún le hěn jiǔ de língyòngqián.",
+      english: "When the school collected donations for flood victims, he generously gave, donating the pocket money he'd been saving for a long time.",
+      charPinyin: ["xué", "xiào", "wèi", "shuǐ", "zāi", "zāi", "mín", "mù", "juān", "shí", "", "tā", "kāng", "kǎi", "jiě", "náng", "", "juān", "chū", "le", "zì", "jǐ", "cún", "le", "hěn", "jiǔ", "de", "líng", "yòng", "qián", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (明·施耐庵《水浒传》) confirmed via zdic.net (hant) and Baidu Baike; 2026-09-12 search.",
+  },
+  {
+    id: "gu-dao-re-chang",
+    hanzi: "古道热肠",
+    pinyin: "gǔ dào rè cháng",
+    literalMeaning: "古道 (the ways of old) 热肠 (a warm heart) — an old-fashioned, warm-hearted decency.",
+    meaning: "Being warm-hearted and genuinely eager to help others, like the good old-fashioned way people used to look out for each other.",
+    meaningZh: {
+      hanzi: "待人非常真诚热情，很乐意主动帮助别人。",
+      pinyin: "Dàirén fēicháng zhēnchéng rèqíng, hěn lèyì zhǔdòng bāngzhù biérén.",
+      charPinyin: ["dài", "rén", "fēi", "cháng", "zhēn", "chéng", "rè", "qíng", "", "hěn", "lè", "yì", "zhǔ", "dòng", "bāng", "zhù", "bié", "rén", ""],
+    },
+    dailyLifeScenario:
+      "The new kid in class doesn't know anyone yet, so without being asked, you sit with him at lunch and show him around the whole school. That warm, eager kindness is 古道热肠.",
+    exampleSentence: {
+      hanzi: "新同学人生地不熟，他古道热肠，主动带着新同学认识校园。",
+      pinyin: "Xīn tóngxué rénshēng-dìbùshú, tā gǔdào-rècháng, zhǔdòng dàizhe xīn tóngxué rènshi xiàoyuán.",
+      english: "The new classmate didn't know anyone, so he warmly stepped up and showed the new student around the whole school.",
+      charPinyin: ["xīn", "tóng", "xué", "rén", "shēng", "dì", "bù", "shú", "", "tā", "gǔ", "dào", "rè", "cháng", "", "zhǔ", "dòng", "dài", "zhe", "xīn", "tóng", "xué", "rèn", "shi", "xiào", "yuán", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (清·邹弢《三借庐笔谈》) confirmed via zdic.net and Taiwan MOE 成語典 (idiom ID 563); 2026-09-12 search.",
   },
 
   // --- Wisdom & Learning ---
@@ -1059,6 +1336,75 @@ export const idioms: IdiomContent[] = [
     ageBand: "lower-primary",
     theme: "wisdom",
     sourceNotes: "Meaning/origin (《楚辞·渔父》/《史记·穰侯列传》) confirmed via zdic.net and Baidu Baike (2026-09-10 search).",
+  },
+  {
+    id: "chu-lei-pang-tong",
+    hanzi: "触类旁通",
+    pinyin: "chù lèi páng tōng",
+    literalMeaning: "触类 (touch on a category) 旁通 (understand broadly) — grasping one kind of thing well enough to understand related ones too.",
+    meaning: "Understanding one thing so well that you can figure out similar things on your own.",
+    meaningZh: {
+      hanzi: "弄懂了一种事情的道理，就能推想明白其他相似的事情。",
+      pinyin: "Nòngdǒng le yì zhǒng shìqing de dàolǐ, jiù néng tuīxiǎng míngbai qítā xiāngsì de shìqing.",
+      charPinyin: ["nòng", "dǒng", "le", "yì", "zhǒng", "shì", "qing", "de", "dào", "lǐ", "", "jiù", "néng", "tuī", "xiǎng", "míng", "bai", "qí", "tā", "xiāng", "sì", "de", "shì", "qing", ""],
+    },
+    dailyLifeScenario:
+      "Once you really understand how to add fractions, you find that subtracting fractions suddenly makes sense too, without anyone teaching it to you separately. That's 触类旁通.",
+    exampleSentence: {
+      hanzi: "他学会了分数加法后触类旁通，很快就自己想通了分数减法。",
+      pinyin: "Tā xuéhuì le fēnshù jiāfǎ hòu chùlèi-pángtōng, hěn kuài jiù zìjǐ xiǎngtōng le fēnshù jiǎnfǎ.",
+      english: "After mastering fraction addition, he could reason his way to related ideas — he quickly figured out fraction subtraction on his own.",
+      charPinyin: ["tā", "xué", "huì", "le", "fēn", "shù", "jiā", "fǎ", "hòu", "chù", "lèi", "páng", "tōng", "", "hěn", "kuài", "jiù", "zì", "jǐ", "xiǎng", "tōng", "le", "fēn", "shù", "jiǎn", "fǎ", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (《周易·系辞上》) confirmed via zdic.net (hant) and multiple 成语词典 aggregators; 2026-09-12 search.",
+  },
+  {
+    id: "jian-wei-zhi-zhu",
+    hanzi: "见微知著",
+    pinyin: "jiàn wēi zhī zhù",
+    literalMeaning: "见 (see) 微 (the tiny) 知 (know) 著 (the obvious) — seeing a small sign and knowing what it points to.",
+    meaning: "Noticing a small clue and understanding from it what's really going on, or what will happen next.",
+    meaningZh: {
+      hanzi: "看到一点小小的迹象，就能猜出事情的真实情况或者将来的发展。",
+      pinyin: "Kàndào yìdiǎn xiǎoxiǎo de jìxiàng, jiù néng cāichū shìqing de zhēnshí qíngkuàng huòzhě jiānglái de fāzhǎn.",
+      charPinyin: ["kàn", "dào", "yì", "diǎn", "xiǎo", "xiǎo", "de", "jì", "xiàng", "", "jiù", "néng", "cāi", "chū", "shì", "qing", "de", "zhēn", "shí", "qíng", "kuàng", "huò", "zhě", "jiāng", "lái", "de", "fā", "zhǎn", ""],
+    },
+    dailyLifeScenario:
+      "You notice your goldfish is swimming a little slower than usual, and from that tiny sign alone, you guess the water needs changing before anything worse happens. That's 见微知著.",
+    exampleSentence: {
+      hanzi: "他见微知著，从鱼游得比较慢就猜到该换水了。",
+      pinyin: "Tā jiànwēi-zhīzhù, cóng yú yóu de bǐjiào màn jiù cāidào gāi huànshuǐ le.",
+      english: "He noticed the small sign and understood the bigger picture — from the fish swimming a bit slowly, he guessed it was time to change the water.",
+      charPinyin: ["tā", "jiàn", "wēi", "zhī", "zhù", "", "cóng", "yú", "yóu", "de", "bǐ", "jiào", "màn", "jiù", "cāi", "dào", "gāi", "huàn", "shuǐ", "le", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (《韩非子·说林上》) confirmed via zdic.net (hans & hant) and Baidu Baike; 2026-09-12 search.",
+  },
+  {
+    id: "qian-che-zhi-jian",
+    hanzi: "前车之鉴",
+    pinyin: "qián chē zhī jiàn",
+    literalMeaning: "前车 (the cart ahead) 之 ('s) 鉴 (mirror/lesson) — the lesson from the cart that overturned ahead of you.",
+    meaning: "Learning from someone else's earlier mistake, so you don't repeat it yourself.",
+    meaningZh: {
+      hanzi: "从别人以前犯过的错误中吸取教训，提醒自己不要再犯同样的错。",
+      pinyin: "Cóng biérén yǐqián fànguò de cuòwù zhōng xīqǔ jiàoxùn, tíxǐng zìjǐ bú yào zài fàn tóngyàng de cuò.",
+      charPinyin: ["cóng", "bié", "rén", "yǐ", "qián", "fàn", "guò", "de", "cuò", "wù", "zhōng", "xī", "qǔ", "jiào", "xùn", "", "tí", "xǐng", "zì", "jǐ", "bú", "yào", "zài", "fàn", "tóng", "yàng", "de", "cuò", ""],
+    },
+    dailyLifeScenario:
+      "Your older brother once left his bike out in the rain and it went rusty, so you always remember to put yours away before it rains. Learning from his mistake instead of repeating it is 前车之鉴.",
+    exampleSentence: {
+      hanzi: "哥哥的脚踏车淋雨生锈了，他把这件事当作前车之鉴，每次都记得把车推进车棚。",
+      pinyin: "Gēge de jiǎotàchē lín yǔ shēngxiù le, tā bǎ zhè jiàn shì dàngzuò qiánchē-zhījiàn, měi cì dōu jìde bǎ chē tuī jìn chēpéng.",
+      english: "His brother's bike rusted after being left in the rain, and taking that as a lesson, he always remembers to wheel his own bike into the shed.",
+      charPinyin: ["gē", "ge", "de", "jiǎo", "tà", "chē", "lín", "yǔ", "shēng", "xiù", "le", "", "tā", "bǎ", "zhè", "jiàn", "shì", "dàng", "zuò", "qián", "chē", "zhī", "jiàn", "", "měi", "cì", "dōu", "jì", "de", "bǎ", "chē", "tuī", "jìn", "chē", "péng", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (《荀子·成相》; 汉·刘向《说苑》) confirmed via zdic.net (hans & hant) and Baidu Baike; 2026-09-12 search.",
   },
 ];
 

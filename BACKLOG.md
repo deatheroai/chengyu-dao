@@ -488,8 +488,39 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       likewise has no standalone zdic.net page (only listed as a
       related term under other entries) — replaced with 扶老携幼, which
       does. All green: typecheck/test (290 passed)/build/e2e (60 passed,
-      mobile+desktop). PR pending.
-      **Remaining**: ~55 more idioms across further batches to reach
+      mobile+desktop). PR #39, merged.
+      **Batch 3 (2026-09-12): 45 → 60.** Added 锲而不舍/废寝忘食/孜孜不倦/
+      专心致志 (focus), 一诺千金/童叟无欺/襟怀坦白/大公无私 (honesty),
+      舍己为人/扶危济困/慷慨解囊/古道热肠 (kindness), 触类旁通/见微知著/
+      前车之鉴 (wisdom) — same verification-before-authoring process as
+      batches 1-2. Two originally-drafted kindness candidates (乐于助人,
+      无私奉献) didn't hold up under verification (no standalone zdic.net
+      entry, same bar that dropped 眼见为实/尊老爱幼 from batch 2) —
+      replaced with 慷慨解囊 and 大公无私/古道热肠, which do have proper
+      dictionary entries. `锲而不舍`'s own pinyin is worth flagging since
+      it's a common trap: MOE's 成語典 gives 注音 ㄅㄨˋ (i.e. `bù shě`, not
+      the `bú shě` a couple of casual search summaries suggested) since
+      舍/捨 here is 3rd tone, and 不's tone-sandhi shift to 2nd tone only
+      applies before a 4th-tone syllable.
+      This batch also surfaced (not caused) a real pre-existing bug: the
+      full e2e suite failed everywhere past the resurface tests — root
+      cause was `writingStrokeData.ts` (the bundled HanziWriter stroke
+      subset), which turned out to have never been updated for the
+      30→45 batch either. The 2026-09-10 regeneration (see that file's
+      own header) only covered the 15→30 growth its own PR's diff was
+      against; the 30→45 batch (PR #39, same day) added its own new
+      characters afterward and nobody re-ran the regeneration for it —
+      82 of the pool's 180 distinct characters were missing, not just
+      this batch's own 15 new idioms' share. Regenerated against the
+      full current 60-idiom set this time. Worth remembering for every
+      future batch: re-check `writingStrokeData.ts` coverage against
+      the *current* full idiom set, not just "the idioms this batch
+      added" — a growth batch and its stroke-data regeneration aren't
+      guaranteed to land in the same PR.
+      All green: typecheck/test (336 passed)/build/e2e (84 passed,
+      mobile+desktop, ~18.5 min — the writing-stage tests are the slow
+      ones, real freehand tracing per character).
+      **Remaining**: ~40 more idioms across further batches to reach
       ~100. One construction-time fix still needed before the pool gets
       much larger: `matchLevelContent.ts`'s no-collision guard (two
       idioms can't share the same first-two or last-two characters)
@@ -498,7 +529,7 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       Needs to become an active collision-avoiding grouping step when
       assembling each milestone's batch, not just a guard that throws —
       tied to the separate "milestone-only matching" item below, not
-      urgent yet at 45.
+      urgent yet at 60.
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
