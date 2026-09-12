@@ -1,5 +1,4 @@
 import { expect, type Page } from "@playwright/test";
-import { matchLevel } from "../../src/idiom-door/matchLevelContent";
 
 /** The current canvas-local position of a given match tile — see
  * IdiomMatchScene.syncTilePositionsToDom / #match-tile-positions, the
@@ -42,29 +41,24 @@ export async function tapMatchTile(page: Page, tileId: string): Promise<void> {
 }
 
 /**
- * Dismisses the match-intro overlay and drags every idiom's first half
- * to its second half, in order — the session's one-time warm-up
- * (main.ts's bootstrap → showMatchIntro → beginMatchStage) that now
- * runs before the very first door level's own intro. Every existing
- * idiom-door.spec test that exercises the door/balloon stages needs
- * this run first, right after `page.goto`, to get past it — see
- * idiom-match.spec.ts for tests of the warm-up stage's own behavior
- * (wrong pairs, cancelled drags, completion) in isolation.
+ * 2026-08-24 → 2026-09-08 ("milestone-only matching"): this used to
+ * dismiss a per-session match warm-up (dragging every idiom's first
+ * half to its second half) that ran before the very first door level's
+ * own intro — every existing idiom-door.spec/writing-stage.spec test
+ * that exercises the door/writing/balloon stages called this right
+ * after `page.goto` to get past it. That warm-up is gone (see
+ * IdiomMatchScene's own doc comment for the redesign: the matching
+ * mechanic is milestone-finale-only now, gated behind
+ * `pendingMatchMilestone` rather than running every session), so on a
+ * fresh, empty-history page load — every one of those callers' actual
+ * situation — `#level-intro-card` is already showing the moment this is
+ * called; kept as a real wait (not deleted from every call site) so
+ * this still reads as "get past whatever comes before the first idiom's
+ * intro," matching name and call-site shape both unchanged. See
+ * idiom-match.spec.ts for the matching mechanic's own behavior (wrong
+ * pairs, cancelled drags, completion, HP) and its milestone-triggering
+ * (pendingMatchMilestone/splitIntoSubRounds) in isolation.
  */
 export async function completeMatchStage(page: Page): Promise<void> {
-  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
-  await page.click("#start-match-btn");
-  await expect(page.locator("#match-intro-card")).not.toHaveClass(/visible/);
-  await expect(page.locator("#match-ui-layer")).not.toHaveClass(/stage-hidden/);
-
-  for (const idiomId of matchLevel.idiomIds) {
-    await dragMatchTile(page, `${idiomId}-first`, `${idiomId}-second`);
-  }
-
-  await expect(page.locator("#match-status")).toHaveAttribute("data-complete", "true");
-  // The scene hands off to the first door level's own intro shortly
-  // after (IdiomMatchScene's COMPLETE_HANDOFF_MS beat) — waiting for it
-  // here means every caller can go straight into door-level assertions
-  // without repeating this wait itself.
-  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/, { timeout: 5000 });
+  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
 }

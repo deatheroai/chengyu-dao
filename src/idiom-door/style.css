@@ -243,6 +243,32 @@ rt {
   min-height: 1.1em;
 }
 
+/* 2026-09-08 ("milestone-only matching"): this milestone's running HP
+   total (matchHp.ts) — same bold/pink-red "reads as health" treatment
+   as #door-hp/#balloon-hp, a running score here rather than a gate,
+   same as #balloon-hp. */
+#match-hp {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #c2185b;
+}
+
+/* Which of the milestone's 3 sub-rounds this is — same visual shape as
+   #session-progress's whole-session "1/3, 2/3, ..." badge, just green
+   to match this stage's own accent instead of that badge's neutral
+   corner-chip color. */
+#milestone-round-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2f7a52;
+}
+
 /* A single centered action: the child no longer steers left/right or
    presses a separate grab button (2026-08-23 redesign, per your
    feedback that walking backward to press GRAB felt clunky) — running
@@ -573,7 +599,9 @@ rt {
 #writing-summary-card,
 #balloon-intro-card,
 #balloon-success-card,
-#match-intro-card,
+#milestone-intro-card,
+#milestone-round-card,
+#milestone-final-card,
 #resurface-card,
 #match-hint-card,
 #cloud-save-card {
@@ -590,7 +618,9 @@ rt {
 #writing-summary-card.visible,
 #balloon-intro-card.visible,
 #balloon-success-card.visible,
-#match-intro-card.visible,
+#milestone-intro-card.visible,
+#milestone-round-card.visible,
+#milestone-final-card.visible,
 #resurface-card.visible,
 #match-hint-card.visible,
 #cloud-save-card.visible {
@@ -602,7 +632,9 @@ rt {
 #writing-summary-card .card,
 #balloon-intro-card .card,
 #balloon-success-card .card,
-#match-intro-card .card,
+#milestone-intro-card .card,
+#milestone-round-card .card,
+#milestone-final-card .card,
 #resurface-card .card,
 #match-hint-card .card,
 #cloud-save-card .card {
@@ -618,7 +650,9 @@ rt {
 #level-intro-card .eyebrow,
 #writing-summary-card .eyebrow,
 #balloon-intro-card .eyebrow,
-#match-intro-card .eyebrow,
+#milestone-intro-card .eyebrow,
+#milestone-round-card .eyebrow,
+#milestone-final-card .eyebrow,
 #resurface-card .eyebrow,
 #match-hint-card .eyebrow,
 #cloud-save-card .eyebrow {
@@ -643,11 +677,49 @@ rt {
   color: #2b5578;
 }
 
-#match-intro-card .match-intro-text {
+#milestone-intro-card .milestone-intro-text {
   margin: 1.1rem 0 1.25rem;
   font-size: 1rem;
   line-height: 1.5;
   color: #4a3420;
+}
+#milestone-intro-card .milestone-intro-text [data-milestone-intro-count] {
+  font-weight: 700;
+  color: #2f7a52;
+}
+
+/* --- Milestone round/final cards (2026-09-08) --- */
+
+#milestone-round-card .milestone-round-headline {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4a3420;
+}
+#milestone-round-card .milestone-round-hp {
+  margin: 0 0 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #c2185b;
+}
+
+#milestone-final-card .milestone-final-hp {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #c2185b;
+}
+/* Both empty (`textContent = ""`) on a milestone's very first run, when
+   there's nothing yet to compare against — an empty paragraph collapses
+   to no visible gap since neither has its own top margin. */
+#milestone-final-card .milestone-final-trend,
+#milestone-final-card .milestone-final-best {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+  color: #7a5636;
+}
+#milestone-final-card .milestone-final-best:not(:empty) {
+  margin-bottom: 1.25rem;
 }
 
 #level-intro-card .intro-meaning-zh {
@@ -703,7 +775,9 @@ rt {
 #writing-continue-btn,
 #start-balloon-btn,
 #balloon-continue-btn,
-#start-match-btn,
+#start-milestone-btn,
+#milestone-round-continue-btn,
+#milestone-final-continue-btn,
 #resurface-continue-btn,
 #match-hint-dismiss-btn {
   border: none;
@@ -719,7 +793,9 @@ rt {
 #writing-continue-btn:hover,
 #start-balloon-btn:hover,
 #balloon-continue-btn:hover,
-#start-match-btn:hover,
+#start-milestone-btn:hover,
+#milestone-round-continue-btn:hover,
+#milestone-final-continue-btn:hover,
 #resurface-continue-btn:hover,
 #match-hint-dismiss-btn:hover {
   background: #a83618;
@@ -728,7 +804,9 @@ rt {
 #writing-continue-btn:focus-visible,
 #start-balloon-btn:focus-visible,
 #balloon-continue-btn:focus-visible,
-#start-match-btn:focus-visible,
+#start-milestone-btn:focus-visible,
+#milestone-round-continue-btn:focus-visible,
+#milestone-final-continue-btn:focus-visible,
 #resurface-continue-btn:focus-visible,
 #match-hint-dismiss-btn:focus-visible {
   outline: 2px solid #4a3420;

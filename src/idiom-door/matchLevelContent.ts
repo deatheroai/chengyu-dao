@@ -1,6 +1,5 @@
 import { idiomsById } from "../idioms/idioms";
 import { createRng, seedFromString } from "./seededRandom";
-import { sessionIdiomIds } from "./sessionIdioms";
 
 /**
  * One half-idiom tile: the first two hanzi of a 4-character idiom, or
@@ -35,8 +34,12 @@ function fisherYatesShuffle<T>(items: T[], rng: () => number): T[] {
 }
 
 /**
- * Builds the "join the two halves" warm-up level: for each idiom, one
- * tile carrying its first two characters and one carrying its last two.
+ * Builds a "join the two halves" match level for a given set of idioms
+ * (main.ts's milestone-finale runner calls this once per sub-round, on
+ * that sub-round's own slice of a milestone's batch — see
+ * shared/matchMilestoneHistory.ts's `splitIntoSubRounds`): for each
+ * idiom, one tile carrying its first two characters and one carrying
+ * its last two.
  * Only defined for 4-character idioms — every idiom currently in
  * idioms.ts is exactly 4 characters, but this is a game about splitting
  * an idiom in half, so a mis-sized entry should fail loudly here rather
@@ -93,15 +96,3 @@ export function buildMatchLevel(idiomIds: string[]): MatchLevel {
   const rng = createRng(seedFromString(idiomIds.join("|")));
   return { idiomIds, tiles: fisherYatesShuffle(tiles, rng) };
 }
-
-/**
- * The session's warm-up level, drawn from the same idiom set
- * levelContent.ts's `doorLevels` uses (`sessionIdioms.ts`'s
- * `sessionIdiomIds`) — this stage runs once, before that per-idiom
- * door/balloon sequence, on the same idiom set rather than a different
- * one, so the halves the child just joined here are the same idioms
- * they immediately go on to practice. Reads `sessionIdiomIds` directly
- * (rather than levelContent.ts's `doorLevels`) to keep this module
- * content-only and decoupled from that one's decoy-pool machinery.
- */
-export const matchLevel: MatchLevel = buildMatchLevel(sessionIdiomIds);

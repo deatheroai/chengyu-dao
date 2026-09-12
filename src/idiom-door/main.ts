@@ -4,11 +4,21 @@ import { doorLevels } from "./levelContent";
 import { BalloonSentenceScene } from "./BalloonSentenceScene";
 import { balloonLevels } from "./balloonLevelContent";
 import { IdiomMatchScene } from "./IdiomMatchScene";
-import { matchLevel } from "./matchLevelContent";
+import { buildMatchLevel } from "./matchLevelContent";
 import { hideMatchHint } from "./matchHintStatus";
 import { updateSessionProgress } from "./sessionProgressStatus";
+import { updateMatchMilestoneRoundStatus } from "./matchMilestoneRoundStatus";
 import { renderRubyText } from "../shared/rubyText";
-import { pickResurfaceIdiomId, recordCompletedSession, completedSessionCount, clearHistory, seedFakePriorSession, exportForCloud } from "../shared/sessionHistory";
+import { pickResurfaceIdiomId, recordCompletedSession, completedSessionCount, allDiscoveredIdiomIds, clearHistory, seedFakePriorSession, exportForCloud } from "../shared/sessionHistory";
+import {
+  pendingMatchMilestone,
+  splitIntoSubRounds,
+  recordMatchMilestone,
+  highestRecordedMilestoneNumber,
+  bestFinalHp,
+  previousMilestoneFinalHp,
+  type MatchMilestone,
+} from "../shared/matchMilestoneHistory";
 import { getLocalCloudCode, pushToCloud } from "../shared/cloudSync";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode } from "./cloudSaveStatus";
 import { idiomsById } from "../idioms/idioms";
@@ -70,7 +80,7 @@ function showBalloonPrompt(index: number): void {
 /**
  * 2026-09-07 addition: the balloon stage's own "big screen" intro, same
  * "reading/thinking time before the run begins" philosophy as
- * showLevelIntro/showMatchIntro below — shown the instant an idiom's
+ * showLevelIntro/showMilestoneIntroCard below — shown the instant an idiom's
  * door is solved, *before* BalloonSentenceScene (and so its balloons)
  * ever starts, per your "surface the sentence in the centre for the
  * player to read before revealing the floating balloons" feedback.
@@ -178,11 +188,126 @@ function showBalloonSuccessCard(index: number, onContinue: () => void): void {
   continueBtn?.addEventListener("click", onClick);
 }
 
+/**
+ * 2026-09-08 ("milestone-only matching"): shown once, right when a
+ * fresh batch of `milestone.idiomIds.length` discovered idioms is due
+ * for its matching finale — before the first of its 3 sub-rounds
+ * actually starts, same "reading/thinking time before the run begins"
+ * gate every other stage transition in this game already uses.
+ */
+function showMilestoneIntroCard(milestone: MatchMilestone, onStart: () => void): void {
+  const card = document.getElementById("milestone-intro-card");
+  if (!card) {
+    onStart();
+    return;
+  }
+
+  const countEl = card.querySelector<HTMLElement>("[data-milestone-intro-count]");
+  if (countEl) countEl.textContent = String(milestone.idiomIds.length);
+  card.classList.add("visible");
+
+  const startBtn = document.getElementById("start-milestone-btn");
+  const onClick = (): void => {
+    card.classList.remove("visible");
+    startBtn?.removeEventListener("click", onClick);
+    onStart();
+  };
+  startBtn?.addEventListener("click", onClick);
+}
+
+/**
+ * 2026-09-08: shown between a milestone's sub-rounds — the "child can
+ * see their progress after each stage" beat, restating which sub-round
+ * just finished and the running HP total so far before the next one
+ * begins. `completedRoundNumber` is 1-indexed (the sub-round that just
+ * resolved), distinct from `updateMatchMilestoneRoundStatus`'s own
+ * 0-indexed `currentRoundIndex`.
+ */
+function showMilestoneRoundCard(completedRoundNumber: number, totalRounds: number, hpSoFar: number, onContinue: () => void): void {
+  const card = document.getElementById("milestone-round-card");
+  if (!card) {
+    onContinue();
+    return;
+  }
+
+  const headlineEl = card.querySelector<HTMLElement>("[data-milestone-round-headline]");
+  if (headlineEl) headlineEl.textContent = `Round ${completedRoundNumber} of ${totalRounds} done!`;
+  const hpEl = card.querySelector<HTMLElement>("[data-milestone-round-hp]");
+  if (hpEl) hpEl.textContent = `❤️ ${hpSoFar} HP so far`;
+  card.classList.add("visible");
+
+  const continueBtn = document.getElementById("milestone-round-continue-btn");
+  const onClick = (): void => {
+    card.classList.remove("visible");
+    continueBtn?.removeEventListener("click", onClick);
+    onContinue();
+  };
+  continueBtn?.addEventListener("click", onClick);
+}
+
+/**
+ * 2026-09-08: shown once every sub-round is done — the milestone's
+ * final HP against past milestones ("Round 2: 480 HP — Round 1 was
+ * 410, you're improving!" per BACKLOG.md's own example), a personal-
+ * best line and a round-over-round trend line built from the same
+ * matchMilestoneHistory.ts data, just displayed two ways. Both `best`
+ * and `previous` are null for the very first milestone — that line is
+ * skipped entirely rather than showing a meaningless comparison.
+ */
+function showMilestoneFinalCard(milestoneNumber: number, finalHp: number, best: number | null, previous: number | null, onContinue: () => void): void {
+  const card = document.getElementById("milestone-final-card");
+  if (!card) {
+    onContinue();
+    return;
+  }
+
+  const eyebrowEl = card.querySelector<HTMLElement>("[data-milestone-final-eyebrow]");
+  if (eyebrowEl) eyebrowEl.textContent = `🏆 Milestone ${milestoneNumber} complete!`;
+
+  const hpEl = card.querySelector<HTMLElement>("[data-milestone-final-hp]");
+  if (hpEl) hpEl.textContent = `❤️ ${finalHp} HP`;
+
+  const trendEl = card.querySelector<HTMLElement>("[data-milestone-final-trend]");
+  if (trendEl) {
+    if (previous === null) {
+      trendEl.textContent = "";
+    } else if (finalHp > previous) {
+      trendEl.textContent = `Last time was ${previous} HP — you're improving! 📈`;
+    } else if (finalHp < previous) {
+      trendEl.textContent = `Last time was ${previous} HP.`;
+    } else {
+      trendEl.textContent = `Same as last time (${previous} HP).`;
+    }
+  }
+
+  const bestEl = card.querySelector<HTMLElement>("[data-milestone-final-best]");
+  if (bestEl) {
+    if (best === null) {
+      bestEl.textContent = "";
+    } else if (finalHp >= best) {
+      bestEl.textContent = "🎉 New personal best!";
+    } else {
+      bestEl.textContent = `Personal best: ${best} HP`;
+    }
+  }
+
+  card.classList.add("visible");
+
+  const continueBtn = document.getElementById("milestone-final-continue-btn");
+  const onClick = (): void => {
+    card.classList.remove("visible");
+    continueBtn?.removeEventListener("click", onClick);
+    onContinue();
+  };
+  continueBtn?.addEventListener("click", onClick);
+}
+
 /** Fills in the "welcome back" callback card (2026-08-26, ported from
  * the retired session.html prototype's resurface-phase) — a brief,
  * low-stakes reminder of a previously-discovered idiom, shown once per
- * page load before the match warm-up, on a return visit only. No quiz
- * attached, same reasoning as the original: this isn't a retest. */
+ * page load before the first idiom's own intro, on a return visit only.
+ * No quiz attached, same reasoning as the original: this isn't a
+ * retest. */
 function renderResurfaceCard(idiom: IdiomContent): void {
   const hanziEl = document.querySelector<HTMLElement>("[data-resurface-hanzi]");
   const meaningEl = document.querySelector<HTMLElement>("[data-resurface-meaning]");
@@ -242,8 +367,8 @@ function showSummary(completedHanzi: string[]): void {
 }
 
 /** Toggles which stage's DOM chrome (prompt/status chip) is visible —
- * the match warm-up, door puzzle, and balloon stage all share this one
- * page/canvas rather than being separate HTML files. The match and
+ * the match-milestone finale, door puzzle, and balloon stage all share
+ * this one page/canvas rather than being separate HTML files. The match and
  * balloon stages have no on-screen movement controls to toggle
  * (2026-08-26: dragging the avatar directly replaced the on-screen
  * d-pad for the balloon stage, handled entirely inside
@@ -344,46 +469,52 @@ function bootstrap(): void {
     }, 0);
   };
 
-  // The match warm-up runs first, before any door level — its own UI
-  // layer is the one that should be showing underneath the match-intro
-  // overlay the moment this page loads (see showMatchIntro/
-  // beginMatchStage below), same "underlying stage UI is already
-  // correct before its intro overlay is dismissed" pattern
-  // startLevelWithIntro/beginLevel use for every door level after it.
-  showMatchStageUI();
+  // 2026-09-08 ("milestone-only matching"): runs a whole milestone's
+  // matching finale — its own intro card, then each of
+  // `splitIntoSubRounds`'s sub-rounds as a fresh `IdiomMatchScene`
+  // instance in turn (a different, smaller idiom set each time), a
+  // "progress after each stage" interstitial card between sub-rounds
+  // (per your steer, plus the round-progress badge inside
+  // #match-ui-layer itself — updateMatchMilestoneRoundStatus), and
+  // finally the milestone-final card once the last sub-round resolves.
+  // `hp` threads one sub-round's ending HP into the next one's starting
+  // HP — a single running pool for the whole milestone, not reset per
+  // sub-round (matchHp.ts). Calls `onDone` once the child has dismissed
+  // the final card, handing back to whatever the rest of the session
+  // flow was about to do next (advanceAfterBalloonStage below).
+  const startMatchMilestone = (milestone: MatchMilestone, onDone: () => void): void => {
+    const subRounds = splitIntoSubRounds(milestone.idiomIds);
+    let hp: number | undefined;
+    let roundIndex = 0;
 
-  // 2026-08-24: a one-time warm-up before the very first idiom's
-  // intro — splits each of this session's idioms into two tiles (its
-  // first two characters, its last two), laid out in two columns, and
-  // has the child drag a line from one half to its partner to join
-  // them back together — a gentler on-ramp than the door puzzle's
-  // ordered, per-character precision. Runs once per session, on the
-  // whole idiom set at once, not per idiom like the door/balloon
-  // stages that follow it.
-  const beginMatchStage = (): void => {
-    showMatchStageUI();
-    game.scene.start("IdiomMatchScene", {
-      level: matchLevel,
-      onComplete: afterMatchStage,
-    });
-  };
-
-  const afterMatchStage = (): void => {
-    stopGameplayScene("IdiomMatchScene");
-    document.getElementById("match-ui-layer")?.classList.add("stage-hidden");
-    startLevelWithIntro(0);
-  };
-
-  const showMatchIntro = (onStart: () => void): void => {
-    const card = document.getElementById("match-intro-card");
-    card?.classList.add("visible");
-    const startBtn = document.getElementById("start-match-btn");
-    const onClick = (): void => {
-      card?.classList.remove("visible");
-      startBtn?.removeEventListener("click", onClick);
-      onStart();
+    const runSubRound = (): void => {
+      showMatchStageUI();
+      updateMatchMilestoneRoundStatus(roundIndex, subRounds.length);
+      game.scene.start("IdiomMatchScene", {
+        level: buildMatchLevel(subRounds[roundIndex]),
+        startingHp: hp,
+        onComplete: afterSubRound,
+      });
     };
-    startBtn?.addEventListener("click", onClick);
+
+    const afterSubRound = (endingHp: number): void => {
+      stopGameplayScene("IdiomMatchScene");
+      document.getElementById("match-ui-layer")?.classList.add("stage-hidden");
+      hp = endingHp;
+      const completedRoundNumber = roundIndex + 1;
+      roundIndex += 1;
+
+      if (roundIndex < subRounds.length) {
+        showMilestoneRoundCard(completedRoundNumber, subRounds.length, hp, () => runSubRound());
+      } else {
+        const best = bestFinalHp(milestone.milestoneNumber);
+        const previous = previousMilestoneFinalHp(milestone.milestoneNumber);
+        recordMatchMilestone(milestone.milestoneNumber, hp);
+        showMilestoneFinalCard(milestone.milestoneNumber, hp, best, previous, onDone);
+      }
+    };
+
+    showMilestoneIntroCard(milestone, () => runSubRound());
   };
 
   // 2026-09-09: BACKLOG.md's writing/tracing stage — runs right after
@@ -554,39 +685,43 @@ function bootstrap(): void {
     const next = finishedIndex + 1;
     if (next < doorLevels.length) {
       startLevelWithIntro(next);
-    } else {
-      // currentIndex === total is updateSessionProgress's "fully
-      // complete" signal — every dot done, none marked current.
-      updateSessionProgress(doorLevels.length, doorLevels.length);
-      showSummary(completedHanzi);
-      // 2026-08-26: records this completed sitting so a later visit can
-      // resurface one of these idioms — see the resurface-card gate
-      // below and shared/sessionHistory.ts.
-      recordCompletedSession(doorLevels.map((level) => level.idiom.id));
-      // 2026-08-30: keeps an already-turned-on cloud save current the
-      // moment a session finishes, not just whenever the panel happens
-      // to be reopened — see syncSessionHistoryToCloud below.
-      syncSessionHistoryToCloud();
+      return;
     }
-  };
 
-  // The session opens with the match warm-up (once), not straight into
-  // the first door level — startLevelWithIntro(0) only runs afterward,
-  // from afterMatchStage above. "Play again" (below) skips back past
-  // this and goes straight to level 0's intro — the warm-up is a
-  // once-per-session on-ramp, not something worth replaying every time
-  // a child replays the same 3 idioms.
-  const startMatchStageFlow = (): void => {
-    showMatchIntro(() => beginMatchStage());
+    // currentIndex === total is updateSessionProgress's "fully
+    // complete" signal — every dot done, none marked current.
+    updateSessionProgress(doorLevels.length, doorLevels.length);
+    // 2026-08-26: records this completed sitting so a later visit can
+    // resurface one of these idioms — see the resurface-card gate
+    // below and shared/sessionHistory.ts. Recorded *before* the
+    // milestone check just below, since that check needs this
+    // session's idioms already counted among the discovered total.
+    recordCompletedSession(doorLevels.map((level) => level.idiom.id));
+    // 2026-08-30: keeps an already-turned-on cloud save current the
+    // moment a session finishes, not just whenever the panel happens
+    // to be reopened — see syncSessionHistoryToCloud below.
+    syncSessionHistoryToCloud();
+
+    // 2026-09-08 ("milestone-only matching"): the matching finale is
+    // the very last thing a session that crosses a fresh batch does,
+    // right before the plain summary — literally the session's finale,
+    // not a warm-up before it. showSummary only runs once the milestone
+    // (if any) is fully dismissed, never in parallel with it.
+    const milestone = pendingMatchMilestone(allDiscoveredIdiomIds(), highestRecordedMilestoneNumber());
+    if (milestone) {
+      startMatchMilestone(milestone, () => showSummary(completedHanzi));
+    } else {
+      showSummary(completedHanzi);
+    }
   };
 
   wireDevControls();
 
   // 2026-08-26: on a return visit (a prior completed session exists —
   // shared/sessionHistory.ts), a brief "welcome back" callback gates the
-  // match warm-up rather than running straight into it. A genuinely
-  // first-ever visit (no prior history) skips straight to the warm-up,
-  // same as before this addition.
+  // first idiom's intro rather than running straight into it. A
+  // genuinely first-ever visit (no prior history) skips straight to
+  // that intro, same as before this addition.
   const resurfaceId = pickResurfaceIdiomId();
   if (resurfaceId) {
     const card = document.getElementById("resurface-card");
@@ -596,12 +731,12 @@ function bootstrap(): void {
       "click",
       () => {
         card?.classList.remove("visible");
-        startMatchStageFlow();
+        startLevelWithIntro(0);
       },
       { once: true },
     );
   } else {
-    startMatchStageFlow();
+    startLevelWithIntro(0);
   }
 
   document.getElementById("jump-btn")?.addEventListener("pointerdown", (e) => {

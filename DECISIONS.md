@@ -23,6 +23,23 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-12 — Shipped BACKLOG.md's "milestone-only matching" entry
+  (per your direct request, not the daily cycle).** Removed the
+  per-session match warm-up from `main.ts`'s boot flow entirely — a
+  session now goes straight from the resurface card (if any) into the
+  first idiom's own intro. In its place, the idiom-halves matching
+  mechanic now runs only as a milestone finale: every time the
+  cumulative discovered-idiom count crosses a fresh multiple of 15
+  (`shared/matchMilestoneHistory.ts`), that batch's matching finale runs
+  at the very end of whichever session crosses it — split into 3
+  sub-rounds of 5, a running HP score carried across all 3
+  (`matchHp.ts`), a "progress after each stage" card between sub-rounds,
+  and a final card showing that milestone's HP against past ones (a
+  personal-best line and a round-over-round trend, both skipped on the
+  very first milestone). Full detail, including the e2e-suite rework
+  this needed, is in `BACKLOG.md`'s own entry. All gates green
+  (typecheck/`test` 367 passed/`build`, plus the full mobile+desktop e2e
+  suite).
 - **2026-09-12 — Daily cycle: idiom pool batch 3 (45 → 60), plus a
   pre-existing writing-stage stroke-data gap found and fixed.** Pending
   Decisions was empty. Two other open PRs existed (#40: one

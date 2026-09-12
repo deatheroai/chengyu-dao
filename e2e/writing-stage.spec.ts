@@ -131,9 +131,9 @@ test("the writing-summary card shows the idiom, its rating, and the HP points ea
   await expect(page.locator("#catch-ui-layer")).not.toHaveClass(/stage-hidden/, { timeout: 10000 });
 });
 
-test("the writing stage's own chrome is hidden during the match warm-up", async ({ page }) => {
+test("the writing stage's own chrome is hidden while the first level's intro is still showing", async ({ page }) => {
   await page.goto("/idiom-door.html");
-  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
+  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
   await expect(page.locator("#writing-ui-layer")).toHaveClass(/stage-hidden/);
 });
 

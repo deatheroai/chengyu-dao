@@ -4,10 +4,22 @@ import { initialMatchProgressState, selectTile, type MatchProgressState } from "
 import { updateMatchStatus } from "./matchStatus";
 import { showMatchHint } from "./matchHintStatus";
 import { idiomsById } from "../idioms/idioms";
+import { initialMatchHpState, applyWrongPairPenalty, type MatchHpState } from "./matchHp";
+import { updateMatchHpStatus } from "./matchHpStatus";
 
 export interface IdiomMatchSceneData {
   level: MatchLevel;
-  onComplete?: () => void;
+  /** This sub-round's starting HP — matchHp.ts's running score across a
+   * milestone's whole 3-sub-round finale. Only the milestone's first
+   * sub-round omits this (defaulting to matchHp.ts's STARTING_MATCH_HP);
+   * main.ts threads every later sub-round's carried-over ending HP back
+   * in here on restart. */
+  startingHp?: number;
+  /** Called with this sub-round's *ending* HP once every pair is
+   * joined — main.ts carries that number into the next sub-round's
+   * `startingHp`, or (after the milestone's last sub-round) records it
+   * as the milestone's final HP. */
+  onComplete?: (finalHp: number) => void;
 }
 
 // A cool green/teal, distinct from the door stage's warm palette and
@@ -82,18 +94,33 @@ interface RuntimeTile {
 }
 
 /**
- * The warm-up matching stage: each idiom in `level` has been split into
- * two tiles (its first two characters, its last two) — first halves
- * laid out in a column on the left, second halves in a column on the
- * right — and the child drags a line from one half to its partner to
- * join them, like a classic worksheet matching exercise. No fail state,
- * same ethos as the rest of this project: a wrong pair just flashes and
- * un-connects, nothing is lost.
+ * The idiom-halves matching mechanic: each idiom in `level` has been
+ * split into two tiles (its first two characters, its last two) — first
+ * halves laid out in a column on the left, second halves in a column on
+ * the right — and the child drags a line from one half to its partner
+ * to join them, like a classic worksheet matching exercise. No *fail*
+ * state, same ethos as the rest of this project: a wrong pair just
+ * flashes and un-connects, nothing is lost — but per BACKLOG.md's
+ * 2026-09-08 "milestone-only matching" entry it does carry a running HP
+ * score now (matchHp.ts), penalized on a wrong pair, so a finished
+ * milestone still has a number worth showing off.
+ *
+ * 2026-09-08 redesign: this used to run once per session as a warm-up
+ * before the very first door level (main.ts's old beginMatchStage).
+ * It's now milestone-finale-only — main.ts starts a fresh instance of
+ * this same scene for each of a milestone's 3 sub-rounds in turn (a
+ * different, smaller `level` each time — see
+ * shared/matchMilestoneHistory.ts's `splitIntoSubRounds`), threading
+ * each sub-round's ending HP into the next one's `startingHp`. This
+ * scene itself doesn't know it's part of a milestone at all — it's
+ * still just "here are some tiles, join them, report the ending HP,"
+ * same self-contained shape as before this redesign.
  */
 export class IdiomMatchScene extends Phaser.Scene {
   private level!: MatchLevel;
-  private onComplete?: () => void;
+  private onComplete?: (finalHp: number) => void;
   private progressState: MatchProgressState = initialMatchProgressState();
+  private hpState: MatchHpState = initialMatchHpState();
   private runtimeTiles = new Map<string, RuntimeTile>();
   private resolved = false;
 
@@ -127,6 +154,7 @@ export class IdiomMatchScene extends Phaser.Scene {
     this.level = data.level;
     this.onComplete = data.onComplete;
     this.progressState = initialMatchProgressState();
+    this.hpState = initialMatchHpState(data.startingHp);
     this.runtimeTiles = new Map();
     this.matchedLines = [];
     this.dragOriginId = null;
@@ -146,6 +174,7 @@ export class IdiomMatchScene extends Phaser.Scene {
     // than crossing over their text.
     this.children.bringToTop(this.gridLayer);
     updateMatchStatus(0, this.totalPairs(), false);
+    updateMatchHpStatus(this.hpState.hp);
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => this.updateDrag(pointer));
     this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => this.endDrag(pointer));
@@ -427,12 +456,15 @@ export class IdiomMatchScene extends Phaser.Scene {
       if (matchedPairs === totalPairs) {
         this.resolved = true;
         updateMatchStatus(matchedPairs, totalPairs, true);
-        this.time.delayedCall(COMPLETE_HANDOFF_MS, () => this.onComplete?.());
+        const finalHp = this.hpState.hp;
+        this.time.delayedCall(COMPLETE_HANDOFF_MS, () => this.onComplete?.(finalHp));
       }
       return;
     }
 
     // Only "wrong" is reachable here (see doc comment above).
+    this.hpState = applyWrongPairPenalty(this.hpState);
+    updateMatchHpStatus(this.hpState.hp);
     const [aId, bId] = result.pair!;
     this.setTileVisualState(aId, "wrong");
     this.setTileVisualState(bId, "wrong");
