@@ -50,6 +50,65 @@ export function updateWritingStatus(charIndex: number, total: number, char: stri
   }
 
   document.getElementById("writing-review-btn")?.classList.toggle("visible", phase === "trace");
+  setWritingProgressState(charIndex, phase);
+}
+
+/**
+ * 2026-09-12 ("can the writing stage display the meaning and the
+ * progress of the 4 character writing at the top?"): the idiom's
+ * plain-English meaning, shown once per idiom (writingStage.ts calls
+ * this a single time, right as a new idiom's run begins — unlike
+ * `updateWritingStatus`, this doesn't change per character) so the
+ * child sees *what* they're learning to write, not just *how*. Sits in
+ * `#writing-meaning`, above `#writing-status` in `.writing-card` (see
+ * idiom-door.html) — its own element rather than folded into
+ * `#writing-status`'s text so it doesn't have to be repeated (and
+ * possibly re-derived) on every phase/character change.
+ */
+export function updateWritingMeaning(meaning: string): void {
+  const el = document.getElementById("writing-meaning");
+  if (el) el.textContent = `Means: "${meaning}"`;
+}
+
+/**
+ * Renders the per-character progress trail — one dot per character,
+ * labeled with that character's own hanzi — once per idiom, right
+ * alongside `updateWritingMeaning` above. A static row of anonymous
+ * dots would tell the child *how many* characters are left, but not
+ * *which* ones; labeling each with its own character lets them see the
+ * whole idiom's shape from the start. `updateWritingStatus` (the only
+ * other thing that changes which dot is current/done) toggles this
+ * same row's state on every phase change via `setWritingProgressState`
+ * below, rather than re-rendering it — nothing here needs to change
+ * once the idiom's characters are known.
+ */
+export function initWritingProgress(chars: string[]): void {
+  const el = document.getElementById("writing-progress");
+  if (!el) return;
+  el.innerHTML = "";
+  for (const char of chars) {
+    const dot = document.createElement("span");
+    dot.className = "writing-progress-dot";
+    dot.textContent = char;
+    el.appendChild(dot);
+  }
+}
+
+/** Marks which of `initWritingProgress`'s dots is done (a past
+ * character, or the current one once its own feedback beat starts —
+ * see writingStage.ts's `onComplete`, which flips the phase to
+ * "feedback" the moment that character's quiz has actually resolved,
+ * before `advance` moves `charIndex` on) versus merely active (still
+ * being watched/traced) versus not yet reached. */
+function setWritingProgressState(charIndex: number, phase: WritingStagePhase): void {
+  const el = document.getElementById("writing-progress");
+  if (!el) return;
+  const dots = el.querySelectorAll<HTMLElement>(".writing-progress-dot");
+  dots.forEach((dot, i) => {
+    const done = i < charIndex || (i === charIndex && phase === "feedback");
+    dot.classList.toggle("done", done);
+    dot.classList.toggle("active", i === charIndex && !done);
+  });
 }
 
 /**
