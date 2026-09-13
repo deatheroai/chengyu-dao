@@ -23,6 +23,42 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-13 — Daily cycle: idiom pool batch 4 (60 → 75); pushed but
+  not merged since e2e hit a pre-existing timeout issue, confirmed
+  unrelated to this batch.** Pending Decisions was empty. Two other
+  PRs were already open on the standing example-sentence-review track
+  (#40, #44) — left both alone, same reasoning as the 2026-09-12 cycle
+  (neither created by this session, no overlap with this cycle's
+  scope). Picked the next idiom-pool-growth batch, continuing the same
+  pattern as the last three cycles.
+  Added 15 new idioms (脚踏实地/坚持不懈/一鼓作气 focus, 拾金不昧/一言为定/
+  言出必行/说一不二 honesty, 推己及人/守望相助/有求必应/一视同仁 kindness,
+  画蛇添足/塞翁失马/对症下药/循序渐进 wisdom), each verified via zdic.net/
+  Baidu Baike before authoring, same as batches 1-3. New this batch:
+  checked every candidate's first-two/last-two character halves
+  against the *entire* existing pool for `matchLevelContent.ts`'s
+  no-collision guard *before* authoring rather than after — caught
+  that 光明磊落 would have collided with the already-shipped 光明正大,
+  swapped for 言出必行 instead. Regenerated `writingStrokeData.ts`
+  against the full current 75-idiom set (216 distinct characters) per
+  the 2026-09-12 batch's own lesson about partial regenerations —
+  confirmed 0 missing characters.
+  `typecheck`/`test` (343 passed)/`build` all green, but `test:e2e`
+  failed: 6-8 desktop tests plus 1 mobile, all timeouts inside the
+  writing-stage/jump-position e2e helpers, never a content or game-logic
+  assertion. Investigated rather than assumed unrelated (same bar as PR
+  #40's precedent): today's date-seeded session doesn't even draw any
+  of this batch's new idioms; the stroke data for the characters it
+  *does* use is byte-identical to the pre-batch file; and the same
+  failing tests reproduce identically against an unmodified `origin/main`
+  worktree. This points to this session's sandboxed headless Chromium
+  being too slow for the writing-stage's simulated mouse tracing under
+  load — a session-environment issue, not a regression from this
+  change — but `AUTONOMY.md`'s auto-land policy blocks merging on any
+  e2e failure regardless of suspected cause. Pushed to
+  `claude/daily-2026-09-13`, opened PR #47, **left unmerged** for a
+  human look or a future session with a less-loaded runner. Full detail
+  in `BACKLOG.md`'s entry and PR #47's description.
 - **2026-09-12 — Daily cycle: idiom pool batch 3 (45 → 60), plus a
   pre-existing writing-stage stroke-data gap found and fixed.** Pending
   Decisions was empty. Two other open PRs existed (#40: one
