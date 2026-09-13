@@ -430,24 +430,71 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       the characters correctly" pass on each new batch before treating it
       as fully vetted, same "needs your review" status the rest of this
       project's authored Chinese text already carries.
-- [ ] `todo` — **Remove the per-session match warm-up; matching becomes a
-      milestone-finale-only mechanic (2026-09-08).** Per your steer:
-      drop `beginMatchStage`/`showMatchIntro` from `main.ts`'s boot flow
-      entirely — a session goes straight from the resurface card (if
-      any) into the first idiom's intro. In its place: every time the
-      cumulative discovered-idiom count (`sessionHistory.ts`'s
-      `allDiscoveredIdiomIds`) crosses a new multiple of 15, that fresh
-      batch of 15 triggers a celebratory match milestone — the existing
+- [x] `done` — **Remove the per-session match warm-up; matching becomes a
+      milestone-finale-only mechanic (2026-09-08, landed 2026-09-12).**
+      Per your steer: dropped `beginMatchStage`/`showMatchIntro` from
+      `main.ts`'s boot flow entirely — a session now goes straight from
+      the resurface card (if any) into the first idiom's intro
+      (`matchLevelContent.ts`'s old always-built `matchLevel` singleton,
+      tied to that session's own 3 idioms, is gone with it). In its
+      place: every time the cumulative discovered-idiom count
+      (`sessionHistory.ts`'s `allDiscoveredIdiomIds`) crosses a new
+      multiple of 15 (`shared/matchMilestoneHistory.ts`'s
+      `MILESTONE_BATCH_SIZE`/`pendingMatchMilestone`), that fresh batch
+      of 15 triggers a celebratory match milestone — the existing
       idiom-halves mechanic (`IdiomMatchScene`/`matchProgress.ts`/
-      `buildMatchLevel`, unchanged), split into 3 sub-rounds of 5,
-      scoped to that batch only (not the whole history). Each
-      milestone's final HP is recorded to a new small on-device-only
-      history (no accounts, matches how saves already work) so a
-      finished milestone can show it against past ones ("Round 2: 480 HP
-      — Round 1 was 410, you're improving!") — a personal-best list and
-      a round-over-round trend are the same underlying data, just
-      displayed two ways. Not hardcoded to a fixed number of rounds —
-      just keeps going as the idiom pool grows.
+      `buildMatchLevel`, pairing/tile logic unchanged), split into 3
+      sub-rounds of 5 (`splitIntoSubRounds`), scoped to that batch only
+      (not the whole history). Checked right when a session that
+      crosses the threshold finishes (`main.ts`'s
+      `advanceAfterBalloonStage`, right after that session is recorded)
+      — literally the session's finale, shown *before* the plain
+      session-summary card, not instead of it.
+
+      New running HP for the milestone itself (`matchHp.ts` — a wrong
+      pair costs `WRONG_PAIR_HP_PENALTY`, same "running score, no fail
+      state" shape as `balloonHp.ts`), carried across all 3 sub-rounds
+      (each sub-round is a fresh `IdiomMatchScene` instance, its ending
+      HP threaded into the next one's starting HP) rather than reset per
+      sub-round. A "progress after each stage" card between sub-rounds
+      (`showMilestoneRoundCard`) restates that HP running total, plus an
+      in-stage "Round 1/3, 2/3, ..." badge
+      (`matchMilestoneRoundStatus.ts`, reusing `#session-progress`'s own
+      dots styling) — the "child can see his progress after each stage"
+      steer. Each milestone's final HP is recorded to a new small
+      on-device-only history (`shared/matchMilestoneHistory.ts`, no
+      accounts, same shape `sessionHistory.ts`'s own saves already use —
+      deliberately *not* yet wired into cloudSync.ts's export/import,
+      noted as real follow-up scope in that module's own doc comment)
+      so a finished milestone shows it against past ones ("Round 2: 480
+      HP — Round 1 was 410, you're improving!" per this entry's own
+      original example) — a personal-best line and a round-over-round
+      trend line, same underlying data, displayed two ways
+      (`showMilestoneFinalCard`), both skipped on the very first
+      milestone since there's nothing yet to compare against. Not
+      hardcoded to a fixed number of milestones — just keeps going as
+      the idiom pool grows.
+
+      Every e2e test that used to call `completeMatchStage` right after
+      `page.goto` to get past the old per-session warm-up keeps doing
+      so unchanged (22 call sites across idiom-door.spec.ts/
+      writing-stage.spec.ts) — that helper (e2e/helpers/idiomMatch.ts)
+      is now just a wait for `#level-intro-card`, which is already
+      showing by then on every one of those callers' actual (fresh,
+      unseeded-history) starting state; see its own doc comment. New
+      `e2e/idiom-match.spec.ts` seeds a known 15-idiom "already
+      discovered" history directly (localStorage, same technique
+      writing-stage.spec.ts's own `seedCompletedSessions` already uses),
+      then plays one real full session for real
+      (`e2e/helpers/fullSession.ts`, extracted from
+      idiom-door.spec.ts's own "solving all 3 levels..." flow since this
+      needed the exact same real completion) to cross the threshold and
+      exercise the whole milestone finale end to end — intro, a hint
+      tap, a deliberate wrong pair (HP penalty confirmed), all 3
+      sub-rounds' own progress cards, the final card's content, and the
+      hand-off into the plain session summary after it. All gates green
+      (typecheck/`test` 367 passed/`build`, plus the full mobile+desktop
+      e2e suite).
 - [ ] `todo` — **Grow the idiom pool from 15 toward ~100 (2026-09-08,
       batches 1-2 landed 2026-09-09/10).** Same data-driven pattern
       `src/idioms/idioms.ts` already uses — per `AUTONOMY.md` this

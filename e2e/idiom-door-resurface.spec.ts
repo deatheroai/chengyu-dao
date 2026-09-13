@@ -11,7 +11,7 @@ import { test, expect } from "@playwright/test";
 test("a first-ever visit shows no resurface callback", async ({ page }) => {
   await page.goto("/idiom-door.html");
   await expect(page.locator("#resurface-card")).not.toHaveClass(/visible/);
-  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
+  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
 });
 
 test("the dev 'simulate returning visitor' control shows a resurface callback on reload", async ({ page }) => {
@@ -20,14 +20,14 @@ test("the dev 'simulate returning visitor' control shows a resurface callback on
 
   const resurfaceCard = page.locator("#resurface-card");
   await expect(resurfaceCard).toHaveClass(/visible/);
-  await expect(page.locator("#match-intro-card")).not.toHaveClass(/visible/);
+  await expect(page.locator("#level-intro-card")).not.toHaveClass(/visible/);
 
   // No quiz here - a low-stakes reminder only, per SNIPPET_PLANS.md.
   await expect(page.locator("[data-resurface-hanzi]")).not.toBeEmpty();
   await expect(page.locator("[data-resurface-meaning]")).not.toBeEmpty();
 });
 
-test("continuing from the resurface callback starts the normal match warm-up", async ({ page }) => {
+test("continuing from the resurface callback starts the first idiom's own intro", async ({ page }) => {
   await page.goto("/idiom-door.html");
   await page.click("#dev-seed-history-btn");
   await expect(page.locator("#resurface-card")).toHaveClass(/visible/);
@@ -35,7 +35,7 @@ test("continuing from the resurface callback starts the normal match warm-up", a
   await page.click("#resurface-continue-btn");
 
   await expect(page.locator("#resurface-card")).not.toHaveClass(/visible/);
-  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
+  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
 });
 
 test("the dev 'clear history' control resets back to a fresh, no-callback state", async ({ page }) => {
@@ -46,5 +46,5 @@ test("the dev 'clear history' control resets back to a fresh, no-callback state"
   await page.click("#dev-clear-history-btn");
 
   await expect(page.locator("#resurface-card")).not.toHaveClass(/visible/);
-  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
+  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
 });

@@ -109,10 +109,14 @@ export function clearDevIdiomSeedOverride(): void {
 }
 
 /** This session's idiom set — the one source of truth `levelContent.ts`
- * (door levels), `balloonLevelContent.ts` (balloon levels), and
- * `matchLevelContent.ts` (the warm-up) all build from, so the three
- * stages always agree on which idioms today's session covers. Draws
- * from a dev-only reroll override when one's set (see
- * DEV_SEED_OVERRIDE_KEY above), falling back to the normal
- * once-a-day rotation otherwise. */
+ * (door levels) and `balloonLevelContent.ts` (balloon levels) both build
+ * from, so those two stages always agree on which idioms today's
+ * session covers. 2026-09-08 ("milestone-only matching"): the matching
+ * mechanic (`matchLevelContent.ts`'s `buildMatchLevel`) no longer draws
+ * from this at all — it's milestone-finale-only now, built instead from
+ * whichever idioms `shared/matchMilestoneHistory.ts`'s
+ * `pendingMatchMilestone` says are due, which can span many sessions'
+ * worth of `sessionIdiomIds`, not just this one's. Draws from a dev-only
+ * reroll override when one's set (see DEV_SEED_OVERRIDE_KEY above),
+ * falling back to the normal once-a-day rotation otherwise. */
 export const sessionIdiomIds: string[] = pickSessionIdiomIds(readDevSeedOverride() ?? todaySeedString());

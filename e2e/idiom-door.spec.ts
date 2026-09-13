@@ -39,13 +39,15 @@ import { solveDoorLevel, catchCharacter, jumpForFirstReachableWrongTile, pressJu
  * this suite's job is confirming the pieces are wired together
  * correctly, not re-proving the logic.
  *
- * 2026-08-24: the session opens with a one-time "join the two halves"
- * match warm-up *before* the first level's own intro (see
- * IdiomMatchScene / matchLevelContent.ts) — every test here calls
- * `completeMatchStage` (e2e/helpers/idiomMatch.ts) right after
- * `page.goto` to get past it quickly, since this suite's job is the
- * writing/door/balloon stages; idiom-match.spec.ts tests the warm-up
- * itself.
+ * 2026-08-24 → 2026-09-08: this session used to open with a one-time
+ * "join the two halves" match warm-up before the first level's own
+ * intro — every test here calls `completeMatchStage`
+ * (e2e/helpers/idiomMatch.ts) right after `page.goto` to get past
+ * whatever comes before the first level's intro, a no-op wait now that
+ * the matching mechanic (IdiomMatchScene/matchLevelContent.ts) is
+ * milestone-finale-only rather than a per-session warm-up (see that
+ * helper's own doc comment); idiom-match.spec.ts tests the matching
+ * mechanic itself, milestone-triggering included.
  */
 async function getPlayerX(page: Page): Promise<number> {
   const attr = await page.locator("#player-position").getAttribute("data-x");
@@ -342,11 +344,11 @@ test("the dev 'new idioms' control rerolls this session's idiom set, and 'clear 
   // a bare `page.evaluate` right after `click()` can race the in-flight
   // navigation and read stale (pre-reload) state.
   await page.click("#dev-reroll-idioms-btn");
-  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
+  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
   expect(await readOverride()).not.toBeNull();
 
   await page.click("#dev-clear-history-btn");
-  await expect(page.locator("#match-intro-card")).toHaveClass(/visible/);
+  await expect(page.locator("#level-intro-card")).toHaveClass(/visible/);
   expect(await readOverride()).toBeNull();
 
   await completeMatchStage(page);

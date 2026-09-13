@@ -1,8 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildMatchLevel, matchLevel } from "./matchLevelContent";
+import { buildMatchLevel } from "./matchLevelContent";
 import { idioms } from "../idioms/idioms";
-import { doorLevels } from "./levelContent";
-import { sessionIdiomIds, ELIGIBLE_IDIOM_IDS, IDIOMS_PER_SESSION } from "./sessionIdioms";
 
 describe("buildMatchLevel", () => {
   it("produces two tiles per idiom, split first-two/last-two", () => {
@@ -44,18 +42,5 @@ describe("buildMatchLevel", () => {
     // even if every approved idiom were ever used in one match level.
     const allIds = idioms.map((i) => i.id);
     expect(() => buildMatchLevel(allIds)).not.toThrow();
-  });
-});
-
-describe("matchLevel (the session's warm-up content)", () => {
-  it(`has ${IDIOMS_PER_SESSION} idioms drawn from the eligible pool, and ${IDIOMS_PER_SESSION * 2} tiles`, () => {
-    expect(matchLevel.idiomIds).toHaveLength(IDIOMS_PER_SESSION);
-    for (const id of matchLevel.idiomIds) expect(ELIGIBLE_IDIOM_IDS).toContain(id);
-    expect(matchLevel.tiles).toHaveLength(IDIOMS_PER_SESSION * 2);
-  });
-
-  it("matches sessionIdioms.ts's sessionIdiomIds exactly, same set and order as levelContent.ts's doorLevels", () => {
-    expect(matchLevel.idiomIds).toEqual(sessionIdiomIds);
-    expect(doorLevels.map((level) => level.idiom.id)).toEqual(sessionIdiomIds);
   });
 });

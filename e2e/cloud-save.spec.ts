@@ -3,7 +3,7 @@ import { doorLevels } from "../src/idiom-door/levelContent";
 
 // #cloud-save-btn is placed alongside #session-progress specifically so
 // it's reachable throughout the session, including underneath the
-// match-intro-card overlay that's visible the instant the page loads
+// level-intro-card overlay that's visible the instant the page loads
 // (same "stacks above the full-screen overlays" pattern that badge
 // already relies on — see idiom-door.html's comment on it) — so every
 // test here can open the panel right after page.goto with nothing to
