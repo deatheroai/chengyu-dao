@@ -530,6 +530,57 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       assembling each milestone's batch, not just a guard that throws —
       tied to the separate "milestone-only matching" item below, not
       urgent yet at 60.
+      **Batch 4 (2026-09-13): 60 → 75.** Added 脚踏实地/坚持不懈/一鼓作气
+      (focus), 拾金不昧/一言为定/言出必行/说一不二 (honesty), 推己及人/
+      守望相助/有求必应/一视同仁 (kindness), 画蛇添足/塞翁失马/对症下药/
+      循序渐进 (wisdom) — same verification-before-authoring process as
+      batches 1-3 (each checked for a standalone zdic.net entry, not
+      just a search-summary mention, before being authored). One
+      originally-drafted honesty candidate, 光明磊落, didn't clear the
+      *other* verification step this batch newly ran (not just the
+      dictionary-entry check the previous 3 batches already did):
+      checked every new idiom's first-two/last-two characters against
+      the *entire* existing pool for `matchLevelContent.ts`'s
+      no-collision guard before authoring, not just after — 光明磊落
+      shares its first half ("光明") with the already-shipped
+      光明正大, which would have broken the halves-matching minigame
+      the moment both landed in the same milestone batch. Caught by a
+      small one-off Node script (`Array.from` each hanzi into
+      first/last two-character halves, diff against the existing 60),
+      not by hand — worth reusing for every future batch now that the
+      pool is big enough for this to be a real risk, per the "Remaining"
+      note just above. Replaced with 言出必行, which clears both checks.
+      Also re-verified the whole 75-idiom pool is still collision-free
+      via `sessionIdioms.test.ts`'s existing generic check (unchanged,
+      still passes — no code change needed since it's already generic
+      over the full pool).
+      Regenerated `writingStrokeData.ts` against the full current
+      75-idiom set up front (not just this batch's own 15 new idioms'
+      characters) per the 2026-09-12 batch's own lesson — confirmed 0
+      missing characters both before landing (36 new distinct
+      characters added, 216 total) and via the same check re-run after
+      writing this entry.
+      **Validation — NOT all green, so this PR is not merged.**
+      `typecheck`/`test` (343 passed)/`build` all pass. `test:e2e`
+      failed (6-8 desktop tests, one mobile), all timeouts inside the
+      writing/tracing-stage or jump-position helpers (`writingStage.ts`'s
+      `mouse.move`/`#writing-status` polling, `doorJump.ts`'s
+      `#player-position` polling) — never a content-integrity or
+      collision assertion. Checked this isn't caused by this batch
+      before assuming so, same as PR #40's precedent: (1) today's
+      date-seeded 3-idiom session (触类旁通/同甘共苦/一丝不苟) doesn't even
+      draw any of this batch's 15 new idioms, so the new stroke data
+      isn't exercised by today's run at all; (2) confirmed byte-for-byte
+      that `writingStrokeData.ts`'s entries for all 12 characters this
+      run's idioms *do* use are unchanged from the pre-batch file
+      despite the full regeneration; (3) re-ran the failing desktop
+      tests against an unmodified `origin/main` worktree (no changes at
+      all) and they fail identically there. This looks like this
+      sandboxed session's headless Chromium being too slow for the
+      writing-stage's fine-grained simulated mouse tracing under load,
+      not a logic bug — but per `AUTONOMY.md`, an e2e failure still
+      blocks auto-land regardless of suspected cause, same as PR #40.
+      Pushed to `claude/daily-2026-09-13` and PR opened, **not merged**.
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
