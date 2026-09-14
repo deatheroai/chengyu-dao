@@ -23,9 +23,10 @@ None open right now.
 
 ## Resolved
 
-- **2026-09-14 — Daily cycle: landed PR #47 (idiom pool batch 4, 60 →
-  75), left unmerged by 2026-09-13's cycle over a suspected sandbox
-  e2e flake.** Pending Decisions was empty. Two other open PRs on the
+- **2026-09-14 — Daily cycle: rebased PR #47 (idiom pool batch 4, 60 →
+  75) onto latest main and re-validated, but it's still not merged — a
+  real GitHub Actions run caught a chain-catch every local run
+  missed.** Pending Decisions was empty. Two other open PRs on the
   standing example-sentence-review track (#40, #44) — left both alone,
   same reasoning as the last several cycles. Rather than authoring a
   fresh batch 5 (which would duplicate #47's already-verified content)
@@ -35,27 +36,40 @@ None open right now.
   branch. Only `DECISIONS.md` conflicted (both branches had appended
   an entry) — resolved by keeping both, in date order;
   `idioms.ts`/`writingStrokeData.ts`/`BACKLOG.md` merged clean.
-  `typecheck`/`test` (367 passed)/`build` all green. `test:e2e` failed
-  once on the first full run — a genuine thrown error this time (not a
-  timeout like #47's own), from the "running out of HP..." test's
-  `jumpForFirstReachableWrongTile` helper, and for a real reason: unlike
-  #47's own date, *today's* date seed draws 明察秋毫 (one of this
-  batch's new idioms) as the session's first level, so this batch's new
-  content is actually exercised today. Investigated properly before
-  concluding it was safe: hand-computed the level's real candidate-tile
-  set (32 safe "wrong catch" tiles across the track, several times more
-  than the ~7 a full HP drain needs — not a genuine content/level-gen
-  gap), then reproduced the specific test 3/3 clean in isolation
-  (~57s each), confirming CPU-contention timing sensitivity under the
-  full parallel suite, not a regression. Before excusing it, checked
-  what the *real* PR gate actually requires: `game-ci.yml` runs
-  `test:e2e` with `CI: true`, which `playwright.config.ts` gives a real
-  retry (`retries: 1`) that my first two full-suite runs (no `CI` set)
-  didn't have — re-ran with `CI=true` to match the real gate exactly:
-  **all 70 tests passed clean**, this one included. Landed via a new PR
-  (content identical to #47's own; superseded it since `main` had moved
-  past #47's base) and merged per the standing 2026-08-26 auto-land
-  policy. Full detail in `BACKLOG.md`'s own entry.
+  `typecheck`/`test` (367 passed)/`build` all green throughout.
+  `test:e2e` failed locally on the first full run — a genuine thrown
+  error this time (not a timeout like #47's own), from the "running out
+  of HP..." test's `jumpForFirstReachableWrongTile` helper, for a real
+  reason: unlike #47's own date, *today's* date seed draws 明察秋毫 (one
+  of this batch's new idioms) as the session's first level, so this
+  batch's new content is actually exercised today. Investigated
+  properly: hand-computed the level's real candidate-tile set (32 safe
+  "wrong catch" tiles across the track, several times more than the ~7
+  a full HP drain needs), then reproduced the specific test 3/3 clean
+  in isolation. Checked what the *real* PR gate actually requires:
+  `game-ci.yml` runs `test:e2e` with `CI: true`, which
+  `playwright.config.ts` gives a real retry (`retries: 1`) that my
+  first two local full-suite runs (no `CI` set) didn't have — re-ran
+  locally with `CI=true` to match, and all 70 passed. Opened PR #49 on
+  that basis.
+  **PR #49's own actual GitHub Actions run then failed anyway**, on a
+  *different* test — "each jump costs HP..." (`idiom-door.spec.ts:431`)
+  got `nextIndex` `"2"` instead of `"1"` on both its original attempt
+  and its automatic retry: the deliberately-aimed "wrong" jump
+  chain-caught the real next character too, for 明察秋毫's level again.
+  Never reproduced locally (3/3 isolated, and a full local `CI=true`
+  run including this exact test all green) — this looks like the same
+  pre-existing `doorJump.ts` timing-margin fragility
+  (`JUMP_FOOTPRINT_X`/`WRONG_TILE_BACK_MARGIN_X`, tuned repeatedly
+  before, see their own doc comments and the 2026-08-30/08-31/09-11
+  entries above) surfaced by which idiom this batch's growth put in
+  front of the door stage today, not a regression in anything this PR
+  actually touches (the catch/margin/level-generation code is
+  unmodified here). But `AUTONOMY.md`'s auto-land gate is the *actual*
+  CI run, not however many local repros pass — so PR #49 (superseding
+  #47; both left open, neither merged) stays **pushed but not merged**,
+  for a human look or a future session, same as #40 and #47's own
+  precedent. Full detail in `BACKLOG.md`'s own entry.
 - **2026-09-13 — Daily cycle: idiom pool batch 4 (60 → 75); pushed but
   not merged since e2e hit a pre-existing timeout issue, confirmed
   unrelated to this batch.** Pending Decisions was empty. Two other

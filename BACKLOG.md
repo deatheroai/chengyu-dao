@@ -628,43 +628,56 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       not a logic bug — but per `AUTONOMY.md`, an e2e failure still
       blocks auto-land regardless of suspected cause, same as PR #40.
       Pushed to `claude/daily-2026-09-13` and PR opened, **not merged**.
-      **Landed 2026-09-14.** Merged latest `main` (which had picked up
-      the milestone-only-matching change, PR #48, since PR #47 opened)
-      onto a fresh session branch — only `DECISIONS.md` conflicted (both
-      branches appended an entry), resolved by keeping both in
-      chronological order; `idioms.ts`/`writingStrokeData.ts`/
-      `BACKLOG.md` merged clean. `typecheck`/`test` (367 passed, same
-      count as `main`)/`build` all green. `test:e2e` failed once more on
-      the first full run — this time a genuine exception, not a
-      timeout: "running out of HP warns first..." threw from
-      `jumpForFirstReachableWrongTile` ("no reachable tile... could be
-      caught before the level ended"). Different failure shape than
-      PR #47's own (a thrown error, not a hang), and for a real reason
-      this time — *today's* date seed draws 明察秋毫 (this batch's own
-      new content) as the session's first level, so the batch's new
-      idioms are actually exercised today, unlike PR #47's own day.
-      Investigated rather than assumed unrelated: computed the level's
-      actual candidate-tile set by hand (a small Node script against
-      `levelContent.ts`'s real output) — 32 safe "wrong catch" tiles
+      **2026-09-14: rebase attempt, still not merged — a real GitHub
+      Actions run caught what local runs didn't.** Merged latest `main`
+      (which had picked up the milestone-only-matching change, PR #48,
+      since PR #47 opened) onto a fresh session branch — only
+      `DECISIONS.md` conflicted (both branches appended an entry),
+      resolved by keeping both in chronological order;
+      `idioms.ts`/`writingStrokeData.ts`/`BACKLOG.md` merged clean.
+      `typecheck`/`test` (367 passed)/`build` all green throughout.
+      `test:e2e` failed on the first local full run — a genuine
+      exception this time, not a timeout: "running out of HP warns
+      first..." threw from `jumpForFirstReachableWrongTile` ("no
+      reachable tile... could be caught before the level ended"), for a
+      real reason — *today's* date seed draws 明察秋毫 (this batch's own
+      new content) as the session's first level, unlike #47's own day,
+      so this batch's new idioms are actually exercised today.
+      Investigated rather than assumed unrelated: hand-computed the
+      level's real candidate-tile set — 32 safe "wrong catch" tiles
       exist across the track, several times more than the ~7 a full
-      100-HP drain needs, so this isn't a genuine tile-availability gap
-      in 明察秋毫's level. Re-ran just this one test in isolation 3/3
-      clean (~57s each), confirming it's this specific test's own
-      sensitivity to CPU contention under the full parallel suite (many
-      real-time-timed jump presses over roughly a minute — under load,
-      enough of them get missed near the track's end to exhaust the
-      remaining candidates) rather than a regression from this batch or
-      the merge. Checked whether the *real* PR gate would actually catch
-      this before treating it as safe to land, rather than just
-      excusing it: `.github/workflows/game-ci.yml` runs `test:e2e` with
-      `CI: true`, which `playwright.config.ts` gives a real retry
-      (`retries: 1`) — my first two full-suite runs had that unset, a
-      strictly harsher gate than the PR will actually face. Re-ran with
-      `CI=true` to match the real gate exactly: **all 70 tests passed**
-      (this test included, no retry even needed that run). Landed via
-      PR (superseding #47, closed as landed via this branch instead of
-      re-merged directly, since main had moved past its base) and
-      merged per the standing 2026-08-26 auto-land policy.
+      HP drain needs, so not a genuine tile-availability gap; the exact
+      test passed 3/3 in local isolation. Checked what the *real* PR
+      gate actually runs before trusting a bare local pass: `game-ci.yml`
+      sets `CI: true`, which `playwright.config.ts` turns into a real
+      retry (`retries: 1`) my first two local full-suite runs didn't
+      have — re-ran locally with `CI=true` to match, and **all 70
+      passed**. Opened PR #49 on that basis.
+      **PR #49's own actual GitHub Actions run then failed anyway** —
+      not the same test: "each jump costs HP, and a wrong catch costs
+      extra on top" (`idiom-door.spec.ts:431`) got `nextIndex` `"2"`
+      where it expected `"1"`, on *both* the original attempt and its
+      built-in retry — the deliberately-wrong-aimed jump chain-caught
+      the real next character too, for 明察秋毫's level once again (this
+      batch's own content, same level 0 as the other failure). Never
+      reproduced locally: 3/3 clean in isolation, and a full local
+      `CI=true` run passed all 70 including this test. The underlying
+      catch/margin code this depends on (`doorJump.ts`'s
+      `JUMP_FOOTPRINT_X`/`WRONG_TILE_BACK_MARGIN_X`, `levelContent.ts`,
+      `orderedCatchProgress.ts`) is untouched by this branch — this
+      looks like the same class of pre-existing timing-margin fragility
+      those constants' own history already documents (2026-08-30,
+      2026-08-31, 2026-09-11 entries above), this time surfaced by which
+      idiom this batch's growth happens to put in front of the door
+      stage today, not a regression in anything this PR actually
+      changes. But per `AUTONOMY.md`, a real e2e failure on the actual
+      gate blocks auto-land regardless of suspected cause or how many
+      local runs pass clean — so PR #49 (superseding #47, both left
+      open) is **pushed but not merged**, for a human look or a future
+      session, same as #40 and #47's own precedent. If it comes up
+      again, the `doorJump.ts` margin constants themselves (not this
+      batch's content) are the next place to look — see their own doc
+      comments for the history of tuning them.
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
