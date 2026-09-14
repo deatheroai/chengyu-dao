@@ -407,6 +407,75 @@ export const idioms: IdiomContent[] = [
     theme: "focus",
     sourceNotes: "Meaning/origin (《孟子·告子上》, the 弈秋 chess-teaching story) confirmed via zdic.net and Baidu Baike; 2026-09-12 search.",
   },
+  {
+    id: "jiao-ta-shi-di",
+    hanzi: "脚踏实地",
+    pinyin: "jiǎo tà shí dì",
+    literalMeaning: "脚 (foot) 踏 (step on) 实 (solid) 地 (ground) — to plant your feet firmly on solid ground.",
+    meaning: "To do things in a steady, practical way — working step by step with real effort, instead of rushing or skipping steps.",
+    meaningZh: {
+      hanzi: "做事情很实在，一步一步认真去做，不想着走捷径。",
+      pinyin: "Zuò shìqing hěn shízài, yí bù yí bù rènzhēn qù zuò, bù xiǎngzhe zǒu jiéjìng.",
+      charPinyin: ["zuò", "shì", "qing", "hěn", "shí", "zài", "", "yí", "bù", "yí", "bù", "rèn", "zhēn", "qù", "zuò", "", "bù", "xiǎng", "zhe", "zǒu", "jié", "jìng", ""],
+    },
+    dailyLifeScenario:
+      "You want to get better at running, so every day after school you jog around the field a little bit, even when it's boring — instead of hoping to become fast overnight. That's 脚踏实地.",
+    exampleSentence: {
+      hanzi: "他每天脚踏实地地练习跑步，一点一点地进步。",
+      pinyin: "Tā měitiān jiǎotàshídì de liànxí pǎobù, yìdiǎn yìdiǎn de jìnbù.",
+      english: "He practises running with steady, consistent effort every day, improving little by little.",
+      charPinyin: ["tā", "měi", "tiān", "jiǎo", "tà", "shí", "dì", "de", "liàn", "xí", "pǎo", "bù", "", "yì", "diǎn", "yì", "diǎn", "de", "jìn", "bù", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning/origin (宋·邵伯温《闻见前录》) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "jian-chi-bu-xie",
+    hanzi: "坚持不懈",
+    pinyin: "jiān chí bù xiè",
+    literalMeaning: "坚 (firm) 持 (hold) 不 (not) 懈 (slacken) — holding on firmly, without ever slackening.",
+    meaning: "To keep trying and never give up, without slowing down or losing effort over time.",
+    meaningZh: {
+      hanzi: "长时间努力去做一件事，一直不放松，也不半途放弃。",
+      pinyin: "Cháng shíjiān nǔlì qù zuò yí jiàn shì, yìzhí bú fàngsōng, yě bú bàntú fàngqì.",
+      charPinyin: ["cháng", "shí", "jiān", "nǔ", "lì", "qù", "zuò", "yí", "jiàn", "shì", "", "yì", "zhí", "bú", "fàng", "sōng", "", "yě", "bú", "bàn", "tú", "fàng", "qì", ""],
+    },
+    dailyLifeScenario:
+      "You're learning to ride a unicycle and keep falling off — but instead of quitting after a bad week, you keep practising every single day until you can finally ride it. That's 坚持不懈.",
+    exampleSentence: {
+      hanzi: "他坚持不懈地练习跳绳，最后终于一次能跳一百下。",
+      pinyin: "Tā jiānchí-búxiè de liànxí tiàoshéng, zuìhòu zhōngyú yí cì néng tiào yìbǎi xià.",
+      english: "He practises jump rope with steady persistence, and eventually manages to jump a hundred times in one go.",
+      charPinyin: ["tā", "jiān", "chí", "bú", "xiè", "de", "liàn", "xí", "tiào", "shéng", "", "zuì", "hòu", "zhōng", "yú", "yí", "cì", "néng", "tiào", "yì", "bǎi", "xià", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning/origin (《清史稿·刘体重传》) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "yi-gu-zuo-qi",
+    hanzi: "一鼓作气",
+    pinyin: "yī gǔ zuò qì",
+    literalMeaning: "一鼓 (the first drumbeat) 作 (rouses) 气 (spirit) — rousing your spirit at the first drumbeat, while morale is highest.",
+    meaning: "To use a burst of energy and enthusiasm to finish something in one go, while your motivation is strongest, instead of letting it fade.",
+    meaningZh: {
+      hanzi: "趁着自己劲头最足的时候，鼓起干劲，一口气把事情做完。",
+      pinyin: "Chènzhe zìjǐ jìntóu zuì zú de shíhou, gǔqǐ gànjìn, yìkǒuqì bǎ shìqing zuò wán.",
+      charPinyin: ["chèn", "zhe", "zì", "jǐ", "jìn", "tóu", "zuì", "zú", "de", "shí", "hou", "", "gǔ", "qǐ", "gàn", "jìn", "", "yì", "kǒu", "qì", "bǎ", "shì", "qing", "zuò", "wán", ""],
+    },
+    dailyLifeScenario:
+      "You're almost done tidying your room and feel like taking a break, but instead you push through and finish the last corner while you've still got the energy. That's 一鼓作气.",
+    exampleSentence: {
+      hanzi: "整理房间时他一鼓作气，一口气把所有玩具都收好了。",
+      pinyin: "Zhěnglǐ fángjiān shí tā yīgǔ-zuòqì, yìkǒuqì bǎ suǒyǒu wánjù dōu shōuhǎo le.",
+      english: "While tidying his room, he pressed on with a burst of energy and put away all his toys in one go.",
+      charPinyin: ["zhěng", "lǐ", "fáng", "jiān", "shí", "tā", "yī", "gǔ", "zuò", "qì", "", "yì", "kǒu", "qì", "bǎ", "suǒ", "yǒu", "wán", "jù", "dōu", "shōu", "hǎo", "le", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "focus",
+    sourceNotes: "Meaning/origin (《左传·庄公十年》, the 曹刿论战 battle-of-Changshao story) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
 
   // --- Honesty & Character ---
   {
@@ -733,6 +802,98 @@ export const idioms: IdiomContent[] = [
     theme: "honesty",
     sourceNotes: "Meaning/origin (汉·马融《忠经》; also 《管子·形势解》) confirmed via zdic.net (hans & hant) and Baidu Baike; 2026-09-12 search.",
   },
+  {
+    id: "shi-jin-bu-mei",
+    hanzi: "拾金不昧",
+    pinyin: "shí jīn bù mèi",
+    literalMeaning: "拾 (pick up) 金 (money) 不 (not) 昧 (hide) — picking up money and not hiding it away for yourself.",
+    meaning: "To find something valuable that isn't yours and honestly return it instead of keeping it.",
+    meaningZh: {
+      hanzi: "捡到别人的东西以后，不藏起来占为己有，而是想办法还给失主。",
+      pinyin: "Jiǎndào biérén de dōngxi yǐhòu, bù cángqǐlái zhànwéijǐyǒu, ér shì xiǎng bànfǎ huángěi shīzhǔ.",
+      charPinyin: ["jiǎn", "dào", "bié", "rén", "de", "dōng", "xi", "yǐ", "hòu", "", "bù", "cáng", "qǐ", "lái", "zhàn", "wéi", "jǐ", "yǒu", "", "ér", "shì", "xiǎng", "bàn", "fǎ", "huán", "gěi", "shī", "zhǔ", ""],
+    },
+    dailyLifeScenario:
+      "You find a wallet dropped on the playground. Instead of keeping the money inside, you hand it to your teacher so it can find its way back to its owner. That's 拾金不昧.",
+    exampleSentence: {
+      hanzi: "小美在操场捡到一个钱包，拾金不昧，马上交给了老师。",
+      pinyin: "Xiǎoměi zài cāochǎng jiǎndào yí ge qiánbāo, shíjīn-búmèi, mǎshàng jiāogěi le lǎoshī.",
+      english: "Xiaomei finds a wallet on the playground, and true to being honest and not hiding it away, she hands it straight to her teacher.",
+      charPinyin: ["xiǎo", "měi", "zài", "cāo", "chǎng", "jiǎn", "dào", "yí", "ge", "qián", "bāo", "", "shí", "jīn", "bú", "mèi", "", "mǎ", "shàng", "jiāo", "gěi", "le", "lǎo", "shī", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (清·吴炽昌《客窗闲话》) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "yi-yan-wei-ding",
+    hanzi: "一言为定",
+    pinyin: "yī yán wéi dìng",
+    literalMeaning: "一言 (one word) 为 (is) 定 (settled) — once a word is said, the matter is settled.",
+    meaning: "Once you've promised something, that's final — you won't go back on it.",
+    meaningZh: {
+      hanzi: "答应别人的事情就说定了，以后不会再改变。",
+      pinyin: "Dāying biérén de shìqing jiù shuōdìng le, yǐhòu bú huì zài gǎibiàn.",
+      charPinyin: ["dā", "ying", "bié", "rén", "de", "shì", "qing", "jiù", "shuō", "dìng", "le", "", "yǐ", "hòu", "bú", "huì", "zài", "gǎi", "biàn", ""],
+    },
+    dailyLifeScenario:
+      "You and your friend agree to meet at the library on Saturday to study together. Even when it starts raining, you both still show up, because a promise is a promise. That's 一言为定.",
+    exampleSentence: {
+      hanzi: "我们一言为定，星期六一起去图书馆看书。",
+      pinyin: "Wǒmen yìyán-wéidìng, xīngqīliù yìqǐ qù túshūguǎn kànshū.",
+      english: "We agree on it — Saturday, we'll go to the library together to study, and that's settled.",
+      charPinyin: ["wǒ", "men", "yì", "yán", "wéi", "dìng", "", "xīng", "qī", "liù", "yì", "qǐ", "qù", "tú", "shū", "guǎn", "kàn", "shū", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (元·纪君祥《赵氏孤儿》) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "yan-chu-bi-xing",
+    hanzi: "言出必行",
+    pinyin: "yán chū bì xíng",
+    literalMeaning: "言 (words) 出 (come out) 必 (certainly) 行 (are carried out) — whatever you say, you will definitely do.",
+    meaning: "Whatever you say you'll do, you actually do — your words and your actions always match.",
+    meaningZh: {
+      hanzi: "说出来的话一定会做到，说到就会做到，不是随便说说。",
+      pinyin: "Shuō chūlái de huà yídìng huì zuòdào, shuōdào jiù huì zuòdào, bú shì suíbiàn shuōshuo.",
+      charPinyin: ["shuō", "chū", "lái", "de", "huà", "yí", "dìng", "huì", "zuò", "dào", "", "shuō", "dào", "jiù", "huì", "zuò", "dào", "", "bú", "shì", "suí", "biàn", "shuō", "shuo", ""],
+    },
+    dailyLifeScenario:
+      "You tell your little sister you'll help her build a sandcastle after your snack — and even though you'd rather keep playing, you keep your word and help her right after. That's 言出必行.",
+    exampleSentence: {
+      hanzi: "哥哥言出必行，说要教弟弟骑车，吃完饭就真的去教了。",
+      pinyin: "Gēge yánchū-bìxíng, shuō yào jiāo dìdi qí chē, chīwán fàn jiù zhēnde qù jiāo le.",
+      english: "True to his word, older brother said he'd teach his little brother to ride a bike, and right after their meal, he really did.",
+      charPinyin: ["gē", "ge", "yán", "chū", "bì", "xíng", "", "shuō", "yào", "jiāo", "dì", "di", "qí", "chē", "", "chī", "wán", "fàn", "jiù", "zhēn", "de", "qù", "jiāo", "le", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (the story of 曹沫 and 鲁庄公) confirmed via zdic.net (hant) and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "shuo-yi-bu-er",
+    hanzi: "说一不二",
+    pinyin: "shuō yī bù èr",
+    literalMeaning: "说 (say) 一 (one) 不 (not) 二 (two) — saying 'one' and not changing it to 'two': your word doesn't change.",
+    meaning: "Once you say something, you stick to it exactly — you don't change your mind or go back on your word.",
+    meaningZh: {
+      hanzi: "说出来的话就算数，不会改来改去，说到什么就是什么。",
+      pinyin: "Shuō chūlái de huà jiù suànshù, bú huì gǎiláigǎiqù, shuōdào shénme jiùshì shénme.",
+      charPinyin: ["shuō", "chū", "lái", "de", "huà", "jiù", "suàn", "shù", "", "bú", "huì", "gǎi", "lái", "gǎi", "qù", "", "shuō", "dào", "shén", "me", "jiù", "shì", "shén", "me", ""],
+    },
+    dailyLifeScenario:
+      "Your class monitor says lights-out is at nine and never bends the rule for anyone, even their own best friend. That's 说一不二.",
+    exampleSentence: {
+      hanzi: "班长说一不二，规定好的事从来不会改变。",
+      pinyin: "Bānzhǎng shuōyī-bù'èr, guīdìng hǎo de shì cónglái bú huì gǎibiàn.",
+      english: "The class monitor's word is final — once a rule is set, it never changes.",
+      charPinyin: ["bān", "zhǎng", "shuō", "yī", "bù", "èr", "", "guī", "dìng", "hǎo", "de", "shì", "cóng", "lái", "bú", "huì", "gǎi", "biàn", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "honesty",
+    sourceNotes: "Meaning/origin (清·文康《儿女英雄传》) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
 
   // --- Kindness & Community ---
   {
@@ -1057,6 +1218,98 @@ export const idioms: IdiomContent[] = [
     ageBand: "lower-primary",
     theme: "kindness",
     sourceNotes: "Meaning/origin (清·邹弢《三借庐笔谈》) confirmed via zdic.net and Taiwan MOE 成語典 (idiom ID 563); 2026-09-12 search.",
+  },
+  {
+    id: "tui-ji-ji-ren",
+    hanzi: "推己及人",
+    pinyin: "tuī jǐ jí rén",
+    literalMeaning: "推 (push out from) 己 (oneself) 及 (reach) 人 (others) — using your own feelings to understand how others feel.",
+    meaning: "To imagine how you would feel in someone else's situation, and treat them the way you'd want to be treated.",
+    meaningZh: {
+      hanzi: "用自己的感受去想别人的感受，设身处地为别人着想。",
+      pinyin: "Yòng zìjǐ de gǎnshòu qù xiǎng biérén de gǎnshòu, shèshēnchǔdì wèi biérén zhuóxiǎng.",
+      charPinyin: ["yòng", "zì", "jǐ", "de", "gǎn", "shòu", "qù", "xiǎng", "bié", "rén", "de", "gǎn", "shòu", "", "shè", "shēn", "chǔ", "dì", "wèi", "bié", "rén", "zhuó", "xiǎng", ""],
+    },
+    dailyLifeScenario:
+      "Your friend didn't get picked for the team and looks upset. You remember how sad you felt the last time that happened to you, so you sit with them and cheer them up. That's 推己及人.",
+    exampleSentence: {
+      hanzi: "他推己及人，想到自己被笑话时很难过，就不再嘲笑同学了。",
+      pinyin: "Tā tuījǐ-jírén, xiǎngdào zìjǐ bèi xiàohuà shí hěn nánguò, jiù bú zài cháoxiào tóngxué le.",
+      english: "Putting himself in another's shoes, he remembered how upsetting it felt to be laughed at, so he stopped teasing his classmate.",
+      charPinyin: ["tā", "tuī", "jǐ", "jí", "rén", "", "xiǎng", "dào", "zì", "jǐ", "bèi", "xiào", "huà", "shí", "hěn", "nán", "guò", "", "jiù", "bú", "zài", "cháo", "xiào", "tóng", "xué", "le", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (《论语·卫灵公》; the story of 晏子 and 齐景公) confirmed via zdic.net (hant) and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "shou-wang-xiang-zhu",
+    hanzi: "守望相助",
+    pinyin: "shǒu wàng xiāng zhù",
+    literalMeaning: "守 (guard) 望 (watch) 相 (each other) 助 (help) — neighbours keeping watch and helping each other.",
+    meaning: "Neighbours or friends looking out for one another and helping each other whenever there's trouble.",
+    meaningZh: {
+      hanzi: "大家互相照顾，互相帮忙，遇到困难的时候一起面对。",
+      pinyin: "Dàjiā hùxiāng zhàogù, hùxiāng bāngmáng, yùdào kùnnan de shíhou yìqǐ miànduì.",
+      charPinyin: ["dà", "jiā", "hù", "xiāng", "zhào", "gù", "", "hù", "xiāng", "bāng", "máng", "", "yù", "dào", "kùn", "nan", "de", "shí", "hou", "yì", "qǐ", "miàn", "duì", ""],
+    },
+    dailyLifeScenario:
+      "When the neighbourhood plays hide-and-seek at night, the older kids look out for the younger ones and everyone walks each other home safely. That's 守望相助.",
+    exampleSentence: {
+      hanzi: "邻居们守望相助，谁家有困难大家都会一起帮忙。",
+      pinyin: "Línjūmen shǒuwàng-xiāngzhù, shéi jiā yǒu kùnnan dàjiā dōu huì yìqǐ bāngmáng.",
+      english: "The neighbours look out for each other — whenever a family runs into trouble, everyone comes together to help.",
+      charPinyin: ["lín", "jū", "men", "shǒu", "wàng", "xiāng", "zhù", "", "shéi", "jiā", "yǒu", "kùn", "nan", "dà", "jiā", "dōu", "huì", "yì", "qǐ", "bāng", "máng", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (《孟子·滕文公上》) confirmed via zdic.net (hant) and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "you-qiu-bi-ying",
+    hanzi: "有求必应",
+    pinyin: "yǒu qiú bì yìng",
+    literalMeaning: "有 (have) 求 (a request) 必 (certainly) 应 (respond) — whenever someone asks for help, you answer.",
+    meaning: "Being so willing to help that you always say yes whenever someone asks you for something reasonable.",
+    meaningZh: {
+      hanzi: "只要有人开口请求帮忙，就一定会答应，很乐意帮助别人。",
+      pinyin: "Zhǐyào yǒurén kāikǒu qǐngqiú bāngmáng, jiù yídìng huì dāying, hěn lèyì bāngzhù biérén.",
+      charPinyin: ["zhǐ", "yào", "yǒu", "rén", "kāi", "kǒu", "qǐng", "qiú", "bāng", "máng", "", "jiù", "yí", "dìng", "huì", "dā", "ying", "", "hěn", "lè", "yì", "bāng", "zhù", "bié", "rén", ""],
+    },
+    dailyLifeScenario:
+      "Whenever a classmate asks to borrow a pencil, some paper, or a hand carrying books, you always say yes and help out. That's 有求必应.",
+    exampleSentence: {
+      hanzi: "小华对同学有求必应，只要有人需要帮忙他都会答应。",
+      pinyin: "Xiǎohuá duì tóngxué yǒuqiú-bìyìng, zhǐyào yǒurén xūyào bāngmáng tā dōu huì dāying.",
+      english: "Xiaohua always answers when a classmate needs help — whenever anyone needs a hand, he says yes.",
+      charPinyin: ["xiǎo", "huá", "duì", "tóng", "xué", "yǒu", "qiú", "bì", "yìng", "", "zhǐ", "yào", "yǒu", "rén", "xū", "yào", "bāng", "máng", "tā", "dōu", "huì", "dā", "ying", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "yi-shi-tong-ren",
+    hanzi: "一视同仁",
+    pinyin: "yī shì tóng rén",
+    literalMeaning: "一视 (look at the same way) 同仁 (with the same kindness) — looking at everyone the same way, with equal kindness.",
+    meaning: "To treat everyone the same and fairly, without favouring some people over others.",
+    meaningZh: {
+      hanzi: "对待每一个人都一样公平，不会因为关系好坏而区别对待。",
+      pinyin: "Duìdài měi yí ge rén dōu yíyàng gōngpíng, bú huì yīnwèi guānxi hǎohuài ér qūbié duìdài.",
+      charPinyin: ["duì", "dài", "měi", "yí", "ge", "rén", "dōu", "yí", "yàng", "gōng", "píng", "", "bú", "huì", "yīn", "wèi", "guān", "xi", "hǎo", "huài", "ér", "qū", "bié", "duì", "dài", ""],
+    },
+    dailyLifeScenario:
+      "Whether it's their best friend or someone they've just met, your teacher listens patiently and treats every student fairly. That's 一视同仁.",
+    exampleSentence: {
+      hanzi: "老师对全班同学一视同仁，从来不偏心任何人。",
+      pinyin: "Lǎoshī duì quánbān tóngxué yīshì-tóngrén, cónglái bù piānxīn rènhé rén.",
+      english: "The teacher treats every student in the class the same, never favouring anyone.",
+      charPinyin: ["lǎo", "shī", "duì", "quán", "bān", "tóng", "xué", "yī", "shì", "tóng", "rén", "", "cóng", "lái", "bù", "piān", "xīn", "rèn", "hé", "rén", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "kindness",
+    sourceNotes: "Meaning/origin (唐·韩愈《原人》) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
   },
 
   // --- Wisdom & Learning ---
@@ -1405,6 +1658,98 @@ export const idioms: IdiomContent[] = [
     ageBand: "lower-primary",
     theme: "wisdom",
     sourceNotes: "Meaning/origin (《荀子·成相》; 汉·刘向《说苑》) confirmed via zdic.net (hans & hant) and Baidu Baike; 2026-09-12 search.",
+  },
+  {
+    id: "hua-she-tian-zu",
+    hanzi: "画蛇添足",
+    pinyin: "huà shé tiān zú",
+    literalMeaning: "画 (draw) 蛇 (a snake) 添 (add) 足 (feet) — drawing a snake and then adding feet, which no snake has.",
+    meaning: "Adding something unnecessary to something that was already fine, which ends up spoiling it instead of improving it.",
+    meaningZh: {
+      hanzi: "事情已经做得很好了，却多此一举，反而把事情弄糟了。",
+      pinyin: "Shìqing yǐjīng zuò de hěn hǎo le, què duōcǐyìjǔ, fǎn'ér bǎ shìqing nòngzāo le.",
+      charPinyin: ["shì", "qing", "yǐ", "jīng", "zuò", "de", "hěn", "hǎo", "le", "", "què", "duō", "cǐ", "yì", "jǔ", "", "fǎn", "ér", "bǎ", "shì", "qing", "nòng", "zāo", "le", ""],
+    },
+    dailyLifeScenario:
+      "Your drawing of a house already looks great, but you keep adding more and more extra windows and doors until it looks messy and confusing instead of better. That's 画蛇添足.",
+    exampleSentence: {
+      hanzi: "他画的房子本来很好看，又加了很多没用的东西，真是画蛇添足。",
+      pinyin: "Tā huà de fángzi běnlái hěn hǎokàn, yòu jiā le hěn duō méiyòng de dōngxi, zhēnshi huàshé-tiānzú.",
+      english: "His drawing of a house already looked great, but he kept adding useless extra bits — truly a case of overdoing it.",
+      charPinyin: ["tā", "huà", "de", "fáng", "zi", "běn", "lái", "hěn", "hǎo", "kàn", "", "yòu", "jiā", "le", "hěn", "duō", "méi", "yòng", "de", "dōng", "xi", "", "zhēn", "shi", "huà", "shé", "tiān", "zú", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (《战国策·齐策二》) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "sai-weng-shi-ma",
+    hanzi: "塞翁失马",
+    pinyin: "sài wēng shī mǎ",
+    literalMeaning: "塞翁 (the old man at the border) 失 (lost) 马 (his horse) — the old man who lived by the border lost his horse.",
+    meaning: "Something that seems like bad luck at first might actually turn out to bring good luck later — you can't always tell right away.",
+    meaningZh: {
+      hanzi: "一时看起来是坏事，说不定以后反而会带来好处。",
+      pinyin: "Yìshí kànqǐlái shì huàishì, shuōbudìng yǐhòu fǎn'ér huì dàilái hǎochù.",
+      charPinyin: ["yì", "shí", "kàn", "qǐ", "lái", "shì", "huài", "shì", "", "shuō", "bu", "dìng", "yǐ", "hòu", "fǎn", "ér", "huì", "dài", "lái", "hǎo", "chù", ""],
+    },
+    dailyLifeScenario:
+      "You're upset that your class trip got rained out — but because it was postponed, you end up going on a much more exciting trip the following month instead. That's 塞翁失马.",
+    exampleSentence: {
+      hanzi: "旅行取消让他很失望，没想到塞翁失马，后来去了更好玩的地方。",
+      pinyin: "Lǚxíng qǔxiāo ràng tā hěn shīwàng, méi xiǎngdào sàiwēng-shīmǎ, hòulái qù le gèng hǎowán de dìfang.",
+      english: "The trip being cancelled disappointed him at first, but as it turned out, this stroke of bad luck led somewhere better — he later went somewhere even more fun.",
+      charPinyin: ["lǚ", "xíng", "qǔ", "xiāo", "ràng", "tā", "hěn", "shī", "wàng", "", "méi", "xiǎng", "dào", "sài", "wēng", "shī", "mǎ", "", "hòu", "lái", "qù", "le", "gèng", "hǎo", "wán", "de", "dì", "fang", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (《淮南子·人间训》) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "dui-zheng-xia-yao",
+    hanzi: "对症下药",
+    pinyin: "duì zhèng xià yào",
+    literalMeaning: "对 (matching) 症 (the illness) 下 (apply) 药 (medicine) — giving the exact medicine that matches the illness.",
+    meaning: "Solving a problem by finding the specific method that actually fits it, instead of using the same solution for everything.",
+    meaningZh: {
+      hanzi: "根据问题真正的原因，找到最合适的办法来解决它。",
+      pinyin: "Gēnjù wèntí zhēnzhèng de yuányīn, zhǎodào zuì héshì de bànfǎ lái jiějué tā.",
+      charPinyin: ["gēn", "jù", "wèn", "tí", "zhēn", "zhèng", "de", "yuán", "yīn", "", "zhǎo", "dào", "zuì", "hé", "shì", "de", "bàn", "fǎ", "lái", "jiě", "jué", "tā", ""],
+    },
+    dailyLifeScenario:
+      "Your bike keeps stopping, and instead of just oiling random parts, you check carefully and find the loose chain that's actually causing it, then fix that one thing. That's 对症下药.",
+    exampleSentence: {
+      hanzi: "医生对症下药，先查清楚原因，再给出正确的治疗方法。",
+      pinyin: "Yīshēng duìzhèng-xiàyào, xiān chá qīngchu yuányīn, zài gěichū zhèngquè de zhìliáo fāngfǎ.",
+      english: "The doctor prescribes the right treatment — first finding the actual cause, then giving the correct method to treat it.",
+      charPinyin: ["yī", "shēng", "duì", "zhèng", "xià", "yào", "", "xiān", "chá", "qīng", "chu", "yuán", "yīn", "", "zài", "gěi", "chū", "zhèng", "què", "de", "zhì", "liáo", "fāng", "fǎ", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (《三国志·魏志·华佗传》, the story of 华佗) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
+  },
+  {
+    id: "xun-xu-jian-jin",
+    hanzi: "循序渐进",
+    pinyin: "xún xù jiàn jìn",
+    literalMeaning: "循 (follow) 序 (order) 渐 (gradually) 进 (advance) — following the proper order and advancing step by step.",
+    meaning: "Learning or working through things in the right order, one step at a time, instead of jumping ahead too fast.",
+    meaningZh: {
+      hanzi: "按照一定的顺序，一步一步慢慢地进步，不跳过该学的部分。",
+      pinyin: "Ànzhào yídìng de shùnxù, yí bù yí bù mànman de jìnbù, bú tiàoguò gāi xué de bùfen.",
+      charPinyin: ["àn", "zhào", "yí", "dìng", "de", "shùn", "xù", "", "yí", "bù", "yí", "bù", "màn", "man", "de", "jìn", "bù", "", "bú", "tiào", "guò", "gāi", "xué", "de", "bù", "fen", ""],
+    },
+    dailyLifeScenario:
+      "You're learning to swim, so you practise floating first, then kicking, then arm strokes — one skill at a time instead of jumping straight into the deep end. That's 循序渐进.",
+    exampleSentence: {
+      hanzi: "学游泳要循序渐进，先学漂浮，再慢慢学换气和划手。",
+      pinyin: "Xué yóuyǒng yào xúnxù-jiànjìn, xiān xué piāofú, zài mànman xué huànqì hé huáshǒu.",
+      english: "Learning to swim should go step by step — first learn to float, then slowly learn to breathe and stroke.",
+      charPinyin: ["xué", "yóu", "yǒng", "yào", "xún", "xù", "jiàn", "jìn", "", "xiān", "xué", "piāo", "fú", "", "zài", "màn", "man", "xué", "huàn", "qì", "hé", "huá", "shǒu", ""],
+    },
+    ageBand: "lower-primary",
+    theme: "wisdom",
+    sourceNotes: "Meaning/origin (朱熹《论语集注》: 循序渐进) confirmed via zdic.net and Baidu Baike; 2026-09-13 search.",
   },
 ];
 
