@@ -628,6 +628,43 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       not a logic bug — but per `AUTONOMY.md`, an e2e failure still
       blocks auto-land regardless of suspected cause, same as PR #40.
       Pushed to `claude/daily-2026-09-13` and PR opened, **not merged**.
+      **Landed 2026-09-14.** Merged latest `main` (which had picked up
+      the milestone-only-matching change, PR #48, since PR #47 opened)
+      onto a fresh session branch — only `DECISIONS.md` conflicted (both
+      branches appended an entry), resolved by keeping both in
+      chronological order; `idioms.ts`/`writingStrokeData.ts`/
+      `BACKLOG.md` merged clean. `typecheck`/`test` (367 passed, same
+      count as `main`)/`build` all green. `test:e2e` failed once more on
+      the first full run — this time a genuine exception, not a
+      timeout: "running out of HP warns first..." threw from
+      `jumpForFirstReachableWrongTile` ("no reachable tile... could be
+      caught before the level ended"). Different failure shape than
+      PR #47's own (a thrown error, not a hang), and for a real reason
+      this time — *today's* date seed draws 明察秋毫 (this batch's own
+      new content) as the session's first level, so the batch's new
+      idioms are actually exercised today, unlike PR #47's own day.
+      Investigated rather than assumed unrelated: computed the level's
+      actual candidate-tile set by hand (a small Node script against
+      `levelContent.ts`'s real output) — 32 safe "wrong catch" tiles
+      exist across the track, several times more than the ~7 a full
+      100-HP drain needs, so this isn't a genuine tile-availability gap
+      in 明察秋毫's level. Re-ran just this one test in isolation 3/3
+      clean (~57s each), confirming it's this specific test's own
+      sensitivity to CPU contention under the full parallel suite (many
+      real-time-timed jump presses over roughly a minute — under load,
+      enough of them get missed near the track's end to exhaust the
+      remaining candidates) rather than a regression from this batch or
+      the merge. Checked whether the *real* PR gate would actually catch
+      this before treating it as safe to land, rather than just
+      excusing it: `.github/workflows/game-ci.yml` runs `test:e2e` with
+      `CI: true`, which `playwright.config.ts` gives a real retry
+      (`retries: 1`) — my first two full-suite runs had that unset, a
+      strictly harsher gate than the PR will actually face. Re-ran with
+      `CI=true` to match the real gate exactly: **all 70 tests passed**
+      (this test included, no retry even needed that run). Landed via
+      PR (superseding #47, closed as landed via this branch instead of
+      re-merged directly, since main had moved past its base) and
+      merged per the standing 2026-08-26 auto-land policy.
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting

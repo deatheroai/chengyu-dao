@@ -23,6 +23,39 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-14 — Daily cycle: landed PR #47 (idiom pool batch 4, 60 →
+  75), left unmerged by 2026-09-13's cycle over a suspected sandbox
+  e2e flake.** Pending Decisions was empty. Two other open PRs on the
+  standing example-sentence-review track (#40, #44) — left both alone,
+  same reasoning as the last several cycles. Rather than authoring a
+  fresh batch 5 (which would duplicate #47's already-verified content)
+  or leaving #47 to rot, picked up its own continuation: merged latest
+  `main` (which had picked up the milestone-only-matching change, PR
+  #48, since #47 opened) onto a fresh `claude/daily-2026-09-14`
+  branch. Only `DECISIONS.md` conflicted (both branches had appended
+  an entry) — resolved by keeping both, in date order;
+  `idioms.ts`/`writingStrokeData.ts`/`BACKLOG.md` merged clean.
+  `typecheck`/`test` (367 passed)/`build` all green. `test:e2e` failed
+  once on the first full run — a genuine thrown error this time (not a
+  timeout like #47's own), from the "running out of HP..." test's
+  `jumpForFirstReachableWrongTile` helper, and for a real reason: unlike
+  #47's own date, *today's* date seed draws 明察秋毫 (one of this
+  batch's new idioms) as the session's first level, so this batch's new
+  content is actually exercised today. Investigated properly before
+  concluding it was safe: hand-computed the level's real candidate-tile
+  set (32 safe "wrong catch" tiles across the track, several times more
+  than the ~7 a full HP drain needs — not a genuine content/level-gen
+  gap), then reproduced the specific test 3/3 clean in isolation
+  (~57s each), confirming CPU-contention timing sensitivity under the
+  full parallel suite, not a regression. Before excusing it, checked
+  what the *real* PR gate actually requires: `game-ci.yml` runs
+  `test:e2e` with `CI: true`, which `playwright.config.ts` gives a real
+  retry (`retries: 1`) that my first two full-suite runs (no `CI` set)
+  didn't have — re-ran with `CI=true` to match the real gate exactly:
+  **all 70 tests passed clean**, this one included. Landed via a new PR
+  (content identical to #47's own; superseded it since `main` had moved
+  past #47's base) and merged per the standing 2026-08-26 auto-land
+  policy. Full detail in `BACKLOG.md`'s own entry.
 - **2026-09-13 — Daily cycle: idiom pool batch 4 (60 → 75); pushed but
   not merged since e2e hit a pre-existing timeout issue, confirmed
   unrelated to this batch.** Pending Decisions was empty. Two other
