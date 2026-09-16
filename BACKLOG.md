@@ -1161,10 +1161,12 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       double the snake's length and permanently 4x its apple-growth rate
       (2026-09-16, revised from purple/one-shot-only per your follow-up).**
       The growth-rule half is now built and tested — `snakeGrid.ts`'s
-      `applyPoisonAppleEaten`/`applyAppleEaten` (see that item above).
-      Still open: `itemSpawner.ts`'s 10% spawn roll, and the rainbow/
-      "gooey" render treatment (Phaser scene item below) — this stays
-      in-progress until both land. ~10% of spawned apples are poison
+      `applyPoisonAppleEaten`/`applyAppleEaten` (see that item above) —
+      and so is the spawn-rule half: `itemSpawner.ts`'s `spawnApple`
+      rolls poison at `POISON_APPLE_CHANCE = 0.1` (see the item spawner
+      entry above). Still open: the rainbow/"gooey" render treatment
+      (Phaser scene item below) — this stays in-progress until that
+      lands too. ~10% of spawned apples are poison
       instead of normal — visually the
       same apple sprite but rendered with a cycling rainbow palette
       (`POISON_APPLE_PALETTE`) rather than a single recolor, so it reads
@@ -1195,18 +1197,32 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       length can't exceed `gridWidth * gridHeight` (defensive only — in
       practice a snake forced that large runs out of safe cells and
       self-collides well before hitting the literal cap).
-- [ ] `todo` — **Item spawner + suffocation predicate (`itemSpawner.ts`,
-      `suffocation.ts` + tests).** Spawns apples (~10% of which roll
-      poison, see above) and science items (~1 science item per 3-4
-      apples on board) at free cells; on a wrong-twice ("indigestion"),
-      spawns several replacement science
-      items instead of just clearing the one, so repeated misses snowball
-      risk. Per your "should end early quickly if player fails, i.e.
-      pooped out half the screen": `suffocation.ts` is a pure predicate
-      over *unresolved science items specifically* (not general board
-      clutter) — `SUFFOCATION_THRESHOLD_RATIO = 0.5` of total cells
-      triggers immediate game over, checked every tick, independent of
-      snake length/win progress.
+- [x] `done` — **Item spawner + suffocation predicate (`itemSpawner.ts`,
+      `suffocation.ts` + tests, 2026-09-16).** `seededRandom.ts`
+      (`createRng`, mulberry32) is a deliberate standalone copy of
+      `idiom-door`'s own — not imported cross-game, per the
+      "completely independent" resolution in `DECISIONS.md`.
+      `freeCells`/`pickRandomFreeCell` place items on any grid cell the
+      snake/other items don't already occupy; `spawnApple` rolls poison
+      at `POISON_APPLE_CHANCE = 0.1`; `pickNextItemType` keeps the
+      board's science:apple ratio near `SCIENCE_TO_APPLE_RATIO` (~1
+      science item per 3.5 apples) by direct ratio check on normal
+      spawns (apple eaten/question answered correctly → spawn a
+      replacement) — deliberately *not* used by
+      `spawnIndigestionItems`, which bypasses the ratio entirely to
+      place `INDIGESTION_SPAWN_COUNT = 3` replacement science items on a
+      wrong-twice, the intended risk spike. `pickNextQuestionId` avoids
+      putting the same question on the board twice at once, falling
+      back to allowing a repeat only once every question is already
+      active. Per your "should end early quickly if player fails, i.e.
+      pooped out half the screen": `suffocation.ts`'s `isSuffocating` is
+      a pure predicate over *unresolved science items specifically* (not
+      apples, not the snake's own body) — `SUFFOCATION_THRESHOLD_RATIO
+      = 0.5` of total cells triggers immediate game over, meant to be
+      checked every tick, independent of snake length/win progress. 27
+      tests (including a statistical check that the poison roll lands
+      within 5 points of its configured 10% over 2000 spawns). All
+      green: typecheck, full unit suite (450 passed, up from 423).
 - [ ] `todo` — **Scoring + high score persistence
       (`scienceSnakeScore.ts` + tests).** `score = apples*5 +
       questionsCorrect*30`, recorded only on a win (per your spec).
