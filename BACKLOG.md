@@ -1103,23 +1103,34 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       without options, since there's nothing to actually reason about.
       MCQ-format content is explicitly out of scope for this game, left
       for later (per your "MCQ for another time").
-- [ ] `todo` — **Pure grading module (`answerGrading.ts` + tests).**
-      Keyword-match (case-insensitive, all `requiredKeywords` OR-groups
-      hit) + malformed check (`minWords` floor, cheap verb-shaped-token
-      heuristic — lenient, not a grammar checker) + the two-try state
-      machine itself: `ASK → [wrong: HINT+ASK try 2] → [wrong: REVEAL]`.
-      Pure and independently testable, same split `writingScore.ts` keeps
-      from its own Scene/DOM wiring.
-- [ ] `todo` — **Hint + word-chunk reveal (`chunkWords.ts` + tests).** Per
-      your "wrong once must give guidance... wrong twice should reveal
-      the correct answer maybe reveal three words at a time... to enforce
-      reading instead of skipping away": try-1-wrong surfaces the
-      question's own `hint` next to a fresh try-2 input, no penalty yet.
-      Try-2-wrong reveals `modelAnswer` via `chunkWords(text, 3)` — one
-      chunk per "Next →" tap, "Continue" (which is what actually triggers
-      indigestion) only appears once every chunk's been stepped through,
-      so dismissing it requires having read the whole sentence at reading
-      pace rather than skimmed-and-tapped.
+- [x] `done` — **Pure grading module (`answerGrading.ts` + tests,
+      2026-09-16).** `satisfiesRequiredKeywords` (case-insensitive, all
+      `requiredKeywords` OR-groups must have a match), `isMalformed`
+      (`minWords` floor plus a cheap "does this contain any
+      sentence-shaped function word at all" check — lenient, not a
+      grammar checker, so a P4 child isn't marked wrong for grammar they
+      haven't been taught), `gradeAnswer` (malformed checked before
+      keyword-matching, so a too-short answer is "malformed" even if it
+      happens to contain every keyword), and `resolveAttempt` (the
+      two-try flow itself: correct on either try, `retry` with the
+      verdict on a wrong try 1, `reveal` on a wrong try 2). 15 tests;
+      `scienceQuestions.test.ts` now imports this module's real
+      `gradeAnswer`/`satisfiesRequiredKeywords` instead of its own
+      duplicated copy, so content and grading logic can't quietly drift
+      apart. All green: typecheck, full unit suite (403 passed).
+- [x] `done` — **Hint + word-chunk reveal (`chunkWords.ts` + tests,
+      2026-09-16).** Per your "wrong once must give guidance... wrong
+      twice should reveal the correct answer maybe reveal three words at
+      a time... to enforce reading instead of skipping away":
+      `chunkWords(text, size = 3)` splits a sentence into 3-word groups
+      (last chunk may be shorter), and `revealedText`/`isFullyRevealed`/
+      `nextRevealedCount` give the overlay everything it needs to drive
+      a tap-by-tap reveal — `isFullyRevealed` is exactly what should gate
+      the "Continue" button into existing, so dismissing the reveal
+      requires having stepped through every chunk first. Pure math only;
+      the actual "Next →"/"Continue" tap handling belongs to the DOM
+      overlay item below, not built yet. 10 tests, all green alongside
+      the grading module above.
 - [ ] `todo` — **Snake grid/movement/growth core (`snakeGrid.ts` +
       tests).** 24×16 grid (384 cells) — big enough to sustain a
       10-15 min session, small enough to stay winnable. ~180ms/cell tick.

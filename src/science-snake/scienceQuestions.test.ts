@@ -1,25 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { scienceQuestions, scienceQuestionsById } from "./scienceQuestions";
+import { gradeAnswer, satisfiesRequiredKeywords } from "./answerGrading";
 
 const VALID_TOPICS = new Set(["diversity-living-nonliving", "life-cycles", "states-of-matter", "magnets"]);
 const REQUIRED_TEXT_FIELDS = ["icon", "prompt", "hint", "modelAnswer", "sourceNotes"] as const;
-
-/**
- * A minimal standalone check that a piece of text would satisfy a
- * question's own requiredKeywords — same "AND of OR-groups,
- * case-insensitive substring" rule answerGrading.ts (BACKLOG.md, not yet
- * built) will implement for real. Duplicated here deliberately rather
- * than left unchecked until that module lands: a modelAnswer that
- * wouldn't grade as correct against its own question's keywords is a
- * content bug (the reveal-on-second-wrong-try would show an answer that,
- * retyped verbatim, still wouldn't pass), the same class of bug
- * idioms.test.ts's "example sentence actually uses the idiom's own
- * hanzi" check guards against.
- */
-function satisfiesRequiredKeywords(text: string, requiredKeywords: string[][]): boolean {
-  const lower = text.toLowerCase();
-  return requiredKeywords.every((group) => group.some((keyword) => lower.includes(keyword.toLowerCase())));
-}
 
 describe("science-snake question content integrity", () => {
   it("has at least the batch 1 count, growing in batches of 5", () => {
@@ -70,12 +54,9 @@ describe("science-snake question content integrity", () => {
     }
   });
 
-  it("modelAnswer would itself grade as correct against the question's own requiredKeywords", () => {
+  it("modelAnswer would itself grade as correct, run through the real grading function", () => {
     for (const question of scienceQuestions) {
-      expect(
-        satisfiesRequiredKeywords(question.modelAnswer, question.requiredKeywords),
-        `${question.id}'s modelAnswer doesn't satisfy its own requiredKeywords`,
-      ).toBe(true);
+      expect(gradeAnswer(question.modelAnswer, question), `${question.id}'s modelAnswer`).toBe("correct");
     }
   });
 
