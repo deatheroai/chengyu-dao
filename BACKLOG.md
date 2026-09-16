@@ -1223,41 +1223,61 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       tests (including a statistical check that the poison roll lands
       within 5 points of its configured 10% over 2000 spawns). All
       green: typecheck, full unit suite (450 passed, up from 423).
-- [ ] `todo` — **Scoring + high score persistence
-      (`scienceSnakeScore.ts` + tests).** `score = apples*5 +
-      questionsCorrect*30`, recorded only on a win (per your spec).
-      Reuses the existing localStorage-first + optional cloud-sync
-      pattern (`shared/cloudSync.ts`/`cloudSaveValidation.ts`,
-      `api/cloud-save.ts`) under its own save key, not `idiom-door`'s.
-- [ ] `todo` — **Phaser scene + DOM question overlay
-      (`SnakeGameScene.ts`, `QuestionOverlay.ts`).** Thin wiring only, same
-      "pure-function-plus-thin-Scene" split every mechanic here keeps —
-      the Scene pauses its update loop the instant the snake eats a
-      science item, hands control to the DOM overlay (plain DOM over the
-      canvas, same pattern `writingStage.ts` uses for text-heavy input),
-      and resumes once the overlay resolves (correct, or reveal-and-
-      continue on wrong-twice). Once `snakeGrid.ts`'s `isPoisoned` flips
-      true, the snake's own render swaps from its normal look to a
-      cycling-rainbow, "gooey" treatment for the rest of the run — per
-      your ask, a visual tell that persists rather than a one-off flash,
-      so the child always knows they're in the fast-growth state. Purely
-      a render concern (segment color driven by a time-based hue cycle,
-      shape by a small per-segment wobble/blob offset instead of crisp
-      edges) — no new pure-logic state beyond the `isPoisoned` flag
-      `snakeGrid.ts` already carries.
-- [ ] `todo` — **Win/Lose scenes + visuals.** Win: snake length reaches
-      `WIN_LENGTH_RATIO = 0.7` of grid cells (~270 segments) — not
-      literal 100%; a free-moving snake can't realistically occupy every
-      last cell without a Hamiltonian-path route, so 100% would make the
-      win nearly unreachable. At 70% the board reads as visually full.
-      Lose (suffocation): per your "should end early quickly," a short
-      (~1s) beat — snake flipped upside-down, a looping smoke/stink
-      particle emitter — then straight to the game-over screen, not a
-      lingering animation.
-- [ ] `todo` — **Entry point: `science-snake.html`, fully independent
+- [x] `done` — **Scoring + high score persistence
+      (`scienceSnakeScore.ts` + tests, 2026-09-16).** `calculateScore`:
+      `apples*APPLE_POINTS(5) + questionsCorrect*CORRECT_ANSWER_POINTS(30)`.
+      `recordHighScoreIfBetter` is called only on a win (per your spec)
+      and only overwrites the stored record when this run's score
+      actually beats it. Direct-localStorage, try/catch-on-parse shape
+      — same as `shared/sessionHistory.ts` — under its own
+      `science-snake-high-score` key, not `idiom-door`'s; the
+      cloud-sync half of that pattern isn't wired up yet (still
+      localStorage-only), left for later polish. 11 tests.
+- [x] `done` — **Phaser scene + DOM question overlay
+      (`SnakeGameScene.ts`, `QuestionOverlay.ts`, 2026-09-16).** Thin
+      wiring only, same "pure-function-plus-thin-Scene" split every
+      mechanic here keeps — the Scene runs a `TICK_MS` timer calling
+      `snakeGrid.ts`'s `step`, pauses the instant the snake eats a
+      science item, hands control to `QuestionOverlay.ts`'s
+      `askQuestion` (plain DOM over the canvas, same pattern
+      `writingStage.ts` uses for text-heavy input — the two-try
+      ask/hint/reveal flow itself is just `answerGrading.ts`'s
+      `resolveAttempt` and `chunkWords.ts`'s reveal helpers wired to
+      button clicks), and resumes once it resolves. Once
+      `snakeGrid.ts`'s `isPoisoned` flips true, the snake's render
+      cycles through a rainbow palette with a small per-segment sine
+      wobble instead of its normal solid color — a persistent tell, not
+      a one-off flash. No external art assets, same as the rest of this
+      project — grid/snake drawn with Phaser Graphics, items rendered as
+      their own emoji via Phaser Text.
+      **Verified with a real headless-browser playthrough** (Playwright
+      against a `vite dev` build, not just unit tests): built and
+      steered the snake live, confirmed apples/poison-apple/science-item
+      rendering, wall-collision game-over with correct stats, and the
+      full question flow end-to-end — wrong answer 1 → hint appears,
+      wrong answer 2 → word-chunk reveal (stepped through via "Next →",
+      "Continue" only appearing once fully revealed) → indigestion
+      correctly spawned 3 replacement science items on the board. Zero
+      console errors throughout. All green: typecheck, full unit suite
+      (459 passed), production `npm run build`.
+- [ ] `in-progress` — **Win/Lose scenes + visuals.** The functional half
+      is done: win triggers at `WIN_LENGTH_RATIO = 0.7` of grid cells
+      (~270 segments, not literal 100% — a free-moving snake can't
+      realistically occupy every last cell without a Hamiltonian-path
+      route, so 100% would make the win nearly unreachable; at 70% the
+      board reads as visually full), and both win/lose show a card with
+      the run's stats plus a working "Play again" (`main.ts`). Still
+      open: the specific suffocation-lose visual flourish per your
+      original ask — snake flipped upside-down with a looping smoke/
+      stink particle emitter — the lose card currently shows plain text
+      only ("Too many unanswered questions piled up..." /
+      "Ouch — the snake ran into itself!"), no animation yet.
+- [x] `done` — **Entry point: `science-snake.html`, fully independent
       of `idiom-door` (resolved 2026-09-16, see `DECISIONS.md`).** Its
       own page/URL, no picker, no shared nav, no relation to
-      `idiom-door.html` beyond living in the same repo/deploy. `index.html`
+      `idiom-door.html` beyond living in the same repo/deploy —
+      `vite.config.ts`'s build input list has its own `scienceSnake`
+      entry alongside `idiomDoor`. `index.html`
       is untouched.
 - [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
       `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a

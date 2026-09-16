@@ -2,12 +2,21 @@ import { describe, it, expect } from "vitest";
 import { scienceQuestions, scienceQuestionsById } from "./scienceQuestions";
 import { gradeAnswer, satisfiesRequiredKeywords } from "./answerGrading";
 
-const VALID_TOPICS = new Set(["diversity-living-nonliving", "life-cycles", "states-of-matter", "magnets"]);
+const VALID_TOPICS = new Set([
+  "diversity-living-nonliving",
+  "life-cycles",
+  "states-of-matter",
+  "magnets",
+  "plant-systems",
+  "materials",
+  "water-cycle",
+  "light-and-shadows",
+]);
 const REQUIRED_TEXT_FIELDS = ["icon", "prompt", "hint", "modelAnswer", "sourceNotes"] as const;
 
 describe("science-snake question content integrity", () => {
-  it("has at least the batch 1 count, growing in batches of 5", () => {
-    expect(scienceQuestions.length).toBeGreaterThanOrEqual(5);
+  it("has at least the batch 1+2 count, growing in batches of 5", () => {
+    expect(scienceQuestions.length).toBeGreaterThanOrEqual(10);
   });
 
   it("every question's id matches its registry key", () => {

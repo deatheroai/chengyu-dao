@@ -4,7 +4,15 @@
  * content-bank entry — rather than being pre-populated with every
  * eventual topic up front.
  */
-export type ScienceTopic = "diversity-living-nonliving" | "life-cycles" | "states-of-matter" | "magnets";
+export type ScienceTopic =
+  | "diversity-living-nonliving"
+  | "life-cycles"
+  | "states-of-matter"
+  | "magnets"
+  | "plant-systems"
+  | "materials"
+  | "water-cycle"
+  | "light-and-shadows";
 
 export interface ScienceQuestion {
   id: string;

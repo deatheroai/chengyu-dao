@@ -1,16 +1,19 @@
 import type { ScienceQuestion } from "./types";
 
 /**
- * Batch 1: 5 P4 Science questions, authored 2026-09-16 and approved on
- * chat review (BACKLOG.md's "authored + reviewed in batches of 5" —
+ * P4 Science questions, authored 2026-09-16 and approved on chat review
+ * in batches of 5 (BACKLOG.md's "authored + reviewed in batches of 5" —
  * general P4 MOE syllabus topics, not sourced from an official syllabus
- * document, per DECISIONS.md's content-sourcing resolution). The first
- * draft of questions 1-3 read as too generic/bare-recall; revised to a
- * concrete scenario per question before approval, and question 5
- * (originally "list the butterfly life cycle's 4 stages in order") was
- * replaced entirely for reading as MCQ-shaped rather than short-answer.
+ * document, per DECISIONS.md's content-sourcing resolution).
+ *
+ * Batch 1's first draft of questions 1-3 read as too generic/bare-recall;
+ * revised to a concrete scenario per question before approval, and its
+ * original question 5 ("list the butterfly life cycle's 4 stages in
+ * order") was replaced entirely for reading as MCQ-shaped rather than
+ * short-answer. Batch 2 boundary is marked inline below.
  */
 export const scienceQuestions: ScienceQuestion[] = [
+  // --- Batch 1 ---
   {
     id: "puppy-vs-robot-dog",
     topic: "diversity-living-nonliving",
@@ -89,6 +92,85 @@ export const scienceQuestions: ScienceQuestion[] = [
       "Ravi's sister is wrong because the caterpillar is not dead — it has entered the pupa (chrysalis) stage of its life cycle, where its body is changing so it can become an adult butterfly.",
     sourceNotes:
       "Complete metamorphosis (egg-larva-pupa-adult) — standard P4 Cycles theme content. Replaces an earlier draft that asked to list all 4 stages in order, which read as MCQ-shaped rather than short-answer.",
+  },
+  // --- Batch 2: authored and approved on chat review 2026-09-16. An
+  // earlier draft's 5th question (a chicken-vs-butterfly life cycle
+  // contrast) was rejected as "not very relevant" and replaced with the
+  // light-and-shadows question below before approval. ---
+  {
+    id: "weijies-wilted-plant",
+    topic: "plant-systems",
+    icon: "🌱",
+    prompt:
+      "Wei Jie forgot to water his potted plant for two weeks. When he finally watered it again, the wilted leaves became firm and upright within a few hours. Explain how the water helped the leaves stand up again, and how it got from the soil to the leaves.",
+    requiredKeywords: [
+      ["root", "roots"],
+      ["stem", "transport", "transports", "carried", "carries", "carry"],
+    ],
+    minWords: 10,
+    hint: "Think about which part underground takes in water first, and then which part above ground acts like a straw carrying that water up to the leaves.",
+    modelAnswer: "The roots absorbed water from the soil, and the stem carried the water up to the leaves, making them firm and upright again.",
+    sourceNotes: "Plant systems — functions of roots (absorb water) and stem (transport water to leaves) — standard P4 Systems theme content.",
+  },
+  {
+    id: "mrs-tans-umbrella",
+    topic: "materials",
+    icon: "🪵",
+    prompt: "Mrs Tan is buying a new umbrella. She picks one with a nylon canopy instead of one made of paper. Explain why nylon is a better material for an umbrella than paper.",
+    requiredKeywords: [
+      ["waterproof", "water-resistant", "does not absorb water", "doesn't absorb water", "repels water"],
+      ["absorb water", "absorbs water", "soggy", "soaks up water", "gets wet"],
+    ],
+    minWords: 10,
+    hint: "Think about what happens to paper when it gets rained on, compared to nylon — which one lets water soak in, and which one keeps water out?",
+    modelAnswer: "Nylon is waterproof and does not absorb water, so it keeps Mrs Tan dry, but paper absorbs water and would become soggy and tear in the rain.",
+    sourceNotes: "Diversity/properties of materials (waterproof vs. absorbent) applied to material selection — standard P3/P4 Diversity theme content, reinforced at P4.",
+  },
+  {
+    id: "farahs-evaporating-puddles",
+    topic: "water-cycle",
+    icon: "💧",
+    prompt: "After a rainy morning, Farah notices puddles on the playground. By the afternoon, under the hot sun, the puddles have completely disappeared. Explain what happened to the water in the puddles.",
+    requiredKeywords: [
+      ["evaporate", "evaporated", "evaporation"],
+      ["water vapour", "water vapor", "gas", "heat", "sun", "warmed", "heated"],
+    ],
+    minWords: 8,
+    hint: "Think about what the sun's heat does to the water in the puddles — does it disappear completely, or does it change into something we can't see?",
+    modelAnswer: "The heat from the sun caused the water in the puddles to evaporate, turning into water vapour that rose into the air.",
+    sourceNotes: "Water cycle — evaporation caused by heat, water turning into water vapour — standard P4 Cycles/Matter theme content.",
+  },
+  {
+    id: "mr-lims-hot-pot-handle",
+    topic: "materials",
+    icon: "🍳",
+    prompt:
+      "Mr Lim is cooking soup in a metal pot with a wooden spoon resting inside it. After a while, the metal pot handle feels very hot, but the wooden spoon handle still feels cool. Explain why the metal feels hot but the wood does not.",
+    requiredKeywords: [
+      ["conductor", "conducts heat", "conduct heat", "good conductor"],
+      ["insulator", "does not conduct heat", "doesn't conduct heat", "poor conductor", "bad conductor"],
+    ],
+    minWords: 10,
+    hint: "Think about which material lets heat travel through it quickly, making the handle heat up fast — and which material is much slower to let heat pass through, so it stays cool.",
+    modelAnswer:
+      "The metal pot handle feels hot because metal is a good conductor of heat, but the wooden spoon feels cool because wood is an insulator and does not conduct heat well.",
+    sourceNotes: "Materials — thermal conductors vs. insulators (metal vs. wood) — standard P4 Systems/Materials theme content.",
+  },
+  {
+    id: "meis-changing-shadow",
+    topic: "light-and-shadows",
+    icon: "☀️",
+    prompt:
+      "Mei was standing under a tree at noon and had almost no shadow, but later at 5pm her shadow stretched far across the playground. Her brother said this happens because the sun becomes bigger in the late afternoon. Explain why her brother is wrong, and what actually causes the change in shadow length.",
+    requiredKeywords: [
+      ["position of the sun", "angle of the sun", "sun's position", "sun is lower", "sun is higher", "position in the sky"],
+      ["not bigger", "same size", "does not change size", "doesn't change size", "does not actually change size"],
+    ],
+    minWords: 10,
+    hint: "Think about where the sun is in the sky at noon compared to late afternoon — is it high up or lower down? That change is what really affects how long a shadow looks, not the sun's size.",
+    modelAnswer:
+      "Mei's brother is wrong — the sun does not actually change size. The shadow gets longer or shorter because the sun's position in the sky changes throughout the day, changing the angle at which light hits her and casts her shadow.",
+    sourceNotes: "Light and shadows — shadow length changes with the sun's position/angle in the sky, not its size — standard P3/P4 Light theme content, reinforced at P4.",
   },
 ];
 

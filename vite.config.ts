@@ -19,6 +19,7 @@ export default defineConfig({
       input: {
         index: resolve(rootDir, "index.html"),
         idiomDoor: resolve(rootDir, "idiom-door.html"),
+        scienceSnake: resolve(rootDir, "science-snake.html"),
       },
     },
   },
