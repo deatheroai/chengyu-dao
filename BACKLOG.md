@@ -1072,19 +1072,27 @@ for *shipping*, but not for building — same "keep building other unblocked
 items" rule `AUTONOMY.md` gives for any blocked entry.
 
 - [ ] `todo` — **Content bank: P4 Science question set
-      (`src/science-snake/scienceQuestions.ts`).** Foundational — nothing
-      else below is buildable/testable against real content without it.
-      Each question: `topic`, `icon` (doubles as the snake-food sprite —
-      🍁🍂🍃 for plant parts/life cycles, 🔍🔎 for scientific
-      investigation, 🧪 for materials, 🧲 for magnets, 💧 for water cycle,
-      ☀️ for light/heat), `prompt`, `requiredKeywords: string[][]` (OR-groups,
-      every group must be hit), `minWords`, `hint` (a Socratic nudge shown
-      after try 1, not the answer), `modelAnswer` (revealed word-chunked
-      after try 2). See the content-sourcing Pending Decision in
-      `DECISIONS.md` before authoring a large batch — same
-      verify-before-authoring discipline as the idiom pool
-      (zdic.net/Baidu Baike/Taiwan MOE 成語典 there), not general
-      knowledge alone, since a syllabus can revise between years.
+      (`src/science-snake/scienceQuestions.ts`), authored + reviewed in
+      batches of 5 (2026-09-16, see `DECISIONS.md`).** Foundational —
+      nothing else below is buildable/testable against real content
+      without it. Each question: `topic`, `icon` (doubles as the
+      snake-food sprite — 🍁🍂🍃 for plant parts/life cycles, 🔍🔎 for
+      scientific investigation, 🧪 for materials, 🧲 for magnets, 💧 for
+      water cycle, ☀️ for light/heat, plus 🧊/🦋 added as topics needed
+      them — the roster is content-driven, not fixed), `prompt`,
+      `requiredKeywords: string[][]` (OR-groups, every group must be
+      hit), `minWords`, `hint` (a Socratic nudge shown after try 1, not
+      the answer), `modelAnswer` (revealed word-chunked after try 2).
+      Short-answer only — per your "questions 1-3 are too generic... a
+      little more descriptive scenario" and "question 5 feels more
+      suited for MCQ, we only want short-answer questions here" (batch 1
+      review): every prompt needs a concrete little scenario (a named
+      child doing/observing something) that gives the child enough to
+      reason from, not a bare recall-the-fact or list-the-stages
+      question — a plain list-in-order question reads as MCQ-shaped even
+      without options, since there's nothing to actually reason about.
+      MCQ-format content is explicitly out of scope for this game, left
+      for later (per your "MCQ for another time").
 - [ ] `todo` — **Pure grading module (`answerGrading.ts` + tests).**
       Keyword-match (case-insensitive, all `requiredKeywords` OR-groups
       hit) + malformed check (`minWords` floor, cheap verb-shaped-token
@@ -1138,11 +1146,11 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       `isPoisoned = true` for the rest of the run, so every *normal*
       apple eaten afterward grows the snake by `4×` instead of `1×`. Both
       awards 0 points (tracked separately as `poisonApplesEaten`, not
-      counted toward the apple score). Assuming, absent a stated
-      duration: `isPoisoned` doesn't decay or wear off, and eating a
-      second poison apple re-triggers the instant double but doesn't
-      stack the multiplier past 4x — flag if either should work
-      differently. This compounds the original danger: doubling on the
+      counted toward the apple score). Confirmed (2026-09-16):
+      `isPoisoned` doesn't decay or wear off for the rest of the run,
+      and eating a second poison apple re-triggers the instant double
+      but doesn't stack the multiplier past 4x. This compounds the
+      original danger: doubling on the
       spot *and* every subsequent apple now growing 4x as fast both
       shrink the snake's own safe maneuvering room fast, making
       self-collision (the explicit lose condition above) much more
