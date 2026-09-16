@@ -1281,18 +1281,45 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       banded tail rather than a uniform row of identical squares.
       Rendering-only change, re-verified live (zoomed screenshot of the
       snake with the dev server running).
-- [ ] `in-progress` — **Win/Lose scenes + visuals.** The functional half
-      is done: win triggers at `WIN_LENGTH_RATIO = 0.7` of grid cells
-      (~270 segments, not literal 100% — a free-moving snake can't
-      realistically occupy every last cell without a Hamiltonian-path
-      route, so 100% would make the win nearly unreachable; at 70% the
-      board reads as visually full), and both win/lose show a card with
-      the run's stats plus a working "Play again" (`main.ts`). Still
-      open: the specific suffocation-lose visual flourish per your
-      original ask — snake flipped upside-down with a looping smoke/
-      stink particle emitter — the lose card currently shows plain text
-      only ("Too many unanswered questions piled up..." /
-      "Ouch — the snake ran into itself!"), no animation yet.
+- [x] `done` — **Win/Lose scenes + visuals (2026-09-16).** Win triggers
+      at `WIN_LENGTH_RATIO = 0.7` of grid cells (~270 segments, not
+      literal 100% — a free-moving snake can't realistically occupy
+      every last cell without a Hamiltonian-path route, so 100% would
+      make the win nearly unreachable; at 70% the board reads as
+      visually full), and both win/lose show a card with the run's
+      stats plus a working "Play again" (`main.ts`).
+      Suffocation's death image (`playSuffocationDeath`): first attempt
+      geometrically flipped the snake upside down (`scaleY = -1` around
+      its own center) — turned out to be a dead end, verified live: a
+      snake drawn as a straight row of symmetric rounded squares is
+      pixel-identical when mirrored around its own center, so the flip
+      was invisible in the actual common case (a straight horizontal or
+      vertical stretch, not a curve). Replaced with a cue that's
+      unambiguous regardless of shape: every segment switches to a pale
+      `BELLY_COLOR` (the "rolled onto its back" tell) and the head's
+      eyes become a cartoon "X X" (`DEAD_EYE_COLOR`), plus
+      `SMOKE_PUFF_COUNT = 8` grey circles tweened rising/fading off the
+      snake's center — a short `SUFFOCATION_DEATH_DURATION_MS = 1100`
+      beat before the lose card shows, not a lingering animation, per
+      your separate "should end early quickly" ask for this specific
+      lose path.
+      Two real bugs found and fixed while verifying this live (a
+      temporarily-lowered `SUFFOCATION_THRESHOLD_RATIO` plus a
+      temporary `window`-exposed scene handle, both reverted after —
+      neither shipped): (1) `tick()`'s own trailing `render()` call ran
+      *after* `handleHeadPosition()` could already trigger
+      `playSuffocationDeath`, silently overwriting the just-drawn dead
+      frame with a normal alive redraw before it was ever visible — now
+      guarded by `if (this.ended) return`. (2) `isSuffocating` was only
+      ever checked at the instant something was eaten
+      (`checkOutcome`, called from inside the eating branches) — a
+      board that piled up past the threshold while the snake was simply
+      wandering having eaten nothing that tick would never actually
+      have been checked at all; now also checked every tick
+      unconditionally. Re-verified live after both fixes (forced a
+      crowded board via a temporary test-only hook): pale/cream snake
+      with black X eyes and rising smoke, confirmed correct. All green:
+      typecheck, full unit suite (459 passed), production build.
 - [x] `done` — **Entry point: `science-snake.html`, fully independent
       of `idiom-door` (resolved 2026-09-16, see `DECISIONS.md`).** Its
       own page/URL, no picker, no shared nav, no relation to

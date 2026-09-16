@@ -68,6 +68,9 @@ const TAIL_TAPER_SEGMENTS = 3;
 const TAIL_RING_COLOR = 0xe8ffe0;
 const EYE_COLOR = 0xffffff;
 const EYE_RADIUS = 2.5;
+/** The suffocation death image's "rolled onto its back" tell — see `playSuffocationDeath`'s doc comment for why this replaced a geometric flip. */
+const BELLY_COLOR = 0xf3e9c9;
+const DEAD_EYE_COLOR = 0x2a2a2a;
 
 /** Where a head's two eyes sit relative to its own cell center — offset forward (toward direction of travel) and to either side, so they read as "looking" the way the snake is actually heading. */
 const DIRECTION_FORWARD: Record<Direction, Position> = {
@@ -82,6 +85,17 @@ const DIRECTION_SIDE: Record<Direction, Position> = {
   left: { x: 0, y: 1 },
   right: { x: 0, y: 1 },
 };
+
+/**
+ * Per your original spec: "the snake dies from suffocation... show that
+ * snake upside down with smoke looking stink rising." A short beat, not
+ * a lingering animation — per your separate "should end early quickly"
+ * ask for the suffocation lose path specifically, this is a brief
+ * failure image, not a wait.
+ */
+const SUFFOCATION_DEATH_DURATION_MS = 1100;
+const SMOKE_PUFF_COUNT = 8;
+const SMOKE_COLOR = 0x8a8a8a;
 
 const KEY_TO_DIRECTION: Record<string, Direction> = {
   ArrowUp: "up",
@@ -196,11 +210,28 @@ export class SnakeGameScene extends Phaser.Scene {
     if (this.paused || this.ended) return;
     const result = step(this.snake);
     if (result.outcome !== "moved") {
-      this.finish(() => this.onLose(result.outcome, this.stats));
+      this.finishLose(result.outcome);
       return;
     }
     this.snake = result.snake;
     this.handleHeadPosition();
+    // handleHeadPosition can itself end the run (checkOutcome ->
+    // finishLose/finishWin), which for suffocation specifically already
+    // drew the death frame (playSuffocationDeath) — an unconditional
+    // render() here would immediately overwrite that with a normal
+    // alive-colored redraw before anyone ever saw it.
+    if (this.ended) return;
+    // checkOutcome (called from handleHeadPosition's eating branches)
+    // only ever runs at the instant something is eaten — a board that
+    // piles up past the suffocation threshold while the snake is simply
+    // wandering, having eaten nothing that tick, would otherwise never
+    // actually be checked. isSuffocating has to be checked every tick,
+    // independent of eating, to match "should end early quickly" for a
+    // genuinely crowded board.
+    if (isSuffocating(this.items)) {
+      this.finishLose("suffocation");
+      return;
+    }
     this.render();
   }
 
@@ -248,21 +279,83 @@ export class SnakeGameScene extends Phaser.Scene {
 
   private checkOutcome(): void {
     if (hasWon(this.snake)) {
-      this.finish(() => this.onWin(this.stats));
+      this.finishWin();
       return;
     }
     if (isSuffocating(this.items)) {
-      this.finish(() => this.onLose("suffocation", this.stats));
+      this.finishLose("suffocation");
     }
   }
 
-  private finish(callback: () => void): void {
+  private finishWin(): void {
     this.ended = true;
     this.tickEvent?.remove();
-    callback();
+    this.onWin(this.stats);
+  }
+
+  private finishLose(reason: LoseReason): void {
+    this.ended = true;
+    this.tickEvent?.remove();
+    if (reason === "suffocation") {
+      this.playSuffocationDeath(() => this.onLose(reason, this.stats));
+    } else {
+      this.onLose(reason, this.stats);
+    }
+  }
+
+  /**
+   * The suffocation-specific death image. A geometric upside-down flip
+   * turned out not to read as anything at all for a snake drawn as a
+   * straight row of symmetric rounded squares — mirroring a single
+   * horizontal (or vertical) row around its own center produces a
+   * pixel-identical image, since there's no vertical asymmetry in the
+   * shapes themselves for a flip to reveal. Swapped for a cue that's
+   * unambiguous regardless of the snake's shape: every segment switches
+   * to a pale "belly" color (the classic "rolled onto its back" tell)
+   * and the head's eyes become a cartoon "X X", plus a few grey smoke
+   * puffs rising off it — see SUFFOCATION_DEATH_DURATION_MS's doc
+   * comment for why this is a short beat, not a lingering animation.
+   * `render()` isn't called again after this starts, so the grid/items
+   * stay exactly as they were at the moment of suffocation — a
+   * freeze-frame, not a continuing simulation.
+   */
+  private playSuffocationDeath(onComplete: () => void): void {
+    const xs = this.snake.body.map((s) => s.x);
+    const ys = this.snake.body.map((s) => s.y);
+    const centerXpx = ((Math.min(...xs) + Math.max(...xs) + 1) / 2) * CELL_SIZE;
+    const centerYpx = ((Math.min(...ys) + Math.max(...ys) + 1) / 2) * CELL_SIZE;
+
+    this.renderGridAndItems();
+    this.renderSnakeBody(this.gfx, true);
+    this.spawnSmokePuffs(centerXpx, centerYpx);
+
+    this.time.delayedCall(SUFFOCATION_DEATH_DURATION_MS, onComplete);
+  }
+
+  private spawnSmokePuffs(centerXpx: number, centerYpx: number): void {
+    for (let i = 0; i < SMOKE_PUFF_COUNT; i++) {
+      const startX = centerXpx + (Math.random() - 0.5) * CELL_SIZE * 2;
+      const startY = centerYpx + (Math.random() - 0.5) * CELL_SIZE;
+      const puff = this.add.circle(startX, startY, 4 + Math.random() * 4, SMOKE_COLOR, 0.7);
+      this.tweens.add({
+        targets: puff,
+        y: startY - 40 - Math.random() * 30,
+        x: startX + (Math.random() - 0.5) * 30,
+        alpha: 0,
+        scale: 2.2,
+        duration: 900 + Math.random() * 400,
+        delay: i * 60,
+        onComplete: () => puff.destroy(),
+      });
+    }
   }
 
   private render(): void {
+    this.renderGridAndItems();
+    this.renderSnakeBody(this.gfx);
+  }
+
+  private renderGridAndItems(): void {
     this.gfx.clear();
     this.gfx.lineStyle(1, GRID_LINE_COLOR, 1);
     for (let x = 0; x <= GRID_WIDTH; x++) {
@@ -271,7 +364,16 @@ export class SnakeGameScene extends Phaser.Scene {
     for (let y = 0; y <= GRID_HEIGHT; y++) {
       this.gfx.lineBetween(0, y * CELL_SIZE, GRID_WIDTH * CELL_SIZE, y * CELL_SIZE);
     }
+    this.renderItems();
+  }
 
+  /**
+   * Draws the snake into `target` — normally the shared grid/items
+   * layer (`this.gfx`). `isDead` (only true during
+   * `playSuffocationDeath`) swaps every segment to `BELLY_COLOR` and
+   * the head's eyes to a cartoon "X X" instead of its normal look.
+   */
+  private renderSnakeBody(target: Phaser.GameObjects.Graphics, isDead = false): void {
     const bodyLength = this.snake.body.length;
     this.snake.body.forEach((segment, i) => {
       const isHead = i === 0;
@@ -284,7 +386,9 @@ export class SnakeGameScene extends Phaser.Scene {
 
       let color = isHead ? SNAKE_HEAD_COLOR : SNAKE_COLOR;
       let wobble = 0;
-      if (this.snake.isPoisoned) {
+      if (isDead) {
+        color = BELLY_COLOR;
+      } else if (this.snake.isPoisoned) {
         color = POISONED_COLORS[(i + Math.floor(this.time.now / 150)) % POISONED_COLORS.length];
         wobble = Math.sin(this.time.now / 120 + i) * 2;
       }
@@ -298,17 +402,18 @@ export class SnakeGameScene extends Phaser.Scene {
       const offset = 2 + extraInset;
       const size = CELL_SIZE - 4 - extraInset * 2;
 
-      this.gfx.fillStyle(color, 1);
-      this.gfx.fillRoundedRect(cellX + offset + wobble, cellY + offset - wobble, size, size, isHead ? 8 : 6);
+      target.fillStyle(color, 1);
+      target.fillRoundedRect(cellX + offset + wobble, cellY + offset - wobble, size, size, isHead ? 8 : 6);
 
-      if (isTaper && !this.snake.isPoisoned) {
+      if (isTaper && !isDead && !this.snake.isPoisoned) {
         // A couple of thin ring stripes across the tapering tail,
         // evoking a real snake's banded tail — per your "tail a little
-        // like rings" feedback. Skipped while poisoned since the
-        // cycling rainbow fill is already the tail's own tell there.
-        this.gfx.lineStyle(2, TAIL_RING_COLOR, 0.9);
-        this.gfx.lineBetween(cellX + offset, cellY + offset + size * 0.35, cellX + offset + size, cellY + offset + size * 0.35);
-        this.gfx.lineBetween(cellX + offset, cellY + offset + size * 0.65, cellX + offset + size, cellY + offset + size * 0.65);
+        // like rings" feedback. Skipped while poisoned (the cycling
+        // rainbow fill is already that state's own tell) or dead (the
+        // belly color already is).
+        target.lineStyle(2, TAIL_RING_COLOR, 0.9);
+        target.lineBetween(cellX + offset, cellY + offset + size * 0.35, cellX + offset + size, cellY + offset + size * 0.35);
+        target.lineBetween(cellX + offset, cellY + offset + size * 0.65, cellX + offset + size, cellY + offset + size * 0.65);
       }
 
       if (isHead) {
@@ -318,13 +423,22 @@ export class SnakeGameScene extends Phaser.Scene {
         const centerY = cellY + CELL_SIZE / 2;
         const forwardDist = CELL_SIZE * 0.15;
         const sideDist = CELL_SIZE * 0.2;
-        this.gfx.fillStyle(EYE_COLOR, 1);
-        this.gfx.fillCircle(centerX + forward.x * forwardDist + side.x * sideDist, centerY + forward.y * forwardDist + side.y * sideDist, EYE_RADIUS);
-        this.gfx.fillCircle(centerX + forward.x * forwardDist - side.x * sideDist, centerY + forward.y * forwardDist - side.y * sideDist, EYE_RADIUS);
+        const eyeA = { x: centerX + forward.x * forwardDist + side.x * sideDist, y: centerY + forward.y * forwardDist + side.y * sideDist };
+        const eyeB = { x: centerX + forward.x * forwardDist - side.x * sideDist, y: centerY + forward.y * forwardDist - side.y * sideDist };
+        if (isDead) {
+          target.lineStyle(2, DEAD_EYE_COLOR, 1);
+          const arm = EYE_RADIUS * 1.6;
+          for (const eye of [eyeA, eyeB]) {
+            target.lineBetween(eye.x - arm, eye.y - arm, eye.x + arm, eye.y + arm);
+            target.lineBetween(eye.x - arm, eye.y + arm, eye.x + arm, eye.y - arm);
+          }
+        } else {
+          target.fillStyle(EYE_COLOR, 1);
+          target.fillCircle(eyeA.x, eyeA.y, EYE_RADIUS);
+          target.fillCircle(eyeB.x, eyeB.y, EYE_RADIUS);
+        }
       }
     });
-
-    this.renderItems();
   }
 
   private renderItems(): void {
