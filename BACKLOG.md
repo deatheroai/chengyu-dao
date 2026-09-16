@@ -1131,29 +1131,41 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       the actual "Next →"/"Continue" tap handling belongs to the DOM
       overlay item below, not built yet. 10 tests, all green alongside
       the grading module above.
-- [ ] `todo` — **Snake grid/movement/growth core (`snakeGrid.ts` +
-      tests).** 24×16 grid (384 cells) — big enough to sustain a
-      10-15 min session, small enough to stay winnable. ~180ms/cell tick.
-      Growth: apple +1 segment, correct answer +4 (matches the 6x point
-      ratio below and biases the win toward engaging with questions, not
-      apple-grinding alone). Growth is implemented the standard way (an
-      "owed growth" counter — the tail simply isn't popped for that many
-      future ticks), not by teleporting new segments onto the board, so
-      it always trails along the path the snake actually travels.
-      Self-collision (running into your own body) is the classic Snake
-      lose condition and needs to be explicit here even though earlier
-      notes didn't call it out separately — it's what makes the poison
-      apple below actually dangerous, since suffocation.ts only watches
-      unresolved science items, not the snake's own body. Snake state
-      also carries an `isPoisoned` flag (set once, see poison apples
-      below) that multiplies *normal* apple growth by
-      `POISON_GROWTH_MULTIPLIER = 4` for the rest of the run — science-
-      question growth is untouched by it either way. Starting numbers,
-      tune after playtest — same as every constant in this file.
-- [ ] `todo` — **Poison apples: 10% of apples, rainbow-colored, double
-      the snake's length and permanently 4x its apple-growth rate
+- [x] `done` — **Snake grid/movement/growth core (`snakeGrid.ts` +
+      tests, 2026-09-16).** 24×16 grid (`GRID_WIDTH`/`GRID_HEIGHT`, 384
+      cells) — big enough to sustain a 10-15 min session, small enough to
+      stay winnable. `TICK_MS = 180`. `createInitialSnake`/
+      `nextHeadPosition`/`isOutOfBounds`/`changeDirection` (ignores a
+      direct reversal, the classic Snake rule) handle movement;
+      `step` advances one tick and returns `moved` /
+      `wall-collision` / `self-collision` — self-collision (running into
+      your own body) is the classic Snake lose condition, made explicit
+      per the poison-apple follow-up, including the tail-vacates-this-
+      tick nuance (moving onto the current tail cell is fine when not
+      growing, a genuine collision when growth is owed that tick).
+      Growth: `applyAppleEaten` (+`APPLE_GROWTH`, or ×`POISON_GROWTH_
+      MULTIPLIER = 4` once `isPoisoned`), `applyCorrectAnswerEaten`
+      (always +`CORRECT_ANSWER_GROWTH = 4`, untouched by poison either
+      way), `applyPoisonAppleEaten` (owed-growth = current length, i.e.
+      roughly doubles as the snake keeps moving, plus flips `isPoisoned`
+      on permanently) — all via a shared owed-growth counter (the tail
+      isn't popped for that many future ticks) clamped so total length
+      can never exceed `TOTAL_CELLS`, not by teleporting segments onto
+      the board. `hasWon` checks length against `WIN_LENGTH` (`WIN_
+      LENGTH_RATIO = 0.7` of the grid, not literal 100% — see the
+      Win/Lose scenes item below for why). 32 tests, all green alongside
+      the grading/reveal modules above (typecheck + full unit suite,
+      423 passed). Starting numbers, tune after playtest — same as every
+      constant in this file.
+- [ ] `in-progress` — **Poison apples: 10% of apples, rainbow-colored,
+      double the snake's length and permanently 4x its apple-growth rate
       (2026-09-16, revised from purple/one-shot-only per your follow-up).**
-      ~10% of spawned apples are poison instead of normal — visually the
+      The growth-rule half is now built and tested — `snakeGrid.ts`'s
+      `applyPoisonAppleEaten`/`applyAppleEaten` (see that item above).
+      Still open: `itemSpawner.ts`'s 10% spawn roll, and the rainbow/
+      "gooey" render treatment (Phaser scene item below) — this stays
+      in-progress until both land. ~10% of spawned apples are poison
+      instead of normal — visually the
       same apple sprite but rendered with a cycling rainbow palette
       (`POISON_APPLE_PALETTE`) rather than a single recolor, so it reads
       as distinctly "off" (same "recolor an existing thing for a
