@@ -23,6 +23,41 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-16 — Daily cycle: root-caused and fixed the `doorJump.ts`
+  e2e bug that had blocked PR #40 (09-11)/#47 (09-13)/#49 (09-14) from
+  landing, then landed idiom-pool batch 4 (60 → 75) on top of it.**
+  Pending Decisions was empty. Two PRs open on the standing
+  example-sentence-review track (#40, #44) — left both alone, same
+  reasoning as prior cycles, since this cycle's own scope (the e2e fix
+  + idiom-pool growth) doesn't overlap their content changes; #40's
+  own e2e failure is now fixed as a side effect (its content fix still
+  needs manually re-porting onto current `idioms.ts` by whoever picks
+  it up, since its branch predates 3 rounds of idiom-pool growth and no
+  longer applies cleanly).
+  Rather than re-authoring a fresh batch 5 (duplicating #47/#49's
+  already-verified content) or leaving #49 to rot a third day, picked
+  up its own continuation. #49's own PR description already pointed at
+  the real next step ("the `doorJump.ts` margin constants... are the
+  next place to look") — investigated that directly rather than
+  re-attempting the same rebase-and-hope #47→#49 already tried twice.
+  Root cause: `jumpForFirstReachableWrongTile`'s chain-catch safety
+  filter used one flat 60px back-margin for every candidate tile,
+  regardless of height, when the real danger zone (a jump's actual
+  takeoff-to-landing arc) sits further behind a taller tile's own x
+  than a shorter one's — confirmed by hand against both of #49's actual
+  CI failures (a real chain-catch on one, total candidate starvation on
+  the other, both on the same 明察秋毫 level, both explained by the same
+  flat-margin gap in opposite directions) before writing a fix, and
+  again quantitatively against the whole 75-idiom pool's real generated
+  levels afterward (37 missed chain-catch risks, 158 needless
+  exclusions under the old filter, both resolved by the new one). Full
+  detail in `BACKLOG.md`'s entry. All gates green: typecheck/test (367
+  passed)/build/e2e (70 passed, mobile+desktop, plus 12/12 on top for
+  the two specific tests that had failed on PR #49's own CI run — this
+  exact bug had already produced one false-clean local run before, so a
+  single pass wasn't enough to trust here). PR opened and merged per
+  the standing 2026-08-26 auto-land policy; #47 and #49 closed as
+  superseded.
 - **2026-09-14 — Daily cycle: rebased PR #47 (idiom pool batch 4, 60 →
   75) onto latest main and re-validated, but it's still not merged — a
   real GitHub Actions run caught a chain-catch every local run

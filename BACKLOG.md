@@ -678,6 +678,45 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       again, the `doorJump.ts` margin constants themselves (not this
       batch's content) are the next place to look — see their own doc
       comments for the history of tuning them.
+      **2026-09-16: root-caused and fixed the actual `doorJump.ts` bug
+      behind #40/#47/#49, landed on top of #49's already-verified
+      content.** The "next place to look" note above was right —
+      `jumpForFirstReachableWrongTile`'s chain-catch safety filter used
+      one flat `WRONG_TILE_BACK_MARGIN_X` (60px) behind every candidate
+      tile's own x, regardless of that tile's height. But a jump's real
+      takeoff point sits behind its target tile's x by an amount that
+      *grows with the tile's height* (`timeToReachHeight` — ~34px at
+      `HEIGHT_MIN`, ~79px at `HEIGHT_MAX`), so a flat 60px was
+      simultaneously too narrow for taller candidates (a real excluded
+      tile 70-90px behind one could slip through the filter and get
+      chain-caught for real — exactly PR #49's own mobile CI failure,
+      chain-catching a real 明 tile on 明察秋毫's level) and too wide for
+      shorter ones (over-excluding otherwise-safe candidates — exactly
+      #49's own desktop CI failure, "no reachable tile" on the same
+      明-heavy level). Not guessed: confirmed by hand-computing both
+      failing levels' real tile positions and takeoff offsets against
+      the old filter before writing a fix. Replaced the flat margin with
+      each candidate's own real arc (`takeoffXForTile(t)` through
+      `takeoffXForTile(t) + JUMP_FOOTPRINT_X`, padded by `CATCH_RADIUS_X`
+      on both ends — the same real hitbox `checkCatches` itself uses),
+      removing `WRONG_TILE_BACK_MARGIN_X` entirely. Verified
+      quantitatively against every idiom in the current 75-idiom pool's
+      actual generated levels (not just the one that happened to fail),
+      not just reasoned about: the old flat filter missed 37 genuine
+      chain-catch risks and over-excluded 158 otherwise-safe candidates
+      across the whole pool; the new arc-based check resolves every one
+      of those correctly. Confirmed live: the full mobile+desktop e2e
+      suite (70 tests) passed clean, then the two specific tests that
+      had failed on PR #49's own CI run (`idiom-door.spec.ts:431`/`:500`)
+      were re-run 3 more times each on both projects (12/12 clean) rather
+      than trusting one pass, given this exact bug had already produced
+      a false "all green" locally once before (PR #49's own history
+      above). All gates green: `npm run typecheck`/`test` (367
+      passed)/`build`/`test:e2e` (70 passed, mobile+desktop, plus the
+      12/12 targeted re-runs). Landed PR #49's batch-4 content (60 → 75
+      idioms) together with this fix — same branch, since the fix is
+      what unblocks that content, not a separate concern. #47 and #49
+      are both now superseded/closed in favor of this.
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
