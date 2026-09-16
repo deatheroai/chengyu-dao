@@ -23,6 +23,124 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-16 — Daily cycle: root-caused and fixed the `doorJump.ts`
+  e2e bug that had blocked PR #40 (09-11)/#47 (09-13)/#49 (09-14) from
+  landing, then landed idiom-pool batch 4 (60 → 75) on top of it.**
+  Pending Decisions was empty. Two PRs open on the standing
+  example-sentence-review track (#40, #44) — left both alone, same
+  reasoning as prior cycles, since this cycle's own scope (the e2e fix
+  + idiom-pool growth) doesn't overlap their content changes; #40's
+  own e2e failure is now fixed as a side effect (its content fix still
+  needs manually re-porting onto current `idioms.ts` by whoever picks
+  it up, since its branch predates 3 rounds of idiom-pool growth and no
+  longer applies cleanly).
+  Rather than re-authoring a fresh batch 5 (duplicating #47/#49's
+  already-verified content) or leaving #49 to rot a third day, picked
+  up its own continuation. #49's own PR description already pointed at
+  the real next step ("the `doorJump.ts` margin constants... are the
+  next place to look") — investigated that directly rather than
+  re-attempting the same rebase-and-hope #47→#49 already tried twice.
+  Root cause: `jumpForFirstReachableWrongTile`'s chain-catch safety
+  filter used one flat 60px back-margin for every candidate tile,
+  regardless of height, when the real danger zone (a jump's actual
+  takeoff-to-landing arc) sits further behind a taller tile's own x
+  than a shorter one's — confirmed by hand against both of #49's actual
+  CI failures (a real chain-catch on one, total candidate starvation on
+  the other, both on the same 明察秋毫 level, both explained by the same
+  flat-margin gap in opposite directions) before writing a fix, and
+  again quantitatively against the whole 75-idiom pool's real generated
+  levels afterward (37 missed chain-catch risks, 158 needless
+  exclusions under the old filter, both resolved by the new one). Full
+  detail in `BACKLOG.md`'s entry. All gates green: typecheck/test (367
+  passed)/build/e2e (70 passed, mobile+desktop, plus 12/12 on top for
+  the two specific tests that had failed on PR #49's own CI run — this
+  exact bug had already produced one false-clean local run before, so a
+  single pass wasn't enough to trust here). PR opened and merged per
+  the standing 2026-08-26 auto-land policy; #47 and #49 closed as
+  superseded.
+- **2026-09-14 — Daily cycle: rebased PR #47 (idiom pool batch 4, 60 →
+  75) onto latest main and re-validated, but it's still not merged — a
+  real GitHub Actions run caught a chain-catch every local run
+  missed.** Pending Decisions was empty. Two other open PRs on the
+  standing example-sentence-review track (#40, #44) — left both alone,
+  same reasoning as the last several cycles. Rather than authoring a
+  fresh batch 5 (which would duplicate #47's already-verified content)
+  or leaving #47 to rot, picked up its own continuation: merged latest
+  `main` (which had picked up the milestone-only-matching change, PR
+  #48, since #47 opened) onto a fresh `claude/daily-2026-09-14`
+  branch. Only `DECISIONS.md` conflicted (both branches had appended
+  an entry) — resolved by keeping both, in date order;
+  `idioms.ts`/`writingStrokeData.ts`/`BACKLOG.md` merged clean.
+  `typecheck`/`test` (367 passed)/`build` all green throughout.
+  `test:e2e` failed locally on the first full run — a genuine thrown
+  error this time (not a timeout like #47's own), from the "running out
+  of HP..." test's `jumpForFirstReachableWrongTile` helper, for a real
+  reason: unlike #47's own date, *today's* date seed draws 明察秋毫 (one
+  of this batch's new idioms) as the session's first level, so this
+  batch's new content is actually exercised today. Investigated
+  properly: hand-computed the level's real candidate-tile set (32 safe
+  "wrong catch" tiles across the track, several times more than the ~7
+  a full HP drain needs), then reproduced the specific test 3/3 clean
+  in isolation. Checked what the *real* PR gate actually requires:
+  `game-ci.yml` runs `test:e2e` with `CI: true`, which
+  `playwright.config.ts` gives a real retry (`retries: 1`) that my
+  first two local full-suite runs (no `CI` set) didn't have — re-ran
+  locally with `CI=true` to match, and all 70 passed. Opened PR #49 on
+  that basis.
+  **PR #49's own actual GitHub Actions run then failed anyway**, on a
+  *different* test — "each jump costs HP..." (`idiom-door.spec.ts:431`)
+  got `nextIndex` `"2"` instead of `"1"` on both its original attempt
+  and its automatic retry: the deliberately-aimed "wrong" jump
+  chain-caught the real next character too, for 明察秋毫's level again.
+  Never reproduced locally (3/3 isolated, and a full local `CI=true`
+  run including this exact test all green) — this looks like the same
+  pre-existing `doorJump.ts` timing-margin fragility
+  (`JUMP_FOOTPRINT_X`/`WRONG_TILE_BACK_MARGIN_X`, tuned repeatedly
+  before, see their own doc comments and the 2026-08-30/08-31/09-11
+  entries above) surfaced by which idiom this batch's growth put in
+  front of the door stage today, not a regression in anything this PR
+  actually touches (the catch/margin/level-generation code is
+  unmodified here). But `AUTONOMY.md`'s auto-land gate is the *actual*
+  CI run, not however many local repros pass — so PR #49 (superseding
+  #47; both left open, neither merged) stays **pushed but not merged**,
+  for a human look or a future session, same as #40 and #47's own
+  precedent. Full detail in `BACKLOG.md`'s own entry.
+- **2026-09-13 — Daily cycle: idiom pool batch 4 (60 → 75); pushed but
+  not merged since e2e hit a pre-existing timeout issue, confirmed
+  unrelated to this batch.** Pending Decisions was empty. Two other
+  PRs were already open on the standing example-sentence-review track
+  (#40, #44) — left both alone, same reasoning as the 2026-09-12 cycle
+  (neither created by this session, no overlap with this cycle's
+  scope). Picked the next idiom-pool-growth batch, continuing the same
+  pattern as the last three cycles.
+  Added 15 new idioms (脚踏实地/坚持不懈/一鼓作气 focus, 拾金不昧/一言为定/
+  言出必行/说一不二 honesty, 推己及人/守望相助/有求必应/一视同仁 kindness,
+  画蛇添足/塞翁失马/对症下药/循序渐进 wisdom), each verified via zdic.net/
+  Baidu Baike before authoring, same as batches 1-3. New this batch:
+  checked every candidate's first-two/last-two character halves
+  against the *entire* existing pool for `matchLevelContent.ts`'s
+  no-collision guard *before* authoring rather than after — caught
+  that 光明磊落 would have collided with the already-shipped 光明正大,
+  swapped for 言出必行 instead. Regenerated `writingStrokeData.ts`
+  against the full current 75-idiom set (216 distinct characters) per
+  the 2026-09-12 batch's own lesson about partial regenerations —
+  confirmed 0 missing characters.
+  `typecheck`/`test` (343 passed)/`build` all green, but `test:e2e`
+  failed: 6-8 desktop tests plus 1 mobile, all timeouts inside the
+  writing-stage/jump-position e2e helpers, never a content or game-logic
+  assertion. Investigated rather than assumed unrelated (same bar as PR
+  #40's precedent): today's date-seeded session doesn't even draw any
+  of this batch's new idioms; the stroke data for the characters it
+  *does* use is byte-identical to the pre-batch file; and the same
+  failing tests reproduce identically against an unmodified `origin/main`
+  worktree. This points to this session's sandboxed headless Chromium
+  being too slow for the writing-stage's simulated mouse tracing under
+  load — a session-environment issue, not a regression from this
+  change — but `AUTONOMY.md`'s auto-land policy blocks merging on any
+  e2e failure regardless of suspected cause. Pushed to
+  `claude/daily-2026-09-13`, opened PR #47, **left unmerged** for a
+  human look or a future session with a less-loaded runner. Full detail
+  in `BACKLOG.md`'s entry and PR #47's description.
 - **2026-09-12 — Shipped BACKLOG.md's "milestone-only matching" entry
   (per your direct request, not the daily cycle).** Removed the
   per-session match warm-up from `main.ts`'s boot flow entirely — a
