@@ -163,14 +163,15 @@ export const scienceQuestions: ScienceQuestion[] = [
     prompt:
       "Mei was standing under a tree at noon and had almost no shadow, but later at 5pm her shadow stretched far across the playground. Her brother said this happens because the sun becomes bigger in the late afternoon. Explain why her brother is wrong, and what actually causes the change in shadow length.",
     requiredKeywords: [
-      ["position of the sun", "angle of the sun", "sun's position", "sun is lower", "sun is higher", "position in the sky"],
-      ["not bigger", "same size", "does not change size", "doesn't change size", "does not actually change size"],
+      ["lower in the sky", "sun is lower", "sun is low", "closer to the horizon", "low in the sky", "sun's angle is lower"],
+      ["stretches her shadow", "shadow longer", "shadow becomes longer", "shadow gets longer", "makes it longer", "much longer", "shadow to be longer"],
     ],
-    minWords: 10,
-    hint: "Think about where the sun is in the sky at noon compared to late afternoon — is it high up or lower down? That change is what really affects how long a shadow looks, not the sun's size.",
+    minWords: 12,
+    hint: "At 5pm, is the sun higher up or closer to the horizon than it is at noon? Think about how a sun lower in the sky sends light in at a shallower angle — what would that do to how far a shadow stretches out?",
     modelAnswer:
-      "Mei's brother is wrong — the sun does not actually change size. The shadow gets longer or shorter because the sun's position in the sky changes throughout the day, changing the angle at which light hits her and casts her shadow.",
-    sourceNotes: "Light and shadows — shadow length changes with the sun's position/angle in the sky, not its size — standard P3/P4 Light theme content, reinforced at P4.",
+      "Mei's brother is wrong — the sun doesn't change size. In the late afternoon the sun is much lower in the sky, closer to the horizon, so its light hits Mei at a shallower angle. That shallower angle stretches her shadow out and makes it much longer, unlike at noon when the sun is high overhead and her shadow is short.",
+    sourceNotes:
+      "Light and shadows — shadow length changes with the sun's angle in the sky (a lower sun casts a longer shadow via a shallower light angle), not its size — standard P3/P4 Light theme content, reinforced at P4. Revised 2026-09-16 per feedback to require the actual mechanism (why longer specifically), not just 'the sun's position changes.'",
   },
 ];
 

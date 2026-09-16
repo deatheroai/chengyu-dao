@@ -1082,8 +1082,17 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       correct against its own `requiredKeywords`, and that every `hint`
       stops short of doing the same — same "content bug, not just a
       nice-to-have" reasoning as `idioms.test.ts`'s own cross-checks).
-      More batches follow the same author-then-review-5-at-a-time flow
-      before this item is done. Foundational —
+      Batch 2 (5 more: plant systems, material properties, water cycle,
+      heat conductors, light and shadows) landed the same way, merged
+      into the single `scienceQuestions` array (batch boundaries marked
+      inline, not separate exports) — 10 questions total now. Per your
+      "can the answer be more specific to why the shadow grew longer":
+      the light-and-shadows question's `requiredKeywords`/`hint`/
+      `modelAnswer` were revised to require the actual mechanism (the
+      sun sitting lower in the sky → a shallower light angle → a longer
+      shadow), not just "the sun's position changes." More batches
+      follow the same author-then-review-5-at-a-time flow before this
+      item is done. Foundational —
       nothing else below is buildable/testable against real content
       without it. Each question: `topic`, `icon` (doubles as the
       snake-food sprite — 🍁🍂🍃 for plant parts/life cycles, 🔍🔎 for
@@ -1260,6 +1269,18 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       correctly spawned 3 replacement science items on the board. Zero
       console errors throughout. All green: typecheck, full unit suite
       (459 passed), production `npm run build`.
+      **Follow-up (2026-09-16) per "the snake is missing a head and a
+      tail, able to make it obvious":** the head is now a distinct
+      slightly-larger rounded square with two small white eyes that
+      reorient to face whichever direction the snake is currently
+      travelling (`DIRECTION_FORWARD`/`DIRECTION_SIDE`); the last
+      `TAIL_TAPER_SEGMENTS = 3` segments shrink progressively toward the
+      actual tail tip and get a couple of thin light ring stripes across
+      them (skipped while poisoned, since the cycling rainbow fill is
+      already that state's own tell) — evokes a real snake's tapered,
+      banded tail rather than a uniform row of identical squares.
+      Rendering-only change, re-verified live (zoomed screenshot of the
+      snake with the dev server running).
 - [ ] `in-progress` — **Win/Lose scenes + visuals.** The functional half
       is done: win triggers at `WIN_LENGTH_RATIO = 0.7` of grid cells
       (~270 segments, not literal 100% — a free-moving snake can't

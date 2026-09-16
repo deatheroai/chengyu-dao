@@ -63,6 +63,26 @@ const GRID_LINE_COLOR = 0xdfe7d0;
 const BG_COLOR = 0xf5faf0;
 const INITIAL_APPLE_COUNT = 4;
 
+/** Per your "the snake is missing a head and a tail, able to make it obvious" feedback: the last few segments shrink toward the tail's tip (see TAIL_TAPER_SEGMENTS below), and the head gets eyes facing the direction of travel — same reasoning `scorchTile` in idiom-door has for a purely cosmetic recolor: a `render` concern only, no new pure-logic state. */
+const TAIL_TAPER_SEGMENTS = 3;
+const TAIL_RING_COLOR = 0xe8ffe0;
+const EYE_COLOR = 0xffffff;
+const EYE_RADIUS = 2.5;
+
+/** Where a head's two eyes sit relative to its own cell center — offset forward (toward direction of travel) and to either side, so they read as "looking" the way the snake is actually heading. */
+const DIRECTION_FORWARD: Record<Direction, Position> = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+const DIRECTION_SIDE: Record<Direction, Position> = {
+  up: { x: 1, y: 0 },
+  down: { x: 1, y: 0 },
+  left: { x: 0, y: 1 },
+  right: { x: 0, y: 1 },
+};
+
 const KEY_TO_DIRECTION: Record<string, Direction> = {
   ArrowUp: "up",
   ArrowDown: "down",
@@ -252,15 +272,56 @@ export class SnakeGameScene extends Phaser.Scene {
       this.gfx.lineBetween(0, y * CELL_SIZE, GRID_WIDTH * CELL_SIZE, y * CELL_SIZE);
     }
 
+    const bodyLength = this.snake.body.length;
     this.snake.body.forEach((segment, i) => {
-      let color = i === 0 ? SNAKE_HEAD_COLOR : SNAKE_COLOR;
+      const isHead = i === 0;
+      // Segments counted back from the tail's actual tip (0), not from
+      // the head — the last TAIL_TAPER_SEGMENTS of these taper down in
+      // size, evoking a real snake's tail rather than a uniform row of
+      // identical squares.
+      const distFromTail = bodyLength - 1 - i;
+      const isTaper = !isHead && distFromTail < TAIL_TAPER_SEGMENTS;
+
+      let color = isHead ? SNAKE_HEAD_COLOR : SNAKE_COLOR;
       let wobble = 0;
       if (this.snake.isPoisoned) {
         color = POISONED_COLORS[(i + Math.floor(this.time.now / 150)) % POISONED_COLORS.length];
         wobble = Math.sin(this.time.now / 120 + i) * 2;
       }
+
+      const cellX = segment.x * CELL_SIZE;
+      const cellY = segment.y * CELL_SIZE;
+      // The tip (distFromTail 0) shrinks the most; the segment closest
+      // to the rest of the body (distFromTail TAIL_TAPER_SEGMENTS - 1)
+      // barely shrinks at all, so the taper reads as gradual.
+      const extraInset = isTaper ? (TAIL_TAPER_SEGMENTS - distFromTail) * 3 : 0;
+      const offset = 2 + extraInset;
+      const size = CELL_SIZE - 4 - extraInset * 2;
+
       this.gfx.fillStyle(color, 1);
-      this.gfx.fillRoundedRect(segment.x * CELL_SIZE + 2 + wobble, segment.y * CELL_SIZE + 2 - wobble, CELL_SIZE - 4, CELL_SIZE - 4, 6);
+      this.gfx.fillRoundedRect(cellX + offset + wobble, cellY + offset - wobble, size, size, isHead ? 8 : 6);
+
+      if (isTaper && !this.snake.isPoisoned) {
+        // A couple of thin ring stripes across the tapering tail,
+        // evoking a real snake's banded tail — per your "tail a little
+        // like rings" feedback. Skipped while poisoned since the
+        // cycling rainbow fill is already the tail's own tell there.
+        this.gfx.lineStyle(2, TAIL_RING_COLOR, 0.9);
+        this.gfx.lineBetween(cellX + offset, cellY + offset + size * 0.35, cellX + offset + size, cellY + offset + size * 0.35);
+        this.gfx.lineBetween(cellX + offset, cellY + offset + size * 0.65, cellX + offset + size, cellY + offset + size * 0.65);
+      }
+
+      if (isHead) {
+        const forward = DIRECTION_FORWARD[this.snake.direction];
+        const side = DIRECTION_SIDE[this.snake.direction];
+        const centerX = cellX + CELL_SIZE / 2;
+        const centerY = cellY + CELL_SIZE / 2;
+        const forwardDist = CELL_SIZE * 0.15;
+        const sideDist = CELL_SIZE * 0.2;
+        this.gfx.fillStyle(EYE_COLOR, 1);
+        this.gfx.fillCircle(centerX + forward.x * forwardDist + side.x * sideDist, centerY + forward.y * forwardDist + side.y * sideDist, EYE_RADIUS);
+        this.gfx.fillCircle(centerX + forward.x * forwardDist - side.x * sideDist, centerY + forward.y * forwardDist - side.y * sideDist, EYE_RADIUS);
+      }
     });
 
     this.renderItems();
