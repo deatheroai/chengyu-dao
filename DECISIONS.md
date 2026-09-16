@@ -10,30 +10,7 @@ these.
 
 ## Pending Decisions
 
-- **Science Snake: site entry point / how it coexists with `idiom-door`
-  (2026-09-16).** This is a second, standalone game (`BACKLOG.md`'s new
-  "Science Snake Game" section), not a mode inside `idiom-door` — but
-  that raises the same "which mechanic is 'the' game" call
-  `AUTONOMY.md` flags as a scope decision, not a guess: does `index.html`
-  become a picker between the two, do they stay two separately-linked
-  URLs, or does science-snake eventually replace `idiom-door` as the
-  site root the way `idiom-door` itself replaced the castle prototype?
-  Doesn't block *building* the game (every item in that backlog section
-  is buildable/testable without this answered) — only blocks wiring it
-  into site navigation at the end.
-- **Science Snake: P4 syllabus content sourcing (2026-09-16).** The
-  idiom pool is never authored from memory alone — each entry is
-  verified against zdic.net/Baidu Baike/Taiwan MOE 成語典 first
-  (`BACKLOG.md`'s idiom-pool-growth entries). Science-snake's question
-  bank needs an equivalent verification pass against the actual current
-  Singapore MOE P4 Science syllabus, since topic lists and exam-keyword
-  expectations can drift between syllabus revisions and general
-  knowledge alone risks going stale or subtly wrong. Do you have the
-  current syllabus document/topic list to author the first batch
-  against, or should that first batch scope down to a small,
-  high-confidence topic set (e.g. just Diversity of Living/Non-Living
-  Things + Life Cycles) and grow the same incremental way the idiom pool
-  did (15 → 30 → 45 → 60)?
+None open right now.
 
 ## Needs Your Action (not decisions — steps only you can take)
 
@@ -46,6 +23,20 @@ these.
 
 ## Resolved
 
+- **2026-09-16 — Science Snake: completely independent game, not
+  wired into `idiom-door`'s navigation at all.** Resolves the
+  site-entry-point question raised earlier today: no picker, no shared
+  entry point, no eventual replacement — its own page/URL
+  (`science-snake.html`), entirely separate from `idiom-door`. Nothing
+  in either game's navigation needs to change for the other.
+- **2026-09-16 — Science Snake: author content directly, reviewed in
+  batches of five before landing.** Resolves the P4-content-sourcing
+  question raised earlier today: rather than sourcing an official
+  syllabus document first, questions are drafted here and shown five at
+  a time for direct review/correction before being committed to
+  `scienceQuestions.ts` — review-before-landing standing in for the
+  idiom pool's dictionary-verification step, adapted to content this
+  session can't independently verify against a primary source.
 - **2026-09-12 — Shipped BACKLOG.md's "milestone-only matching" entry
   (per your direct request, not the daily cycle).** Removed the
   per-session match warm-up from `main.ts`'s boot flow entirely — a

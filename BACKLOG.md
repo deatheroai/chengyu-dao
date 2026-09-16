@@ -1107,12 +1107,43 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       10-15 min session, small enough to stay winnable. ~180ms/cell tick.
       Growth: apple +1 segment, correct answer +4 (matches the 6x point
       ratio below and biases the win toward engaging with questions, not
-      apple-grinding alone). Starting numbers, tune after playtest — same
-      as every constant in this file.
+      apple-grinding alone). Growth is implemented the standard way (an
+      "owed growth" counter — the tail simply isn't popped for that many
+      future ticks), not by teleporting new segments onto the board, so
+      it always trails along the path the snake actually travels.
+      Self-collision (running into your own body) is the classic Snake
+      lose condition and needs to be explicit here even though earlier
+      notes didn't call it out separately — it's what makes the poison
+      apple below actually dangerous, since suffocation.ts only watches
+      unresolved science items, not the snake's own body. Starting
+      numbers, tune after playtest — same as every constant in this file.
+- [ ] `todo` — **Poison apples: 10% of apples, double the snake's
+      length, purple (2026-09-16).** Per your ask: ~10% of spawned
+      apples are poison instead of normal — visually the same apple
+      sprite recolored purple (`POISON_APPLE_COLOR`), not a different
+      fruit/emoji, so a child reads it as "a bad version of the apple,"
+      not an unrelated item (same "recolor an existing thing for a
+      variant" pattern `IdiomDoorScene.scorchTile` already uses for its
+      wrong-catch tile). Eating one sets owed-growth to the snake's
+      *current* length (so it roughly doubles as the snake continues
+      moving, per `snakeGrid.ts`'s owed-growth mechanic above — not an
+      instant on-the-spot append, since there's no valid board position
+      to instantly place that many segments into) and awards 0 points
+      (tracked separately as `poisonApplesEaten`, not counted toward the
+      apple score). This is the intended danger: doubling body length
+      sharply shrinks the snake's own safe maneuvering room, making
+      self-collision (the new explicit lose condition above) much more
+      likely soon after — "cause the game to end quickly" per your ask,
+      via a *different* lose path than `suffocation.ts`'s question-
+      pileup one. Owed growth is clamped so total length can't exceed
+      `gridWidth * gridHeight` (defensive only — in practice a snake
+      forced that large runs out of safe cells and self-collides well
+      before hitting the literal cap).
 - [ ] `todo` — **Item spawner + suffocation predicate (`itemSpawner.ts`,
-      `suffocation.ts` + tests).** Spawns apples and science items (~1
-      science item per 3-4 apples on board) at free cells; on a
-      wrong-twice ("indigestion"), spawns several replacement science
+      `suffocation.ts` + tests).** Spawns apples (~10% of which roll
+      poison, see above) and science items (~1 science item per 3-4
+      apples on board) at free cells; on a wrong-twice ("indigestion"),
+      spawns several replacement science
       items instead of just clearing the one, so repeated misses snowball
       risk. Per your "should end early quickly if player fails, i.e.
       pooped out half the screen": `suffocation.ts` is a pure predicate
@@ -1143,10 +1174,11 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       (~1s) beat — snake flipped upside-down, a looping smoke/stink
       particle emitter — then straight to the game-over screen, not a
       lingering animation.
-- [ ] `todo` — **Entry point + site navigation — blocked on the
-      site-entry-point Pending Decision in `DECISIONS.md`.** Everything
-      above is buildable/testable without this answered; only wiring it
-      into `index.html`/site navigation needs it decided first.
+- [ ] `todo` — **Entry point: `science-snake.html`, fully independent
+      of `idiom-door` (resolved 2026-09-16, see `DECISIONS.md`).** Its
+      own page/URL, no picker, no shared nav, no relation to
+      `idiom-door.html` beyond living in the same repo/deploy. `index.html`
+      is untouched.
 - [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
       `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
       full suffocation-loss playthrough (repeated wrong answers piling up
