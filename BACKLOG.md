@@ -1071,9 +1071,19 @@ Blocked overall on the site-entry-point Pending Decision in `DECISIONS.md`
 for *shipping*, but not for building — same "keep building other unblocked
 items" rule `AUTONOMY.md` gives for any blocked entry.
 
-- [ ] `todo` — **Content bank: P4 Science question set
+- [ ] `in-progress` — **Content bank: P4 Science question set
       (`src/science-snake/scienceQuestions.ts`), authored + reviewed in
-      batches of 5 (2026-09-16, see `DECISIONS.md`).** Foundational —
+      batches of 5 (2026-09-16, see `DECISIONS.md`).** Batch 1 (5
+      questions: diversity of living/non-living things, plant life cycle,
+      states of matter, magnets, animal life cycle) landed —
+      `src/science-snake/types.ts` + `scienceQuestions.ts` +
+      `scienceQuestions.test.ts` (10 integrity tests, including a
+      standalone check that every `modelAnswer` would itself grade
+      correct against its own `requiredKeywords`, and that every `hint`
+      stops short of doing the same — same "content bug, not just a
+      nice-to-have" reasoning as `idioms.test.ts`'s own cross-checks).
+      More batches follow the same author-then-review-5-at-a-time flow
+      before this item is done. Foundational —
       nothing else below is buildable/testable against real content
       without it. Each question: `topic`, `icon` (doubles as the
       snake-food sprite — 🍁🍂🍃 for plant parts/life cycles, 🔍🔎 for
