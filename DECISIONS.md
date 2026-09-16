@@ -10,7 +10,30 @@ these.
 
 ## Pending Decisions
 
-None open right now.
+- **Science Snake: site entry point / how it coexists with `idiom-door`
+  (2026-09-16).** This is a second, standalone game (`BACKLOG.md`'s new
+  "Science Snake Game" section), not a mode inside `idiom-door` — but
+  that raises the same "which mechanic is 'the' game" call
+  `AUTONOMY.md` flags as a scope decision, not a guess: does `index.html`
+  become a picker between the two, do they stay two separately-linked
+  URLs, or does science-snake eventually replace `idiom-door` as the
+  site root the way `idiom-door` itself replaced the castle prototype?
+  Doesn't block *building* the game (every item in that backlog section
+  is buildable/testable without this answered) — only blocks wiring it
+  into site navigation at the end.
+- **Science Snake: P4 syllabus content sourcing (2026-09-16).** The
+  idiom pool is never authored from memory alone — each entry is
+  verified against zdic.net/Baidu Baike/Taiwan MOE 成語典 first
+  (`BACKLOG.md`'s idiom-pool-growth entries). Science-snake's question
+  bank needs an equivalent verification pass against the actual current
+  Singapore MOE P4 Science syllabus, since topic lists and exam-keyword
+  expectations can drift between syllabus revisions and general
+  knowledge alone risks going stale or subtly wrong. Do you have the
+  current syllabus document/topic list to author the first batch
+  against, or should that first batch scope down to a small,
+  high-confidence topic set (e.g. just Diversity of Living/Non-Living
+  Things + Life Cycles) and grow the same incremental way the idiom pool
+  did (15 → 30 → 45 → 60)?
 
 ## Needs Your Action (not decisions — steps only you can take)
 

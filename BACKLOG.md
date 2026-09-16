@@ -1060,6 +1060,101 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       confirm they held rather than happened to pass by chance, given
       how timing-sensitive this exact area of the suite already was.
 
+## Science Snake Game (new, 2026-09-16)
+
+A second, standalone game — a P4-syllabus (Singapore MOE) science quiz
+wrapped in a snake game, not a mode inside `idiom-door`. Design settled by
+conversation on 2026-09-16 (not yet built); items below are ordered
+build-priority, pure-logic-first same as every other mechanic in this repo,
+each meant to land with its own tests before the next depends on it.
+Blocked overall on the site-entry-point Pending Decision in `DECISIONS.md`
+for *shipping*, but not for building — same "keep building other unblocked
+items" rule `AUTONOMY.md` gives for any blocked entry.
+
+- [ ] `todo` — **Content bank: P4 Science question set
+      (`src/science-snake/scienceQuestions.ts`).** Foundational — nothing
+      else below is buildable/testable against real content without it.
+      Each question: `topic`, `icon` (doubles as the snake-food sprite —
+      🍁🍂🍃 for plant parts/life cycles, 🔍🔎 for scientific
+      investigation, 🧪 for materials, 🧲 for magnets, 💧 for water cycle,
+      ☀️ for light/heat), `prompt`, `requiredKeywords: string[][]` (OR-groups,
+      every group must be hit), `minWords`, `hint` (a Socratic nudge shown
+      after try 1, not the answer), `modelAnswer` (revealed word-chunked
+      after try 2). See the content-sourcing Pending Decision in
+      `DECISIONS.md` before authoring a large batch — same
+      verify-before-authoring discipline as the idiom pool
+      (zdic.net/Baidu Baike/Taiwan MOE 成語典 there), not general
+      knowledge alone, since a syllabus can revise between years.
+- [ ] `todo` — **Pure grading module (`answerGrading.ts` + tests).**
+      Keyword-match (case-insensitive, all `requiredKeywords` OR-groups
+      hit) + malformed check (`minWords` floor, cheap verb-shaped-token
+      heuristic — lenient, not a grammar checker) + the two-try state
+      machine itself: `ASK → [wrong: HINT+ASK try 2] → [wrong: REVEAL]`.
+      Pure and independently testable, same split `writingScore.ts` keeps
+      from its own Scene/DOM wiring.
+- [ ] `todo` — **Hint + word-chunk reveal (`chunkWords.ts` + tests).** Per
+      your "wrong once must give guidance... wrong twice should reveal
+      the correct answer maybe reveal three words at a time... to enforce
+      reading instead of skipping away": try-1-wrong surfaces the
+      question's own `hint` next to a fresh try-2 input, no penalty yet.
+      Try-2-wrong reveals `modelAnswer` via `chunkWords(text, 3)` — one
+      chunk per "Next →" tap, "Continue" (which is what actually triggers
+      indigestion) only appears once every chunk's been stepped through,
+      so dismissing it requires having read the whole sentence at reading
+      pace rather than skimmed-and-tapped.
+- [ ] `todo` — **Snake grid/movement/growth core (`snakeGrid.ts` +
+      tests).** 24×16 grid (384 cells) — big enough to sustain a
+      10-15 min session, small enough to stay winnable. ~180ms/cell tick.
+      Growth: apple +1 segment, correct answer +4 (matches the 6x point
+      ratio below and biases the win toward engaging with questions, not
+      apple-grinding alone). Starting numbers, tune after playtest — same
+      as every constant in this file.
+- [ ] `todo` — **Item spawner + suffocation predicate (`itemSpawner.ts`,
+      `suffocation.ts` + tests).** Spawns apples and science items (~1
+      science item per 3-4 apples on board) at free cells; on a
+      wrong-twice ("indigestion"), spawns several replacement science
+      items instead of just clearing the one, so repeated misses snowball
+      risk. Per your "should end early quickly if player fails, i.e.
+      pooped out half the screen": `suffocation.ts` is a pure predicate
+      over *unresolved science items specifically* (not general board
+      clutter) — `SUFFOCATION_THRESHOLD_RATIO = 0.5` of total cells
+      triggers immediate game over, checked every tick, independent of
+      snake length/win progress.
+- [ ] `todo` — **Scoring + high score persistence
+      (`scienceSnakeScore.ts` + tests).** `score = apples*5 +
+      questionsCorrect*30`, recorded only on a win (per your spec).
+      Reuses the existing localStorage-first + optional cloud-sync
+      pattern (`shared/cloudSync.ts`/`cloudSaveValidation.ts`,
+      `api/cloud-save.ts`) under its own save key, not `idiom-door`'s.
+- [ ] `todo` — **Phaser scene + DOM question overlay
+      (`SnakeGameScene.ts`, `QuestionOverlay.ts`).** Thin wiring only, same
+      "pure-function-plus-thin-Scene" split every mechanic here keeps —
+      the Scene pauses its update loop the instant the snake eats a
+      science item, hands control to the DOM overlay (plain DOM over the
+      canvas, same pattern `writingStage.ts` uses for text-heavy input),
+      and resumes once the overlay resolves (correct, or reveal-and-
+      continue on wrong-twice).
+- [ ] `todo` — **Win/Lose scenes + visuals.** Win: snake length reaches
+      `WIN_LENGTH_RATIO = 0.7` of grid cells (~270 segments) — not
+      literal 100%; a free-moving snake can't realistically occupy every
+      last cell without a Hamiltonian-path route, so 100% would make the
+      win nearly unreachable. At 70% the board reads as visually full.
+      Lose (suffocation): per your "should end early quickly," a short
+      (~1s) beat — snake flipped upside-down, a looping smoke/stink
+      particle emitter — then straight to the game-over screen, not a
+      lingering animation.
+- [ ] `todo` — **Entry point + site navigation — blocked on the
+      site-entry-point Pending Decision in `DECISIONS.md`.** Everything
+      above is buildable/testable without this answered; only wiring it
+      into `index.html`/site navigation needs it decided first.
+- [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
+      `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
+      full suffocation-loss playthrough (repeated wrong answers piling up
+      poop), and specifically a test asserting the reveal overlay's
+      "Continue" is genuinely gated behind stepping through every
+      chunk (not just present from the start) — that gating is the actual
+      point of the mechanic, not incidental UI.
+
 ## Platform / infra
 
 - [x] `done` — Live Vercel deployment (2026-08-25). `vercel.json`
