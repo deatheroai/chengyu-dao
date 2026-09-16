@@ -1115,30 +1115,45 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       lose condition and needs to be explicit here even though earlier
       notes didn't call it out separately — it's what makes the poison
       apple below actually dangerous, since suffocation.ts only watches
-      unresolved science items, not the snake's own body. Starting
-      numbers, tune after playtest — same as every constant in this file.
-- [ ] `todo` — **Poison apples: 10% of apples, double the snake's
-      length, purple (2026-09-16).** Per your ask: ~10% of spawned
-      apples are poison instead of normal — visually the same apple
-      sprite recolored purple (`POISON_APPLE_COLOR`), not a different
-      fruit/emoji, so a child reads it as "a bad version of the apple,"
-      not an unrelated item (same "recolor an existing thing for a
+      unresolved science items, not the snake's own body. Snake state
+      also carries an `isPoisoned` flag (set once, see poison apples
+      below) that multiplies *normal* apple growth by
+      `POISON_GROWTH_MULTIPLIER = 4` for the rest of the run — science-
+      question growth is untouched by it either way. Starting numbers,
+      tune after playtest — same as every constant in this file.
+- [ ] `todo` — **Poison apples: 10% of apples, rainbow-colored, double
+      the snake's length and permanently 4x its apple-growth rate
+      (2026-09-16, revised from purple/one-shot-only per your follow-up).**
+      ~10% of spawned apples are poison instead of normal — visually the
+      same apple sprite but rendered with a cycling rainbow palette
+      (`POISON_APPLE_PALETTE`) rather than a single recolor, so it reads
+      as distinctly "off" (same "recolor an existing thing for a
       variant" pattern `IdiomDoorScene.scorchTile` already uses for its
-      wrong-catch tile). Eating one sets owed-growth to the snake's
-      *current* length (so it roughly doubles as the snake continues
-      moving, per `snakeGrid.ts`'s owed-growth mechanic above — not an
-      instant on-the-spot append, since there's no valid board position
-      to instantly place that many segments into) and awards 0 points
-      (tracked separately as `poisonApplesEaten`, not counted toward the
-      apple score). This is the intended danger: doubling body length
-      sharply shrinks the snake's own safe maneuvering room, making
-      self-collision (the new explicit lose condition above) much more
+      wrong-catch tile, just an animated palette instead of a flat one).
+      Eating one does two things: (1) sets owed-growth to the snake's
+      *current* length, same instant-double mechanic as before — not an
+      on-the-spot append, it plays out via `snakeGrid.ts`'s owed-growth
+      counter as the snake keeps moving, since there's no valid board
+      position to instantly place that many segments into; and (2) sets
+      `isPoisoned = true` for the rest of the run, so every *normal*
+      apple eaten afterward grows the snake by `4×` instead of `1×`. Both
+      awards 0 points (tracked separately as `poisonApplesEaten`, not
+      counted toward the apple score). Assuming, absent a stated
+      duration: `isPoisoned` doesn't decay or wear off, and eating a
+      second poison apple re-triggers the instant double but doesn't
+      stack the multiplier past 4x — flag if either should work
+      differently. This compounds the original danger: doubling on the
+      spot *and* every subsequent apple now growing 4x as fast both
+      shrink the snake's own safe maneuvering room fast, making
+      self-collision (the explicit lose condition above) much more
       likely soon after — "cause the game to end quickly" per your ask,
       via a *different* lose path than `suffocation.ts`'s question-
-      pileup one. Owed growth is clamped so total length can't exceed
-      `gridWidth * gridHeight` (defensive only — in practice a snake
-      forced that large runs out of safe cells and self-collides well
-      before hitting the literal cap).
+      pileup one, though it's also a genuine risk/reward: 4x growth also
+      races toward the 70% win threshold much faster for a player who
+      can keep dodging their own tail. Owed growth is clamped so total
+      length can't exceed `gridWidth * gridHeight` (defensive only — in
+      practice a snake forced that large runs out of safe cells and
+      self-collides well before hitting the literal cap).
 - [ ] `todo` — **Item spawner + suffocation predicate (`itemSpawner.ts`,
       `suffocation.ts` + tests).** Spawns apples (~10% of which roll
       poison, see above) and science items (~1 science item per 3-4
@@ -1164,7 +1179,15 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       science item, hands control to the DOM overlay (plain DOM over the
       canvas, same pattern `writingStage.ts` uses for text-heavy input),
       and resumes once the overlay resolves (correct, or reveal-and-
-      continue on wrong-twice).
+      continue on wrong-twice). Once `snakeGrid.ts`'s `isPoisoned` flips
+      true, the snake's own render swaps from its normal look to a
+      cycling-rainbow, "gooey" treatment for the rest of the run — per
+      your ask, a visual tell that persists rather than a one-off flash,
+      so the child always knows they're in the fast-growth state. Purely
+      a render concern (segment color driven by a time-based hue cycle,
+      shape by a small per-segment wobble/blob offset instead of crisp
+      edges) — no new pure-logic state beyond the `isPoisoned` flag
+      `snakeGrid.ts` already carries.
 - [ ] `todo` — **Win/Lose scenes + visuals.** Win: snake length reaches
       `WIN_LENGTH_RATIO = 0.7` of grid cells (~270 segments) — not
       literal 100%; a free-moving snake can't realistically occupy every
