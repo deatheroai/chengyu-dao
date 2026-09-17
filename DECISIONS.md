@@ -23,6 +23,34 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-17 — Daily cycle: idiom pool batch 5 (75 → 90).** Pending
+  Decisions was empty. Three other open PRs existed: #40 and #44 on the
+  standing example-sentence-review track (unchanged since prior
+  check-ins, no overlap with this cycle's scope, left alone as usual),
+  and a new one from an interactive session earlier the same day, #51
+  ("Science Snake", a wholly separate P4-Science quiz game, not part of
+  this repo's idiom-game scope or `BACKLOG.md`) — its own description
+  explicitly asks for a human playtest on its Vercel preview before
+  being judged, so left untouched, same "PR asking for a subjective
+  human read never gets auto-landed" rule as everything else on that
+  track. Continued the idiom-pool-growth item since it was the
+  highest-priority genuinely unblocked backlog item, same pattern as
+  the last several batches.
+  Added 15 new idioms (see `BACKLOG.md`'s own batch-5 entry for the
+  full list and sourcing detail) — verification went through WebSearch
+  rather than a direct zdic.net fetch, since zdic.net itself turned out
+  to be blocked by this sandbox's egress proxy (first time that's come
+  up; prior batches' own notes say "zdic.net" but don't record how they
+  reached it, so this may not be new — noting it here in case a future
+  session hits the same block and wonders why a direct fetch fails).
+  Pre-checked every new candidate's first-two/last-two character halves
+  against the full 75-idiom pool before authoring (the batch-4 lesson),
+  and against each other within the batch — no collisions, no swaps
+  needed. Regenerated `writingStrokeData.ts` against the full current
+  90-idiom set (256 distinct characters, 40 new). All gates green:
+  typecheck/test (367 passed)/build/e2e (70 passed, mobile+desktop, run
+  with `CI=true` to match the actual PR gate). PR opened and merged per
+  the standing 2026-08-26 auto-land policy.
 - **2026-09-16 — Daily cycle: root-caused and fixed the `doorJump.ts`
   e2e bug that had blocked PR #40 (09-11)/#47 (09-13)/#49 (09-14) from
   landing, then landed idiom-pool batch 4 (60 → 75) on top of it.**
