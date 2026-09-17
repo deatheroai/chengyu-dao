@@ -717,6 +717,41 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       idioms) together with this fix — same branch, since the fix is
       what unblocks that content, not a separate concern. #47 and #49
       are both now superseded/closed in favor of this.
+      **Batch 5 (2026-09-17): 75 → 90.** Added 闻鸡起舞/愚公移山/水滴石穿/
+      三心二意 (focus), 开诚布公/直言不讳/循规蹈矩/问心无愧 (honesty), 患难与共/
+      无微不至/嘘寒问暖 (kindness), 亡羊补牢/掩耳盗铃/刻舟求剑/画龙点睛 (wisdom) —
+      same verification-before-authoring process as batches 1-4 (each
+      confirmed to have a standalone zdic.net entry, not just a
+      search-summary mention, before being authored; zdic.net itself is
+      network-blocked from this sandbox, so verification went through
+      WebSearch queries targeted at its indexed pages plus Baidu Baike
+      instead of a direct fetch). Every candidate's first-two/last-two
+      character halves were checked against the full existing 75-idiom
+      pool, and against each other within this batch, before authoring
+      — per the batch-4 lesson — and came back clean; no swaps were
+      needed this round. Confirmed via `sessionIdioms.test.ts`'s
+      existing generic pool-wide collision check (unchanged, still
+      passes over all 90).
+      Two of this batch's idioms (直言不讳, 无微不至) have their own name's
+      `不` immediately before a 4th-tone syllable — kept each entry's own
+      top-level `pinyin` field at the dictionary citation tone (`bù`,
+      confirmed by web search against multiple idiom dictionaries) but
+      applied real spoken tone sandhi (`bú`) in the compressed
+      sentence-embedded form, matching `坚持不懈`'s own existing precedent
+      in this same file (`jiān chí bù xiè` at the top, `jiānchí-búxiè`
+      inside its example sentence).
+      Regenerated `writingStrokeData.ts` against the full current
+      90-idiom set up front, per the 2026-09-12/09-13 batches' own
+      lesson about partial regenerations — 40 of this batch's 55
+      distinct characters were new (the other 15 already covered by
+      earlier batches' overlapping characters); confirmed 0 missing
+      characters across the whole pool both before and after landing
+      (256 distinct characters total).
+      All green: `npm run typecheck`/`test` (367 passed, unchanged — no
+      new pure-logic surface, same as every prior content-only batch)/
+      `build`/`test:e2e` (70 passed, mobile+desktop, run with `CI=true`
+      to match the actual PR gate, per PR #49's own lesson that a bare
+      local run isn't enough to trust).
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
