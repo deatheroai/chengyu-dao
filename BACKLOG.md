@@ -577,6 +577,181 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       assembling each milestone's batch, not just a guard that throws —
       tied to the separate "milestone-only matching" item below, not
       urgent yet at 60.
+      **Batch 4 (2026-09-13): 60 → 75.** Added 脚踏实地/坚持不懈/一鼓作气
+      (focus), 拾金不昧/一言为定/言出必行/说一不二 (honesty), 推己及人/
+      守望相助/有求必应/一视同仁 (kindness), 画蛇添足/塞翁失马/对症下药/
+      循序渐进 (wisdom) — same verification-before-authoring process as
+      batches 1-3 (each checked for a standalone zdic.net entry, not
+      just a search-summary mention, before being authored). One
+      originally-drafted honesty candidate, 光明磊落, didn't clear the
+      *other* verification step this batch newly ran (not just the
+      dictionary-entry check the previous 3 batches already did):
+      checked every new idiom's first-two/last-two characters against
+      the *entire* existing pool for `matchLevelContent.ts`'s
+      no-collision guard before authoring, not just after — 光明磊落
+      shares its first half ("光明") with the already-shipped
+      光明正大, which would have broken the halves-matching minigame
+      the moment both landed in the same milestone batch. Caught by a
+      small one-off Node script (`Array.from` each hanzi into
+      first/last two-character halves, diff against the existing 60),
+      not by hand — worth reusing for every future batch now that the
+      pool is big enough for this to be a real risk, per the "Remaining"
+      note just above. Replaced with 言出必行, which clears both checks.
+      Also re-verified the whole 75-idiom pool is still collision-free
+      via `sessionIdioms.test.ts`'s existing generic check (unchanged,
+      still passes — no code change needed since it's already generic
+      over the full pool).
+      Regenerated `writingStrokeData.ts` against the full current
+      75-idiom set up front (not just this batch's own 15 new idioms'
+      characters) per the 2026-09-12 batch's own lesson — confirmed 0
+      missing characters both before landing (36 new distinct
+      characters added, 216 total) and via the same check re-run after
+      writing this entry.
+      **Validation — NOT all green, so this PR is not merged.**
+      `typecheck`/`test` (343 passed)/`build` all pass. `test:e2e`
+      failed (6-8 desktop tests, one mobile), all timeouts inside the
+      writing/tracing-stage or jump-position helpers (`writingStage.ts`'s
+      `mouse.move`/`#writing-status` polling, `doorJump.ts`'s
+      `#player-position` polling) — never a content-integrity or
+      collision assertion. Checked this isn't caused by this batch
+      before assuming so, same as PR #40's precedent: (1) today's
+      date-seeded 3-idiom session (触类旁通/同甘共苦/一丝不苟) doesn't even
+      draw any of this batch's 15 new idioms, so the new stroke data
+      isn't exercised by today's run at all; (2) confirmed byte-for-byte
+      that `writingStrokeData.ts`'s entries for all 12 characters this
+      run's idioms *do* use are unchanged from the pre-batch file
+      despite the full regeneration; (3) re-ran the failing desktop
+      tests against an unmodified `origin/main` worktree (no changes at
+      all) and they fail identically there. This looks like this
+      sandboxed session's headless Chromium being too slow for the
+      writing-stage's fine-grained simulated mouse tracing under load,
+      not a logic bug — but per `AUTONOMY.md`, an e2e failure still
+      blocks auto-land regardless of suspected cause, same as PR #40.
+      Pushed to `claude/daily-2026-09-13` and PR opened, **not merged**.
+      **2026-09-14: rebase attempt, still not merged — a real GitHub
+      Actions run caught what local runs didn't.** Merged latest `main`
+      (which had picked up the milestone-only-matching change, PR #48,
+      since PR #47 opened) onto a fresh session branch — only
+      `DECISIONS.md` conflicted (both branches appended an entry),
+      resolved by keeping both in chronological order;
+      `idioms.ts`/`writingStrokeData.ts`/`BACKLOG.md` merged clean.
+      `typecheck`/`test` (367 passed)/`build` all green throughout.
+      `test:e2e` failed on the first local full run — a genuine
+      exception this time, not a timeout: "running out of HP warns
+      first..." threw from `jumpForFirstReachableWrongTile` ("no
+      reachable tile... could be caught before the level ended"), for a
+      real reason — *today's* date seed draws 明察秋毫 (this batch's own
+      new content) as the session's first level, unlike #47's own day,
+      so this batch's new idioms are actually exercised today.
+      Investigated rather than assumed unrelated: hand-computed the
+      level's real candidate-tile set — 32 safe "wrong catch" tiles
+      exist across the track, several times more than the ~7 a full
+      HP drain needs, so not a genuine tile-availability gap; the exact
+      test passed 3/3 in local isolation. Checked what the *real* PR
+      gate actually runs before trusting a bare local pass: `game-ci.yml`
+      sets `CI: true`, which `playwright.config.ts` turns into a real
+      retry (`retries: 1`) my first two local full-suite runs didn't
+      have — re-ran locally with `CI=true` to match, and **all 70
+      passed**. Opened PR #49 on that basis.
+      **PR #49's own actual GitHub Actions run then failed anyway** —
+      not the same test: "each jump costs HP, and a wrong catch costs
+      extra on top" (`idiom-door.spec.ts:431`) got `nextIndex` `"2"`
+      where it expected `"1"`, on *both* the original attempt and its
+      built-in retry — the deliberately-wrong-aimed jump chain-caught
+      the real next character too, for 明察秋毫's level once again (this
+      batch's own content, same level 0 as the other failure). Never
+      reproduced locally: 3/3 clean in isolation, and a full local
+      `CI=true` run passed all 70 including this test. The underlying
+      catch/margin code this depends on (`doorJump.ts`'s
+      `JUMP_FOOTPRINT_X`/`WRONG_TILE_BACK_MARGIN_X`, `levelContent.ts`,
+      `orderedCatchProgress.ts`) is untouched by this branch — this
+      looks like the same class of pre-existing timing-margin fragility
+      those constants' own history already documents (2026-08-30,
+      2026-08-31, 2026-09-11 entries above), this time surfaced by which
+      idiom this batch's growth happens to put in front of the door
+      stage today, not a regression in anything this PR actually
+      changes. But per `AUTONOMY.md`, a real e2e failure on the actual
+      gate blocks auto-land regardless of suspected cause or how many
+      local runs pass clean — so PR #49 (superseding #47, both left
+      open) is **pushed but not merged**, for a human look or a future
+      session, same as #40 and #47's own precedent. If it comes up
+      again, the `doorJump.ts` margin constants themselves (not this
+      batch's content) are the next place to look — see their own doc
+      comments for the history of tuning them.
+      **2026-09-16: root-caused and fixed the actual `doorJump.ts` bug
+      behind #40/#47/#49, landed on top of #49's already-verified
+      content.** The "next place to look" note above was right —
+      `jumpForFirstReachableWrongTile`'s chain-catch safety filter used
+      one flat `WRONG_TILE_BACK_MARGIN_X` (60px) behind every candidate
+      tile's own x, regardless of that tile's height. But a jump's real
+      takeoff point sits behind its target tile's x by an amount that
+      *grows with the tile's height* (`timeToReachHeight` — ~34px at
+      `HEIGHT_MIN`, ~79px at `HEIGHT_MAX`), so a flat 60px was
+      simultaneously too narrow for taller candidates (a real excluded
+      tile 70-90px behind one could slip through the filter and get
+      chain-caught for real — exactly PR #49's own mobile CI failure,
+      chain-catching a real 明 tile on 明察秋毫's level) and too wide for
+      shorter ones (over-excluding otherwise-safe candidates — exactly
+      #49's own desktop CI failure, "no reachable tile" on the same
+      明-heavy level). Not guessed: confirmed by hand-computing both
+      failing levels' real tile positions and takeoff offsets against
+      the old filter before writing a fix. Replaced the flat margin with
+      each candidate's own real arc (`takeoffXForTile(t)` through
+      `takeoffXForTile(t) + JUMP_FOOTPRINT_X`, padded by `CATCH_RADIUS_X`
+      on both ends — the same real hitbox `checkCatches` itself uses),
+      removing `WRONG_TILE_BACK_MARGIN_X` entirely. Verified
+      quantitatively against every idiom in the current 75-idiom pool's
+      actual generated levels (not just the one that happened to fail),
+      not just reasoned about: the old flat filter missed 37 genuine
+      chain-catch risks and over-excluded 158 otherwise-safe candidates
+      across the whole pool; the new arc-based check resolves every one
+      of those correctly. Confirmed live: the full mobile+desktop e2e
+      suite (70 tests) passed clean, then the two specific tests that
+      had failed on PR #49's own CI run (`idiom-door.spec.ts:431`/`:500`)
+      were re-run 3 more times each on both projects (12/12 clean) rather
+      than trusting one pass, given this exact bug had already produced
+      a false "all green" locally once before (PR #49's own history
+      above). All gates green: `npm run typecheck`/`test` (367
+      passed)/`build`/`test:e2e` (70 passed, mobile+desktop, plus the
+      12/12 targeted re-runs). Landed PR #49's batch-4 content (60 → 75
+      idioms) together with this fix — same branch, since the fix is
+      what unblocks that content, not a separate concern. #47 and #49
+      are both now superseded/closed in favor of this.
+      **Batch 5 (2026-09-17): 75 → 90.** Added 闻鸡起舞/愚公移山/水滴石穿/
+      三心二意 (focus), 开诚布公/直言不讳/循规蹈矩/问心无愧 (honesty), 患难与共/
+      无微不至/嘘寒问暖 (kindness), 亡羊补牢/掩耳盗铃/刻舟求剑/画龙点睛 (wisdom) —
+      same verification-before-authoring process as batches 1-4 (each
+      confirmed to have a standalone zdic.net entry, not just a
+      search-summary mention, before being authored; zdic.net itself is
+      network-blocked from this sandbox, so verification went through
+      WebSearch queries targeted at its indexed pages plus Baidu Baike
+      instead of a direct fetch). Every candidate's first-two/last-two
+      character halves were checked against the full existing 75-idiom
+      pool, and against each other within this batch, before authoring
+      — per the batch-4 lesson — and came back clean; no swaps were
+      needed this round. Confirmed via `sessionIdioms.test.ts`'s
+      existing generic pool-wide collision check (unchanged, still
+      passes over all 90).
+      Two of this batch's idioms (直言不讳, 无微不至) have their own name's
+      `不` immediately before a 4th-tone syllable — kept each entry's own
+      top-level `pinyin` field at the dictionary citation tone (`bù`,
+      confirmed by web search against multiple idiom dictionaries) but
+      applied real spoken tone sandhi (`bú`) in the compressed
+      sentence-embedded form, matching `坚持不懈`'s own existing precedent
+      in this same file (`jiān chí bù xiè` at the top, `jiānchí-búxiè`
+      inside its example sentence).
+      Regenerated `writingStrokeData.ts` against the full current
+      90-idiom set up front, per the 2026-09-12/09-13 batches' own
+      lesson about partial regenerations — 40 of this batch's 55
+      distinct characters were new (the other 15 already covered by
+      earlier batches' overlapping characters); confirmed 0 missing
+      characters across the whole pool both before and after landing
+      (256 distinct characters total).
+      All green: `npm run typecheck`/`test` (367 passed, unchanged — no
+      new pure-logic surface, same as every prior content-only batch)/
+      `build`/`test:e2e` (70 passed, mobile+desktop, run with `CI=true`
+      to match the actual PR gate, per PR #49's own lesson that a bare
+      local run isn't enough to trust).
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting

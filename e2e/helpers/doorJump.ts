@@ -1,5 +1,6 @@
 import { type Page } from "@playwright/test";
 import { RUN_SPEED, JUMP_GRAVITY, JUMP_VELOCITY, FALL_GRAVITY_MULTIPLIER } from "../../src/idiom-door/runPhysics";
+import { CATCH_RADIUS_X } from "../../src/idiom-door/catchSelection";
 import type { DoorLevel, LevelCharacterTile } from "../../src/idiom-door/levelContent";
 
 /**
@@ -89,42 +90,24 @@ const LANDING_SETTLE_BUFFER_MS = 80;
 /**
  * Total horizontal distance one jump's own arc covers, start (takeoff)
  * to landing — `JUMP_FLIGHT_DURATION_MS` converted to world px at
- * `RUN_SPEED`. `jumpForFirstReachableWrongTile` below uses this (plus
- * `WRONG_TILE_BACK_MARGIN_X`) as a safety margin: `checkCatches` runs
- * every frame of a jump's *whole* arc, not just at the one candidate
- * tile it was aimed at (see this file's own top doc comment and
- * IdiomDoorScene's matching comment on `checkCatches`) — so a "wrong"
- * candidate whose own arc sweeps close to the *excluded* (the
- * actually-needed) tile risks chain-catching that excluded tile too,
- * especially when both tiles sit near the jump's own apex height
- * (where the character lingers longest, covering the most horizontal
- * ground before landing — see runPhysics.ts's own
- * `FALL_GRAVITY_MULTIPLIER` doc comment on this "touch and go" effect).
- * That turns a deliberate wrong catch into an accidental *correct*
- * one — the opposite of what a caller asking for a guaranteed wrong
- * catch needs. Found 2026-09-11 as a genuine, 100%-reproducible gap
- * for a level layout that happened to pack a non-matching tile this
- * close ahead of the next-needed one.
+ * `RUN_SPEED`. `jumpForFirstReachableWrongTile` below uses this,
+ * combined with each candidate's own `takeoffXForTile`, to work out
+ * that jump's real swept range: `checkCatches` runs every frame of a
+ * jump's *whole* arc, not just at the one candidate tile it was aimed
+ * at (see this file's own top doc comment and IdiomDoorScene's
+ * matching comment on `checkCatches`) — so a "wrong" candidate whose
+ * own arc sweeps close to the *excluded* (the actually-needed) tile
+ * risks chain-catching that excluded tile too, especially when both
+ * tiles sit near the jump's own apex height (where the character
+ * lingers longest, covering the most horizontal ground before landing
+ * — see runPhysics.ts's own `FALL_GRAVITY_MULTIPLIER` doc comment on
+ * this "touch and go" effect). That turns a deliberate wrong catch
+ * into an accidental *correct* one — the opposite of what a caller
+ * asking for a guaranteed wrong catch needs. Found 2026-09-11 as a
+ * genuine, 100%-reproducible gap for a level layout that happened to
+ * pack a non-matching tile this close ahead of the next-needed one.
  */
 const JUMP_FOOTPRINT_X = (JUMP_FLIGHT_DURATION_MS / 1000) * RUN_SPEED;
-/**
- * How far *behind* a candidate's own x an excluded tile still counts as
- * dangerous — much smaller than `JUMP_FOOTPRINT_X` (the *forward* risk,
- * from the candidate's takeoff through its landing) since a jump timed
- * for this candidate only ever runs *through* an already-passed x on
- * its own rise, not lingering there — real risk there is only the
- * catch-radius slop right around takeoff, not the whole arc. A first
- * pass at this filter used `JUMP_FOOTPRINT_X` symmetrically on both
- * sides (double the actual forward-only danger zone), which correctly
- * fixed the chain-catch above but — confirmed live — sometimes left
- * the "drain a whole HP pool via repeated *wrong* catches" e2e test too
- * few safe candidates to finish before the runner's own auto-run
- * reached the end of a level whose first character recurs often. This
- * narrower, still-safe window (checked against the same reproduced bug
- * before landing, not just assumed) gives that test its candidate
- * density back.
- */
-const WRONG_TILE_BACK_MARGIN_X = GIVE_UP_PAST_TAKEOFF_X;
 
 async function playerX(page: Page): Promise<number> {
   return Number(await page.locator("#player-position").getAttribute("data-x"));
@@ -243,6 +226,27 @@ export async function solveDoorLevel(page: Page, level: DoorLevel, press: JumpPr
  * still-reachable one would have worked. Throws if every candidate
  * before the level's own end is missed, since that's a real bug worth
  * failing loudly on (see `jumpForTile`'s own doc comment).
+ *
+ * A candidate's own real danger zone is its actual jump arc — from its
+ * `takeoffXForTile` through to that same point plus `JUMP_FOOTPRINT_X`
+ * — not a flat margin around its landing x. That distinction matters
+ * because takeoff sits *behind* a tile's own x by an amount that grows
+ * with the tile's height (`timeToReachHeight` is larger for a taller
+ * tile — up to ~79px behind at `HEIGHT_MAX`, vs. ~34px at `HEIGHT_MIN`).
+ * A previous version of this filter used one flat back-margin (60px)
+ * for every candidate regardless of height, which was simultaneously
+ * too narrow for taller candidates (their real takeoff sat further
+ * back than the margin covered, letting an excluded tile just behind
+ * that point slip through and get chain-caught for real — confirmed
+ * 2026-09-14 on a 明察秋毫 level, mobile: a "wrong" catch aimed away
+ * from 明 also caught a real 明 tile ~70px behind it) and too wide for
+ * shorter ones (over-excluding candidates that were never actually at
+ * risk, confirmed the same day, desktop: every remaining candidate on
+ * a 明-heavy level got excluded, leaving none to jump for at all).
+ * Computing each candidate's own arc directly, with a small
+ * `CATCH_RADIUS_X` pad on both ends (the same real hitbox
+ * `checkCatches` itself hit-tests against, not a guessed number), gets
+ * both cases right without trading one off against the other.
  */
 export async function jumpForFirstReachableWrongTile(
   page: Page,
@@ -253,7 +257,11 @@ export async function jumpForFirstReachableWrongTile(
   const excludedTiles = tiles.filter((t) => t.char === excludeChar);
   const candidates = tiles
     .filter((t) => t.char !== excludeChar)
-    .filter((t) => !excludedTiles.some((ex) => ex.x > t.x - WRONG_TILE_BACK_MARGIN_X && ex.x < t.x + JUMP_FOOTPRINT_X))
+    .filter((t) => {
+      const arcStart = takeoffXForTile(t) - CATCH_RADIUS_X;
+      const arcEnd = takeoffXForTile(t) + JUMP_FOOTPRINT_X + CATCH_RADIUS_X;
+      return !excludedTiles.some((ex) => ex.x > arcStart && ex.x < arcEnd);
+    })
     .sort((a, b) => a.x - b.x);
   for (const tile of candidates) {
     const result = await jumpForTile(page, tile, 30000, press);
