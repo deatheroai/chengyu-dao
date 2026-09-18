@@ -1484,9 +1484,11 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       instance" pattern `idiom-door`'s own `#jump-btn`/`requestJump`
       already uses — `SnakeGameScene.requestDirection` is the new
       public entry point, `main.ts` wires each button's `pointerdown`
-      to it. Sits below the card-layer overlays' `z-index`, so it's
-      naturally inert while a card or the question overlay covers the
-      screen, no extra pause-guard needed. Verified with real touch taps
+      to it. Sits below the card-layer overlays' `z-index`, so tapping it
+      while a card/the question overlay is open is *visually* blocked
+      (though see the 2026-09-18 correct-answer-collision follow-up
+      below — that turned out not to be the whole story; the keyboard
+      path had no such protection at all). Verified with real touch taps
       in a headless browser against an iPhone 13 viewport/device
       profile (Playwright's `hasTouch: true` context, `page.tap`): the
       snake's on-screen position visibly changed direction after
@@ -1522,6 +1524,34 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       live on both device profiles: canvas fill, zero geometry overlap,
       and a real touch tap still visibly turning the snake. All green:
       typecheck, full unit suite (459 passed), production build.
+      **Follow-up 3 (2026-09-18) per "after every correct answer, the
+      game ends with 'the snake ran into itself'":** a real, deterministic
+      bug, root-caused rather than guessed — Phaser's keyboard manager
+      listens on the whole window, not scoped to canvas focus, so every
+      keystroke typed into `#question-input` that happened to match a
+      WASD/arrow key was silently changing `this.snake.direction`
+      *while the question overlay was open and the game paused*. Since
+      a real sentence answer (required to pass the malformed-answer
+      check) is essentially guaranteed to contain "a"/"s"/"d" somewhere,
+      this fired on close to every answer, correct or not — by the time
+      the game resumed, direction was whatever letter was typed last,
+      effectively random, and very likely to immediately clip the
+      snake's own body. `SnakeGameScene.requestDirection` (both the
+      keyboard and D-pad path route through it) now ignores calls
+      entirely while `paused`/`ended`, fixed at the single call site
+      both input paths share rather than trusting the D-pad's own
+      z-index blocking (which was never the actual protection here).
+      Root-caused via code reading (not guessed), then verified live
+      rather than trusting the theory alone: placed a science item
+      directly in the snake's path via a temporary test-only hook,
+      answered correctly with *real* character-by-character key events
+      (`pressSequentially`, not `page.fill`, which wouldn't exercise the
+      bug at all since it never dispatches keydown) for a genuine
+      model-answer sentence loaded with "a"/"s"/"d", confirmed the fixed
+      code survives it (no lose card, overlay closes cleanly), and
+      separately confirmed normal keyboard steering still works outside
+      the paused window. All green: typecheck, full unit suite (461 passed),
+      production build.
 - [x] `done` — **Win/Lose scenes + visuals (2026-09-16).** Win triggers
       at `WIN_LENGTH_RATIO = 0.7` of grid cells (~270 segments, not
       literal 100% — a free-moving snake can't realistically occupy

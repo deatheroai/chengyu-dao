@@ -168,12 +168,26 @@ export class SnakeGameScene extends Phaser.Scene {
    * Public entry point for the on-screen D-pad (`main.ts`'s tap
    * handlers) — same "public method the DOM chrome calls on the live
    * scene instance" pattern `IdiomDoorScene.requestJump` already uses
-   * for its own touch button. Safe to call even while paused/ended
-   * (the question overlay owns input then, and a queued direction on a
-   * finished run is simply a no-op) — `changeDirection` itself already
-   * ignores anything that isn't a real direction change.
+   * for its own touch button.
+   *
+   * Ignored entirely while paused or ended — found live (2026-09-18,
+   * "after every correct answer, the game ends with 'the snake ran into
+   * itself'"): Phaser's own keyboard manager listens on the whole
+   * window, not scoped to canvas focus, so every keystroke typed into
+   * `#question-input` that happened to match a WASD/arrow key (which is
+   * essentially *every* real sentence answer — "a", "s", "d" are common
+   * letters, and the malformed-answer check requires a real sentence)
+   * was silently changing `this.snake.direction` while the question
+   * overlay was open. By the time a correct answer resumed the game,
+   * the direction was whatever letter was typed last — effectively
+   * random, and very likely to immediately clip the snake's own body.
+   * The D-pad's taps were already visually blocked by the overlay's own
+   * z-index, but the keyboard path had no such guard — this fixes it at
+   * the source so both paths are covered in one place, without needing
+   * to trust incidental CSS stacking.
    */
   requestDirection(direction: Direction): void {
+    if (this.paused || this.ended) return;
     this.snake = changeDirection(this.snake, direction);
   }
 
