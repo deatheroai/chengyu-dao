@@ -158,9 +158,22 @@ export class SnakeGameScene extends Phaser.Scene {
   private wireInput(): void {
     this.keydownHandler = (e: KeyboardEvent) => {
       const direction = KEY_TO_DIRECTION[e.key];
-      if (direction) this.snake = changeDirection(this.snake, direction);
+      if (direction) this.requestDirection(direction);
     };
     this.input.keyboard?.on("keydown", this.keydownHandler);
+  }
+
+  /**
+   * Public entry point for the on-screen D-pad (`main.ts`'s tap
+   * handlers) — same "public method the DOM chrome calls on the live
+   * scene instance" pattern `IdiomDoorScene.requestJump` already uses
+   * for its own touch button. Safe to call even while paused/ended
+   * (the question overlay owns input then, and a queued direction on a
+   * finished run is simply a no-op) — `changeDirection` itself already
+   * ignores anything that isn't a real direction change.
+   */
+  requestDirection(direction: Direction): void {
+    this.snake = changeDirection(this.snake, direction);
   }
 
   private teardown(): void {

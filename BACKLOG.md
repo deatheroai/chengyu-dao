@@ -1456,6 +1456,23 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       banded tail rather than a uniform row of identical squares.
       Rendering-only change, re-verified live (zoomed screenshot of the
       snake with the dev server running).
+      **Follow-up (2026-09-18) per "can this be mobile friendly too?
+      Let's allow the child to tap to turn":** `#dpad`
+      (`science-snake.html`) — 4 always-visible tap buttons in a cross
+      layout, bottom-center, `.dpad-btn`'s `touch-action: none` and
+      generous 3.4rem tap targets sized for a child's finger. Wired the
+      same "DOM button calls a public method on the live scene
+      instance" pattern `idiom-door`'s own `#jump-btn`/`requestJump`
+      already uses — `SnakeGameScene.requestDirection` is the new
+      public entry point, `main.ts` wires each button's `pointerdown`
+      to it. Sits below the card-layer overlays' `z-index`, so it's
+      naturally inert while a card or the question overlay covers the
+      screen, no extra pause-guard needed. Verified with real touch taps
+      in a headless browser against an iPhone 13 viewport/device
+      profile (Playwright's `hasTouch: true` context, `page.tap`): the
+      snake's on-screen position visibly changed direction after
+      tapping the down button. All green: typecheck, full unit suite
+      (459 passed), production build.
 - [x] `done` — **Win/Lose scenes + visuals (2026-09-16).** Win triggers
       at `WIN_LENGTH_RATIO = 0.7` of grid cells (~270 segments, not
       literal 100% — a free-moving snake can't realistically occupy

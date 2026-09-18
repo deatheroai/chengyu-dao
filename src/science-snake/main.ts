@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { SnakeGameScene, CELL_SIZE, type RunStats, type LoseReason } from "./SnakeGameScene";
-import { GRID_WIDTH, GRID_HEIGHT } from "./snakeGrid";
+import { GRID_WIDTH, GRID_HEIGHT, type Direction } from "./snakeGrid";
 import { calculateScore, recordHighScoreIfBetter, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
 
 function showCard(id: string): void {
@@ -60,6 +60,7 @@ function bootstrap(): void {
 
   const game = new Phaser.Game(config);
   game.scene.add("SnakeGameScene", SnakeGameScene, false);
+  const snakeScene = (): SnakeGameScene | null => game.scene.getScene("SnakeGameScene") as SnakeGameScene | null;
 
   const startGame = (): void => {
     hideCard("start-card");
@@ -82,6 +83,24 @@ function bootstrap(): void {
   document.getElementById("start-btn")?.addEventListener("click", startGame);
   document.getElementById("win-play-again-btn")?.addEventListener("click", startGame);
   document.getElementById("lose-play-again-btn")?.addEventListener("click", startGame);
+
+  // Mobile-friendly tap-to-turn D-pad (per your ask) — same "DOM button
+  // calls a public method on the live scene instance" pattern
+  // idiom-door's own #jump-btn uses. pointerdown (not click) so it
+  // responds the instant a finger touches down, same reasoning
+  // #jump-btn's own listener already uses.
+  const DPAD_DIRECTIONS: Record<string, Direction> = {
+    "dpad-up": "up",
+    "dpad-down": "down",
+    "dpad-left": "left",
+    "dpad-right": "right",
+  };
+  for (const [buttonId, direction] of Object.entries(DPAD_DIRECTIONS)) {
+    document.getElementById(buttonId)?.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      snakeScene()?.requestDirection(direction);
+    });
+  }
 }
 
 bootstrap();
