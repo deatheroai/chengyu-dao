@@ -1,11 +1,12 @@
 /**
  * Pure snake grid/movement/growth core (BACKLOG.md's "Snake grid/
- * movement/growth core" entry). Movement, growth, and both collision
- * lose-conditions live here as plain data transforms — no rendering, no
- * timers, no DOM — same pure-function-plus-thin-Scene split every other
- * mechanic in this project keeps; `SnakeGameScene.ts` (not yet built)
- * will just call `step`/`changeDirection`/the `apply*Eaten` functions on
- * a tick loop and render whatever comes back.
+ * movement/growth core" entry). Movement (edges wrap Pac-Man style,
+ * see `wrapPosition`), growth, and the self-collision lose condition
+ * live here as plain data transforms — no rendering, no timers, no DOM
+ * — same pure-function-plus-thin-Scene split every other mechanic in
+ * this project keeps; `SnakeGameScene.ts` just calls `step`/
+ * `changeDirection`/the `apply*Eaten` functions on a tick loop and
+ * renders whatever comes back.
  */
 
 export interface Position {
@@ -77,8 +78,20 @@ export function nextHeadPosition(head: Position, direction: Direction): Position
   return { x: head.x + delta.x, y: head.y + delta.y };
 }
 
-export function isOutOfBounds(position: Position): boolean {
-  return position.x < 0 || position.x >= GRID_WIDTH || position.y < 0 || position.y >= GRID_HEIGHT;
+/**
+ * Wraps a position that's run off one edge to the opposite edge (Pac-Man
+ * style) — per your "skip running into the edge... respawn at the
+ * opposite end" ask, replacing wall-collision as a lose condition
+ * entirely. `((n % size) + size) % size` handles a negative `x`/`y`
+ * (running off the left/top) correctly, not just overflow past the
+ * right/bottom — plain `%` alone returns a negative result for a
+ * negative input in JS.
+ */
+export function wrapPosition(position: Position): Position {
+  return {
+    x: ((position.x % GRID_WIDTH) + GRID_WIDTH) % GRID_WIDTH,
+    y: ((position.y % GRID_HEIGHT) + GRID_HEIGHT) % GRID_HEIGHT,
+  };
 }
 
 /** Ignores a direct reversal (e.g. up → down) — the classic Snake rule against instantly doubling back into your own neck. Any other requested direction (including the current one) is accepted as-is. */
@@ -118,27 +131,25 @@ export function applyPoisonAppleEaten(state: SnakeState): SnakeState {
   return { ...doubled, isPoisoned: true };
 }
 
-export type MoveResult =
-  | { outcome: "moved"; snake: SnakeState }
-  | { outcome: "wall-collision" }
-  | { outcome: "self-collision" };
+export type MoveResult = { outcome: "moved"; snake: SnakeState } | { outcome: "self-collision" };
 
 /**
- * Advances the snake by one grid cell in its current direction. Two
- * lose conditions live here: running off the grid, and running into its
- * own body — the classic Snake rule, made explicit per the poison-apple
- * follow-up (BACKLOG.md), since a sudden growth spurt shrinking the
- * snake's own safe maneuvering room is only dangerous because this
- * check exists. Moving onto the *current* tail cell is only a collision
- * when the snake is also growing this tick (owed growth pending) —
- * otherwise the tail vacates that cell in the same move, the same
- * "well, the tail's about to not be there" nuance every real Snake
- * implementation needs to get right.
+ * Advances the snake by one grid cell in its current direction.
+ * Running off an edge wraps to the opposite one (`wrapPosition`) rather
+ * than ending the run — per your ask, this replaces wall-collision as a
+ * lose condition entirely; the only lose condition `step` itself still
+ * owns is running into its own body — the classic Snake rule, made
+ * explicit per the poison-apple follow-up (BACKLOG.md), since a sudden
+ * growth spurt shrinking the snake's own safe maneuvering room is only
+ * dangerous because this check exists. Moving onto the *current* tail
+ * cell is only a collision when the snake is also growing this tick
+ * (owed growth pending) — otherwise the tail vacates that cell in the
+ * same move, the same "well, the tail's about to not be there" nuance
+ * every real Snake implementation needs to get right.
  */
 export function step(state: SnakeState): MoveResult {
   const head = state.body[0];
-  const newHead = nextHeadPosition(head, state.direction);
-  if (isOutOfBounds(newHead)) return { outcome: "wall-collision" };
+  const newHead = wrapPosition(nextHeadPosition(head, state.direction));
 
   const willGrow = state.owedGrowth > 0;
   const bodyForCollisionCheck = willGrow ? state.body : state.body.slice(0, -1);

@@ -30,7 +30,6 @@ function showWinCard(stats: RunStats): void {
 const LOSE_MESSAGES: Record<LoseReason, string> = {
   suffocation: "Too many unanswered questions piled up — the snake couldn't breathe!",
   "self-collision": "Ouch — the snake ran into itself!",
-  "wall-collision": "Ouch — the snake ran into the edge!",
 };
 
 function showLoseCard(reason: LoseReason, stats: RunStats): void {

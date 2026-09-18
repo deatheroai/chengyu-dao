@@ -42,7 +42,8 @@ import { askQuestion } from "./QuestionOverlay";
 
 export const CELL_SIZE = 28;
 
-export type LoseReason = "wall-collision" | "self-collision" | "suffocation";
+/** Wall-collision doesn't exist as a lose reason — the edges wrap instead (see `snakeGrid.ts`'s `wrapPosition`), per your ask. */
+export type LoseReason = "self-collision" | "suffocation";
 
 export interface RunStats {
   applesEaten: number;

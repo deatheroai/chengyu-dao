@@ -1316,13 +1316,15 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       overlay item below, not built yet. 10 tests, all green alongside
       the grading module above.
 - [x] `done` — **Snake grid/movement/growth core (`snakeGrid.ts` +
-      tests, 2026-09-16).** 24×16 grid (`GRID_WIDTH`/`GRID_HEIGHT`, 384
-      cells) — big enough to sustain a 10-15 min session, small enough to
+      tests, 2026-09-16).** Grid (`GRID_WIDTH`/`GRID_HEIGHT`, 384 cells;
+      portrait 16×24 since the 2026-09-18 mobile-layout fix, originally
+      24×16) — big enough to sustain a 10-15 min session, small enough to
       stay winnable. `TICK_MS = 180`. `createInitialSnake`/
-      `nextHeadPosition`/`isOutOfBounds`/`changeDirection` (ignores a
+      `nextHeadPosition`/`changeDirection` (ignores a
       direct reversal, the classic Snake rule) handle movement;
       `step` advances one tick and returns `moved` /
-      `wall-collision` / `self-collision` — self-collision (running into
+      `self-collision` (wall-collision doesn't exist — see the 2026-09-18
+      follow-up below, edges wrap instead) — self-collision (running into
       your own body) is the classic Snake lose condition, made explicit
       per the poison-apple follow-up, including the tail-vacates-this-
       tick nuance (moving onto the current tail cell is fine when not
@@ -1341,6 +1343,23 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       the grading/reveal modules above (typecheck + full unit suite,
       423 passed). Starting numbers, tune after playtest — same as every
       constant in this file.
+      **Follow-up (2026-09-18) per "can we skip the running into the
+      edge? Let's make it respawn at the opposite end":** wall-collision
+      is no longer a lose condition at all. `isOutOfBounds` is gone,
+      replaced by `wrapPosition` — reaching past an edge wraps the head
+      to the opposite one (Pac-Man style), handling a negative
+      coordinate correctly (`((n % size) + size) % size`, not plain
+      `%`, which returns negative for a negative input in JS). `step`
+      wraps the raw next position *before* running the self-collision
+      check, so wrapping onto your own body is still correctly a
+      self-collision, not a free pass — covered by its own test.
+      `MoveResult`/`LoseReason` shrink to just `moved`/`self-collision`
+      (`SnakeGameScene.ts`'s lose paths are now only self-collision and
+      suffocation). Re-verified live: let the snake run to the right
+      edge and past it — no lose card, snake head reappeared on the
+      left edge, tail still trailing on the right, zero console errors.
+      All green: typecheck, full unit suite (461 passed, up from 459),
+      production build.
 - [ ] `in-progress` — **Poison apples: 10% of apples, rainbow-colored,
       double the snake's length and permanently 4x its apple-growth rate
       (2026-09-16, revised from purple/one-shot-only per your follow-up).**

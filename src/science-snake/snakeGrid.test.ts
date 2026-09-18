@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createInitialSnake,
   nextHeadPosition,
-  isOutOfBounds,
+  wrapPosition,
   changeDirection,
   applyAppleEaten,
   applyCorrectAnswerEaten,
@@ -43,17 +43,20 @@ describe("nextHeadPosition", () => {
   });
 });
 
-describe("isOutOfBounds", () => {
-  it("is false for every corner and false just inside each edge", () => {
-    expect(isOutOfBounds({ x: 0, y: 0 })).toBe(false);
-    expect(isOutOfBounds({ x: GRID_WIDTH - 1, y: GRID_HEIGHT - 1 })).toBe(false);
+describe("wrapPosition", () => {
+  it("leaves a position already inside the grid unchanged", () => {
+    expect(wrapPosition({ x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+    expect(wrapPosition({ x: GRID_WIDTH - 1, y: GRID_HEIGHT - 1 })).toEqual({ x: GRID_WIDTH - 1, y: GRID_HEIGHT - 1 });
   });
 
-  it("is true past every edge", () => {
-    expect(isOutOfBounds({ x: -1, y: 0 })).toBe(true);
-    expect(isOutOfBounds({ x: 0, y: -1 })).toBe(true);
-    expect(isOutOfBounds({ x: GRID_WIDTH, y: 0 })).toBe(true);
-    expect(isOutOfBounds({ x: 0, y: GRID_HEIGHT })).toBe(true);
+  it("wraps one step past the right/bottom edge to the opposite (0) edge", () => {
+    expect(wrapPosition({ x: GRID_WIDTH, y: 0 })).toEqual({ x: 0, y: 0 });
+    expect(wrapPosition({ x: 0, y: GRID_HEIGHT })).toEqual({ x: 0, y: 0 });
+  });
+
+  it("wraps one step past the left/top edge to the opposite (max) edge", () => {
+    expect(wrapPosition({ x: -1, y: 0 })).toEqual({ x: GRID_WIDTH - 1, y: 0 });
+    expect(wrapPosition({ x: 0, y: -1 })).toEqual({ x: 0, y: GRID_HEIGHT - 1 });
   });
 });
 
@@ -104,9 +107,27 @@ describe("step", () => {
     }
   });
 
-  it("is a wall-collision when the head would move out of bounds", () => {
+  it("wraps to the opposite edge instead of colliding when the head would move out of bounds", () => {
     const snake = createInitialSnake({ x: GRID_WIDTH - 1, y: 5 }, "right", 3);
-    expect(step(snake)).toEqual({ outcome: "wall-collision" });
+    const result = step(snake);
+    expect(result.outcome).toBe("moved");
+    if (result.outcome === "moved") {
+      expect(result.snake.body[0]).toEqual({ x: 0, y: 5 });
+    }
+  });
+
+  it("a wrap can still land on the snake's own body — self-collision, not a free pass", () => {
+    const snake: SnakeState = {
+      body: [
+        { x: 0, y: 5 }, // head, about to wrap left off the edge
+        { x: GRID_WIDTH - 1, y: 5 }, // sitting right where it wraps to
+        { x: GRID_WIDTH - 2, y: 5 }, // tail
+      ],
+      direction: "left",
+      owedGrowth: 0,
+      isPoisoned: false,
+    };
+    expect(step(snake)).toEqual({ outcome: "self-collision" });
   });
 
   // A closed 6-cell loop — head (5,5), tail (6,5) — used by the three
