@@ -14,22 +14,33 @@
   </head>
   <body>
     <div id="app">
-      <div id="game-container"></div>
+      <!-- Real layout, not overlapping absolutely-positioned pieces:
+           #play-area is a flex column so the game canvas and the D-pad
+           bar are separate siblings that can never overlap by
+           construction, regardless of the exact FIT-scaled canvas size
+           on any given screen (a #game-container that was flex-centered
+           *and* handed to Phaser's own FIT+CENTER_BOTH autoCenter was
+           fighting itself over sizing/positioning — this replaces
+           that). -->
+      <div id="play-area">
+        <div id="game-container"></div>
+        <div id="dpad-bar">
+          <!-- Mobile-friendly tap-to-turn controls (per your ask) —
+               same "public method the DOM chrome calls on the live
+               scene instance" pattern idiom-door's own #jump-btn
+               already uses. Always visible (not gated to touch
+               devices) so it's also a usable click target on desktop,
+               matching #jump-btn's own convention there. -->
+          <div id="dpad" aria-label="Steer">
+            <button id="dpad-up" class="dpad-btn dpad-up" type="button" aria-label="Up">▲</button>
+            <button id="dpad-left" class="dpad-btn dpad-left" type="button" aria-label="Left">◀</button>
+            <button id="dpad-right" class="dpad-btn dpad-right" type="button" aria-label="Right">▶</button>
+            <button id="dpad-down" class="dpad-btn dpad-down" type="button" aria-label="Down">▼</button>
+          </div>
+        </div>
+      </div>
 
       <div id="high-score-display" aria-live="polite"></div>
-
-      <!-- Mobile-friendly tap-to-turn controls (per your ask) — same
-           "public method the DOM chrome calls on the live scene
-           instance" pattern idiom-door's own #jump-btn already uses.
-           Always visible (not gated to touch devices) so it's also a
-           usable click target on desktop, matching #jump-btn's own
-           convention there. -->
-      <div id="dpad" aria-label="Steer">
-        <button id="dpad-up" class="dpad-btn dpad-up" type="button" aria-label="Up">▲</button>
-        <button id="dpad-left" class="dpad-btn dpad-left" type="button" aria-label="Left">◀</button>
-        <button id="dpad-right" class="dpad-btn dpad-right" type="button" aria-label="Right">▶</button>
-        <button id="dpad-down" class="dpad-btn dpad-down" type="button" aria-label="Down">▼</button>
-      </div>
 
       <div id="start-card" class="card-layer">
         <div class="card">

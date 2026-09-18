@@ -1473,6 +1473,36 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       snake's on-screen position visibly changed direction after
       tapping the down button. All green: typecheck, full unit suite
       (459 passed), production build.
+      **Follow-up 2 (2026-09-18) per "I still cannot play on mobile":**
+      the D-pad addition alone didn't fix the real problem. Two actual
+      bugs, found by measuring real layout geometry (not just eyeballing
+      screenshots) against two device profiles (iPhone 13, Pixel 5):
+      (1) `#game-container` was *both* CSS flex-centered *and* handed to
+      Phaser's own `Scale.FIT` + `autoCenter: CENTER_BOTH` — two
+      systems fighting over the same canvas's size/position, the kind
+      of bug that "happens to render" in one browser/viewport and not
+      another. Fixed by giving up the CSS-side centering entirely: a
+      `#play-area` flex column now holds `#game-container` (`flex: 1 1
+      auto`) and a `#dpad-bar` (`flex: 0 0 auto`) as plain siblings —
+      Phaser owns 100% of the canvas's own sizing/centering, the DOM
+      layout just reserves distinct space for each so they can never
+      overlap by construction (confirmed via `getBoundingClientRect()`:
+      the D-pad's top edge lands exactly at the canvas's bottom edge on
+      both profiles, 0px overlap). (2) The grid itself
+      (`snakeGrid.ts`'s `GRID_WIDTH`/`GRID_HEIGHT`) was landscape
+      (24×16) — Phaser's `FIT` scale is capped by whichever screen
+      dimension is tighter, and a phone's *width* is always the tight
+      one, so a landscape board rendered as a small strip (~260px tall
+      out of an ~840px-tall phone screen — technically functional, but
+      tiny enough to plausibly read as "can't play"). Swapped to
+      portrait (16×24, same 384 total cells, same win-threshold math) —
+      the canvas now fills ~470-535px of vertical space on the two
+      profiles tested, a ~2x improvement. All existing tests already
+      referenced `GRID_WIDTH`/`GRID_HEIGHT` symbolically rather than
+      hardcoding 24/16, so the swap needed no test changes. Re-verified
+      live on both device profiles: canvas fill, zero geometry overlap,
+      and a real touch tap still visibly turning the snake. All green:
+      typecheck, full unit suite (459 passed), production build.
 - [x] `done` — **Win/Lose scenes + visuals (2026-09-16).** Win triggers
       at `WIN_LENGTH_RATIO = 0.7` of grid cells (~270 segments, not
       literal 100% — a free-moving snake can't realistically occupy

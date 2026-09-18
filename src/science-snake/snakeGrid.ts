@@ -25,8 +25,17 @@ export interface SnakeState {
   isPoisoned: boolean;
 }
 
-export const GRID_WIDTH = 24;
-export const GRID_HEIGHT = 16;
+/**
+ * Portrait orientation (16 wide × 24 tall, same 384 total cells) — per
+ * your mobile-friendliness ask: a landscape 24×16 grid rendered as a
+ * tiny strip on a portrait phone screen (Phaser's FIT scale is capped
+ * by whichever dimension is tighter, and a phone's width is the tight
+ * one), while this shape fills a typical phone screen height far
+ * better. Still works fine on desktop too — a tall board is a normal
+ * shape for a casual browser game, same as classic Tetris/Snake.
+ */
+export const GRID_WIDTH = 16;
+export const GRID_HEIGHT = 24;
 export const TOTAL_CELLS = GRID_WIDTH * GRID_HEIGHT;
 export const TICK_MS = 180;
 
