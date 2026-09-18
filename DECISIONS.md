@@ -23,6 +23,36 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-18 — Daily cycle: idiom pool batch 6 (90 → 100), reaching
+  this backlog item's ~100 target.** Pending Decisions was empty. Three
+  other open PRs existed: #51 ("Science Snake", a wholly separate
+  P4-Science quiz game, not part of this repo's idiom-game scope or
+  `BACKLOG.md`, and its own description asks for a human playtest on
+  its Vercel preview before being judged — left untouched, same rule as
+  always), and #40/#44 (the standing example-sentence-review track,
+  unchanged since prior check-ins, no overlap with this cycle's scope).
+  Continued the idiom-pool-growth item since it was the highest-priority
+  genuinely unblocked backlog item, same pattern as the last several
+  batches — this batch's own 10 idioms bring the pool to exactly 100,
+  the item's own stated target, so it's now marked `done` in
+  `BACKLOG.md` rather than left open for a further batch.
+  Added 10 new idioms (see `BACKLOG.md`'s own batch-6 entry for the
+  full list and sourcing detail) — verified via WebSearch against
+  zdic.net-indexed pages and Baidu Baike, same as batch 5 (zdic.net
+  itself is still directly network-blocked from this sandbox).
+  Pre-checked every new candidate's first-two/last-two character halves
+  against the full 90-idiom pool before authoring, and against each
+  other within the batch — no collisions, no swaps needed. Regenerated
+  `writingStrokeData.ts` against the full current 100-idiom set (283
+  distinct characters, 27 new). Used two temporary, not-saved npm
+  packages (`pinyin-pro`, `hanzi-writer-data@2.0.1`) as local drafting
+  aids for this session only — neither is a project dependency, and
+  every character they produced was hand-verified against this file's
+  own existing conventions before being treated as vetted (see
+  `BACKLOG.md`'s entry for the specific corrections this caught). All
+  gates green: typecheck/test (367 passed)/build/e2e (70 passed,
+  mobile+desktop, run with `CI=true` to match the actual PR gate). PR
+  opened and merged per the standing 2026-08-26 auto-land policy.
 - **2026-09-17 — Daily cycle: idiom pool batch 5 (75 → 90).** Pending
   Decisions was empty. Three other open PRs existed: #40 and #44 on the
   standing example-sentence-review track (unchanged since prior

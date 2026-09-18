@@ -495,8 +495,8 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       hand-off into the plain session summary after it. All gates green
       (typecheck/`test` 367 passed/`build`, plus the full mobile+desktop
       e2e suite).
-- [ ] `todo` — **Grow the idiom pool from 15 toward ~100 (2026-09-08,
-      batches 1-2 landed 2026-09-09/10).** Same data-driven pattern
+- [x] `done` — **Grow the idiom pool from 15 toward ~100 (2026-09-08,
+      batches 1-2 landed 2026-09-09/10; target reached 2026-09-18).** Same data-driven pattern
       `src/idioms/idioms.ts` already uses — per `AUTONOMY.md` this
       doesn't need a decision, just doing it. Authored in reviewable
       batches (matching this project's existing "needs your review
@@ -752,6 +752,55 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       `build`/`test:e2e` (70 passed, mobile+desktop, run with `CI=true`
       to match the actual PR gate, per PR #49's own lesson that a bare
       local run isn't enough to trust).
+      **Batch 6 (2026-09-18): 90 → 100 — this item's ~100 target
+      reached.** Added 千锤百炼/埋头苦干/只争朝夕 (focus), 货真价实/言行一致
+      (honesty), 相濡以沫/感同身受 (kindness), 买椟还珠/邯郸学步/郑人买履
+      (wisdom) — same verification-before-authoring process as batches
+      1-5 (each confirmed to have a standalone zdic.net entry via
+      WebSearch, not just a search-summary mention, before being
+      authored; zdic.net remains directly network-blocked from this
+      sandbox, same as batch 5's own note). Every candidate's
+      first-two/last-two character halves were checked against the full
+      existing 90-idiom pool, and against each other within this batch,
+      before authoring — came back clean, no swaps needed. Confirmed via
+      `sessionIdioms.test.ts`'s existing generic pool-wide collision
+      check (unchanged, still passes over all 100) and a standalone
+      script re-deriving every idiom's halves directly from `idioms.ts`
+      (same technique batch 4 introduced).
+      Two pinyin/tone details worth recording for future batches: (1)
+      言行一致's own `不`/`一`-adjacent tone-sandhi treatment follows
+      batch 5's precedent (top-level `pinyin` at the dictionary citation
+      tone, real spoken sandhi applied only in the compressed
+      example-sentence form) — confirmed against this file's own
+      existing 一视同仁/一诺千金/一言为定 entries, which turned out to
+      already be inconsistent with each other on this point (citation
+      tone frozen for some, sandhi'd for others), so this batch matched
+      whichever existing entry's pattern fit each specific case rather
+      than picking one rule and forcing it everywhere. (2) Generated
+      each new `charPinyin` array's first draft with the `pinyin-pro`
+      npm package (installed with `--no-save`, used only as a local
+      drafting aid this session — not a project dependency) rather than
+      typing every character's reading by hand from scratch, then
+      hand-corrected every character the library's word-segmentation
+      guessed wrong before treating any of it as vetted — most
+      commonly 只 ("only," mis-read as the animal-classifier zhī) and
+      地 (the adverbial particle "-ly," mis-read as the noun "earth"
+      dì) in several sentences, both caught and fixed by cross-checking
+      against this file's own existing usage elsewhere before landing.
+      Worth a future batch reusing the same drafting shortcut, but not
+      skipping the same hand-verification pass.
+      Regenerated `writingStrokeData.ts` against the full current
+      100-idiom set up front (fetched from a temporary, not-saved
+      `hanzi-writer-data@2.0.1` install, same one-off-tool pattern as
+      `pinyin-pro` above) — 27 of this batch's 34 distinct characters
+      were new (the other 7 already covered by earlier batches'
+      overlapping characters); confirmed 0 missing characters across the
+      whole pool (283 distinct characters total).
+      All green: `npm run typecheck`/`test` (367 passed, unchanged — no
+      new pure-logic surface, same as every prior content-only
+      batch)/`build`/`test:e2e` (70 passed, mobile+desktop, run with
+      `CI=true` to match the actual PR gate, per PR #49's own lesson
+      that a bare local run isn't enough to trust).
 
 - [x] `done` — **Dev-only: a "New idioms" control to reroll this
       session's idiom set for testing (2026-09-07).** Per "I am getting
