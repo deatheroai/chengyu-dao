@@ -279,34 +279,34 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       pick are still pending — waiting on the actual hex values (the
       picker had no save feature, so nothing from your session there
       reached this repo).
-- [ ] `todo` — **Writing/tracing stage: teach each character before the
-      door (2026-09-08).** New stage between an idiom's intro and its
-      door: each of the idiom's 4 characters shown one at a time over a
-      stroke-order template, child traces it, scored on accuracy.
-      Recommend [HanziWriter](https://hanziwriter.org/) (MIT) with
-      stroke data bundled locally for just this project's distinct
-      characters (not the full CDN dataset) rather than building stroke
-      recognition from scratch. New DOM UI layer + Phaser scene +
-      pure-logic scoring module, following the same
-      pure-function-plus-thin-Scene pattern as every other mechanic
-      here.
-- [ ] `todo` — **HP: earned from tracing, spent in the door stage, a
-      real gate (2026-09-08).** Per your "decent writing should enable
-      the child to pass the door stage but if badly written the child
-      should have to restart": trace accuracy (no baseline freebie)
-      becomes that idiom's door-stage HP. Every jump costs a small flat
-      amount; a jump that lands on the wrong character costs an
-      additional, larger amount on top. At 0 HP, jumping stops working
-      — the character keeps auto-running but can't catch anything, so
-      it reaches the door unsolved, which already gently restarts the
-      level (`IdiomDoorScene.checkDoor`). That restart needs to route
-      back to *retracing* this idiom (a new callback out to `main.ts`,
-      same pattern as `onDoorReached`), not just respawn the same door
-      tiles with an already-spent pool. Needs a small HP meter in
-      `catch-ui-layer` so the child can see they're running low. Starting
-      numbers (tune after playtest, same as every other constant in
-      this file): ~100 HP for a perfect trace, ~5 HP/jump, +~10 HP extra
-      on a wrong catch.
+- [x] `done` — **Writing/tracing stage: teach each character before the
+      door (2026-09-08, landed 2026-09-09 through 2026-09-12).** New
+      stage between an idiom's intro and its door
+      (`src/idiom-door/writingStage.ts`): each of the idiom's characters
+      shown one at a time over a HanziWriter (MIT) stroke-order template
+      (`src/idiom-door/writingData/writingStrokeData.ts`, bundled locally
+      for just this project's distinct characters), child traces it,
+      scored on accuracy (`writingScore.ts`). Built by an interactive
+      session across several commits (`be5fd14`..`d3dd868`) rather than a
+      daily cycle, which is why this checkbox was never flipped at the
+      time — confirmed still fully wired into `main.ts`'s
+      `beginWritingStage` boot flow and covered by `e2e/writing-stage.spec.ts`
+      during this cycle's backlog review, so correcting the record now.
+- [x] `done` — **HP: earned from tracing, spent in the door stage, a
+      real gate (2026-09-08, landed alongside the writing stage above).**
+      Trace accuracy becomes that idiom's door-stage starting HP
+      (`writingScore.ts`'s `PERFECT_TRACE_STARTING_HP = 100`,
+      `traceRatingForAccuracy`); `doorHp.ts`'s `JUMP_HP_COST = 5` per
+      jump and `WRONG_CATCH_HP_PENALTY = 10` extra on a wrong catch,
+      landing right on this entry's own tuning estimate. At 0 HP,
+      `checkDoor` routes back to *retracing* the same idiom
+      (`beginWritingStage` called again from the restart path in
+      `main.ts`) rather than just respawning the door tiles. HP meter +
+      low-HP vignette live in the DOM layer (`doorHpStatus.ts`,
+      `#door-hp`/`#low-hp-vignette`, own test coverage in
+      `doorHpStatus.test.ts`). Same as the entry above: built by an
+      interactive session, never marked done at the time; confirmed
+      still fully wired and tested during this cycle's backlog review.
 - [x] `done` — **Door stage: burning tile on a wrong catch (2026-09-08,
       landed 2026-09-10).** A wrong catch now recolors that specific
       tile scorched/charred (`IdiomDoorScene.scorchTile` — dark
@@ -430,6 +430,27 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       the characters correctly" pass on each new batch before treating it
       as fully vetted, same "needs your review" status the rest of this
       project's authored Chinese text already carries.
+
+      **2026-09-19 daily cycle: ran this pass against the full current
+      100-idiom pool on `main`.** Read all 100 `meaning`/`exampleSentence`
+      pairs end to end (not spot-checked). Idioms 16-100 (batches 2-6,
+      authored 2026-08-08 through 2026-09-18) all held up — every example
+      sentence actually demonstrates its idiom's specific meaning rather
+      than just using the characters correctly, no new fixes needed. This
+      tracks: those batches were written *after* the original-15 pool's
+      own review found this exact failure mode, so the lesson was already
+      baked into how they were authored. The original 15's own remaining
+      gap is still open, just not on `main` yet: PR #44 (pushed
+      2026-09-12) already ported a full sentence-by-sentence re-review of
+      all 30 of the original pool's idioms (15 changed) from
+      `deatheroai/chengyu-battle`'s own human-reviewed pass, refining on
+      top of this repo's own earlier #33/#37 rounds — but it's sitting
+      unmerged, so `main` itself still carries the pre-fix sentences for
+      those 15. Left untouched this cycle (same reasoning as every prior
+      check-in: not created by this session, no point duplicating
+      already-completed, human-reviewed work sitting in someone else's
+      open PR). Batches added after today's 100 will still need this same
+      pass before being treated as vetted.
 - [x] `done` — **Remove the per-session match warm-up; matching becomes a
       milestone-finale-only mechanic (2026-09-08, landed 2026-09-12).**
       Per your steer: dropped `beginMatchStage`/`showMatchIntro` from

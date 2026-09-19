@@ -23,6 +23,53 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-19 — Daily cycle: no new content to build; corrected stale
+  `BACKLOG.md` bookkeeping and ran a full-pool example-sentence review
+  pass.** Pending Decisions was empty. Three other open PRs existed: #51
+  ("Science Snake", a separate P4-Science quiz game outside this repo's
+  idiom-game scope, its own description asking for a human playtest —
+  left untouched, same rule as always), and #40/#44 (the standing
+  example-sentence-review track for the original 15-idiom pool, both
+  pushed by other sessions and unmerged since 2026-09-11/12 — left alone
+  again, same reasoning as every prior check-in: not created by this
+  session, and duplicating already-completed, human-reviewed work sitting
+  in someone else's open PR would be wasted effort, not new value).
+  `BACKLOG.md`'s idiom-pool-growth item is `done` as of yesterday's batch
+  6 (100/100), so unlike every recent cycle there was no "grow the pool"
+  item left to pick up by default — went looking for the actual next
+  unblocked item instead of assuming one existed.
+  Found two things worth fixing instead of manufacturing busywork:
+  1. **`BACKLOG.md`'s writing/tracing-stage and HP-economy `todo` items
+     were stale.** Both describe work that was actually built and shipped
+     to `main` by an interactive session across 2026-09-09 to 2026-09-12
+     (`be5fd14`..`d3dd868`) — `src/idiom-door/writingStage.ts`,
+     `writingScore.ts`, `doorHp.ts`, `doorHpStatus.ts`, full
+     `e2e/writing-stage.spec.ts` coverage, all still live in `main.ts`'s
+     boot flow today. Nobody flipped their checkboxes at the time (not a
+     daily-cycle commit, so it fell outside this file's own normal
+     landing ritual). Verified line-by-line against the entries' own
+     acceptance criteria (HP constants, restart-routes-to-retrace
+     behaviour, the low-HP UI) before marking them `done` — see
+     `BACKLOG.md`'s own updated entries for the specifics.
+  2. **Ran the standing example-sentence-review pass against the full
+     current 100-idiom pool**, not just the original 15 that PR #44
+     already covers. Read all 100 `meaning`/`exampleSentence` pairs on
+     `main` end to end. Idioms 16-100 (batches 2-6) all held up — every
+     example actually demonstrates its idiom's real meaning, not just
+     correct character usage — because those batches were authored
+     *after* the original 15's own review already surfaced this failure
+     mode, so later authoring sessions had already learned the lesson.
+     No new fixes needed there. The original 15's own remaining gap is
+     unchanged: PR #44's fixes for it are real and already
+     human-reviewed (via `deatheroai/chengyu-battle`'s cross-project
+     pass) but still unmerged, so `main` itself still carries the
+     pre-fix sentences — left for whoever picks up #44, not duplicated
+     here.
+  Both changes are `BACKLOG.md`-only (no `src/` diff). All gates green:
+  `npm run typecheck`/`test` (367 passed, unchanged)/`build`, plus the
+  full `test:e2e` suite (mobile+desktop, run with `CI=true` to match the
+  actual PR gate). PR opened and merged per the standing 2026-08-26
+  auto-land policy.
 - **2026-09-18 — Daily cycle: idiom pool batch 6 (90 → 100), reaching
   this backlog item's ~100 target.** Pending Decisions was empty. Three
   other open PRs existed: #51 ("Science Snake", a wholly separate
