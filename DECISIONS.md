@@ -23,6 +23,33 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-20 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. `BACKLOG.md`'s only open `todo`
+  item is the standing example-sentence-review track, and it's fully
+  current: the 2026-09-19 cycle already read all 100 `meaning`/
+  `exampleSentence` pairs on `main` end to end and found nothing new to
+  fix (idioms 16-100 all hold up; the original 15's own remaining gap is
+  PR #44's to land, not this session's to duplicate). The idiom-pool-
+  growth item reached its ~100 target back on 2026-09-18 and is `done`.
+  The only other `BACKLOG.md` entries are the three `blocked` "Later /
+  explicitly out of scope for now" items (multiplayer, monetization,
+  Upper Primary tier) — still deliberately deferred, not waiting on a
+  decision to raise.
+  Same three open PRs as yesterday's check-in, all unchanged (same head
+  SHAs as recorded in the 2026-09-19 entry): #51 ("Science Snake", a
+  separate P4-Science quiz game outside this repo's idiom-game scope,
+  its own description asking for a human playtest — left untouched,
+  same rule as always), and #40/#44 (the standing example-sentence-
+  review track, pushed by other sessions, unmerged since
+  2026-09-11/12 — left alone again, same reasoning as every prior
+  check-in). CI on `main` (`7a4bcd3`) is green. Ran a sanity grep for
+  stray TODO/FIXME markers in `src/` before concluding there was
+  nothing to build — none found (the matches are false positives from
+  `...PositionsToDom`/`...FastForwardToDoor` identifiers, same as the
+  2026-09-08 check-in's own finding). Per `AUTONOMY.md`'s "don't
+  manufacture busywork" guidance, this cycle made no `src/` changes and
+  ends here rather than re-running yesterday's already-completed
+  full-pool review pass against unchanged content.
 - **2026-09-19 — Daily cycle: no new content to build; corrected stale
   `BACKLOG.md` bookkeeping and ran a full-pool example-sentence review
   pass.** Pending Decisions was empty. Three other open PRs existed: #51
