@@ -439,18 +439,31 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       than just using the characters correctly, no new fixes needed. This
       tracks: those batches were written *after* the original-15 pool's
       own review found this exact failure mode, so the lesson was already
-      baked into how they were authored. The original 15's own remaining
-      gap is still open, just not on `main` yet: PR #44 (pushed
-      2026-09-12) already ported a full sentence-by-sentence re-review of
-      all 30 of the original pool's idioms (15 changed) from
-      `deatheroai/chengyu-battle`'s own human-reviewed pass, refining on
-      top of this repo's own earlier #33/#37 rounds — but it's sitting
-      unmerged, so `main` itself still carries the pre-fix sentences for
-      those 15. Left untouched this cycle (same reasoning as every prior
-      check-in: not created by this session, no point duplicating
-      already-completed, human-reviewed work sitting in someone else's
-      open PR). Batches added after today's 100 will still need this same
-      pass before being treated as vetted.
+      baked into how they were authored.
+
+      **2026-09-21 daily cycle: landed PR #44, closing the original-15
+      gap.** The gap noted above (PR #44's ported re-review sitting
+      unmerged since 2026-09-12) is resolved — PR #44's own actual CI run
+      had failed on `idiom-door.spec.ts:683`'s "solving all 3 levels..."
+      test, on both mobile and desktop, which is why it sat unmerged
+      rather than reflecting some overlooked reviewer objection. Checked
+      rather than assumed unrelated: that failure is the same
+      `doorJump.ts` chain-catch timing-margin class of bug documented at
+      length in this file's own idiom-pool-growth entry below (PR
+      #40/#47/#49's history) — PR #44's branch (based on `main` as of
+      2026-09-11, before the 2026-09-16 root-cause fix landed) predates
+      that fix entirely, so its CI run hit exactly the bug that fix later
+      resolved. Merged PR #44's branch onto current `main` here — its
+      `idioms.ts` content changes applied clean with no conflicts (only
+      this file and `DECISIONS.md`'s own bookkeeping needed manual
+      reconciliation) — and re-ran the full gate on top of the current,
+      already-fixed `doorJump.ts`. All green (see `DECISIONS.md`'s
+      2026-09-21 entry for the actual run's results), confirming the
+      original CI failure really was the pre-existing bug and not a
+      problem with PR #44's own content. The original 30-idiom pool is
+      now fully covered end to end, on `main`, for real. Batches added
+      after the 100-idiom milestone will still need this same pass before
+      being treated as vetted.
 - [x] `done` — **Remove the per-session match warm-up; matching becomes a
       milestone-finale-only mechanic (2026-09-08, landed 2026-09-12).**
       Per your steer: dropped `beginMatchStage`/`showMatchIntro` from
