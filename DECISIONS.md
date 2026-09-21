@@ -23,6 +23,46 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-21 — Daily cycle: landed PR #44, closing the standing
+  example-sentence-review track's last gap (original 15-idiom pool).**
+  Pending Decisions was empty. Same three open PRs as the last several
+  check-ins: #51 ("Science Snake", a separate P4-Science quiz game
+  outside this repo's scope, its own description asking for a human
+  playtest — left untouched, same rule as always), and #40 (a single
+  example-sentence fix, unmerged since 2026-09-11, left alone — no
+  overlap with today's scope, still someone else's open PR to pick up).
+  `BACKLOG.md`'s only open `todo` item was this standing track, and its
+  last remaining piece was the original-15 pool's fix sitting in PR #44,
+  unmerged since 2026-09-12.
+  Investigated why #44 had never landed rather than repeating the
+  "not created by this session" pass-over every prior check-in gave it:
+  its own actual GitHub Actions run had failed, on both mobile and
+  desktop, on `idiom-door.spec.ts:683`'s "solving all 3 levels..." test.
+  That's the same `doorJump.ts` chain-catch timing-margin bug class
+  documented at length in `BACKLOG.md`'s idiom-pool-growth entry
+  (PR #40/#47/#49's history) — #44's branch was cut from `main` on
+  2026-09-11, before the 2026-09-16 daily cycle root-caused and fixed
+  that exact bug, so its CI run hit a bug unrelated to its own content,
+  not a real objection to the sentence fixes themselves.
+  Created this session's branch off latest `main`, merged PR #44's
+  branch onto it: `idioms.ts`'s content changes applied clean (no
+  conflicts); `BACKLOG.md`/`DECISIONS.md` needed manual conflict
+  resolution (both files' own bookkeeping entries), resolved by keeping
+  every entry, in chronological order, same approach as the 2026-09-14
+  daily cycle's own rebase-conflict precedent. Re-ran the full gate on
+  top of the current, already-fixed `doorJump.ts` to confirm the theory
+  rather than assume it: `npm run typecheck`/`test` (367 passed,
+  unchanged — content-integrity suite validates structure, not
+  wording)/`build` all green, then the full `test:e2e` suite (70 passed,
+  mobile+desktop, run with `CI=true` to match the actual PR gate) —
+  including the exact test that failed on #44's own original CI run,
+  now passing clean. Confirms the original failure really was the
+  pre-existing bug, not a problem with PR #44's content.
+  The original 30-idiom pool (idioms 1-15's `exampleSentence` fixes from
+  this PR, plus idioms 16-30's own earlier #33/#37 fixes) is now fully
+  covered end to end, on `main`, for real — see `BACKLOG.md`'s own
+  updated entry. PR #44 is superseded by this session's PR and closed.
+  Landed per the standing 2026-08-26 auto-land policy.
 - **2026-09-20 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. `BACKLOG.md`'s only open `todo`
   item is the standing example-sentence-review track, and it's fully
