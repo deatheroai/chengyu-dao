@@ -14,6 +14,27 @@ None open right now.
 
 ## Needs Your Action (not decisions — steps only you can take)
 
+- **GitHub Actions CI has been failing instantly on every run since
+  2026-09-20 — check the repo/org's Actions billing or spending-limit
+  settings.** Not a code or test regression: every `game-ci.yml` run since
+  2026-09-20T03:26 UTC fails in ~2-4 seconds with 0 billable minutes and no
+  runner ever assigned (`runner_id: 0`, empty `runner_name`), including
+  runs on `main`'s own push-triggered CI for commits that changed no code
+  at all (run 116/117, the 2026-09-20 check-in's doc-only commit) and both
+  attempts of PR #56's run (run 118). The check run itself carries no
+  output/summary text — consistent with the job being rejected before a
+  runner picks it up, which is the usual signature of hitting a GitHub
+  Actions spending limit or exhausted included minutes, not a workflow or
+  application bug. The last successful run was 2026-09-19T03:26 UTC (run
+  115, the #54 merge) — so this broke sometime in the 24h between that run
+  and the next day's check-in, with no repo changes of any kind to explain
+  it. Until this is fixed, **no daily-cycle PR can land**, since
+  `AUTONOMY.md`'s auto-land policy is gated on the actual GitHub Actions
+  run, not a local repro — see PR #56 (ready to merge, correct content,
+  blocked purely on this) and the 2026-09-22 entry below for detail. Check
+  Settings → Billing → Actions usage/spending limit for this repo's owner
+  account (or org, if applicable) and raise the limit or resolve whatever
+  is blocking runners from being assigned.
 - **Confirm Vercel's Production Branch is `main`.** Free (Hobby) tier
   doesn't allow pointing Production at another branch — this repo's own
   daily-cycle/session convention (see `AUTONOMY.md`'s "Landing changes")
@@ -23,6 +44,51 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-22 — Daily cycle: found and logged a real GitHub Actions
+  infra break, no code changes.** Pending Decisions was empty.
+  `BACKLOG.md`'s only open `todo` item (the standing example-sentence-
+  review track) has nothing left to build — its one remaining gap (the
+  original 30-idiom pool's sentence fixes) is already authored and
+  sitting in PR #56, opened by yesterday's cycle; the idiom-pool-growth
+  item is `done` at 100; the three `blocked` "Later" items stay
+  deliberately deferred, same as every prior check-in.
+  Four open PRs: #51 ("Science Snake," a separate P4-Science quiz game
+  outside this repo's idiom-game scope, own description asks for a
+  human playtest — left untouched, same rule as always); #40 (superseded
+  by #56's own port of the same fix, left alone rather than duplicated);
+  #44 (the source PR #56 already ported, same reasoning); #56 itself
+  (yesterday's daily-cycle PR, content correct and locally green, but
+  its own two real GitHub Actions attempts both failed).
+  Investigated #56's CI failure rather than assuming it was another
+  instance of the `doorJump.ts`-class content/timing flakiness this
+  project's history is full of — it isn't. Both of #56's actual check
+  runs (attempt 1 and 2, job ids 106203821140/106203975801) completed in
+  2-3 seconds with `0` billable minutes
+  (`get_workflow_run_usage`: `total_ms: 0` for both jobs) and no runner
+  ever assigned (`runner_id: 0`, empty `runner_name`), and the check
+  run's own output/summary/text are all empty — the job was rejected
+  before it ever started, not a test failure. Checked whether this was
+  specific to #56's content: it isn't — `main`'s own push-triggered CI
+  for the 2026-09-20 check-in commit (a `DECISIONS.md`-only change, no
+  `src/` diff at all) failed the exact same way (run 117, also 0ms
+  billable, also no runner). The last real, successfully-run CI on this
+  repo was 2026-09-19T03:26 UTC (run 115); every run since (116, 117,
+  both of 118) has failed identically. This is a billing/spending-limit-
+  shaped signature (job rejected pre-runner-assignment, no logs, 0
+  minutes billed), not a workflow YAML or application regression — logged
+  under `DECISIONS.md`'s own "Needs Your Action" section above with the
+  specific evidence, since checking/raising a GitHub Actions spending
+  limit isn't something a session can do from here.
+  Consequence: **no daily-cycle PR can land right now**, no matter how
+  clean its local validation is — `AUTONOMY.md`'s auto-land policy is
+  explicitly gated on the real GitHub Actions run (the exact lesson
+  PR #49's own 2026-09-14 history already established), and that gate
+  itself is unavailable. Left PR #56 open and unmerged rather than
+  overriding the gate or duplicating its content into a new attempt that
+  would only hit the same infra wall. This cycle's own `DECISIONS.md`/
+  `BACKLOG.md` bookkeeping change is pushed to `claude/daily-2026-09-22`
+  and PR'd the same way, for the same reason left unmerged — nothing to
+  build today until this is fixed.
 - **2026-09-20 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. `BACKLOG.md`'s only open `todo`
   item is the standing example-sentence-review track, and it's fully

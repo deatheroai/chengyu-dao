@@ -451,6 +451,22 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       already-completed, human-reviewed work sitting in someone else's
       open PR). Batches added after today's 100 will still need this same
       pass before being treated as vetted.
+
+      **2026-09-21: ported PR #44's fix onto latest `main` as PR #56 —
+      correct content, but blocked from landing by a real GitHub Actions
+      infra failure, not a content problem.** All local gates green
+      (typecheck/test/build/`test:e2e` with `CI=true`, including the
+      exact test that failed on #44's own original, now-stale CI run).
+      PR #56's own actual GitHub Actions run failed anyway, on both
+      attempts — root-caused by the 2026-09-22 cycle to a CI
+      infrastructure break affecting the whole repo (every run since
+      2026-09-20 fails in seconds with 0 billable minutes and no runner
+      assigned, `main`'s own doc-only commits included), not this PR's
+      content. See `DECISIONS.md`'s "Needs Your Action" section and its
+      2026-09-22 entry for the full evidence. **This item has nothing
+      left to build** — PR #56 already carries the correct, locally-
+      verified fix for the original 30-idiom pool's last gap — it's
+      purely waiting on the CI infra fix before it can land.
 - [x] `done` — **Remove the per-session match warm-up; matching becomes a
       milestone-finale-only mechanic (2026-09-08, landed 2026-09-12).**
       Per your steer: dropped `beginMatchStage`/`showMatchIntro` from
