@@ -112,6 +112,11 @@ body {
   opacity: 0.75;
 }
 
+.score-comparison {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
 /* Mobile-friendly tap-to-turn D-pad — always visible (also a usable
    click target on desktop), same idea as idiom-door's #jump-btn. Lives
    in its own #dpad-bar flex row below #game-container (see #play-area
