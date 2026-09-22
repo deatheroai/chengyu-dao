@@ -155,6 +155,20 @@ None open right now.
   typecheck/test (367 passed)/build/e2e (70 passed, mobile+desktop, run
   with `CI=true` to match the actual PR gate). PR opened and merged per
   the standing 2026-08-26 auto-land policy.
+- **2026-09-16 — Science Snake: completely independent game, not
+  wired into `idiom-door`'s navigation at all.** Resolves the
+  site-entry-point question raised earlier today: no picker, no shared
+  entry point, no eventual replacement — its own page/URL
+  (`science-snake.html`), entirely separate from `idiom-door`. Nothing
+  in either game's navigation needs to change for the other.
+- **2026-09-16 — Science Snake: author content directly, reviewed in
+  batches of five before landing.** Resolves the P4-content-sourcing
+  question raised earlier today: rather than sourcing an official
+  syllabus document first, questions are drafted here and shown five at
+  a time for direct review/correction before being committed to
+  `scienceQuestions.ts` — review-before-landing standing in for the
+  idiom pool's dictionary-verification step, adapted to content this
+  session can't independently verify against a primary source.
 - **2026-09-16 — Daily cycle: root-caused and fixed the `doorJump.ts`
   e2e bug that had blocked PR #40 (09-11)/#47 (09-13)/#49 (09-14) from
   landing, then landed idiom-pool batch 4 (60 → 75) on top of it.**
