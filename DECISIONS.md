@@ -63,6 +63,29 @@ None open right now.
   covered end to end, on `main`, for real — see `BACKLOG.md`'s own
   updated entry. PR #44 is superseded by this session's PR and closed.
   Landed per the standing 2026-08-26 auto-land policy.
+- **2026-09-22 — GitHub Actions infra break root-caused and fixed: the
+  repo was private and had exhausted its free 2,000 min/month Actions
+  quota.** You made `chengyu-dao` public (after a full history scan
+  found no secrets ever committed), which lifts the private-repo minute
+  cap entirely. Verified by re-running the exact runs that had been
+  failing instantly with no runner assigned (PR #57's run 35682030368
+  and this PR's run 35557478869): both now get a real runner and run
+  every step (typecheck/test/build/Playwright install/e2e) to a green
+  `success` conclusion.
+- **2026-09-22 — Science Snake (PR #51) merged into `main`.** You
+  confirmed the Vercel preview playtest passed ("Ok tested ok"), then
+  explicitly confirmed the merge itself when asked ("Yes, merge it") —
+  merging goes straight to `main`, which Vercel deploys live, so that
+  confirmation was sought before acting, per `AUTONOMY.md`'s "a
+  session's own PR needs an explicit ask before merging" rule.
+  Re-verified immediately before merging: `mergeable_state: "clean"`,
+  head unchanged at `39c913a`, base unchanged at `42957dc1` (no new
+  commits landed on `main` in the few days since the last confirmed-green
+  check), both CI checks (`test`, `Vercel Preview Comments`) still
+  green. Merged via a real merge commit (`f226609`), not squash/rebase,
+  matching this repo's own merge-commit convention for its automated
+  daily-cycle PRs. Unsubscribed from PR #51's activity afterward — see
+  `BACKLOG.md`'s "Science Snake Game" section for the landed state.
 - **2026-09-20 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. `BACKLOG.md`'s only open `todo`
   item is the standing example-sentence-review track, and it's fully
@@ -195,6 +218,20 @@ None open right now.
   typecheck/test (367 passed)/build/e2e (70 passed, mobile+desktop, run
   with `CI=true` to match the actual PR gate). PR opened and merged per
   the standing 2026-08-26 auto-land policy.
+- **2026-09-16 — Science Snake: completely independent game, not
+  wired into `idiom-door`'s navigation at all.** Resolves the
+  site-entry-point question raised earlier today: no picker, no shared
+  entry point, no eventual replacement — its own page/URL
+  (`science-snake.html`), entirely separate from `idiom-door`. Nothing
+  in either game's navigation needs to change for the other.
+- **2026-09-16 — Science Snake: author content directly, reviewed in
+  batches of five before landing.** Resolves the P4-content-sourcing
+  question raised earlier today: rather than sourcing an official
+  syllabus document first, questions are drafted here and shown five at
+  a time for direct review/correction before being committed to
+  `scienceQuestions.ts` — review-before-landing standing in for the
+  idiom pool's dictionary-verification step, adapted to content this
+  session can't independently verify against a primary source.
 - **2026-09-16 — Daily cycle: root-caused and fixed the `doorJump.ts`
   e2e bug that had blocked PR #40 (09-11)/#47 (09-13)/#49 (09-14) from
   landing, then landed idiom-pool batch 4 (60 → 75) on top of it.**
