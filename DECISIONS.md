@@ -14,27 +14,6 @@ None open right now.
 
 ## Needs Your Action (not decisions — steps only you can take)
 
-- **GitHub Actions CI has been failing instantly on every run since
-  2026-09-20 — check the repo/org's Actions billing or spending-limit
-  settings.** Not a code or test regression: every `game-ci.yml` run since
-  2026-09-20T03:26 UTC fails in ~2-4 seconds with 0 billable minutes and no
-  runner ever assigned (`runner_id: 0`, empty `runner_name`), including
-  runs on `main`'s own push-triggered CI for commits that changed no code
-  at all (run 116/117, the 2026-09-20 check-in's doc-only commit) and both
-  attempts of PR #56's run (run 118). The check run itself carries no
-  output/summary text — consistent with the job being rejected before a
-  runner picks it up, which is the usual signature of hitting a GitHub
-  Actions spending limit or exhausted included minutes, not a workflow or
-  application bug. The last successful run was 2026-09-19T03:26 UTC (run
-  115, the #54 merge) — so this broke sometime in the 24h between that run
-  and the next day's check-in, with no repo changes of any kind to explain
-  it. Until this is fixed, **no daily-cycle PR can land**, since
-  `AUTONOMY.md`'s auto-land policy is gated on the actual GitHub Actions
-  run, not a local repro — see PR #56 (ready to merge, correct content,
-  blocked purely on this) and the 2026-09-22 entry below for detail. Check
-  Settings → Billing → Actions usage/spending limit for this repo's owner
-  account (or org, if applicable) and raise the limit or resolve whatever
-  is blocking runners from being assigned.
 - **Confirm Vercel's Production Branch is `main`.** Free (Hobby) tier
   doesn't allow pointing Production at another branch — this repo's own
   daily-cycle/session convention (see `AUTONOMY.md`'s "Landing changes")
@@ -44,6 +23,22 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-22 — GitHub Actions infra break root-caused and fixed: the
+  repo was private and had exhausted its free 2,000 min/month Actions
+  quota.** You made `chengyu-dao` public (after a full history scan
+  found no secrets ever committed — see the check below), which lifts
+  the private-repo minute cap entirely. Verified the fix by re-running
+  the exact runs that had been failing instantly with no runner
+  assigned (PR #57's run 35682030368 and PR #56's run 35557478869):
+  both now get a real runner and run every step (typecheck/test/build/
+  Playwright install/e2e) to a green `success` conclusion, e2e taking
+  the same ~20-30 minutes as pre-break runs. Also scanned the full
+  112-commit history (all branches) for secret patterns (AWS/Google/
+  GitHub/Slack/OpenAI-style keys, PEM private keys, `.env`/credentials/
+  key files) before advising the visibility change — zero hits; the
+  only env-like file ever committed (`.env.example`, removed
+  2026-08-25) held empty placeholder names, no real values. Supersedes
+  the "Needs Your Action" entry that used to sit above this section.
 - **2026-09-22 — Daily cycle: found and logged a real GitHub Actions
   infra break, no code changes.** Pending Decisions was empty.
   `BACKLOG.md`'s only open `todo` item (the standing example-sentence-
@@ -89,6 +84,20 @@ None open right now.
   `BACKLOG.md` bookkeeping change is pushed to `claude/daily-2026-09-22`
   and PR'd the same way, for the same reason left unmerged — nothing to
   build today until this is fixed.
+- **2026-09-22 — Science Snake (PR #51) merged into `main`.** You
+  confirmed the Vercel preview playtest passed ("Ok tested ok"), then
+  explicitly confirmed the merge itself when asked ("Yes, merge it") —
+  merging goes straight to `main`, which Vercel deploys live, so that
+  confirmation was sought before acting, per `AUTONOMY.md`'s "a
+  session's own PR needs an explicit ask before merging" rule.
+  Re-verified immediately before merging: `mergeable_state: "clean"`,
+  head unchanged at `39c913a`, base unchanged at `42957dc1` (no new
+  commits landed on `main` in the few days since the last confirmed-green
+  check), both CI checks (`test`, `Vercel Preview Comments`) still
+  green. Merged via a real merge commit (`f226609`), not squash/rebase,
+  matching this repo's own merge-commit convention for its automated
+  daily-cycle PRs. Unsubscribed from PR #51's activity afterward — see
+  `BACKLOG.md`'s "Science Snake Game" section for the landed state.
 - **2026-09-20 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. `BACKLOG.md`'s only open `todo`
   item is the standing example-sentence-review track, and it's fully
@@ -221,6 +230,20 @@ None open right now.
   typecheck/test (367 passed)/build/e2e (70 passed, mobile+desktop, run
   with `CI=true` to match the actual PR gate). PR opened and merged per
   the standing 2026-08-26 auto-land policy.
+- **2026-09-16 — Science Snake: completely independent game, not
+  wired into `idiom-door`'s navigation at all.** Resolves the
+  site-entry-point question raised earlier today: no picker, no shared
+  entry point, no eventual replacement — its own page/URL
+  (`science-snake.html`), entirely separate from `idiom-door`. Nothing
+  in either game's navigation needs to change for the other.
+- **2026-09-16 — Science Snake: author content directly, reviewed in
+  batches of five before landing.** Resolves the P4-content-sourcing
+  question raised earlier today: rather than sourcing an official
+  syllabus document first, questions are drafted here and shown five at
+  a time for direct review/correction before being committed to
+  `scienceQuestions.ts` — review-before-landing standing in for the
+  idiom pool's dictionary-verification step, adapted to content this
+  session can't independently verify against a primary source.
 - **2026-09-16 — Daily cycle: root-caused and fixed the `doorJump.ts`
   e2e bug that had blocked PR #40 (09-11)/#47 (09-13)/#49 (09-14) from
   landing, then landed idiom-pool batch 4 (60 → 75) on top of it.**

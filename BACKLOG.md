@@ -1321,6 +1321,379 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       confirm they held rather than happened to pass by chance, given
       how timing-sensitive this exact area of the suite already was.
 
+## Science Snake Game (new, 2026-09-16; merged to `main` 2026-09-22)
+
+A second, standalone game — a P4-syllabus (Singapore MOE) science quiz
+wrapped in a snake game, not a mode inside `idiom-door`. Design settled by
+conversation on 2026-09-16; built across PR #51
+(`claude/educational-snake-game-kd6anh`), human-playtested on its Vercel
+preview and confirmed working, then merged into `main` on 2026-09-22
+(`f226609`) — live at `/science-snake.html`. Items below are ordered
+build-priority, pure-logic-first same as every other mechanic in this repo.
+
+- [ ] `in-progress` — **Content bank: P4 Science question set
+      (`src/science-snake/scienceQuestions.ts`), authored + reviewed in
+      batches of 5 (2026-09-16, see `DECISIONS.md`).** Batch 1 (5
+      questions: diversity of living/non-living things, plant life cycle,
+      states of matter, magnets, animal life cycle) landed —
+      `src/science-snake/types.ts` + `scienceQuestions.ts` +
+      `scienceQuestions.test.ts` (10 integrity tests, including a
+      standalone check that every `modelAnswer` would itself grade
+      correct against its own `requiredKeywords`, and that every `hint`
+      stops short of doing the same — same "content bug, not just a
+      nice-to-have" reasoning as `idioms.test.ts`'s own cross-checks).
+      Batch 2 (5 more: plant systems, material properties, water cycle,
+      heat conductors, light and shadows) landed the same way, merged
+      into the single `scienceQuestions` array (batch boundaries marked
+      inline, not separate exports) — 10 questions total now. Per your
+      "can the answer be more specific to why the shadow grew longer":
+      the light-and-shadows question's `requiredKeywords`/`hint`/
+      `modelAnswer` were revised to require the actual mechanism (the
+      sun sitting lower in the sky → a shallower light angle → a longer
+      shadow), not just "the sun's position changes." More batches
+      follow the same author-then-review-5-at-a-time flow before this
+      item is done. Foundational —
+      nothing else below is buildable/testable against real content
+      without it. Each question: `topic`, `icon` (doubles as the
+      snake-food sprite — 🍁🍂🍃 for plant parts/life cycles, 🔍🔎 for
+      scientific investigation, 🧪 for materials, 🧲 for magnets, 💧 for
+      water cycle, ☀️ for light/heat, plus 🧊/🦋 added as topics needed
+      them — the roster is content-driven, not fixed), `prompt`,
+      `requiredKeywords: string[][]` (OR-groups, every group must be
+      hit), `minWords`, `hint` (a Socratic nudge shown after try 1, not
+      the answer), `modelAnswer` (revealed word-chunked after try 2).
+      Short-answer only — per your "questions 1-3 are too generic... a
+      little more descriptive scenario" and "question 5 feels more
+      suited for MCQ, we only want short-answer questions here" (batch 1
+      review): every prompt needs a concrete little scenario (a named
+      child doing/observing something) that gives the child enough to
+      reason from, not a bare recall-the-fact or list-the-stages
+      question — a plain list-in-order question reads as MCQ-shaped even
+      without options, since there's nothing to actually reason about.
+      MCQ-format content is explicitly out of scope for this game, left
+      for later (per your "MCQ for another time").
+- [x] `done` — **Pure grading module (`answerGrading.ts` + tests,
+      2026-09-16).** `satisfiesRequiredKeywords` (case-insensitive, all
+      `requiredKeywords` OR-groups must have a match), `isMalformed`
+      (`minWords` floor plus a cheap "does this contain any
+      sentence-shaped function word at all" check — lenient, not a
+      grammar checker, so a P4 child isn't marked wrong for grammar they
+      haven't been taught), `gradeAnswer` (malformed checked before
+      keyword-matching, so a too-short answer is "malformed" even if it
+      happens to contain every keyword), and `resolveAttempt` (the
+      two-try flow itself: correct on either try, `retry` with the
+      verdict on a wrong try 1, `reveal` on a wrong try 2). 15 tests;
+      `scienceQuestions.test.ts` now imports this module's real
+      `gradeAnswer`/`satisfiesRequiredKeywords` instead of its own
+      duplicated copy, so content and grading logic can't quietly drift
+      apart. All green: typecheck, full unit suite (403 passed).
+- [x] `done` — **Hint + word-chunk reveal (`chunkWords.ts` + tests,
+      2026-09-16).** Per your "wrong once must give guidance... wrong
+      twice should reveal the correct answer maybe reveal three words at
+      a time... to enforce reading instead of skipping away":
+      `chunkWords(text, size = 3)` splits a sentence into 3-word groups
+      (last chunk may be shorter), and `revealedText`/`isFullyRevealed`/
+      `nextRevealedCount` give the overlay everything it needs to drive
+      a tap-by-tap reveal — `isFullyRevealed` is exactly what should gate
+      the "Continue" button into existing, so dismissing the reveal
+      requires having stepped through every chunk first. Pure math only;
+      the actual "Next →"/"Continue" tap handling belongs to the DOM
+      overlay item below, not built yet. 10 tests, all green alongside
+      the grading module above.
+- [x] `done` — **Snake grid/movement/growth core (`snakeGrid.ts` +
+      tests, 2026-09-16).** Grid (`GRID_WIDTH`/`GRID_HEIGHT`, 384 cells;
+      portrait 16×24 since the 2026-09-18 mobile-layout fix, originally
+      24×16) — big enough to sustain a 10-15 min session, small enough to
+      stay winnable. `TICK_MS = 180`. `createInitialSnake`/
+      `nextHeadPosition`/`changeDirection` (ignores a
+      direct reversal, the classic Snake rule) handle movement;
+      `step` advances one tick and returns `moved` /
+      `self-collision` (wall-collision doesn't exist — see the 2026-09-18
+      follow-up below, edges wrap instead) — self-collision (running into
+      your own body) is the classic Snake lose condition, made explicit
+      per the poison-apple follow-up, including the tail-vacates-this-
+      tick nuance (moving onto the current tail cell is fine when not
+      growing, a genuine collision when growth is owed that tick).
+      Growth: `applyAppleEaten` (+`APPLE_GROWTH`, or ×`POISON_GROWTH_
+      MULTIPLIER = 4` once `isPoisoned`), `applyCorrectAnswerEaten`
+      (always +`CORRECT_ANSWER_GROWTH = 4`, untouched by poison either
+      way), `applyPoisonAppleEaten` (owed-growth = current length, i.e.
+      roughly doubles as the snake keeps moving, plus flips `isPoisoned`
+      on permanently) — all via a shared owed-growth counter (the tail
+      isn't popped for that many future ticks) clamped so total length
+      can never exceed `TOTAL_CELLS`, not by teleporting segments onto
+      the board. `hasWon` checks length against `WIN_LENGTH` (`WIN_
+      LENGTH_RATIO = 0.7` of the grid, not literal 100% — see the
+      Win/Lose scenes item below for why). 32 tests, all green alongside
+      the grading/reveal modules above (typecheck + full unit suite,
+      423 passed). Starting numbers, tune after playtest — same as every
+      constant in this file.
+      **Follow-up (2026-09-18) per "can we skip the running into the
+      edge? Let's make it respawn at the opposite end":** wall-collision
+      is no longer a lose condition at all. `isOutOfBounds` is gone,
+      replaced by `wrapPosition` — reaching past an edge wraps the head
+      to the opposite one (Pac-Man style), handling a negative
+      coordinate correctly (`((n % size) + size) % size`, not plain
+      `%`, which returns negative for a negative input in JS). `step`
+      wraps the raw next position *before* running the self-collision
+      check, so wrapping onto your own body is still correctly a
+      self-collision, not a free pass — covered by its own test.
+      `MoveResult`/`LoseReason` shrink to just `moved`/`self-collision`
+      (`SnakeGameScene.ts`'s lose paths are now only self-collision and
+      suffocation). Re-verified live: let the snake run to the right
+      edge and past it — no lose card, snake head reappeared on the
+      left edge, tail still trailing on the right, zero console errors.
+      All green: typecheck, full unit suite (461 passed, up from 459),
+      production build.
+- [x] `done` — **Poison apples: 10% of apples, rainbow-colored,
+      double the snake's length and permanently 4x its apple-growth rate
+      (2026-09-16, revised from purple/one-shot-only per your follow-up).**
+      Corrected stale bookkeeping (2026-09-22): this had been left
+      `in-progress` waiting on the rainbow/"gooey" render treatment, but
+      that landed with the Phaser scene item below the same day (the
+      cycling-rainbow-palette-plus-wobble render, confirmed live) — all
+      three pieces (growth rule, spawn rule, render) are in and merged.
+      The growth-rule half is built and tested — `snakeGrid.ts`'s
+      `applyPoisonAppleEaten`/`applyAppleEaten` (see that item above) —
+      and so is the spawn-rule half: `itemSpawner.ts`'s `spawnApple`
+      rolls poison at `POISON_APPLE_CHANCE = 0.1` (see the item spawner
+      entry above). ~10% of spawned apples are poison
+      instead of normal — visually the
+      same apple sprite but rendered with a cycling rainbow palette
+      (`POISON_APPLE_PALETTE`) rather than a single recolor, so it reads
+      as distinctly "off" (same "recolor an existing thing for a
+      variant" pattern `IdiomDoorScene.scorchTile` already uses for its
+      wrong-catch tile, just an animated palette instead of a flat one).
+      Eating one does two things: (1) sets owed-growth to the snake's
+      *current* length, same instant-double mechanic as before — not an
+      on-the-spot append, it plays out via `snakeGrid.ts`'s owed-growth
+      counter as the snake keeps moving, since there's no valid board
+      position to instantly place that many segments into; and (2) sets
+      `isPoisoned = true` for the rest of the run, so every *normal*
+      apple eaten afterward grows the snake by `4×` instead of `1×`. Both
+      awards 0 points (tracked separately as `poisonApplesEaten`, not
+      counted toward the apple score). Confirmed (2026-09-16):
+      `isPoisoned` doesn't decay or wear off for the rest of the run,
+      and eating a second poison apple re-triggers the instant double
+      but doesn't stack the multiplier past 4x. This compounds the
+      original danger: doubling on the
+      spot *and* every subsequent apple now growing 4x as fast both
+      shrink the snake's own safe maneuvering room fast, making
+      self-collision (the explicit lose condition above) much more
+      likely soon after — "cause the game to end quickly" per your ask,
+      via a *different* lose path than `suffocation.ts`'s question-
+      pileup one, though it's also a genuine risk/reward: 4x growth also
+      races toward the 70% win threshold much faster for a player who
+      can keep dodging their own tail. Owed growth is clamped so total
+      length can't exceed `gridWidth * gridHeight` (defensive only — in
+      practice a snake forced that large runs out of safe cells and
+      self-collides well before hitting the literal cap).
+- [x] `done` — **Item spawner + suffocation predicate (`itemSpawner.ts`,
+      `suffocation.ts` + tests, 2026-09-16).** `seededRandom.ts`
+      (`createRng`, mulberry32) is a deliberate standalone copy of
+      `idiom-door`'s own — not imported cross-game, per the
+      "completely independent" resolution in `DECISIONS.md`.
+      `freeCells`/`pickRandomFreeCell` place items on any grid cell the
+      snake/other items don't already occupy; `spawnApple` rolls poison
+      at `POISON_APPLE_CHANCE = 0.1`; `pickNextItemType` keeps the
+      board's science:apple ratio near `SCIENCE_TO_APPLE_RATIO` (~1
+      science item per 3.5 apples) by direct ratio check on normal
+      spawns (apple eaten/question answered correctly → spawn a
+      replacement) — deliberately *not* used by
+      `spawnIndigestionItems`, which bypasses the ratio entirely to
+      place `INDIGESTION_SPAWN_COUNT = 3` replacement science items on a
+      wrong-twice, the intended risk spike. `pickNextQuestionId` avoids
+      putting the same question on the board twice at once, falling
+      back to allowing a repeat only once every question is already
+      active. Per your "should end early quickly if player fails, i.e.
+      pooped out half the screen": `suffocation.ts`'s `isSuffocating` is
+      a pure predicate over *unresolved science items specifically* (not
+      apples, not the snake's own body) — `SUFFOCATION_THRESHOLD_RATIO
+      = 0.5` of total cells triggers immediate game over, meant to be
+      checked every tick, independent of snake length/win progress. 27
+      tests (including a statistical check that the poison roll lands
+      within 5 points of its configured 10% over 2000 spawns). All
+      green: typecheck, full unit suite (450 passed, up from 423).
+- [x] `done` — **Scoring + high score persistence
+      (`scienceSnakeScore.ts` + tests, 2026-09-16).** `calculateScore`:
+      `apples*APPLE_POINTS(5) + questionsCorrect*CORRECT_ANSWER_POINTS(30)`.
+      `recordHighScoreIfBetter` is called only on a win (per your spec)
+      and only overwrites the stored record when this run's score
+      actually beats it. Direct-localStorage, try/catch-on-parse shape
+      — same as `shared/sessionHistory.ts` — under its own
+      `science-snake-high-score` key, not `idiom-door`'s; the
+      cloud-sync half of that pattern isn't wired up yet (still
+      localStorage-only), left for later polish. 11 tests.
+- [x] `done` — **Phaser scene + DOM question overlay
+      (`SnakeGameScene.ts`, `QuestionOverlay.ts`, 2026-09-16).** Thin
+      wiring only, same "pure-function-plus-thin-Scene" split every
+      mechanic here keeps — the Scene runs a `TICK_MS` timer calling
+      `snakeGrid.ts`'s `step`, pauses the instant the snake eats a
+      science item, hands control to `QuestionOverlay.ts`'s
+      `askQuestion` (plain DOM over the canvas, same pattern
+      `writingStage.ts` uses for text-heavy input — the two-try
+      ask/hint/reveal flow itself is just `answerGrading.ts`'s
+      `resolveAttempt` and `chunkWords.ts`'s reveal helpers wired to
+      button clicks), and resumes once it resolves. Once
+      `snakeGrid.ts`'s `isPoisoned` flips true, the snake's render
+      cycles through a rainbow palette with a small per-segment sine
+      wobble instead of its normal solid color — a persistent tell, not
+      a one-off flash. No external art assets, same as the rest of this
+      project — grid/snake drawn with Phaser Graphics, items rendered as
+      their own emoji via Phaser Text.
+      **Verified with a real headless-browser playthrough** (Playwright
+      against a `vite dev` build, not just unit tests): built and
+      steered the snake live, confirmed apples/poison-apple/science-item
+      rendering, wall-collision game-over with correct stats, and the
+      full question flow end-to-end — wrong answer 1 → hint appears,
+      wrong answer 2 → word-chunk reveal (stepped through via "Next →",
+      "Continue" only appearing once fully revealed) → indigestion
+      correctly spawned 3 replacement science items on the board. Zero
+      console errors throughout. All green: typecheck, full unit suite
+      (459 passed), production `npm run build`.
+      **Follow-up (2026-09-16) per "the snake is missing a head and a
+      tail, able to make it obvious":** the head is now a distinct
+      slightly-larger rounded square with two small white eyes that
+      reorient to face whichever direction the snake is currently
+      travelling (`DIRECTION_FORWARD`/`DIRECTION_SIDE`); the last
+      `TAIL_TAPER_SEGMENTS = 3` segments shrink progressively toward the
+      actual tail tip and get a couple of thin light ring stripes across
+      them (skipped while poisoned, since the cycling rainbow fill is
+      already that state's own tell) — evokes a real snake's tapered,
+      banded tail rather than a uniform row of identical squares.
+      Rendering-only change, re-verified live (zoomed screenshot of the
+      snake with the dev server running).
+      **Follow-up (2026-09-18) per "can this be mobile friendly too?
+      Let's allow the child to tap to turn":** `#dpad`
+      (`science-snake.html`) — 4 always-visible tap buttons in a cross
+      layout, bottom-center, `.dpad-btn`'s `touch-action: none` and
+      generous 3.4rem tap targets sized for a child's finger. Wired the
+      same "DOM button calls a public method on the live scene
+      instance" pattern `idiom-door`'s own `#jump-btn`/`requestJump`
+      already uses — `SnakeGameScene.requestDirection` is the new
+      public entry point, `main.ts` wires each button's `pointerdown`
+      to it. Sits below the card-layer overlays' `z-index`, so tapping it
+      while a card/the question overlay is open is *visually* blocked
+      (though see the 2026-09-18 correct-answer-collision follow-up
+      below — that turned out not to be the whole story; the keyboard
+      path had no such protection at all). Verified with real touch taps
+      in a headless browser against an iPhone 13 viewport/device
+      profile (Playwright's `hasTouch: true` context, `page.tap`): the
+      snake's on-screen position visibly changed direction after
+      tapping the down button. All green: typecheck, full unit suite
+      (459 passed), production build.
+      **Follow-up 2 (2026-09-18) per "I still cannot play on mobile":**
+      the D-pad addition alone didn't fix the real problem. Two actual
+      bugs, found by measuring real layout geometry (not just eyeballing
+      screenshots) against two device profiles (iPhone 13, Pixel 5):
+      (1) `#game-container` was *both* CSS flex-centered *and* handed to
+      Phaser's own `Scale.FIT` + `autoCenter: CENTER_BOTH` — two
+      systems fighting over the same canvas's size/position, the kind
+      of bug that "happens to render" in one browser/viewport and not
+      another. Fixed by giving up the CSS-side centering entirely: a
+      `#play-area` flex column now holds `#game-container` (`flex: 1 1
+      auto`) and a `#dpad-bar` (`flex: 0 0 auto`) as plain siblings —
+      Phaser owns 100% of the canvas's own sizing/centering, the DOM
+      layout just reserves distinct space for each so they can never
+      overlap by construction (confirmed via `getBoundingClientRect()`:
+      the D-pad's top edge lands exactly at the canvas's bottom edge on
+      both profiles, 0px overlap). (2) The grid itself
+      (`snakeGrid.ts`'s `GRID_WIDTH`/`GRID_HEIGHT`) was landscape
+      (24×16) — Phaser's `FIT` scale is capped by whichever screen
+      dimension is tighter, and a phone's *width* is always the tight
+      one, so a landscape board rendered as a small strip (~260px tall
+      out of an ~840px-tall phone screen — technically functional, but
+      tiny enough to plausibly read as "can't play"). Swapped to
+      portrait (16×24, same 384 total cells, same win-threshold math) —
+      the canvas now fills ~470-535px of vertical space on the two
+      profiles tested, a ~2x improvement. All existing tests already
+      referenced `GRID_WIDTH`/`GRID_HEIGHT` symbolically rather than
+      hardcoding 24/16, so the swap needed no test changes. Re-verified
+      live on both device profiles: canvas fill, zero geometry overlap,
+      and a real touch tap still visibly turning the snake. All green:
+      typecheck, full unit suite (459 passed), production build.
+      **Follow-up 3 (2026-09-18) per "after every correct answer, the
+      game ends with 'the snake ran into itself'":** a real, deterministic
+      bug, root-caused rather than guessed — Phaser's keyboard manager
+      listens on the whole window, not scoped to canvas focus, so every
+      keystroke typed into `#question-input` that happened to match a
+      WASD/arrow key was silently changing `this.snake.direction`
+      *while the question overlay was open and the game paused*. Since
+      a real sentence answer (required to pass the malformed-answer
+      check) is essentially guaranteed to contain "a"/"s"/"d" somewhere,
+      this fired on close to every answer, correct or not — by the time
+      the game resumed, direction was whatever letter was typed last,
+      effectively random, and very likely to immediately clip the
+      snake's own body. `SnakeGameScene.requestDirection` (both the
+      keyboard and D-pad path route through it) now ignores calls
+      entirely while `paused`/`ended`, fixed at the single call site
+      both input paths share rather than trusting the D-pad's own
+      z-index blocking (which was never the actual protection here).
+      Root-caused via code reading (not guessed), then verified live
+      rather than trusting the theory alone: placed a science item
+      directly in the snake's path via a temporary test-only hook,
+      answered correctly with *real* character-by-character key events
+      (`pressSequentially`, not `page.fill`, which wouldn't exercise the
+      bug at all since it never dispatches keydown) for a genuine
+      model-answer sentence loaded with "a"/"s"/"d", confirmed the fixed
+      code survives it (no lose card, overlay closes cleanly), and
+      separately confirmed normal keyboard steering still works outside
+      the paused window. All green: typecheck, full unit suite (461 passed),
+      production build.
+- [x] `done` — **Win/Lose scenes + visuals (2026-09-16).** Win triggers
+      at `WIN_LENGTH_RATIO = 0.7` of grid cells (~270 segments, not
+      literal 100% — a free-moving snake can't realistically occupy
+      every last cell without a Hamiltonian-path route, so 100% would
+      make the win nearly unreachable; at 70% the board reads as
+      visually full), and both win/lose show a card with the run's
+      stats plus a working "Play again" (`main.ts`).
+      Suffocation's death image (`playSuffocationDeath`): first attempt
+      geometrically flipped the snake upside down (`scaleY = -1` around
+      its own center) — turned out to be a dead end, verified live: a
+      snake drawn as a straight row of symmetric rounded squares is
+      pixel-identical when mirrored around its own center, so the flip
+      was invisible in the actual common case (a straight horizontal or
+      vertical stretch, not a curve). Replaced with a cue that's
+      unambiguous regardless of shape: every segment switches to a pale
+      `BELLY_COLOR` (the "rolled onto its back" tell) and the head's
+      eyes become a cartoon "X X" (`DEAD_EYE_COLOR`), plus
+      `SMOKE_PUFF_COUNT = 8` grey circles tweened rising/fading off the
+      snake's center — a short `SUFFOCATION_DEATH_DURATION_MS = 1100`
+      beat before the lose card shows, not a lingering animation, per
+      your separate "should end early quickly" ask for this specific
+      lose path.
+      Two real bugs found and fixed while verifying this live (a
+      temporarily-lowered `SUFFOCATION_THRESHOLD_RATIO` plus a
+      temporary `window`-exposed scene handle, both reverted after —
+      neither shipped): (1) `tick()`'s own trailing `render()` call ran
+      *after* `handleHeadPosition()` could already trigger
+      `playSuffocationDeath`, silently overwriting the just-drawn dead
+      frame with a normal alive redraw before it was ever visible — now
+      guarded by `if (this.ended) return`. (2) `isSuffocating` was only
+      ever checked at the instant something was eaten
+      (`checkOutcome`, called from inside the eating branches) — a
+      board that piled up past the threshold while the snake was simply
+      wandering having eaten nothing that tick would never actually
+      have been checked at all; now also checked every tick
+      unconditionally. Re-verified live after both fixes (forced a
+      crowded board via a temporary test-only hook): pale/cream snake
+      with black X eyes and rising smoke, confirmed correct. All green:
+      typecheck, full unit suite (459 passed), production build.
+- [x] `done` — **Entry point: `science-snake.html`, fully independent
+      of `idiom-door` (resolved 2026-09-16, see `DECISIONS.md`).** Its
+      own page/URL, no picker, no shared nav, no relation to
+      `idiom-door.html` beyond living in the same repo/deploy —
+      `vite.config.ts`'s build input list has its own `scienceSnake`
+      entry alongside `idiomDoor`. `index.html`
+      is untouched.
+- [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
+      `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
+      full suffocation-loss playthrough (repeated wrong answers piling up
+      poop), and specifically a test asserting the reveal overlay's
+      "Continue" is genuinely gated behind stepping through every
+      chunk (not just present from the start) — that gating is the actual
+      point of the mechanic, not incidental UI.
+
 ## Platform / infra
 
 - [x] `done` — Live Vercel deployment (2026-08-25). `vercel.json`
