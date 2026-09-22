@@ -23,6 +23,20 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-22 — Science Snake (PR #51) merged into `main`.** You
+  confirmed the Vercel preview playtest passed ("Ok tested ok"), then
+  explicitly confirmed the merge itself when asked ("Yes, merge it") —
+  merging goes straight to `main`, which Vercel deploys live, so that
+  confirmation was sought before acting, per `AUTONOMY.md`'s "a
+  session's own PR needs an explicit ask before merging" rule.
+  Re-verified immediately before merging: `mergeable_state: "clean"`,
+  head unchanged at `39c913a`, base unchanged at `42957dc1` (no new
+  commits landed on `main` in the few days since the last confirmed-green
+  check), both CI checks (`test`, `Vercel Preview Comments`) still
+  green. Merged via a real merge commit (`f226609`), not squash/rebase,
+  matching this repo's own merge-commit convention for its automated
+  daily-cycle PRs. Unsubscribed from PR #51's activity afterward — see
+  `BACKLOG.md`'s "Science Snake Game" section for the landed state.
 - **2026-09-20 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. `BACKLOG.md`'s only open `todo`
   item is the standing example-sentence-review track, and it's fully

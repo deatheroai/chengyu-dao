@@ -1305,16 +1305,15 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       confirm they held rather than happened to pass by chance, given
       how timing-sensitive this exact area of the suite already was.
 
-## Science Snake Game (new, 2026-09-16)
+## Science Snake Game (new, 2026-09-16; merged to `main` 2026-09-22)
 
 A second, standalone game — a P4-syllabus (Singapore MOE) science quiz
 wrapped in a snake game, not a mode inside `idiom-door`. Design settled by
-conversation on 2026-09-16 (not yet built); items below are ordered
-build-priority, pure-logic-first same as every other mechanic in this repo,
-each meant to land with its own tests before the next depends on it.
-Blocked overall on the site-entry-point Pending Decision in `DECISIONS.md`
-for *shipping*, but not for building — same "keep building other unblocked
-items" rule `AUTONOMY.md` gives for any blocked entry.
+conversation on 2026-09-16; built across PR #51
+(`claude/educational-snake-game-kd6anh`), human-playtested on its Vercel
+preview and confirmed working, then merged into `main` on 2026-09-22
+(`f226609`) — live at `/science-snake.html`. Items below are ordered
+build-priority, pure-logic-first same as every other mechanic in this repo.
 
 - [ ] `in-progress` — **Content bank: P4 Science question set
       (`src/science-snake/scienceQuestions.ts`), authored + reviewed in
@@ -1430,16 +1429,19 @@ items" rule `AUTONOMY.md` gives for any blocked entry.
       left edge, tail still trailing on the right, zero console errors.
       All green: typecheck, full unit suite (461 passed, up from 459),
       production build.
-- [ ] `in-progress` — **Poison apples: 10% of apples, rainbow-colored,
+- [x] `done` — **Poison apples: 10% of apples, rainbow-colored,
       double the snake's length and permanently 4x its apple-growth rate
       (2026-09-16, revised from purple/one-shot-only per your follow-up).**
-      The growth-rule half is now built and tested — `snakeGrid.ts`'s
+      Corrected stale bookkeeping (2026-09-22): this had been left
+      `in-progress` waiting on the rainbow/"gooey" render treatment, but
+      that landed with the Phaser scene item below the same day (the
+      cycling-rainbow-palette-plus-wobble render, confirmed live) — all
+      three pieces (growth rule, spawn rule, render) are in and merged.
+      The growth-rule half is built and tested — `snakeGrid.ts`'s
       `applyPoisonAppleEaten`/`applyAppleEaten` (see that item above) —
       and so is the spawn-rule half: `itemSpawner.ts`'s `spawnApple`
       rolls poison at `POISON_APPLE_CHANCE = 0.1` (see the item spawner
-      entry above). Still open: the rainbow/"gooey" render treatment
-      (Phaser scene item below) — this stays in-progress until that
-      lands too. ~10% of spawned apples are poison
+      entry above). ~10% of spawned apples are poison
       instead of normal — visually the
       same apple sprite but rendered with a cycling rainbow palette
       (`POISON_APPLE_PALETTE`) rather than a single recolor, so it reads
