@@ -1516,13 +1516,15 @@ other mechanic in this repo.
 - [x] `done` — **Scoring + high score persistence
       (`scienceSnakeScore.ts` + tests, 2026-09-16).** `calculateScore`:
       `apples*APPLE_POINTS(5) + questionsCorrect*CORRECT_ANSWER_POINTS(30)`.
-      `recordHighScoreIfBetter` is called only on a win (per your spec)
-      and only overwrites the stored record when this run's score
-      actually beats it. Direct-localStorage, try/catch-on-parse shape
-      — same as `shared/sessionHistory.ts` — under its own
-      `science-snake-high-score` key, not `idiom-door`'s; the
-      cloud-sync half of that pattern isn't wired up yet (still
-      localStorage-only), left for later polish. 11 tests.
+      Direct-localStorage, try/catch-on-parse shape — same as
+      `shared/sessionHistory.ts` — under its own `science-snake-high-score`
+      key, not `idiom-door`'s. 11 tests.
+      **Superseded (2026-09-23)** by the round-over-round scoring entry
+      below: `recordHighScoreIfBetter` (win-only) no longer exists,
+      replaced by `recordRun` (every completed run, win or lose). The
+      cloud-sync half of the `shared/sessionHistory.ts` pattern still
+      isn't wired up (still localStorage-only) — see the dedicated `todo`
+      item for that, below.
 - [x] `done` — **Phaser scene + DOM question overlay
       (`SnakeGameScene.ts`, `QuestionOverlay.ts`, 2026-09-16).** Thin
       wiring only, same "pure-function-plus-thin-Scene" split every
@@ -1730,6 +1732,16 @@ other mechanic in this repo.
       "Continue" is genuinely gated behind stepping through every
       chunk (not just present from the start) — that gating is the actual
       point of the mechanic, not incidental UI.
+- [ ] `todo` — **Cloud-sync for the high score / last-run record
+      (`scienceSnakeScore.ts`).** Currently localStorage-only — a
+      device-typed 8-character code, same no-accounts model
+      `idiom-door`'s own cloud save already uses (`shared/cloudSync.ts`,
+      `shared/cloudSaveValidation.ts`, `api/cloud-save.ts`'s Upstash Redis
+      backend), so scores follow the child between devices instead of
+      resetting on a new one. Reuse that existing backend/API rather than
+      standing up a second one — `science-snake-high-score`/
+      `science-snake-last-run` are their own storage keys already, so
+      this is wiring, not new infra.
 
 ## Platform / infra
 
