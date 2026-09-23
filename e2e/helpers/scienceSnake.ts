@@ -143,7 +143,13 @@ export async function answerCurrentQuestionWrongTwiceAndContinue(page: Page): Pr
   }
   await expect(continueBtn).not.toHaveClass(/hidden/);
   await continueBtn.click();
-  await expect(page.locator("#question-overlay")).not.toHaveClass(/visible/);
+  // Deliberately not asserting the overlay closes here: resuming can
+  // immediately land the head on a *different* already-active science
+  // item (a real, valid game event on a crowded board, not a bug),
+  // reopening the overlay for a fresh question before this ever observes
+  // a "closed" moment — found live in the suffocation drive below, which
+  // calls this dozens of times as the board fills up. Whichever happens,
+  // the caller's own next isQuestionOverlayVisible check handles it.
 }
 
 // ---------------------------------------------------------------------
@@ -165,6 +171,12 @@ interface Waypoint {
   x: number;
   y: number;
   direction: Direction;
+  /** The direction the snake is travelling in *while approaching* this waypoint (i.e. the previous waypoint's own `direction`) — see `reachedOrPassed` below for why this matters. */
+  approach: Direction;
+}
+
+function waypoint(x: number, y: number, direction: Direction, approach: Direction): Waypoint {
+  return { x, y, direction, approach };
 }
 
 /**
@@ -179,38 +191,75 @@ function buildFullBoardPlan(width: number, height: number): { prefix: Waypoint[]
   const startX = Math.floor(width / 2);
   const startY = Math.floor(height / 2);
   const prefix: Waypoint[] = [
-    { x: startX, y: startY, direction: "up" },
-    { x: startX, y: 0, direction: "left" },
-    { x: 0, y: 0, direction: "down" },
+    waypoint(startX, startY, "up", "right"),
+    waypoint(startX, 0, "left", "up"),
+    waypoint(0, 0, "down", "left"),
   ];
 
-  const cycle: Waypoint[] = [{ x: 0, y: height - 1, direction: "right" }];
+  const cycle: Waypoint[] = [waypoint(0, height - 1, "right", "down")];
   for (let col = 1; col <= width - 1; col++) {
     const isLast = col === width - 1;
     const goingUp = col % 2 === 1;
+    const prevDirection = cycle[cycle.length - 1].direction;
     if (goingUp) {
       if (isLast) {
-        cycle.push({ x: col, y: height - 1, direction: "up" });
-        cycle.push({ x: col, y: 0, direction: "left" });
+        cycle.push(waypoint(col, height - 1, "up", prevDirection));
+        cycle.push(waypoint(col, 0, "left", "up"));
       } else {
-        cycle.push({ x: col, y: height - 1, direction: "up" });
-        cycle.push({ x: col, y: 1, direction: "right" });
+        cycle.push(waypoint(col, height - 1, "up", prevDirection));
+        cycle.push(waypoint(col, 1, "right", "up"));
       }
     } else {
-      cycle.push({ x: col, y: 1, direction: "down" });
-      cycle.push({ x: col, y: height - 1, direction: "right" });
+      cycle.push(waypoint(col, 1, "down", prevDirection));
+      cycle.push(waypoint(col, height - 1, "right", "down"));
     }
   }
-  cycle.push({ x: 0, y: 0, direction: "down" });
+  cycle.push(waypoint(0, 0, "down", cycle[cycle.length - 1].direction));
   return { prefix, cycle };
+}
+
+/**
+ * Whether the head has reached *or already passed* `wp`, given it's been
+ * travelling in `wp.approach` to get there. Exact equality alone isn't
+ * safe here: found live that a slow poll cycle (headless Chromium under
+ * load) can occasionally miss a waypoint's exact one-tick dwell window
+ * entirely, and once missed the snake keeps going straight past it,
+ * eventually wrapping around into a cell its own recent tail still
+ * occupies — a real, reproduced self-collision, not a theoretical one.
+ * Tolerating "passed" (checked on the very next poll instead of exactly
+ * on arrival) costs at most a few cells of the same already-safe
+ * straight segment, never a wrong turn.
+ */
+function reachedOrPassed(head: Position, wp: Waypoint): boolean {
+  switch (wp.approach) {
+    case "up":
+      return head.x === wp.x && head.y <= wp.y;
+    case "down":
+      return head.x === wp.x && head.y >= wp.y;
+    case "left":
+      return head.y === wp.y && head.x <= wp.x;
+    case "right":
+      return head.y === wp.y && head.x >= wp.x;
+  }
+}
+
+/** Single round-trip per poll (win-card, overlay, head position all at once) rather than several sequential ones — cuts real per-poll latency enough to reliably catch each waypoint's one-tick dwell window. */
+async function readSweepStatus(page: Page): Promise<{ winVisible: boolean; overlayVisible: boolean; head: Position }> {
+  return page.evaluate(() => {
+    const winVisible = document.getElementById("win-card")?.classList.contains("visible") ?? false;
+    const overlayVisible = document.getElementById("question-overlay")?.classList.contains("visible") ?? false;
+    const status = document.getElementById("snake-status");
+    const head = { x: Number(status?.getAttribute("data-head-x")), y: Number(status?.getAttribute("data-head-y")) };
+    return { winVisible, overlayVisible, head };
+  });
 }
 
 /**
  * Steers along `buildFullBoardPlan`'s cycle (looping it as many times as
  * it takes), answering every science item correctly, until the win card
  * appears. Polls the live head position frequently relative to
- * `TICK_MS` (180ms) so it reliably catches each waypoint during that
- * cell's one-tick dwell before the snake moves past it.
+ * `TICK_MS` (180ms) so it reliably catches each waypoint at or shortly
+ * after arrival, before the snake gets far past it.
  */
 export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000): Promise<void> {
   const { prefix, cycle } = buildFullBoardPlan(GRID_WIDTH, GRID_HEIGHT);
@@ -218,19 +267,19 @@ export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000)
 
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
-    if (await isCardVisible(page, "win-card")) return;
-    if (await isQuestionOverlayVisible(page)) {
+    const { winVisible, overlayVisible, head } = await readSweepStatus(page);
+    if (winVisible) return;
+    if (overlayVisible) {
       await answerCurrentQuestionCorrectly(page);
       continue;
     }
-    const { head } = await readSnakeStatus(page);
     const next = queue[0];
-    if (head.x === next.x && head.y === next.y) {
+    if (reachedOrPassed(head, next)) {
       await pressDirection(page, next.direction);
       queue.shift();
       if (queue.length === 0) queue = [...cycle];
     }
-    await page.waitForTimeout(30);
+    await page.waitForTimeout(20);
   }
   throw new Error("sweepFullBoardUntilWin timed out");
 }
