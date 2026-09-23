@@ -23,6 +23,19 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-23 — Science Snake round-over-round scoring (PR #58) merged
+  into `main`.** You asked to continue building the game with "a scoring
+  system so the player knows if he has improved each round"; built it,
+  then you said "let me test it first" — opened PR #58 (off the same
+  branch, restarted from `main` per this file's 2026-09-22 entry since
+  PR #51 had already merged) to get a Vercel preview and CI. You
+  playtested the preview ("I think it looks ok to me"), then explicitly
+  confirmed the merge when asked ("Yes, merge it") — same
+  confirm-before-merging-to-`main` rule as PR #51. Re-verified immediately
+  before merging: `mergeable_state: "clean"`, head unchanged at
+  `1e6764d`, CI (`test`) green. Merged via a real merge commit
+  (`9f88008`). Unsubscribed from PR #58's activity afterward — see
+  `BACKLOG.md`'s "Science Snake Game" section for the landed state.
 - **2026-09-21 — Daily cycle: landed PR #44, closing the standing
   example-sentence-review track's last gap (original 15-idiom pool).**
   Pending Decisions was empty. Same three open PRs as the last several

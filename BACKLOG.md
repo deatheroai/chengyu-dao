@@ -1318,15 +1318,17 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       confirm they held rather than happened to pass by chance, given
       how timing-sensitive this exact area of the suite already was.
 
-## Science Snake Game (new, 2026-09-16; merged to `main` 2026-09-22)
+## Science Snake Game (new, 2026-09-16; merged to `main` 2026-09-22, 2026-09-23)
 
 A second, standalone game — a P4-syllabus (Singapore MOE) science quiz
 wrapped in a snake game, not a mode inside `idiom-door`. Design settled by
 conversation on 2026-09-16; built across PR #51
 (`claude/educational-snake-game-kd6anh`), human-playtested on its Vercel
 preview and confirmed working, then merged into `main` on 2026-09-22
-(`f226609`) — live at `/science-snake.html`. Items below are ordered
-build-priority, pure-logic-first same as every other mechanic in this repo.
+(`f226609`) — live at `/science-snake.html`. Round-over-round scoring
+followed via PR #58 on the same branch, merged 2026-09-23 (`9f88008`).
+Items below are ordered build-priority, pure-logic-first same as every
+other mechanic in this repo.
 
 - [ ] `in-progress` — **Content bank: P4 Science question set
       (`src/science-snake/scienceQuestions.ts`), authored + reviewed in
