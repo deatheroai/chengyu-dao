@@ -18,8 +18,23 @@ import type { ScienceQuestion } from "./types";
  * text itself would also count as a well-formed sentence.
  */
 export function satisfiesRequiredKeywords(answer: string, requiredKeywords: string[][]): boolean {
-  const lower = answer.toLowerCase();
-  return requiredKeywords.every((group) => group.some((keyword) => lower.includes(keyword.toLowerCase())));
+  const normalized = normalizeForMatching(answer);
+  return requiredKeywords.every((group) => group.some((keyword) => normalized.includes(normalizeForMatching(keyword))));
+}
+
+/**
+ * Lowercases, treats hyphens as spaces ("water resistant" must match a
+ * "water-resistant" keyword and vice versa), turns phone keyboards'
+ * curly apostrophes into straight ones ("doesn’t" vs "doesn't"), and
+ * collapses runs of whitespace — applied to both sides so keyword
+ * authors don't have to list every spelling variant by hand.
+ */
+function normalizeForMatching(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ");
 }
 
 /**
