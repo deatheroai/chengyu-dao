@@ -11,12 +11,15 @@ const VALID_TOPICS = new Set([
   "materials",
   "water-cycle",
   "light-and-shadows",
+  "human-digestive-system",
+  "fungi",
+  "heat",
 ]);
 const REQUIRED_TEXT_FIELDS = ["icon", "prompt", "hint", "modelAnswer", "sourceNotes"] as const;
 
 describe("science-snake question content integrity", () => {
-  it("has at least the batch 1+2 count, growing in batches of 5", () => {
-    expect(scienceQuestions.length).toBeGreaterThanOrEqual(10);
+  it("has at least the batch 1-3 count, growing in batches of 5", () => {
+    expect(scienceQuestions.length).toBeGreaterThanOrEqual(15);
   });
 
   it("every question's id matches its registry key", () => {

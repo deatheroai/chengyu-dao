@@ -10,7 +10,7 @@ import type { ScienceQuestion } from "./types";
  * revised to a concrete scenario per question before approval, and its
  * original question 5 ("list the butterfly life cycle's 4 stages in
  * order") was replaced entirely for reading as MCQ-shaped rather than
- * short-answer. Batch 2 boundary is marked inline below.
+ * short-answer. Batch 2 and 3 boundaries are marked inline below.
  */
 export const scienceQuestions: ScienceQuestion[] = [
   // --- Batch 1 ---
@@ -172,6 +172,91 @@ export const scienceQuestions: ScienceQuestion[] = [
       "Mei's brother is wrong — the sun doesn't change size. In the late afternoon the sun is much lower in the sky, closer to the horizon, so its light hits Mei at a shallower angle. That shallower angle stretches her shadow out and makes it much longer, unlike at noon when the sun is high overhead and her shadow is short.",
     sourceNotes:
       "Light and shadows — shadow length changes with the sun's angle in the sky (a lower sun casts a longer shadow via a shallower light angle), not its size — standard P3/P4 Light theme content, reinforced at P4. Revised 2026-09-16 per feedback to require the actual mechanism (why longer specifically), not just 'the sun's position changes.'",
+  },
+  // --- Batch 3: drafted 2026-09-23, pending chat review. Topics kept to
+  // the P3/P4 (Lower Block) syllabus — electrical circuits, cells and
+  // forces were considered and dropped as P5/P6 content. ---
+  {
+    id: "priyas-grandpa-digestion",
+    topic: "human-digestive-system",
+    icon: "🍚",
+    prompt:
+      "Priya's grandfather says that once food reaches the stomach, digestion is finished and the food goes straight into the blood from there. Explain why her grandfather is not quite right.",
+    requiredKeywords: [
+      ["small intestine"],
+      ["absorb", "absorbed", "absorbs", "absorption", "into the blood", "bloodstream"],
+    ],
+    minWords: 10,
+    hint: "The stomach only does part of the job. Which long, coiled tube does the food go into after the stomach, and what happens to the digested food while it is there?",
+    modelAnswer:
+      "Grandpa is not quite right, because the stomach only digests part of the food. Digestion is completed in the small intestine, where the digested food is absorbed into the blood.",
+    sourceNotes:
+      "Human digestive system — digestion completed in the small intestine, where digested food is absorbed into the bloodstream (not the stomach) — standard P3/P4 Systems theme content.",
+  },
+  {
+    id: "hannahs-mouldy-bread",
+    topic: "fungi",
+    icon: "🍄",
+    prompt:
+      "Hannah left a slice of bread in the cupboard beside the steamy rice cooker. A week later, the bread was covered in fuzzy green patches. Her brother says the bread itself grew the patches. Explain what the patches really are and why they grew so well there.",
+    requiredKeywords: [
+      ["mould", "mold", "fungus", "fungi"],
+      ["warm", "damp", "moist", "wet", "water", "feed", "feeds", "fed", "nutrients"],
+    ],
+    minWords: 10,
+    hint: "The bread isn't alive — but something tiny landed on it and started living there. Which group of living things, neither plant nor animal, grows on old bread? And what was it like beside the steamy rice cooker?",
+    modelAnswer:
+      "The green patches are mould, which is a type of fungus. The mould grew well because the cupboard was warm and damp, and it fed on the bread.",
+    sourceNotes:
+      "Diversity of living things — fungi (mould) as a living group distinct from plants/animals, growing on food in warm, damp conditions — standard P3/P4 Diversity theme content.",
+  },
+  {
+    id: "daniels-stuck-jar-lid",
+    topic: "heat",
+    icon: "🫙",
+    prompt:
+      "Daniel's mum cannot open a jar of jam because the metal lid is stuck tight. She runs the lid under hot water for a minute, and then it twists open easily. Explain why the hot water helped her open the jar.",
+    requiredKeywords: [
+      ["expand", "expands", "expanded", "expanding", "expansion"],
+      ["heat", "hot water", "warm", "hotter"],
+    ],
+    minWords: 10,
+    hint: "Think about what happens to the size of a metal object when its temperature goes up. Would a slightly bigger lid grip the jar more tightly, or less tightly?",
+    modelAnswer:
+      "The metal lid gained heat from the hot water, so it expanded and became slightly bigger. This loosened the lid, so it could twist open easily.",
+    sourceNotes: "Heat — effects of heat gain: metals expand when heated (and contract when cooled) — standard P4 Energy theme content.",
+  },
+  {
+    id: "ethans-dry-tissue",
+    topic: "states-of-matter",
+    icon: "🥤",
+    prompt:
+      "Ethan stuffs a dry tissue into the bottom of an empty cup. He turns the cup upside down and pushes it straight down into a basin of water. When he lifts it out, the tissue is still dry. Explain why the water did not wet the tissue.",
+    requiredKeywords: [
+      ["air"],
+      ["space", "room", "trapped", "kept the water out", "keeps the water out", "pushed the water", "pushes the water"],
+    ],
+    minWords: 10,
+    hint: "The cup looks empty, but is it really? Think about what was already inside the cup before it went into the water, and whether water can move into a spot that is already filled.",
+    modelAnswer:
+      "The cup was not really empty. It was full of air, and air takes up space, so the water could not get into the cup to wet the tissue.",
+    sourceNotes: "Matter — gases (air) have mass and occupy space — standard P3/P4 Cycles/Matter theme content.",
+  },
+  {
+    id: "zaras-dark-bedroom",
+    topic: "light-and-shadows",
+    icon: "💡",
+    prompt:
+      "Zara wakes up at night and wants to find her storybook on her desk. The room is completely dark, and even with her eyes wide open she cannot see the book. When she switches on her lamp, she can see it clearly. Explain why she can only see the book once the lamp is on.",
+    requiredKeywords: [
+      ["light"],
+      ["reflect", "reflects", "reflected", "reflecting", "bounce", "bounces", "bounced"],
+    ],
+    minWords: 10,
+    hint: "Zara's eyes are working fine, so something has to travel from the lamp to the book, and then from the book into her eyes. What does the lamp give out, and what does the book do with it?",
+    modelAnswer:
+      "Light from the lamp shines on the book, and the book reflects the light into Zara's eyes, so she can see it. In the dark, there is no light for the book to reflect.",
+    sourceNotes: "Light — we see non-luminous objects when light from a source is reflected off them into our eyes — standard P3/P4 Energy (Light) theme content.",
   },
 ];
 
