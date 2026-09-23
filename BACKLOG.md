@@ -1351,8 +1351,10 @@ other mechanic in this repo.
       sun sitting lower in the sky → a shallower light angle → a longer
       shadow), not just "the sun's position changes." Batch 3 (5 more,
       2026-09-23: human digestive system, fungi/mould, heat expansion,
-      air takes up space, seeing by reflected light) is drafted and
-      committed but **pending chat review** — kept to P3/P4 Lower Block
+      air takes up space, seeing by reflected light) landed the same way
+      after review — the air question's scenario was changed from a
+      tissue staying dry in an upturned cup (hard to picture actually
+      working) to a bath-time bottle releasing bubbles. Kept to P3/P4 Lower Block
       topics (electrical circuits, cells and forces dropped as P5/P6),
       adding `human-digestive-system`/`fungi`/`heat` topics. More batches
       follow the same author-then-review-5-at-a-time flow before this

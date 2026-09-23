@@ -184,7 +184,7 @@ export const scienceQuestions: ScienceQuestion[] = [
     sourceNotes:
       "Light and shadows — shadow length changes with the sun's angle in the sky (a lower sun casts a longer shadow via a shallower light angle), not its size — standard P3/P4 Light theme content, reinforced at P4. Revised 2026-09-16 per feedback to require the actual mechanism (why longer specifically), not just 'the sun's position changes.'",
   },
-  // --- Batch 3: drafted 2026-09-23, pending chat review. Topics kept to
+  // --- Batch 3: authored and approved on chat review 2026-09-23. Topics kept to
   // the P3/P4 (Lower Block) syllabus — electrical circuits, cells and
   // forces were considered and dropped as P5/P6 content. ---
   {
@@ -238,20 +238,42 @@ export const scienceQuestions: ScienceQuestion[] = [
     sourceNotes: "Heat — effects of heat gain: metals expand when heated (and contract when cooled) — standard P4 Energy theme content.",
   },
   {
-    id: "ethans-dry-tissue",
+    id: "ethans-bubbling-bottle",
     topic: "states-of-matter",
-    icon: "🥤",
+    icon: "🫧",
     prompt:
-      "Ethan stuffs a dry tissue into the bottom of an empty cup. He turns the cup upside down and pushes it straight down into a basin of water. When he lifts it out, the tissue is still dry. Explain why the water did not wet the tissue.",
+      "At bath time, Ethan pushes an empty plastic bottle straight down into the water, mouth first. Hardly any water goes into the bottle. When he tilts the bottle to one side, big bubbles rush out and water quickly flows in. Explain why water could only flow into the bottle after he tilted it.",
     requiredKeywords: [
       ["air"],
-      ["space", "room", "trapped", "kept the water out", "keeps the water out", "pushed the water", "pushes the water"],
+      [
+        "space",
+        "room",
+        "trapped",
+        "escape",
+        "escaped",
+        "escapes",
+        "came out",
+        "comes out",
+        "come out",
+        "coming out",
+        "get out",
+        "got out",
+        "bubbled out",
+        "leave the bottle",
+        "left the bottle",
+        "let out",
+        "kept the water out",
+        "keeps the water out",
+        "pushed the water",
+        "pushes the water",
+      ],
     ],
-    minWords: 10,
-    hint: "The cup looks empty, but is it really? Think about what was already inside the cup before it went into the water, and whether water can move into a spot that is already filled.",
+    minWords: 12,
+    hint: "The bottle looks empty, but is it really? Think about what was already filling the bottle before it went into the water — and what those big bubbles were made of.",
     modelAnswer:
-      "The cup was not really empty. It was full of air, and air takes up space, so the water could not get into the cup to wet the tissue.",
-    sourceNotes: "Matter — gases (air) have mass and occupy space — standard P3/P4 Cycles/Matter theme content.",
+      "The bottle was not really empty — it was full of air. Air takes up space, so the water could not get in. When Ethan tilted the bottle, the air escaped as bubbles, making room for the water to flow in.",
+    sourceNotes:
+      "Matter — gases (air) occupy space — standard P3/P4 Cycles/Matter theme content. Revised on review 2026-09-23 from a tissue-in-an-upturned-cup scenario that was hard to picture actually working; the bath-time bottle makes the air visible as bubbles.",
   },
   {
     id: "zaras-dark-bedroom",
