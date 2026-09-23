@@ -23,6 +23,55 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-21 — Daily cycle: landed PR #44, closing the standing
+  example-sentence-review track's last gap (original 15-idiom pool).**
+  Pending Decisions was empty. Same three open PRs as the last several
+  check-ins: #51 ("Science Snake", a separate P4-Science quiz game
+  outside this repo's scope, its own description asking for a human
+  playtest — left untouched, same rule as always), and #40 (a single
+  example-sentence fix, unmerged since 2026-09-11, left alone — no
+  overlap with today's scope, still someone else's open PR to pick up).
+  `BACKLOG.md`'s only open `todo` item was this standing track, and its
+  last remaining piece was the original-15 pool's fix sitting in PR #44,
+  unmerged since 2026-09-12.
+  Investigated why #44 had never landed rather than repeating the
+  "not created by this session" pass-over every prior check-in gave it:
+  its own actual GitHub Actions run had failed, on both mobile and
+  desktop, on `idiom-door.spec.ts:683`'s "solving all 3 levels..." test.
+  That's the same `doorJump.ts` chain-catch timing-margin bug class
+  documented at length in `BACKLOG.md`'s idiom-pool-growth entry
+  (PR #40/#47/#49's history) — #44's branch was cut from `main` on
+  2026-09-11, before the 2026-09-16 daily cycle root-caused and fixed
+  that exact bug, so its CI run hit a bug unrelated to its own content,
+  not a real objection to the sentence fixes themselves.
+  Created this session's branch off latest `main`, merged PR #44's
+  branch onto it: `idioms.ts`'s content changes applied clean (no
+  conflicts); `BACKLOG.md`/`DECISIONS.md` needed manual conflict
+  resolution (both files' own bookkeeping entries), resolved by keeping
+  every entry, in chronological order, same approach as the 2026-09-14
+  daily cycle's own rebase-conflict precedent. Re-ran the full gate on
+  top of the current, already-fixed `doorJump.ts` to confirm the theory
+  rather than assume it: `npm run typecheck`/`test` (367 passed,
+  unchanged — content-integrity suite validates structure, not
+  wording)/`build` all green, then the full `test:e2e` suite (70 passed,
+  mobile+desktop, run with `CI=true` to match the actual PR gate) —
+  including the exact test that failed on #44's own original CI run,
+  now passing clean. Confirms the original failure really was the
+  pre-existing bug, not a problem with PR #44's content.
+  The original 30-idiom pool (idioms 1-15's `exampleSentence` fixes from
+  this PR, plus idioms 16-30's own earlier #33/#37 fixes) is now fully
+  covered end to end, on `main`, for real — see `BACKLOG.md`'s own
+  updated entry. PR #44 is superseded by this session's PR and closed.
+  Landed per the standing 2026-08-26 auto-land policy.
+- **2026-09-22 — GitHub Actions infra break root-caused and fixed: the
+  repo was private and had exhausted its free 2,000 min/month Actions
+  quota.** You made `chengyu-dao` public (after a full history scan
+  found no secrets ever committed), which lifts the private-repo minute
+  cap entirely. Verified by re-running the exact runs that had been
+  failing instantly with no runner assigned (PR #57's run 35682030368
+  and this PR's run 35557478869): both now get a real runner and run
+  every step (typecheck/test/build/Playwright install/e2e) to a green
+  `success` conclusion.
 - **2026-09-22 — Science Snake (PR #51) merged into `main`.** You
   confirmed the Vercel preview playtest passed ("Ok tested ok"), then
   explicitly confirmed the merge itself when asked ("Yes, merge it") —
@@ -345,6 +394,50 @@ None open right now.
   before landing anything. All gates green (typecheck/test 336/build/
   e2e 84 passed, mobile+desktop); PR opened and merged per the standing
   2026-08-26 auto-land policy.
+- **2026-09-11 — Ported 15 improved example sentences from
+  `deatheroai/chengyu-battle`'s own content review.** That sibling
+  project forked this repo's 30-idiom pool, then went through every
+  single example sentence with you in batches of 5 — the standing
+  "review example sentences against their idiom's actual meaning, not
+  just correct idiom usage" track this repo's own `BACKLOG.md` already
+  flags. 15 of the 30 came back changed there; ported the same
+  `exampleSentence` (hanzi/pinyin/english/charPinyin) and, for the 2
+  where the underlying scenario changed, the matching `dailyLifeScenario`
+  too, into this repo's `idioms.ts`. `sourceNotes` left untouched (pure
+  provenance here, not a changelog) — this entry is the record instead.
+
+  Idioms touched: `you-shi-you-zhong`, `ban-tu-er-fei`,
+  `shu-neng-sheng-qiao`, `mo-chu-cheng-zhen`, `ba-miao-zhu-zhang`,
+  `chi-zhi-yi-heng`, `yi-si-bu-gou`, `jing-yi-qiu-jing`,
+  `zhi-cuo-jiu-gai`, `shi-shi-qiu-shi`, `guang-ming-zheng-da`,
+  `shou-zhu-dai-tu`, `jing-di-zhi-wa`, `ju-yi-fan-san`,
+  `rong-hui-guan-tong`. Representative fixes: sentences that stated an
+  idiom's moral without showing it happen (`ban-tu-er-fei`,
+  `shou-zhu-dai-tu`); two pairs that read as near-duplicates of each
+  other even though the idioms aren't interchangeable
+  (`shu-neng-sheng-qiao`/`mo-chu-cheng-zhen`,
+  `zhi-cuo-jiu-gai`/`shi-shi-qiu-shi`); a usage that was flatly wrong
+  for how the idiom is actually used (`ju-yi-fan-san`'s
+  character-radical framing replaced with "one learned technique
+  applied to new tasks," via paper-folding).
+
+  5 of these 15 (`mo-chu-cheng-zhen`, `ba-miao-zhu-zhang`,
+  `yi-si-bu-gou`, `ju-yi-fan-san`, `rong-hui-guan-tong`) overlap with
+  this repo's own two earlier independent fix rounds (#33, #37) — in
+  each case the version here is a further refinement on top of what
+  those PRs already improved, not a reversal of them; the other 10 are
+  net-new fixes this repo's own review passes hadn't reached yet.
+
+  `npm run typecheck`, `npm test` (336 tests, unchanged pass count —
+  content-integrity suite validates structure, not wording), and
+  `npm run build` all green. Pushed directly to
+  `claude/chinese-idiom-battle-5ao9dc` (the branch this session was
+  given for chengyu-battle-related work) rather than opening a PR,
+  since none was requested — flag if you'd rather this go through the
+  usual PR review instead. (Note added by the 2026-09-21 daily cycle:
+  this was pushed to a repo-local branch that later became PR #44 — see
+  that entry below for how it eventually landed.)
+
 - **2026-09-10 — Daily cycle: shipped the door-stage burning-tile fix.**
   Pending Decisions was empty. No open GitHub issues or PRs to check in on
   first. `BACKLOG.md`'s unblocked `todo` items (writing/tracing stage + its
