@@ -1683,6 +1683,44 @@ build-priority, pure-logic-first same as every other mechanic in this repo.
       `vite.config.ts`'s build input list has its own `scienceSnake`
       entry alongside `idiomDoor`. `index.html`
       is untouched.
+- [x] `done` — **Round-over-round improvement feedback
+      (`scienceSnakeScore.ts`, 2026-09-22).** Per your "there should be a
+      scoring system so the player knows if he has improved each round":
+      `recordRun(stats)` now runs at the end of *every* completed run —
+      win or lose alike, not only wins as originally spec'd — since a run
+      that suffocates early having answered several questions correctly
+      can score more than a scraped-together win, and deserves the same
+      feedback. It tracks two things independently: the immediately-prior
+      run's score (`science-snake-last-run` in localStorage, a new key)
+      for round-over-round comparison, and the all-time best
+      (`science-snake-high-score`, the existing key/shape, now updated
+      from a loss too when a loss's score actually beats it). Replaced
+      the old win-only `recordHighScoreIfBetter`/`calculateScore`-in-
+      `main.ts` combo entirely — this repo's "don't leave
+      backwards-compat shims" convention, and pre-launch content besides.
+      `describeRunOutcome(outcome)` turns that into one kid-readable line
+      (📈/📉 delta vs last run, or a 🏆 new-high-score callout) — pure
+      formatting, no DOM, same split as everything else here. Both win
+      and lose cards (`#win-comparison`/`#lose-comparison`,
+      `science-snake.html`) show it now, and the top-right high-score
+      display (`#high-score-display`) updates after a loss too, not just
+      a win. 16 tests (`scienceSnakeScore.test.ts`, up from 11).
+      **Bug found and fixed while verifying live:** `main.ts`'s
+      `onWin`/`onLose` callbacks called `showHighScore()` *before*
+      `showWinCard`/`showLoseCard` — but the high score is only actually
+      updated inside those (via `recordRun`), so the header kept showing
+      the *pre*-run value on the exact run that just beat it. Fixed by
+      reordering (record first, then read). Verified with a real headless
+      browser (Playwright against `vite dev`, not just unit tests) via a
+      temporary `window.__QA_game` debug hook (reverted before commit):
+      forced a win beating a seeded prior score (comparison line showed
+      "🏆 New high score! (+85 vs your last run)", header updated to the
+      new value immediately), forced a lower-scoring loss (showed "📉
+      -100 vs your last run (best: 140)"), and forced a *losing* run that
+      still beat the current high score (correctly showed "🏆 New high
+      score!" off a loss, header updated to the new value) — the exact
+      case this feature didn't previously support. All green: typecheck,
+      full unit suite (469 passed, up from 461), production build.
 - [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
       `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
       full suffocation-loss playthrough (repeated wrong answers piling up
