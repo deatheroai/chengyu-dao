@@ -33,8 +33,19 @@ function wrap(n: number, size: number): number {
   return ((n % size) + size) % size;
 }
 
+/**
+ * The D-pad is wired on `pointerdown` (main.ts), not `click` — same as
+ * idiom-door's own `#jump-btn` (see doorJump.ts's `pressJumpButton`).
+ * `dispatchEvent` fires it directly rather than `page.click()`'s full
+ * actionability-check simulation, which matters here specifically:
+ * `page.click()` retries while any other element intercepts pointer
+ * events at that position, and the question overlay (a `card-layer`
+ * that sits above the D-pad in z-index whenever it's open) does exactly
+ * that between direction presses — found the hard way as a real,
+ * reproducible hang, not guessed.
+ */
 async function pressDirection(page: Page, direction: Direction): Promise<void> {
-  await page.click(`#${DIRECTION_BUTTON_ID[direction]}`);
+  await page.locator(`#${DIRECTION_BUTTON_ID[direction]}`).dispatchEvent("pointerdown");
 }
 
 interface SnakeStatus {
