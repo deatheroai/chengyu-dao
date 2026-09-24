@@ -88,6 +88,14 @@
           </div>
         </div>
       </div>
+
+      <!-- Test-only hooks, same "canvas-internal state isn't otherwise
+           observable to Playwright, expose it as a hidden data
+           attribute" pattern idiom-door's own #player-position/
+           #balloon-position/#balloon-target-positions already use. A
+           real child never sees these. -->
+      <div id="snake-status" data-head-x="0" data-head-y="0" data-length="0" data-direction="right" data-body="[]" style="display: none" aria-hidden="true"></div>
+      <div id="board-items" style="display: none" aria-hidden="true"></div>
     </div>
     <script type="module" src="/src/science-snake/main.ts"></script>
   </body>

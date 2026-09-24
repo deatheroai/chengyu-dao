@@ -1743,13 +1743,100 @@ other mechanic in this repo.
       score!" off a loss, header updated to the new value) — the exact
       case this feature didn't previously support. All green: typecheck,
       full unit suite (469 passed, up from 461), production build.
-- [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
+- [x] `done` — **E2E test suite (`e2e/science-snake.spec.ts` +
+      `e2e/helpers/scienceSnake.ts`, 2026-09-23/24).** Mirrors
       `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
       full suffocation-loss playthrough (repeated wrong answers piling up
-      poop), and specifically a test asserting the reveal overlay's
-      "Continue" is genuinely gated behind stepping through every
-      chunk (not just present from the start) — that gating is the actual
-      point of the mechanic, not incidental UI.
+      unresolved questions), and a test asserting the reveal overlay's
+      "Continue" is genuinely gated behind stepping through every chunk
+      (not just present from the start) — that gating is the actual point
+      of the mechanic, not incidental UI. Real ticks/spawner/grading
+      throughout, no test-only cheat path, same standing convention as
+      every other e2e test in this project.
+      Needed two new test-only DOM hooks (`snakeStatus.ts`'s
+      `#snake-status`/`#board-items`, same "canvas-internal state isn't
+      otherwise observable to Playwright, expose it as a hidden data
+      attribute" pattern `idiom-door`'s own `#player-position`/
+      `#balloon-target-positions` already use) since nothing exposed the
+      snake's live head/body/direction or the board's item positions.
+      **The winning playthrough drives a fixed boustrophedon Hamiltonian
+      cycle** (any two visits to the same cell are exactly width×height
+      ticks apart — further than any body length below the win threshold
+      could reach, so looping it is safe regardless of growth speed) —
+      the standard "solved snake" technique, chosen after confirming by
+      direct calculation that a passive full-board sweep only crosses
+      paths with an item a few times per lap, nowhere near fast enough on
+      its own; growth to the ~269-length win threshold instead leans on
+      whatever items the sweep happens to cross, occasionally boosted a
+      lot by a poison apple's permanent 4x multiplier once one is eaten.
+      **The suffocation-loss playthrough chases the nearest active
+      science item directly** (wrong answers give 0 growth, so a
+      simpler, faster direct chase is safe here even though it isn't a
+      proven Hamiltonian path) — but a naive "move toward target" picker
+      turned out to have two real self-collision risks, found empirically
+      (a throwaway Node simulation against the real snakeGrid.ts/
+      itemSpawner.ts logic, not guessed) before ever wiring it into a
+      slow, expensive Playwright run: `changeDirection` silently ignores
+      a direct reversal request, desyncing a naive picker's own model of
+      the snake's direction from reality; and even reversal-aware, a
+      short body can coil around and box the head into a dead end a
+      couple of moves later. Fixed with a reversal-aware picker plus a
+      capped flood-fill "how much open space does this leave me" check —
+      0 self-collisions across 400 simulated rng seeds, then confirmed
+      live too.
+      Three more real bugs found live (not in the simulation, which
+      doesn't model a real browser) before this was reliable:
+      1. The D-pad is wired on `pointerdown`, not `click` (same as
+         `idiom-door`'s own `#jump-btn`) — `page.click()`'s actionability
+         checks hung retrying while the question overlay (which sits
+         above the D-pad in z-index whenever open) intercepted pointer
+         events. Switched to `dispatchEvent("pointerdown")`, the same fix
+         `doorJump.ts`'s `pressJumpButton` already uses for that button.
+      2. The win sweep's waypoint matching used exact coordinate
+         equality — a slow poll cycle under real headless-browser load
+         could occasionally miss a waypoint's one-tick dwell window
+         entirely, and once missed the snake kept going straight past it
+         and eventually wrapped into a cell its own recent tail still
+         occupied (a real reproduced collision at length 36). Fixed with
+         an axis-aware "reached or already passed it" check instead of
+         exact equality, plus batching the per-poll DOM reads into one
+         `page.evaluate()` call to make missing a window less likely in
+         the first place.
+      3. `snakeStatus.ts`'s `syncBoardItems` was destroying and
+         recreating every single `<span>` via `replaceChildren()` on
+         every tick — harmless at normal item counts, but a suffocating
+         board can carry 190+ items, and doing that 5-6 times a second
+         was enough to make the whole tab unresponsive for minutes at a
+         time in this sandbox (a real reproduced multi-minute stall, not
+         guessed). Fixed by reusing existing spans by index instead
+         (create/update in place, trim any surplus) — the same "update in
+         place" approach `SnakeGameScene.renderItems` already uses for
+         its own Phaser Text objects.
+      **Timing is genuinely wide and real, not a leftover bug**: the win
+      test's own real completion time ranged 3.5-6.3 minutes with an
+      early poison-apple hit up to needing well over 19 minutes without
+      one (plain apple/correct-answer growth alone is ~1.67/item on
+      average, needing ~160 encounters at the sweep's own passive rate).
+      Racing another slow e2e test in this sandbox pushed both the win
+      and suffocation tests well past their first, more conservative
+      timeout budgets (a run that took 4.3 minutes alone needed over 27
+      minutes contended) — confirmed as real resource contention, not a
+      logic regression, by re-running each test in isolation and seeing
+      it return to its normal time. Both tests' timeouts (40/20 minutes)
+      are sized to the worst case actually observed rather than the lucky
+      one, and both are desktop-only (they exercise game logic and DOM
+      state, not the mobile D-pad's own touch handling, which is already
+      covered live and by this suite's own lighter tests) so mobile
+      doesn't pay this cost twice. Whether 40/20 minutes is enough on the
+      real GitHub Actions runner (likely less contended than this
+      sandbox, but not confirmed) is exactly what today's PR's own real
+      CI run will show — per `AUTONOMY.md`'s own standing lesson, that
+      run is the actual gate, not how many local repros pass.
+      All local gates green: `npm run typecheck`/`test` (461 passed,
+      unchanged)/`build`. The reveal-gating test and (in isolation) the
+      win/suffocation tests all passed repeatedly; see this entry's own
+      detail above for what remains a real, acknowledged timing risk
+      under contention specifically, not a correctness one.
 - [ ] `todo` — **Cloud-sync for the high score / last-run record
       (`scienceSnakeScore.ts`).** Currently localStorage-only — a
       device-typed 8-character code, same no-accounts model

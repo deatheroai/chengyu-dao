@@ -27,6 +27,7 @@ import { isSuffocating } from "./suffocation";
 import { createRng } from "./seededRandom";
 import { scienceQuestionsById, scienceQuestions } from "./scienceQuestions";
 import { askQuestion } from "./QuestionOverlay";
+import { updateSnakeStatus, syncBoardItems } from "./snakeStatus";
 
 /**
  * The playable Phaser scene (BACKLOG.md's "Phaser scene + DOM question
@@ -381,6 +382,8 @@ export class SnakeGameScene extends Phaser.Scene {
   private render(): void {
     this.renderGridAndItems();
     this.renderSnakeBody(this.gfx);
+    updateSnakeStatus(this.snake);
+    syncBoardItems(this.items);
   }
 
   private renderGridAndItems(): void {

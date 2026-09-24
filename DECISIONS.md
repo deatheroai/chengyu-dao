@@ -36,6 +36,61 @@ None open right now.
   `1e6764d`, CI (`test`) green. Merged via a real merge commit
   (`9f88008`). Unsubscribed from PR #58's activity afterward — see
   `BACKLOG.md`'s "Science Snake Game" section for the landed state.
+- **2026-09-23/24 — Daily cycle: GitHub Actions infra break resolved (repo
+  made public); merged PR #56; built the Science Snake e2e suite,
+  closing that mechanic's last open `BACKLOG.md` item; closed PRs #40
+  and #57 as superseded.** Pending Decisions was empty. This cycle ran
+  alongside an interactive session that landed PR #58 (round-over-round
+  scoring, its own entry directly above) partway through — merged `main`
+  into this cycle's own branch afterward to pick that up before opening
+  its PR, resolving `BACKLOG.md`/`DECISIONS.md`'s own bookkeeping
+  conflicts by keeping both sessions' entries, in the order they actually
+  happened.
+  **Confirmed the CI infra break (logged 2026-09-22 by PR #57, not yet
+  merged) is resolved**: you made `chengyu-dao` public, lifting the
+  private-repo Actions-minutes cap that had rejected every job since
+  2026-09-20 (0 billable minutes, no runner ever assigned) — verified by
+  both PR #56's and PR #57's own actual GitHub Actions runs going green
+  that same afternoon. PR #57 itself is stale now (its `BACKLOG.md` note
+  still describes #56 as unmerged, and its `DECISIONS.md` addition would
+  conflict with #56's own bookkeeping) — closed it rather than force a
+  conflicting merge, after confirming its actual diagnostic substance
+  (the root cause and the fix) is preserved here instead of lost.
+  **Merged PR #56** (yesterday's cycle's port of PR #44's 15
+  example-sentence fixes) after re-validating it fresh on top of current
+  `main`: `typecheck`/`test` (461 passed)/`build`/`test:e2e` (70 passed,
+  mobile+desktop, ~25 min) all green on a real local run, matching its
+  own already-green GitHub Actions run from the previous evening.
+  **Picked up `BACKLOG.md`'s only other real unblocked item**: Science
+  Snake's `E2E test suite` `todo` (its `Content bank` item is still
+  `in-progress` but needs a human review round for new question batches,
+  per the 2026-09-16 decision on how that content gets vetted — not
+  something an unattended cycle can do, so left alone rather than
+  guessed). Also ported PR #40's still-real, still-unapplied 同甘共苦
+  example-sentence fix onto current `main` while in the area — that PR's
+  own original e2e finding was a different, unrelated bug already
+  root-caused and fixed on 2026-09-16, so nothing else from it needed
+  porting. See `BACKLOG.md`'s own updated entry for the e2e suite's full
+  build detail (the Hamiltonian-cycle win sweep, the confinement-safe
+  suffocation chase, and the five real bugs found and fixed along the
+  way — two picker bugs, a `pointerdown`-vs-`click` mismatch, a missed-
+  waypoint collision, and a DOM-churn tab stall).
+  **Closed PR #40** (superseded — its content fix is ported above, and
+  its own e2e finding is long since fixed) and **PR #57** (superseded,
+  per above) rather than leaving stale PRs open indefinitely.
+  **Left `claude/daily-2026-09-23` pushed with a PR open, not yet
+  merged**: the new e2e tests' own timing is genuinely wide (RNG-driven
+  growth speed, confirmed by a live simulation and repeated real runs)
+  and this sandbox showed real contention pushing both slow new tests
+  well past a first, more conservative timeout when racing another slow
+  test — timeouts were widened to the real worst case observed (40/20
+  minutes) plus this repo's own `retries: 1`, but whether that's enough
+  on the actual (likely less contended, but unconfirmed) GitHub Actions
+  runner is exactly what this PR's own real CI run will show. Per
+  `AUTONOMY.md`'s own standing lesson (PR #49's 2026-09-14 history): the
+  real CI run is the actual gate, not how many local repros pass —
+  checking that run's result, and merging only if it's actually green,
+  is this cycle's own next step once it lands.
 - **2026-09-21 — Daily cycle: landed PR #44, closing the standing
   example-sentence-review track's last gap (original 15-idiom pool).**
   Pending Decisions was empty. Same three open PRs as the last several
