@@ -39,19 +39,23 @@ test("a full winning playthrough fills the board", async ({ page }, testInfo) =>
   // reached WIN_LENGTH in 2-4 *simulated* minutes each time, since a
   // poison apple's permanent 4x growth multiplier does most of the work
   // once one is eaten — but that's luck-dependent (a 10% roll per apple
-  // spawn), and real runs measured live confirm the spread is wide: 3.5,
-  // 4.7 and 6.3 minutes with an early poison hit, but two other runs
-  // without one still hadn't won at 10 and 19 minutes. Without poison
-  // luck, growth is only ~1.67 per item encountered on average (the
-  // science:apple spawn ratio's weighted mix of +1/+4), needing roughly
-  // 160 encounters at the sweep's own real passive rate — genuinely
-  // slow, not stuck, and bounded (the cycle itself is what guarantees
-  // termination, not speed). 28 minutes covers that real worst case with
-  // headroom rather than assuming the lucky one.
-  test.setTimeout(28 * 60 * 1000);
+  // spawn). Real runs measured live show a genuinely wide spread: as
+  // fast as 3.5-6.3 minutes with an early poison hit, but a run without
+  // one is much slower (without it, growth is only ~1.67 per item
+  // encountered on average, needing ~160 encounters at the sweep's own
+  // passive rate), and CPU contention from other e2e tests running at
+  // the same time (this sandbox's own real, reproduced behavior — a run
+  // that took 4.3 minutes alone needed over 27 minutes racing another
+  // slow test) stacks on top of that. None of this makes the sweep
+  // unsafe (the cycle itself, not speed, is what guarantees it can't
+  // self-collide) — just slow in the worst case. 40 minutes covers the
+  // real worst case observed plus contention headroom; CI's own
+  // retries:1 (playwright.config.ts) gives a second, likely
+  // less-contended attempt on top of that if one run is still unlucky.
+  test.setTimeout(40 * 60 * 1000);
   await startGame(page);
 
-  await sweepFullBoardUntilWin(page, 27 * 60 * 1000);
+  await sweepFullBoardUntilWin(page, 39 * 60 * 1000);
 
   await expect(page.locator("#win-card")).toHaveClass(/visible/);
   const stats = await page.locator("#win-stats").textContent();
@@ -71,12 +75,15 @@ test("repeated wrong answers pile up unresolved questions until the board suffoc
 
   // From the same simulation: suffocation was reached within 50 real
   // seconds of game time across 400 rng seeds, 0 self-collisions. Real
-  // runs measured live took 6.1-6.8 minutes; 12 minutes is generous
-  // headroom above that for real browser/interaction overhead.
-  test.setTimeout(12 * 60 * 1000);
+  // isolated runs measured live took 6.1-6.8 minutes, but — same
+  // contention finding as the win test above — racing another slow e2e
+  // test in this sandbox pushed two consecutive attempts past 11 minutes
+  // without finishing. 20 minutes covers that with real headroom; CI's
+  // own retries:1 gives a second, likely less-contended attempt too.
+  test.setTimeout(20 * 60 * 1000);
   await startGame(page);
 
-  await driveToSuffocation(page, 11 * 60 * 1000);
+  await driveToSuffocation(page, 19 * 60 * 1000);
 
   await waitForLoseReason(page, "unanswered questions piled up");
   const stats = await page.locator("#lose-stats").textContent();
