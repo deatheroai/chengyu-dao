@@ -10,7 +10,7 @@ import type { ScienceQuestion } from "./types";
  * revised to a concrete scenario per question before approval, and its
  * original question 5 ("list the butterfly life cycle's 4 stages in
  * order") was replaced entirely for reading as MCQ-shaped rather than
- * short-answer. Batch 2 boundary is marked inline below.
+ * short-answer. Later batch boundaries are marked inline below.
  */
 export const scienceQuestions: ScienceQuestion[] = [
   // --- Batch 1 ---
@@ -118,7 +118,18 @@ export const scienceQuestions: ScienceQuestion[] = [
     icon: "🪵",
     prompt: "Mrs Tan is buying a new umbrella. She picks one with a nylon canopy instead of one made of paper. Explain why nylon is a better material for an umbrella than paper.",
     requiredKeywords: [
-      ["waterproof", "water-resistant", "does not absorb water", "doesn't absorb water", "repels water"],
+      [
+        "waterproof",
+        "water proof",
+        "water-resistant",
+        "does not absorb water",
+        "doesn't absorb water",
+        "repels water",
+        "does not let water through",
+        "doesn't let water through",
+        "does not allow water to pass through",
+        "doesn't allow water to pass through",
+      ],
       ["absorb water", "absorbs water", "soggy", "soaks up water", "gets wet"],
     ],
     minWords: 10,
@@ -172,6 +183,196 @@ export const scienceQuestions: ScienceQuestion[] = [
       "Mei's brother is wrong — the sun doesn't change size. In the late afternoon the sun is much lower in the sky, closer to the horizon, so its light hits Mei at a shallower angle. That shallower angle stretches her shadow out and makes it much longer, unlike at noon when the sun is high overhead and her shadow is short.",
     sourceNotes:
       "Light and shadows — shadow length changes with the sun's angle in the sky (a lower sun casts a longer shadow via a shallower light angle), not its size — standard P3/P4 Light theme content, reinforced at P4. Revised 2026-09-16 per feedback to require the actual mechanism (why longer specifically), not just 'the sun's position changes.'",
+  },
+  // --- Batch 3: authored and approved on chat review 2026-09-23. Topics kept to
+  // the P3/P4 (Lower Block) syllabus — electrical circuits, cells and
+  // forces were considered and dropped as P5/P6 content. ---
+  {
+    id: "priyas-grandpa-digestion",
+    topic: "human-digestive-system",
+    icon: "🍚",
+    prompt:
+      "Priya's grandfather says that once food reaches the stomach, digestion is finished and the food goes straight into the blood from there. Explain why her grandfather is not quite right.",
+    requiredKeywords: [
+      ["small intestine"],
+      ["absorb", "absorbed", "absorbs", "absorption", "into the blood", "bloodstream"],
+    ],
+    minWords: 10,
+    hint: "The stomach only does part of the job. Which long, coiled tube does the food go into after the stomach, and what happens to the digested food while it is there?",
+    modelAnswer:
+      "Grandpa is not quite right, because the stomach only digests part of the food. Digestion is completed in the small intestine, where the digested food is absorbed into the blood.",
+    sourceNotes:
+      "Human digestive system — digestion completed in the small intestine, where digested food is absorbed into the bloodstream (not the stomach) — standard P3/P4 Systems theme content.",
+  },
+  {
+    id: "hannahs-mouldy-bread",
+    topic: "fungi",
+    icon: "🍄",
+    prompt:
+      "Hannah left a slice of bread in the cupboard beside the steamy rice cooker. A week later, the bread was covered in fuzzy green patches. Her brother says the bread itself grew the patches. Explain what the patches really are and why they grew so well there.",
+    requiredKeywords: [
+      ["mould", "mold", "fungus", "fungi"],
+      ["warm", "damp", "moist", "wet", "water", "feed", "feeds", "fed", "nutrients"],
+    ],
+    minWords: 10,
+    hint: "The bread isn't alive — but something tiny landed on it and started living there. Which group of living things, neither plant nor animal, grows on old bread? And what was it like beside the steamy rice cooker?",
+    modelAnswer:
+      "The green patches are mould, which is a type of fungus. The mould grew well because the cupboard was warm and damp, and it fed on the bread.",
+    sourceNotes:
+      "Diversity of living things — fungi (mould) as a living group distinct from plants/animals, growing on food in warm, damp conditions — standard P3/P4 Diversity theme content.",
+  },
+  {
+    id: "daniels-stuck-jar-lid",
+    topic: "heat",
+    icon: "🫙",
+    prompt:
+      "Daniel's mum cannot open a jar of jam because the metal lid is stuck tight. She runs the lid under hot water for a minute, and then it twists open easily. Explain why the hot water helped her open the jar.",
+    requiredKeywords: [
+      ["expand", "expands", "expanded", "expanding", "expansion"],
+      ["heat", "hot water", "warm", "hotter"],
+    ],
+    minWords: 10,
+    hint: "Think about what happens to the size of a metal object when its temperature goes up. Would a slightly bigger lid grip the jar more tightly, or less tightly?",
+    modelAnswer:
+      "The metal lid gained heat from the hot water, so it expanded and became slightly bigger. This loosened the lid, so it could twist open easily.",
+    sourceNotes: "Heat — effects of heat gain: metals expand when heated (and contract when cooled) — standard P4 Energy theme content.",
+  },
+  {
+    id: "ethans-bubbling-bottle",
+    topic: "states-of-matter",
+    icon: "🫧",
+    prompt:
+      "At bath time, Ethan pushes an empty plastic bottle straight down into the water, mouth first. Hardly any water goes into the bottle. When he tilts the bottle to one side, big bubbles rush out and water quickly flows in. Explain why water could only flow into the bottle after he tilted it.",
+    requiredKeywords: [
+      ["air"],
+      [
+        "space",
+        "room",
+        "trapped",
+        "escape",
+        "escaped",
+        "escapes",
+        "came out",
+        "comes out",
+        "come out",
+        "coming out",
+        "get out",
+        "got out",
+        "bubbled out",
+        "leave the bottle",
+        "left the bottle",
+        "let out",
+        "kept the water out",
+        "keeps the water out",
+        "pushed the water",
+        "pushes the water",
+      ],
+    ],
+    minWords: 12,
+    hint: "The bottle looks empty, but is it really? Think about what was already filling the bottle before it went into the water — and what those big bubbles were made of.",
+    modelAnswer:
+      "The bottle was not really empty — it was full of air. Air takes up space, so the water could not get in. When Ethan tilted the bottle, the air escaped as bubbles, making room for the water to flow in.",
+    sourceNotes:
+      "Matter — gases (air) occupy space — standard P3/P4 Cycles/Matter theme content. Revised on review 2026-09-23 from a tissue-in-an-upturned-cup scenario that was hard to picture actually working; the bath-time bottle makes the air visible as bubbles.",
+  },
+  {
+    id: "zaras-dark-bedroom",
+    topic: "light-and-shadows",
+    icon: "💡",
+    prompt:
+      "Zara wakes up at night and wants to find her storybook on her desk. The room is completely dark, and even with her eyes wide open she cannot see the book. When she switches on her lamp, she can see it clearly. Explain why she can only see the book once the lamp is on.",
+    requiredKeywords: [
+      ["light"],
+      ["reflect", "reflects", "reflected", "reflecting", "bounce", "bounces", "bounced"],
+    ],
+    minWords: 10,
+    hint: "Zara's eyes are working fine, so something has to travel from the lamp to the book, and then from the book into her eyes. What does the lamp give out, and what does the book do with it?",
+    modelAnswer:
+      "Light from the lamp shines on the book, and the book reflects the light into Zara's eyes, so she can see it. In the dark, there is no light for the book to reflect.",
+    sourceNotes: "Light — we see non-luminous objects when light from a source is reflected off them into our eyes — standard P3/P4 Energy (Light) theme content.",
+  },
+  // --- Batch 4: authored and approved on chat review 2026-09-24. ---
+  {
+    id: "nuruls-sweating-can",
+    topic: "water-cycle",
+    icon: "🥫",
+    prompt:
+      "Nurul takes a can of cold drink out of the fridge and puts it on the table. A few minutes later, the outside of the can is covered in tiny water droplets, even though the can is sealed and not leaking. Explain where the water droplets came from.",
+    requiredKeywords: [
+      ["water vapour", "water vapor", "vapour", "vapor"],
+      ["condense", "condensed", "condenses", "condensation", "cooled", "cools", "cooler", "loses heat", "lost heat", "turned into water", "turns into water", "became water"],
+    ],
+    minWords: 12,
+    hint: "The can isn't leaking, so the water must have come from the air around it. What invisible form of water is in the air, and what happens to it when it touches something very cold?",
+    modelAnswer:
+      "The water droplets came from water vapour in the air. When the water vapour touched the cold can, it lost heat and condensed into tiny water droplets.",
+    sourceNotes: "Water cycle / heat loss — water vapour in the air condenses on a cold surface — standard P4 Cycles (Matter/Water) theme content.",
+  },
+  {
+    id: "aidens-magnetic-train",
+    topic: "magnets",
+    icon: "🚂",
+    prompt:
+      "Aiden's toy train carriages have a magnet at each end. When he brings two carriages together one way, they push away from each other and will not join. When he turns one carriage around, they snap together. Explain why.",
+    requiredKeywords: [
+      ["like poles", "same poles", "same pole", "north and north", "south and south", "north pole and north pole", "south pole and south pole", "two north", "two south", " n and n", " s and s"],
+      ["unlike poles", "opposite poles", "different poles", "north and south", "south and north", "north pole and south pole", "south pole and north pole", " n and s", " s and n"],
+    ],
+    minWords: 12,
+    hint: "Every magnet has two ends called poles. Think about which kinds of poles push each other away, and which kinds pull each other together.",
+    modelAnswer:
+      "The first time, the same poles were facing each other, like north and north, so they repelled. When Aiden turned the carriage around, opposite poles faced each other, so they attracted and snapped together.",
+    sourceNotes: "Magnets — like poles repel, unlike poles attract — standard P3/P4 Interactions theme content.",
+  },
+  {
+    id: "kais-whale-is-not-a-fish",
+    topic: "classifying-animals",
+    icon: "🐋",
+    prompt:
+      "At the aquarium, Kai says the whale is a fish because it lives in the sea and swims with fins. His sister Lin says the whale is actually a mammal. Explain why Lin is right.",
+    requiredKeywords: [
+      ["lungs", "breathe air", "breathes air", "breathing air", "blowhole", "surface to breathe"],
+      ["give birth", "gives birth", "live young", "young alive", "babies alive", "milk"],
+    ],
+    minWords: 12,
+    hint: "Think about how a fish takes in air underwater, and why a whale has to keep coming up to the surface. Then think about how baby whales are born and fed, compared to baby fish.",
+    modelAnswer:
+      "Lin is right because a whale breathes air using lungs, not gills like a fish. A whale also gives birth to live young and feeds its babies with milk, just like other mammals.",
+    sourceNotes:
+      "Diversity — classifying animals by characteristics (mammals: lungs, give birth to live young, feed young with milk) vs. fish (gills, lay eggs) — standard P3/P4 Diversity theme content.",
+  },
+  {
+    id: "chloes-bouncy-castle-grass",
+    topic: "plant-systems",
+    icon: "🎪",
+    prompt:
+      "A bouncy castle stood on the school field for a whole week during the school carnival. When it was taken away, Chloe saw a big square of pale yellow, weak-looking grass where it had been, while the grass all around was still green. The field was watered every day, so the soil under the castle was still damp. Explain why the grass under the castle turned yellow.",
+    requiredKeywords: [
+      ["light", "sunlight"],
+      ["food", "photosynthesis"],
+    ],
+    minWords: 12,
+    hint: "The soil under the bouncy castle was still damp, so water wasn't the problem. What could the grass not get while the castle was sitting on top of it, and what do green leaves need it for?",
+    modelAnswer:
+      "The bouncy castle blocked the sunlight from reaching the grass. Grass needs light to make its own food, so without light it could not make food and turned pale and weak.",
+    sourceNotes:
+      "Plants need light to make their own food (water ruled out by the scenario) — standard P3/P4 Systems/Diversity theme content. Revised on review 2026-09-24 from a textbook-style seedlings-in-a-dark-cupboard setup to a more everyday scenario.",
+  },
+  {
+    id: "joshs-door-and-window",
+    topic: "light-and-shadows",
+    icon: "🪟",
+    prompt:
+      "On a sunny afternoon, Josh notices that the wooden door casts a dark shadow on the floor, but the clear glass window next to it does not. Explain why.",
+    requiredKeywords: [
+      ["transparent", "lets light pass", "lets light through", "lets most light", "allows light to pass", "allows light through", "light passes through", "light can pass", "light goes through", "light can go through", "light can get through"],
+      ["opaque", "blocks light", "block light", "blocks the light", "does not let light", "doesn't let light", "does not allow light", "doesn't allow light", "light cannot pass", "cannot pass through", "cannot go through", "can't go through", "cannot get through", "can't get through", "does not go through", "doesn't go through"],
+    ],
+    minWords: 12,
+    hint: "Can you see through the glass? Can you see through the wood? Think about what that tells you about how much of the sunlight each one lets reach the floor behind it.",
+    modelAnswer:
+      "The glass window is transparent, so it lets most light pass through and does not form a dark shadow. The wooden door is opaque, so it blocks light and casts a dark shadow on the floor.",
+    sourceNotes: "Light — transparent materials let most light through, opaque materials block light and form shadows — standard P3/P4 Energy (Light) theme content.",
   },
 ];
 
