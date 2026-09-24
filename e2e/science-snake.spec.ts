@@ -26,14 +26,19 @@ async function startGame(page: Page): Promise<void> {
 }
 
 test("a full winning playthrough fills the board", async ({ page }) => {
-  // Real time budget from the underlying simulation: 2-4 minutes of game
-  // ticks across dozens of rng seeds, plus real per-question interaction
-  // overhead here (filling/submitting a textarea) that the simulation
-  // doesn't have. 10 minutes gives comfortable headroom above that.
-  test.setTimeout(10 * 60 * 1000);
+  // The underlying simulation (11 rng seeds against the real game logic)
+  // reached WIN_LENGTH in 2-4 *simulated* minutes each time, since a
+  // poison apple's permanent 4x growth multiplier does most of the work
+  // once one is eaten. Real runs measured live ranged 3.5-6.3 minutes
+  // when a poison apple came up quickly, but one real run that hadn't
+  // hit one yet still hadn't won at 10 minutes — poison-apple luck has a
+  // real tail, and growth from plain apples/correct answers alone is
+  // much slower. 20 minutes covers that tail with real headroom rather
+  // than assuming the lucky case.
+  test.setTimeout(20 * 60 * 1000);
   await startGame(page);
 
-  await sweepFullBoardUntilWin(page);
+  await sweepFullBoardUntilWin(page, 19 * 60 * 1000);
 
   await expect(page.locator("#win-card")).toHaveClass(/visible/);
   const stats = await page.locator("#win-stats").textContent();

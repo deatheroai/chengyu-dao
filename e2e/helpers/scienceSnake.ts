@@ -384,6 +384,13 @@ async function readFullSnakeStatus(page: Page): Promise<{ head: Position; direct
   };
 }
 
+/** Thrown by chaseNearestScienceItem when the game already ended mid-chase — carries the real lose-card message so a caller expecting suffocation specifically can tell that apart from a genuine bug (e.g. a self-collision). */
+export class GameEndedError extends Error {
+  constructor(public reason: string) {
+    super(`game already ended (${reason})`);
+  }
+}
+
 /**
  * Steers straight at whichever active science item is currently
  * nearest, until the question overlay opens for it (or a different one
@@ -399,8 +406,8 @@ export async function chaseNearestScienceItem(page: Page, maxMs = 60000): Promis
     // direction presses to a dead snake until this function's own
     // timeout — found live as a real multi-minute hang, not guessed.
     if (await isCardVisible(page, "lose-card")) {
-      const reason = await page.locator("#lose-message").textContent();
-      throw new Error(`chaseNearestScienceItem: game already ended (${reason})`);
+      const reason = (await page.locator("#lose-message").textContent()) ?? "";
+      throw new GameEndedError(reason);
     }
     const items = await readBoardItems(page);
     const scienceItems = items.filter((i) => i.type === "science");
@@ -425,12 +432,25 @@ export async function chaseNearestScienceItem(page: Page, maxMs = 60000): Promis
   throw new Error("chaseNearestScienceItem timed out");
 }
 
-/** Repeats chaseNearestScienceItem + answering wrong twice until the board suffocates. */
+/**
+ * Repeats chaseNearestScienceItem + answering wrong twice until the game
+ * ends. Doesn't itself check *which* lose reason that was — a
+ * GameEndedError (the game ending mid-chase, the common case) or the
+ * lose-card simply being up already both just mean "done, go look" —
+ * the caller's own assertion (e.g. waitForLoseReason) is what actually
+ * confirms it was suffocation specifically, not some other bug like a
+ * self-collision, and fails loudly with a clear message if it wasn't.
+ */
 export async function driveToSuffocation(page: Page, maxMs = 10 * 60 * 1000): Promise<void> {
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
     if (await isCardVisible(page, "lose-card")) return;
-    await chaseNearestScienceItem(page, maxMs);
+    try {
+      await chaseNearestScienceItem(page, maxMs);
+    } catch (e) {
+      if (e instanceof GameEndedError) return;
+      throw e;
+    }
     if (await isCardVisible(page, "lose-card")) return;
     await answerCurrentQuestionWrongTwiceAndContinue(page);
   }
