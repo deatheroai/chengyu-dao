@@ -1,5 +1,18 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { calculateScore, recordRun, describeRunOutcome, loadHighScore, loadLastRun, clearHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS, type RunOutcome } from "./scienceSnakeScore";
+import {
+  calculateScore,
+  recordRun,
+  describeRunOutcome,
+  loadHighScore,
+  loadLastRun,
+  clearHighScore,
+  exportScoresForCloud,
+  mergeScoresFromCloud,
+  APPLE_POINTS,
+  CORRECT_ANSWER_POINTS,
+  type RunOutcome,
+  type ScoreRecord,
+} from "./scienceSnakeScore";
 
 beforeEach(() => {
   localStorage.clear();
@@ -115,5 +128,60 @@ describe("clearHighScore", () => {
     clearHighScore();
     expect(loadHighScore()).toBeNull();
     expect(loadLastRun()).toBeNull();
+  });
+});
+
+function record(score: number, achievedAt: number): ScoreRecord {
+  return { applesEaten: score / APPLE_POINTS, questionsCorrect: 0, score, achievedAt };
+}
+
+describe("exportScoresForCloud", () => {
+  it("is both-null before any run is recorded", () => {
+    expect(exportScoresForCloud()).toEqual({ highScore: null, lastRun: null });
+  });
+
+  it("holds the stored high score and last run", () => {
+    recordRun({ applesEaten: 10, questionsCorrect: 0 }, 1000);
+    recordRun({ applesEaten: 2, questionsCorrect: 0 }, 2000);
+    expect(exportScoresForCloud()).toEqual({ highScore: record(50, 1000), lastRun: record(10, 2000) });
+  });
+});
+
+describe("mergeScoresFromCloud", () => {
+  it("fills in both records on a device that has none", () => {
+    expect(mergeScoresFromCloud({ highScore: record(80, 1000), lastRun: record(20, 2000) })).toBe(true);
+    expect(loadHighScore()).toEqual(record(80, 1000));
+    expect(loadLastRun()).toEqual(record(20, 2000));
+  });
+
+  it("keeps whichever high score is higher, on either side", () => {
+    recordRun({ applesEaten: 10, questionsCorrect: 0 }, 1000); // 50
+    mergeScoresFromCloud({ highScore: record(40, 500), lastRun: null });
+    expect(loadHighScore()?.score).toBe(50);
+    mergeScoresFromCloud({ highScore: record(90, 500), lastRun: null });
+    expect(loadHighScore()?.score).toBe(90);
+  });
+
+  it("keeps whichever last run happened most recently, on either side", () => {
+    recordRun({ applesEaten: 10, questionsCorrect: 0 }, 1000);
+    mergeScoresFromCloud({ highScore: null, lastRun: record(5, 500) });
+    expect(loadLastRun()?.achievedAt).toBe(1000);
+    mergeScoresFromCloud({ highScore: null, lastRun: record(5, 3000) });
+    expect(loadLastRun()).toEqual(record(5, 3000));
+  });
+
+  it("makes the next run compare against the merged records", () => {
+    mergeScoresFromCloud({ highScore: record(100, 1000), lastRun: record(60, 2000) });
+    const outcome = recordRun({ applesEaten: 16, questionsCorrect: 0 }, 3000); // 80
+    expect(outcome).toMatchObject({ score: 80, previousScore: 60, isNewHighScore: false, highScore: 100 });
+  });
+
+  it("returns false and changes nothing for data that isn't a Science Snake save", () => {
+    recordRun({ applesEaten: 10, questionsCorrect: 0 }, 1000);
+    for (const notASave of [null, "x", {}, { completedSessions: [] }, { highScore: { score: "high" }, lastRun: null }]) {
+      expect(mergeScoresFromCloud(notASave)).toBe(false);
+    }
+    expect(loadHighScore()).toEqual(record(50, 1000));
+    expect(loadLastRun()).toEqual(record(50, 1000));
   });
 });

@@ -23,6 +23,18 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-24 — Cloud saves are namespaced per game; Science Snake's
+  scores merge rather than overwrite.** You asked to build Science
+  Snake's cloud sync. Since both games share an origin and the backend
+  stored one blob per code, `api/cloud-save.ts` now takes an optional
+  `game` and stores each game under its own key — idiom-door keeps its
+  original key and unchanged requests, so no existing save moves.
+  Science Snake keeps its own code rather than sharing idiom-door's, in
+  line with the 2026-09-16 "completely independent game" decision (easy
+  to change to one shared code later if a single code for both games
+  turns out simpler for you). Its sync pulls and merges before pushing
+  (higher high score, most recent last run), so two devices can't
+  overwrite each other. See `BACKLOG.md`'s Science Snake section.
 - **2026-09-24 — PR #60 (Science Snake e2e suite + PR #56/#40 content)
   merged after two real CI-red rounds — the win-condition test's own
   timing needed real fixes, not just a bigger number.** Continuing the

@@ -12,7 +12,13 @@ import { Redis } from "@upstash/redis";
 // BACKLOG.md). TypeScript's "bundler" moduleResolution explicitly
 // supports writing the .js extension against a .ts source for exactly
 // this case.
-import { isValidCloudSaveCode, isValidCloudSavePayload } from "../src/shared/cloudSaveValidation.js";
+import {
+  isValidCloudSaveCode,
+  isValidCloudSaveGame,
+  isValidCloudSavePayload,
+  DEFAULT_CLOUD_SAVE_GAME,
+  type CloudSaveGame,
+} from "../src/shared/cloudSaveValidation.js";
 
 /**
  * Cloud-save sync endpoint (DECISIONS.md's 2026-08-30 entry: Vercel-
@@ -31,7 +37,21 @@ import { isValidCloudSaveCode, isValidCloudSavePayload } from "../src/shared/clo
  * transitive packages for what would otherwise be types-only).
  */
 
-const REDIS_KEY_PREFIX = "chengyu-dao:cloud-save:";
+// idiom-door keeps the original, un-namespaced prefix so every save
+// written before per-game namespacing existed is still found where it
+// was stored.
+const REDIS_KEY_PREFIXES: Record<CloudSaveGame, string> = {
+  "idiom-door": "chengyu-dao:cloud-save:",
+  "science-snake": "chengyu-dao:science-snake:cloud-save:",
+};
+
+/** A missing game means idiom-door (older clients never send one); a
+ * present but unknown one is rejected rather than silently defaulted,
+ * so a typo can't quietly read or write another game's save. */
+function resolveGame(game: unknown): CloudSaveGame | null {
+  if (game === undefined || game === null) return DEFAULT_CLOUD_SAVE_GAME;
+  return isValidCloudSaveGame(game) ? game : null;
+}
 
 function getRedis(): Redis | null {
   // Vercel's Upstash Redis integration has injected both naming
@@ -74,8 +94,10 @@ export default {
       } catch {
         return json({ error: "invalid-body" }, 400);
       }
-      const { code, data } = (body ?? {}) as { code?: unknown; data?: unknown };
+      const { code, data, game: rawGame } = (body ?? {}) as { code?: unknown; data?: unknown; game?: unknown };
       if (!isValidCloudSaveCode(code)) return json({ error: "invalid-code" }, 400);
+      const game = resolveGame(rawGame);
+      if (!game) return json({ error: "invalid-game" }, 400);
       if (!isValidCloudSavePayload(data)) return json({ error: "invalid-payload" }, 400);
       // A thrown Redis error (a timeout, a transient Upstash-side
       // failure) must still come back as *this endpoint's own* JSON
@@ -87,7 +109,7 @@ export default {
       // behind "Couldn't reach the cloud save server" — see
       // DECISIONS.md/BACKLOG.md's follow-up entry.
       try {
-        await redis.set(REDIS_KEY_PREFIX + code, data);
+        await redis.set(REDIS_KEY_PREFIXES[game] + code, data);
       } catch (err) {
         return json({ error: `redis set failed: ${describeError(err)}` }, 500);
       }
@@ -95,11 +117,14 @@ export default {
     }
 
     if (request.method === "GET") {
-      const code = new URL(request.url).searchParams.get("code");
+      const params = new URL(request.url).searchParams;
+      const code = params.get("code");
       if (!isValidCloudSaveCode(code)) return json({ error: "invalid-code" }, 400);
+      const game = resolveGame(params.get("game"));
+      if (!game) return json({ error: "invalid-game" }, 400);
       let stored: unknown;
       try {
-        stored = await redis.get(REDIS_KEY_PREFIX + code);
+        stored = await redis.get(REDIS_KEY_PREFIXES[game] + code);
       } catch (err) {
         return json({ error: `redis get failed: ${describeError(err)}` }, 500);
       }

@@ -1837,16 +1837,36 @@ other mechanic in this repo.
       win/suffocation tests all passed repeatedly; see this entry's own
       detail above for what remains a real, acknowledged timing risk
       under contention specifically, not a correctness one.
-- [ ] `todo` — **Cloud-sync for the high score / last-run record
-      (`scienceSnakeScore.ts`).** Currently localStorage-only — a
-      device-typed 8-character code, same no-accounts model
-      `idiom-door`'s own cloud save already uses (`shared/cloudSync.ts`,
-      `shared/cloudSaveValidation.ts`, `api/cloud-save.ts`'s Upstash Redis
-      backend), so scores follow the child between devices instead of
-      resetting on a new one. Reuse that existing backend/API rather than
-      standing up a second one — `science-snake-high-score`/
-      `science-snake-last-run` are their own storage keys already, so
-      this is wiring, not new infra.
+- [x] `done` — **Cloud-sync for the high score / last-run record
+      (`scoreCloudSync.ts` + `cloudSaveStatus.ts`, 2026-09-24).** Reuses
+      idiom-door's no-accounts backend (`shared/cloudSync.ts`,
+      `api/cloud-save.ts`) with a "☁️ Save code" button on the start/win/
+      lose cards (never mid-run) opening the same code + restore panel
+      shape idiom-door has; after that, every finished run syncs quietly.
+      Two things the "this is wiring, not new infra" note above didn't
+      anticipate, both fixed rather than worked around:
+      1. **Per-game server namespace.** Both games share an origin and
+         `api/cloud-save.ts` stored one blob per code, so a code used by
+         both games would have had Science Snake's scores pushed straight
+         over idiom-door's history. The API now takes an optional `game`
+         (`"idiom-door"` default, `"science-snake"`) keyed under its own
+         Redis prefix; idiom-door keeps its original prefix and sends
+         exactly the request it always did, so existing saves are
+         untouched. Science Snake also keeps its own local code
+         (`science-snake-cloud-code`), per the independent-game decision.
+      2. **Pull → merge → push, not a blind push.** idiom-door's
+         push-only sync lets the last device to sync overwrite the other.
+         Scores merge instead: the higher high score and the more recent
+         last run win (`mergeScoresFromCloud`), and a pull failure other
+         than 404 stops before pushing. A restore from a code with no
+         Science Snake save behind it reports not-found and is *not*
+         adopted.
+      Tests: unit (API namespacing, `cloudSync` game/storage-key params,
+      merge rules, sync/restore flows, after-run sync) and
+      `e2e/science-snake-cloud-save.spec.ts` (6 tests × mobile/desktop,
+      against an in-memory stand-in for the API keyed the same way).
+      All green: typecheck, unit suite (499 passed), build, the new e2e
+      spec plus idiom-door's own `e2e/cloud-save.spec.ts`.
 
 ## Platform / infra
 

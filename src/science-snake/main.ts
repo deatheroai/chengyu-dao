@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { SnakeGameScene, CELL_SIZE, type RunStats, type LoseReason } from "./SnakeGameScene";
 import { GRID_WIDTH, GRID_HEIGHT, type Direction } from "./snakeGrid";
 import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
+import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode, syncAfterRun } from "./cloudSaveStatus";
 
 function showCard(id: string): void {
   document.getElementById(id)?.classList.add("visible");
@@ -82,10 +83,12 @@ function bootstrap(): void {
         // that just beat it.
         showWinCard(stats);
         showHighScore();
+        syncAfterRun(showHighScore);
       },
       onLose: (reason: LoseReason, stats: RunStats) => {
         showLoseCard(reason, stats);
         showHighScore();
+        syncAfterRun(showHighScore);
       },
     });
   };
@@ -95,6 +98,18 @@ function bootstrap(): void {
   document.getElementById("start-btn")?.addEventListener("click", startGame);
   document.getElementById("win-play-again-btn")?.addEventListener("click", startGame);
   document.getElementById("lose-play-again-btn")?.addEventListener("click", startGame);
+
+  // Cloud save — reachable only from the start/win/lose cards (each has
+  // its own open button), so the game is never running underneath it.
+  for (const button of document.querySelectorAll(".cloud-save-open-btn")) {
+    button.addEventListener("click", () => showCloudSaveCard(showHighScore));
+  }
+  document.getElementById("cloud-save-dismiss-btn")?.addEventListener("click", hideCloudSaveCard);
+  document.getElementById("cloud-copy-btn")?.addEventListener("click", () => void handleCopyCode());
+  const restoreInput = document.getElementById("cloud-restore-input") as HTMLInputElement | null;
+  document.getElementById("cloud-restore-btn")?.addEventListener("click", () => {
+    void handleRestoreFromCode(restoreInput?.value ?? "", showHighScore);
+  });
 
   // Mobile-friendly tap-to-turn D-pad (per your ask) — same "DOM button
   // calls a public method on the live scene instance" pattern

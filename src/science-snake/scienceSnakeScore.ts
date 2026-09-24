@@ -104,6 +104,61 @@ export function describeRunOutcome(outcome: RunOutcome): string {
   return `Same as your last run (best: ${outcome.highScore})`;
 }
 
+/** What a Science Snake cloud save holds: just the two records this
+ * module already keeps locally. */
+export interface ScienceSnakeCloudSave {
+  highScore: ScoreRecord | null;
+  lastRun: ScoreRecord | null;
+}
+
+export function exportScoresForCloud(): ScienceSnakeCloudSave {
+  return { highScore: loadHighScore(), lastRun: loadLastRun() };
+}
+
+function isScoreRecord(value: unknown): value is ScoreRecord {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.score === "number" &&
+    typeof record.achievedAt === "number" &&
+    typeof record.applesEaten === "number" &&
+    typeof record.questionsCorrect === "number"
+  );
+}
+
+function isScoreRecordOrNull(value: unknown): value is ScoreRecord | null {
+  return value === null || isScoreRecord(value);
+}
+
+/** Whether `remote` is shaped like a Science Snake save at all. */
+export function isScienceSnakeCloudSave(remote: unknown): remote is ScienceSnakeCloudSave {
+  if (!remote || typeof remote !== "object") return false;
+  const save = remote as Record<string, unknown>;
+  return "highScore" in save && "lastRun" in save && isScoreRecordOrNull(save.highScore) && isScoreRecordOrNull(save.lastRun);
+}
+
+/**
+ * Merges a fetched cloud save into this device's records rather than
+ * overwriting them, so syncing can never lose a score either side
+ * has: the high score is whichever is higher (a tie keeps the local
+ * one), and the last run is whichever happened most recently. Returns
+ * false, changing nothing, when `remote` isn't a Science Snake save —
+ * the caller uses that to tell "nothing to restore from that code"
+ * apart from a real restore.
+ */
+export function mergeScoresFromCloud(remote: unknown): boolean {
+  if (!isScienceSnakeCloudSave(remote)) return false;
+  const localHigh = loadHighScore();
+  if (remote.highScore && (!localHigh || remote.highScore.score > localHigh.score)) {
+    localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(remote.highScore));
+  }
+  const localLast = loadLastRun();
+  if (remote.lastRun && (!localLast || remote.lastRun.achievedAt > localLast.achievedAt)) {
+    localStorage.setItem(LAST_RUN_KEY, JSON.stringify(remote.lastRun));
+  }
+  return true;
+}
+
 export function clearHighScore(): void {
   localStorage.removeItem(HIGH_SCORE_KEY);
   localStorage.removeItem(LAST_RUN_KEY);
