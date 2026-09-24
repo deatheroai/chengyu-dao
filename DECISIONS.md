@@ -23,6 +23,49 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-24 — PR #60 (Science Snake e2e suite + PR #56/#40 content)
+  merged after two real CI-red rounds — the win-condition test's own
+  timing needed real fixes, not just a bigger number.** Continuing the
+  2026-09-23/24 cycle below: after opening PR #60, its actual GitHub
+  Actions run failed twice before going green, each time investigated
+  and fixed rather than just re-padding a timeout:
+  1. **First failure**: both attempts hit the full 40-minute budget
+     without winning — the whole e2e suite contending for the runner's
+     CPU the entire time (`73 passed (1.6h)` total vs. this project's
+     normal ~25 minutes). Tried a real speed-up first: an aggressive
+     item-hunting strategy (chase and eat everything, not just what the
+     safe cycle sweep passively crosses). Verified against the real game
+     logic in a throwaway simulation before trusting it, and it
+     self-collided in the large majority of runs once body length grew
+     past roughly 20-30 — a flood-fill "how much room is left" check only
+     catches immediately-bad moves, not a snake walking itself into a
+     shrinking pocket a few moves ahead. Reverted rather than ship a
+     collision risk; this is exactly why real "solved snake" strategies
+     commit to one fixed Hamiltonian cycle for the whole run. Widened the
+     timeout to 90 minutes instead (this repo's own `GRID_WIDTH`/
+     `GRID_HEIGHT` doc comment already says the board is sized "to
+     sustain a 10-15 min session" — a full win taking a while is by
+     design, not a testing inconvenience; the repo being public means
+     Actions minutes aren't a quota concern, just a slower feedback loop).
+  2. **Second failure**: a different bug — `answerCurrentQuestionCorrectly`
+     still had the strict "overlay must close" assertion an earlier fix
+     had already removed from the wrong-answer path, for the same reason
+     (resuming can immediately land on a *different* active science item,
+     reopening the overlay before the assertion ever observes a closed
+     moment). The run's retry then genuinely used its full 89-minute
+     budget with zero visibility into whether it was progressing or
+     stuck — added periodic progress logging (length + elapsed time)
+     rather than guessing again.
+  3. **Third run: green** — `test` check passed in ~26 minutes (an early
+     poison-apple hit, per the new logging's own purpose). Re-verified
+     `mergeable_state: "clean"` (rebased cleanly onto PR #61, an
+     interactive session's Science Snake content-bank batch 4 that landed
+     while this was in flight — no conflicts) before merging via a real
+     merge commit (`ef70680`). Unsubscribed from PR #60's activity
+     afterward.
+  Also closed PR #40 and PR #57 as superseded partway through this same
+  cycle — see the entry below for detail (written before this PR's own
+  CI rounds played out).
 - **2026-09-23 — Science Snake round-over-round scoring (PR #58) merged
   into `main`.** You asked to continue building the game with "a scoring
   system so the player knows if he has improved each round"; built it,
