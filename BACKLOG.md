@@ -1359,8 +1359,14 @@ other mechanic in this repo.
       adding `human-digestive-system`/`fungi`/`heat` topics. Batch 4 (5
       more, 2026-09-24: condensation on a cold can, like/unlike magnet
       poles, whale as a mammal, plants needing light to make food,
-      transparent vs. opaque shadows) is drafted and committed but
-      **pending chat review**, adding a `classifying-animals` topic.
+      transparent vs. opaque shadows) landed the same way after review,
+      adding a `classifying-animals` topic — the plants-need-light
+      question's textbook seedlings-in-a-dark-cupboard setup was swapped
+      for grass left yellow under a carnival bouncy castle, to keep it
+      from feeling like a worksheet. Answers that stop at "plants need
+      light to grow" or "see-through" stay marked wrong on purpose (per
+      review): the question wants the reason (making food) / the light
+      mechanism, not just the observation.
       More batches
       follow the same author-then-review-5-at-a-time flow before this
       item is done. Foundational —

@@ -291,7 +291,7 @@ export const scienceQuestions: ScienceQuestion[] = [
       "Light from the lamp shines on the book, and the book reflects the light into Zara's eyes, so she can see it. In the dark, there is no light for the book to reflect.",
     sourceNotes: "Light — we see non-luminous objects when light from a source is reflected off them into our eyes — standard P3/P4 Energy (Light) theme content.",
   },
-  // --- Batch 4: drafted 2026-09-24, pending chat review. ---
+  // --- Batch 4: authored and approved on chat review 2026-09-24. ---
   {
     id: "nuruls-sweating-can",
     topic: "water-cycle",
@@ -342,20 +342,21 @@ export const scienceQuestions: ScienceQuestion[] = [
       "Diversity — classifying animals by characteristics (mammals: lungs, give birth to live young, feed young with milk) vs. fish (gills, lay eggs) — standard P3/P4 Diversity theme content.",
   },
   {
-    id: "lilys-cupboard-seedlings",
+    id: "chloes-bouncy-castle-grass",
     topic: "plant-systems",
-    icon: "🌿",
+    icon: "🎪",
     prompt:
-      "Lily puts one pot of bean seedlings on a sunny windowsill and an identical pot inside a dark cupboard. She waters both the same amount. After a week, the seedlings in the cupboard are pale yellow, thin and weak, while the ones on the windowsill are green and healthy. Explain why.",
+      "A bouncy castle stood on the school field for a whole week during the school carnival. When it was taken away, Chloe saw a big square of pale yellow, weak-looking grass where it had been, while the grass all around was still green. The field was watered every day, so the soil under the castle was still damp. Explain why the grass under the castle turned yellow.",
     requiredKeywords: [
       ["light", "sunlight"],
-      ["food"],
+      ["food", "photosynthesis"],
     ],
     minWords: 12,
-    hint: "Both pots got the same water, so the only difference is where they were kept. What was missing inside the cupboard, and what do green leaves need it for?",
+    hint: "The soil under the bouncy castle was still damp, so water wasn't the problem. What could the grass not get while the castle was sitting on top of it, and what do green leaves need it for?",
     modelAnswer:
-      "The seedlings in the cupboard did not get any light. Plants need light to make their own food, so without light they became weak and pale, while the seedlings on the windowsill could make food and grow healthily.",
-    sourceNotes: "Plants need light to make their own food (a fair test with water kept the same) — standard P3/P4 Systems/Diversity theme content.",
+      "The bouncy castle blocked the sunlight from reaching the grass. Grass needs light to make its own food, so without light it could not make food and turned pale and weak.",
+    sourceNotes:
+      "Plants need light to make their own food (water ruled out by the scenario) — standard P3/P4 Systems/Diversity theme content. Revised on review 2026-09-24 from a textbook-style seedlings-in-a-dark-cupboard setup to a more everyday scenario.",
   },
   {
     id: "joshs-door-and-window",
