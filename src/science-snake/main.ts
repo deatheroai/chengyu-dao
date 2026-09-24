@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { SnakeGameScene, CELL_SIZE, type RunStats, type LoseReason } from "./SnakeGameScene";
 import { GRID_WIDTH, GRID_HEIGHT, type Direction } from "./snakeGrid";
-import { calculateScore, recordHighScoreIfBetter, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
+import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
 
 function showCard(id: string): void {
   document.getElementById(id)?.classList.add("visible");
@@ -18,12 +18,13 @@ function showHighScore(): void {
 }
 
 function showWinCard(stats: RunStats): void {
-  const record = recordHighScoreIfBetter({ applesEaten: stats.applesEaten, questionsCorrect: stats.questionsCorrect });
-  const score = calculateScore(stats);
+  const outcome = recordRun(stats);
   const el = document.getElementById("win-stats");
   if (el) {
-    el.textContent = `🍎 ${stats.applesEaten} apples × ${APPLE_POINTS} + 🔬 ${stats.questionsCorrect} correct × ${CORRECT_ANSWER_POINTS} = ${score} points${record.score === score ? " — new high score!" : ` (high score: ${record.score})`}`;
+    el.textContent = `🍎 ${stats.applesEaten} apples × ${APPLE_POINTS} + 🔬 ${stats.questionsCorrect} correct × ${CORRECT_ANSWER_POINTS} = ${outcome.score} points`;
   }
+  const comparisonEl = document.getElementById("win-comparison");
+  if (comparisonEl) comparisonEl.textContent = describeRunOutcome(outcome);
   showCard("win-card");
 }
 
@@ -33,10 +34,17 @@ const LOSE_MESSAGES: Record<LoseReason, string> = {
 };
 
 function showLoseCard(reason: LoseReason, stats: RunStats): void {
+  // Recorded on a loss too, not just a win (per your "knows if he's
+  // improved each round" ask) — a run that suffocates early having
+  // answered several questions correctly can still score more than a
+  // scraped-together win, so it deserves the same improvement feedback.
+  const outcome = recordRun(stats);
   const messageEl = document.getElementById("lose-message");
   if (messageEl) messageEl.textContent = LOSE_MESSAGES[reason];
   const statsEl = document.getElementById("lose-stats");
-  if (statsEl) statsEl.textContent = `🍎 ${stats.applesEaten} apples · 🔬 ${stats.questionsCorrect} correct answers`;
+  if (statsEl) statsEl.textContent = `🍎 ${stats.applesEaten} apples · 🔬 ${stats.questionsCorrect} correct answers · ${outcome.score} points`;
+  const comparisonEl = document.getElementById("lose-comparison");
+  if (comparisonEl) comparisonEl.textContent = describeRunOutcome(outcome);
   showCard("lose-card");
 }
 
@@ -68,11 +76,16 @@ function bootstrap(): void {
     if (game.scene.isActive("SnakeGameScene")) game.scene.stop("SnakeGameScene");
     game.scene.start("SnakeGameScene", {
       onWin: (stats: RunStats) => {
-        showHighScore();
+        // showWinCard records the run (and so updates the stored high
+        // score) — showHighScore must read that *after*, not before, or
+        // the header keeps showing the pre-run value on the very run
+        // that just beat it.
         showWinCard(stats);
+        showHighScore();
       },
       onLose: (reason: LoseReason, stats: RunStats) => {
         showLoseCard(reason, stats);
+        showHighScore();
       },
     });
   };

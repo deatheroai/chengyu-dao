@@ -1318,15 +1318,17 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
       confirm they held rather than happened to pass by chance, given
       how timing-sensitive this exact area of the suite already was.
 
-## Science Snake Game (new, 2026-09-16; merged to `main` 2026-09-22)
+## Science Snake Game (new, 2026-09-16; merged to `main` 2026-09-22, 2026-09-23)
 
 A second, standalone game — a P4-syllabus (Singapore MOE) science quiz
 wrapped in a snake game, not a mode inside `idiom-door`. Design settled by
 conversation on 2026-09-16; built across PR #51
 (`claude/educational-snake-game-kd6anh`), human-playtested on its Vercel
 preview and confirmed working, then merged into `main` on 2026-09-22
-(`f226609`) — live at `/science-snake.html`. Items below are ordered
-build-priority, pure-logic-first same as every other mechanic in this repo.
+(`f226609`) — live at `/science-snake.html`. Round-over-round scoring
+followed via PR #58 on the same branch, merged 2026-09-23 (`9f88008`).
+Items below are ordered build-priority, pure-logic-first same as every
+other mechanic in this repo.
 
 - [ ] `in-progress` — **Content bank: P4 Science question set
       (`src/science-snake/scienceQuestions.ts`), authored + reviewed in
@@ -1514,13 +1516,15 @@ build-priority, pure-logic-first same as every other mechanic in this repo.
 - [x] `done` — **Scoring + high score persistence
       (`scienceSnakeScore.ts` + tests, 2026-09-16).** `calculateScore`:
       `apples*APPLE_POINTS(5) + questionsCorrect*CORRECT_ANSWER_POINTS(30)`.
-      `recordHighScoreIfBetter` is called only on a win (per your spec)
-      and only overwrites the stored record when this run's score
-      actually beats it. Direct-localStorage, try/catch-on-parse shape
-      — same as `shared/sessionHistory.ts` — under its own
-      `science-snake-high-score` key, not `idiom-door`'s; the
-      cloud-sync half of that pattern isn't wired up yet (still
-      localStorage-only), left for later polish. 11 tests.
+      Direct-localStorage, try/catch-on-parse shape — same as
+      `shared/sessionHistory.ts` — under its own `science-snake-high-score`
+      key, not `idiom-door`'s. 11 tests.
+      **Superseded (2026-09-23)** by the round-over-round scoring entry
+      below: `recordHighScoreIfBetter` (win-only) no longer exists,
+      replaced by `recordRun` (every completed run, win or lose). The
+      cloud-sync half of the `shared/sessionHistory.ts` pattern still
+      isn't wired up (still localStorage-only) — see the dedicated `todo`
+      item for that, below.
 - [x] `done` — **Phaser scene + DOM question overlay
       (`SnakeGameScene.ts`, `QuestionOverlay.ts`, 2026-09-16).** Thin
       wiring only, same "pure-function-plus-thin-Scene" split every
@@ -1683,6 +1687,44 @@ build-priority, pure-logic-first same as every other mechanic in this repo.
       `vite.config.ts`'s build input list has its own `scienceSnake`
       entry alongside `idiomDoor`. `index.html`
       is untouched.
+- [x] `done` — **Round-over-round improvement feedback
+      (`scienceSnakeScore.ts`, 2026-09-22).** Per your "there should be a
+      scoring system so the player knows if he has improved each round":
+      `recordRun(stats)` now runs at the end of *every* completed run —
+      win or lose alike, not only wins as originally spec'd — since a run
+      that suffocates early having answered several questions correctly
+      can score more than a scraped-together win, and deserves the same
+      feedback. It tracks two things independently: the immediately-prior
+      run's score (`science-snake-last-run` in localStorage, a new key)
+      for round-over-round comparison, and the all-time best
+      (`science-snake-high-score`, the existing key/shape, now updated
+      from a loss too when a loss's score actually beats it). Replaced
+      the old win-only `recordHighScoreIfBetter`/`calculateScore`-in-
+      `main.ts` combo entirely — this repo's "don't leave
+      backwards-compat shims" convention, and pre-launch content besides.
+      `describeRunOutcome(outcome)` turns that into one kid-readable line
+      (📈/📉 delta vs last run, or a 🏆 new-high-score callout) — pure
+      formatting, no DOM, same split as everything else here. Both win
+      and lose cards (`#win-comparison`/`#lose-comparison`,
+      `science-snake.html`) show it now, and the top-right high-score
+      display (`#high-score-display`) updates after a loss too, not just
+      a win. 16 tests (`scienceSnakeScore.test.ts`, up from 11).
+      **Bug found and fixed while verifying live:** `main.ts`'s
+      `onWin`/`onLose` callbacks called `showHighScore()` *before*
+      `showWinCard`/`showLoseCard` — but the high score is only actually
+      updated inside those (via `recordRun`), so the header kept showing
+      the *pre*-run value on the exact run that just beat it. Fixed by
+      reordering (record first, then read). Verified with a real headless
+      browser (Playwright against `vite dev`, not just unit tests) via a
+      temporary `window.__QA_game` debug hook (reverted before commit):
+      forced a win beating a seeded prior score (comparison line showed
+      "🏆 New high score! (+85 vs your last run)", header updated to the
+      new value immediately), forced a lower-scoring loss (showed "📉
+      -100 vs your last run (best: 140)"), and forced a *losing* run that
+      still beat the current high score (correctly showed "🏆 New high
+      score!" off a loss, header updated to the new value) — the exact
+      case this feature didn't previously support. All green: typecheck,
+      full unit suite (469 passed, up from 461), production build.
 - [x] `done` — **E2E test suite (`e2e/science-snake.spec.ts` +
       `e2e/helpers/scienceSnake.ts`, 2026-09-23/24).** Mirrors
       `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
@@ -1777,6 +1819,16 @@ build-priority, pure-logic-first same as every other mechanic in this repo.
       win/suffocation tests all passed repeatedly; see this entry's own
       detail above for what remains a real, acknowledged timing risk
       under contention specifically, not a correctness one.
+- [ ] `todo` — **Cloud-sync for the high score / last-run record
+      (`scienceSnakeScore.ts`).** Currently localStorage-only — a
+      device-typed 8-character code, same no-accounts model
+      `idiom-door`'s own cloud save already uses (`shared/cloudSync.ts`,
+      `shared/cloudSaveValidation.ts`, `api/cloud-save.ts`'s Upstash Redis
+      backend), so scores follow the child between devices instead of
+      resetting on a new one. Reuse that existing backend/API rather than
+      standing up a second one — `science-snake-high-score`/
+      `science-snake-last-run` are their own storage keys already, so
+      this is wiring, not new infra.
 
 ## Platform / infra
 
