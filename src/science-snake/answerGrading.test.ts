@@ -22,6 +22,24 @@ describe("satisfiesRequiredKeywords", () => {
     expect(satisfiesRequiredKeywords("It Can GROW Bigger And REPRODUCE", SAMPLE_QUESTION.requiredKeywords)).toBe(true);
   });
 
+  it("treats hyphens and spaces as the same, both ways", () => {
+    expect(satisfiesRequiredKeywords("nylon is water resistant", [["water-resistant"]])).toBe(true);
+    expect(satisfiesRequiredKeywords("paper is non-magnetic", [["non magnetic"]])).toBe(true);
+  });
+
+  it("treats curly (phone keyboard) apostrophes as straight ones", () => {
+    expect(satisfiesRequiredKeywords("nylon doesn’t absorb water", [["doesn't absorb water"]])).toBe(true);
+  });
+
+  it("ignores extra whitespace between words", () => {
+    expect(satisfiesRequiredKeywords("it  can grow and\nreproduce", SAMPLE_QUESTION.requiredKeywords)).toBe(true);
+  });
+
+  it("matches a leading-space whole-word keyword at the very start of an answer", () => {
+    expect(satisfiesRequiredKeywords("N and N repel", [[" n and n"]])).toBe(true);
+    expect(satisfiesRequiredKeywords("the fan and nets", [[" n and n"]])).toBe(false);
+  });
+
   it("is false for a completely unrelated answer", () => {
     expect(satisfiesRequiredKeywords("magnets attract iron", SAMPLE_QUESTION.requiredKeywords)).toBe(false);
   });

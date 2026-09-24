@@ -12,7 +12,11 @@ export type ScienceTopic =
   | "plant-systems"
   | "materials"
   | "water-cycle"
-  | "light-and-shadows";
+  | "light-and-shadows"
+  | "human-digestive-system"
+  | "fungi"
+  | "heat"
+  | "classifying-animals";
 
 export interface ScienceQuestion {
   id: string;

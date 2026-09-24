@@ -1349,7 +1349,25 @@ other mechanic in this repo.
       the light-and-shadows question's `requiredKeywords`/`hint`/
       `modelAnswer` were revised to require the actual mechanism (the
       sun sitting lower in the sky → a shallower light angle → a longer
-      shadow), not just "the sun's position changes." More batches
+      shadow), not just "the sun's position changes." Batch 3 (5 more,
+      2026-09-23: human digestive system, fungi/mould, heat expansion,
+      air takes up space, seeing by reflected light) landed the same way
+      after review — the air question's scenario was changed from a
+      tissue staying dry in an upturned cup (hard to picture actually
+      working) to a bath-time bottle releasing bubbles. Kept to P3/P4 Lower Block
+      topics (electrical circuits, cells and forces dropped as P5/P6),
+      adding `human-digestive-system`/`fungi`/`heat` topics. Batch 4 (5
+      more, 2026-09-24: condensation on a cold can, like/unlike magnet
+      poles, whale as a mammal, plants needing light to make food,
+      transparent vs. opaque shadows) landed the same way after review,
+      adding a `classifying-animals` topic — the plants-need-light
+      question's textbook seedlings-in-a-dark-cupboard setup was swapped
+      for grass left yellow under a carnival bouncy castle, to keep it
+      from feeling like a worksheet. Answers that stop at "plants need
+      light to grow" or "see-through" stay marked wrong on purpose (per
+      review): the question wants the reason (making food) / the light
+      mechanism, not just the observation.
+      More batches
       follow the same author-then-review-5-at-a-time flow before this
       item is done. Foundational —
       nothing else below is buildable/testable against real content
