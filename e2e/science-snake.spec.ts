@@ -25,20 +25,33 @@ async function startGame(page: Page): Promise<void> {
   await expect(page.locator("#start-card")).not.toHaveClass(/visible/);
 }
 
-test("a full winning playthrough fills the board", async ({ page }) => {
+test("a full winning playthrough fills the board", async ({ page }, testInfo) => {
+  // Real per-run time here has a wide, RNG-driven spread (see the sweep
+  // budget's own comment below) — running this on both projects would
+  // double an already-large worst case for no real benefit: it exercises
+  // game *logic* and DOM state, not the mobile D-pad's own touch
+  // handling (already covered live per BACKLOG.md's mobile-friendliness
+  // entries, and by this suite's own lighter tests elsewhere). Desktop
+  // only.
+  testInfo.skip(testInfo.project.name === "mobile", "logic-only test; see this test's own timeout comment for why it isn't worth doubling on mobile too");
+
   // The underlying simulation (11 rng seeds against the real game logic)
   // reached WIN_LENGTH in 2-4 *simulated* minutes each time, since a
   // poison apple's permanent 4x growth multiplier does most of the work
-  // once one is eaten. Real runs measured live ranged 3.5-6.3 minutes
-  // when a poison apple came up quickly, but one real run that hadn't
-  // hit one yet still hadn't won at 10 minutes — poison-apple luck has a
-  // real tail, and growth from plain apples/correct answers alone is
-  // much slower. 20 minutes covers that tail with real headroom rather
-  // than assuming the lucky case.
-  test.setTimeout(20 * 60 * 1000);
+  // once one is eaten — but that's luck-dependent (a 10% roll per apple
+  // spawn), and real runs measured live confirm the spread is wide: 3.5,
+  // 4.7 and 6.3 minutes with an early poison hit, but two other runs
+  // without one still hadn't won at 10 and 19 minutes. Without poison
+  // luck, growth is only ~1.67 per item encountered on average (the
+  // science:apple spawn ratio's weighted mix of +1/+4), needing roughly
+  // 160 encounters at the sweep's own real passive rate — genuinely
+  // slow, not stuck, and bounded (the cycle itself is what guarantees
+  // termination, not speed). 28 minutes covers that real worst case with
+  // headroom rather than assuming the lucky one.
+  test.setTimeout(28 * 60 * 1000);
   await startGame(page);
 
-  await sweepFullBoardUntilWin(page, 19 * 60 * 1000);
+  await sweepFullBoardUntilWin(page, 27 * 60 * 1000);
 
   await expect(page.locator("#win-card")).toHaveClass(/visible/);
   const stats = await page.locator("#win-stats").textContent();
@@ -51,14 +64,19 @@ test("a full winning playthrough fills the board", async ({ page }) => {
   await expect(page.locator("#start-card")).not.toHaveClass(/visible/);
 });
 
-test("repeated wrong answers pile up unresolved questions until the board suffocates", async ({ page }) => {
+test("repeated wrong answers pile up unresolved questions until the board suffocates", async ({ page }, testInfo) => {
+  // Same "logic/DOM, not mobile touch-input, doesn't need doubling"
+  // reasoning as the win playthrough above.
+  testInfo.skip(testInfo.project.name === "mobile", "logic-only test, desktop covers it");
+
   // From the same simulation: suffocation was reached within 50 real
-  // seconds of game time across 400 rng seeds, 0 self-collisions. 10
-  // minutes is generous headroom for real browser/interaction overhead.
-  test.setTimeout(10 * 60 * 1000);
+  // seconds of game time across 400 rng seeds, 0 self-collisions. Real
+  // runs measured live took 6.1-6.8 minutes; 12 minutes is generous
+  // headroom above that for real browser/interaction overhead.
+  test.setTimeout(12 * 60 * 1000);
   await startGame(page);
 
-  await driveToSuffocation(page);
+  await driveToSuffocation(page, 11 * 60 * 1000);
 
   await waitForLoseReason(page, "unanswered questions piled up");
   const stats = await page.locator("#lose-stats").textContent();
