@@ -40,6 +40,18 @@
         </div>
       </div>
 
+      <!-- Test-only hooks mirroring otherwise canvas-only board state —
+           same "expose it as a data attribute, hidden from the child"
+           pattern idiom-door's own #player-position/#balloon-position
+           use (SnakeGameScene reads real spawn positions from a seeded
+           RNG a test can't predict, the same reason those hooks exist
+           there). See src/science-snake/gameStatus.ts. -->
+      <div id="snake-head-position" data-x="0" data-y="0" data-direction="right" style="display: none" aria-hidden="true"></div>
+      <div id="snake-body-cells" style="display: none" aria-hidden="true"></div>
+      <div id="snake-item-positions" style="display: none" aria-hidden="true"></div>
+      <div id="snake-run-status" data-ended="false" data-outcome="" style="display: none" aria-hidden="true"></div>
+      <div id="snake-active-question" style="display: none" aria-hidden="true"></div>
+
       <div id="high-score-display" aria-live="polite"></div>
 
       <div id="start-card" class="card-layer">

@@ -11,6 +11,23 @@ function hideCard(id: string): void {
   document.getElementById(id)?.classList.remove("visible");
 }
 
+/**
+ * Dev/e2e-only knobs, never written by the shipped game itself — same
+ * "a real child's session never writes this key" convention as
+ * idiom-door's own dev-reroll-idioms seed override
+ * (`sessionIdioms.ts`'s `chengyu-dao-dev-idiom-seed-override`). See
+ * `SnakeGameSceneData.winLength`/`suffocationThresholdRatio`'s own doc
+ * comment for why the e2e suite needs these instead of replaying a full
+ * multi-minute session against the real production sizes.
+ */
+const DEV_WIN_LENGTH_OVERRIDE_KEY = "science-snake-dev-win-length-override";
+const DEV_SUFFOCATION_RATIO_OVERRIDE_KEY = "science-snake-dev-suffocation-ratio-override";
+
+function devNumberOverride(key: string): number | undefined {
+  const parsed = Number(localStorage.getItem(key));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 function showHighScore(): void {
   const record = loadHighScore();
   const el = document.getElementById("high-score-display");
@@ -87,6 +104,8 @@ function bootstrap(): void {
         showLoseCard(reason, stats);
         showHighScore();
       },
+      winLength: devNumberOverride(DEV_WIN_LENGTH_OVERRIDE_KEY),
+      suffocationThresholdRatio: devNumberOverride(DEV_SUFFOCATION_RATIO_OVERRIDE_KEY),
     });
   };
 

@@ -7,6 +7,7 @@ import {
   applyCorrectAnswerEaten,
   applyPoisonAppleEaten,
   hasWon,
+  WIN_LENGTH,
   GRID_WIDTH,
   GRID_HEIGHT,
   TICK_MS,
@@ -23,10 +24,11 @@ import {
   INDIGESTION_SPAWN_COUNT,
   type BoardItem,
 } from "./itemSpawner";
-import { isSuffocating } from "./suffocation";
+import { isSuffocating, SUFFOCATION_THRESHOLD_RATIO } from "./suffocation";
 import { createRng } from "./seededRandom";
 import { scienceQuestionsById, scienceQuestions } from "./scienceQuestions";
 import { askQuestion } from "./QuestionOverlay";
+import { updateSnakeHeadState, updateSnakeBodyState, syncSnakeItemPositions, updateSnakeRunStatus, updateActiveQuestion } from "./gameStatus";
 
 /**
  * The playable Phaser scene (BACKLOG.md's "Phaser scene + DOM question
@@ -54,6 +56,20 @@ export interface RunStats {
 export interface SnakeGameSceneData {
   onWin: (stats: RunStats) => void;
   onLose: (reason: LoseReason, stats: RunStats) => void;
+  /**
+   * Overrides `snakeGrid.ts`'s real `WIN_LENGTH`/`suffocation.ts`'s real
+   * `SUFFOCATION_THRESHOLD_RATIO` — testability seams only, never set by
+   * `main.ts`'s real bootstrap (see its own dev-override doc comment).
+   * Both real constants are sized for an actual multi-minute play
+   * session; an e2e test proving the win/suffocation code paths work
+   * (spawning, growth, the predicate itself, the resulting card and
+   * high-score write) doesn't need to replay a full session at those
+   * sizes to do it, any more than a unit test builds a production-sized
+   * board by hand. Every other rule (movement, growth, collisions,
+   * spawning, grading) runs completely for real either way.
+   */
+  winLength?: number;
+  suffocationThresholdRatio?: number;
 }
 
 const SNAKE_COLOR = 0x3c8a4c;
@@ -125,6 +141,8 @@ export class SnakeGameScene extends Phaser.Scene {
   private itemTexts = new Map<string, Phaser.GameObjects.Text>();
   private onWin!: (stats: RunStats) => void;
   private onLose!: (reason: LoseReason, stats: RunStats) => void;
+  private winLength = WIN_LENGTH;
+  private suffocationThresholdRatio = SUFFOCATION_THRESHOLD_RATIO;
   private keydownHandler?: (e: KeyboardEvent) => void;
 
   constructor() {
@@ -134,6 +152,8 @@ export class SnakeGameScene extends Phaser.Scene {
   init(data: SnakeGameSceneData): void {
     this.onWin = data.onWin;
     this.onLose = data.onLose;
+    this.winLength = data.winLength ?? WIN_LENGTH;
+    this.suffocationThresholdRatio = data.suffocationThresholdRatio ?? SUFFOCATION_THRESHOLD_RATIO;
   }
 
   create(): void {
@@ -146,6 +166,7 @@ export class SnakeGameScene extends Phaser.Scene {
     this.items = [];
     this.paused = false;
     this.ended = false;
+    updateSnakeRunStatus(false, "");
 
     for (let i = 0; i < INITIAL_APPLE_COUNT; i++) this.spawnReplacementApple();
     this.spawnReplacementScienceItemIfNeeded();
@@ -256,7 +277,7 @@ export class SnakeGameScene extends Phaser.Scene {
     // actually be checked. isSuffocating has to be checked every tick,
     // independent of eating, to match "should end early quickly" for a
     // genuinely crowded board.
-    if (isSuffocating(this.items)) {
+    if (isSuffocating(this.items, this.suffocationThresholdRatio)) {
       this.finishLose("suffocation");
       return;
     }
@@ -291,7 +312,9 @@ export class SnakeGameScene extends Phaser.Scene {
   private askScienceQuestion(questionId: string): void {
     const question = scienceQuestionsById[questionId];
     this.paused = true;
+    updateActiveQuestion(questionId);
     askQuestion(question, (outcome) => {
+      updateActiveQuestion(null);
       this.paused = false;
       if (outcome === "correct") {
         this.snake = applyCorrectAnswerEaten(this.snake);
@@ -306,23 +329,25 @@ export class SnakeGameScene extends Phaser.Scene {
   }
 
   private checkOutcome(): void {
-    if (hasWon(this.snake)) {
+    if (hasWon(this.snake, this.winLength)) {
       this.finishWin();
       return;
     }
-    if (isSuffocating(this.items)) {
+    if (isSuffocating(this.items, this.suffocationThresholdRatio)) {
       this.finishLose("suffocation");
     }
   }
 
   private finishWin(): void {
     this.ended = true;
+    updateSnakeRunStatus(true, "win");
     this.tickEvent?.remove();
     this.onWin(this.stats);
   }
 
   private finishLose(reason: LoseReason): void {
     this.ended = true;
+    updateSnakeRunStatus(true, reason);
     this.tickEvent?.remove();
     if (reason === "suffocation") {
       this.playSuffocationDeath(() => this.onLose(reason, this.stats));
@@ -381,6 +406,8 @@ export class SnakeGameScene extends Phaser.Scene {
   private render(): void {
     this.renderGridAndItems();
     this.renderSnakeBody(this.gfx);
+    updateSnakeHeadState(this.snake.body[0], this.snake.direction);
+    updateSnakeBodyState(this.snake.body);
   }
 
   private renderGridAndItems(): void {
@@ -393,6 +420,7 @@ export class SnakeGameScene extends Phaser.Scene {
       this.gfx.lineBetween(0, y * CELL_SIZE, GRID_WIDTH * CELL_SIZE, y * CELL_SIZE);
     }
     this.renderItems();
+    syncSnakeItemPositions(this.items.map((item) => ({ x: item.position.x, y: item.position.y, type: item.type, questionId: item.questionId })));
   }
 
   /**

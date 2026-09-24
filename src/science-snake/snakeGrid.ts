@@ -163,6 +163,12 @@ export function step(state: SnakeState): MoveResult {
   };
 }
 
-export function hasWon(state: SnakeState): boolean {
-  return state.body.length >= WIN_LENGTH;
+/**
+ * `winLength` defaults to the real `WIN_LENGTH` — only ever overridden by
+ * science-snake's own e2e suite (see `SnakeGameSceneData.winLength`'s doc
+ * comment), never by the shipped game itself, same as
+ * `isSuffocating`'s own optional threshold below.
+ */
+export function hasWon(state: SnakeState, winLength: number = WIN_LENGTH): boolean {
+  return state.body.length >= winLength;
 }
