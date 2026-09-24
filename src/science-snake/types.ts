@@ -15,7 +15,8 @@ export type ScienceTopic =
   | "light-and-shadows"
   | "human-digestive-system"
   | "fungi"
-  | "heat";
+  | "heat"
+  | "classifying-animals";
 
 export interface ScienceQuestion {
   id: string;

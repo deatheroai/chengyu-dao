@@ -1356,7 +1356,12 @@ other mechanic in this repo.
       tissue staying dry in an upturned cup (hard to picture actually
       working) to a bath-time bottle releasing bubbles. Kept to P3/P4 Lower Block
       topics (electrical circuits, cells and forces dropped as P5/P6),
-      adding `human-digestive-system`/`fungi`/`heat` topics. More batches
+      adding `human-digestive-system`/`fungi`/`heat` topics. Batch 4 (5
+      more, 2026-09-24: condensation on a cold can, like/unlike magnet
+      poles, whale as a mammal, plants needing light to make food,
+      transparent vs. opaque shadows) is drafted and committed but
+      **pending chat review**, adding a `classifying-animals` topic.
+      More batches
       follow the same author-then-review-5-at-a-time flow before this
       item is done. Foundational —
       nothing else below is buildable/testable against real content

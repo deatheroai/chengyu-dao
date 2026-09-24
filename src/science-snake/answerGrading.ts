@@ -18,7 +18,10 @@ import type { ScienceQuestion } from "./types";
  * text itself would also count as a well-formed sentence.
  */
 export function satisfiesRequiredKeywords(answer: string, requiredKeywords: string[][]): boolean {
-  const normalized = normalizeForMatching(answer);
+  // Padded so a keyword written with a leading space to mark a whole
+  // word (" n and n", so "an and no" can't match) still matches at the
+  // very start of an answer.
+  const normalized = ` ${normalizeForMatching(answer)} `;
   return requiredKeywords.every((group) => group.some((keyword) => normalized.includes(normalizeForMatching(keyword))));
 }
 

@@ -35,6 +35,11 @@ describe("satisfiesRequiredKeywords", () => {
     expect(satisfiesRequiredKeywords("it  can grow and\nreproduce", SAMPLE_QUESTION.requiredKeywords)).toBe(true);
   });
 
+  it("matches a leading-space whole-word keyword at the very start of an answer", () => {
+    expect(satisfiesRequiredKeywords("N and N repel", [[" n and n"]])).toBe(true);
+    expect(satisfiesRequiredKeywords("the fan and nets", [[" n and n"]])).toBe(false);
+  });
+
   it("is false for a completely unrelated answer", () => {
     expect(satisfiesRequiredKeywords("magnets attract iron", SAMPLE_QUESTION.requiredKeywords)).toBe(false);
   });

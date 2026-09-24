@@ -10,7 +10,7 @@ import type { ScienceQuestion } from "./types";
  * revised to a concrete scenario per question before approval, and its
  * original question 5 ("list the butterfly life cycle's 4 stages in
  * order") was replaced entirely for reading as MCQ-shaped rather than
- * short-answer. Batch 2 and 3 boundaries are marked inline below.
+ * short-answer. Later batch boundaries are marked inline below.
  */
 export const scienceQuestions: ScienceQuestion[] = [
   // --- Batch 1 ---
@@ -290,6 +290,88 @@ export const scienceQuestions: ScienceQuestion[] = [
     modelAnswer:
       "Light from the lamp shines on the book, and the book reflects the light into Zara's eyes, so she can see it. In the dark, there is no light for the book to reflect.",
     sourceNotes: "Light — we see non-luminous objects when light from a source is reflected off them into our eyes — standard P3/P4 Energy (Light) theme content.",
+  },
+  // --- Batch 4: drafted 2026-09-24, pending chat review. ---
+  {
+    id: "nuruls-sweating-can",
+    topic: "water-cycle",
+    icon: "🥫",
+    prompt:
+      "Nurul takes a can of cold drink out of the fridge and puts it on the table. A few minutes later, the outside of the can is covered in tiny water droplets, even though the can is sealed and not leaking. Explain where the water droplets came from.",
+    requiredKeywords: [
+      ["water vapour", "water vapor", "vapour", "vapor"],
+      ["condense", "condensed", "condenses", "condensation", "cooled", "cools", "cooler", "loses heat", "lost heat", "turned into water", "turns into water", "became water"],
+    ],
+    minWords: 12,
+    hint: "The can isn't leaking, so the water must have come from the air around it. What invisible form of water is in the air, and what happens to it when it touches something very cold?",
+    modelAnswer:
+      "The water droplets came from water vapour in the air. When the water vapour touched the cold can, it lost heat and condensed into tiny water droplets.",
+    sourceNotes: "Water cycle / heat loss — water vapour in the air condenses on a cold surface — standard P4 Cycles (Matter/Water) theme content.",
+  },
+  {
+    id: "aidens-magnetic-train",
+    topic: "magnets",
+    icon: "🚂",
+    prompt:
+      "Aiden's toy train carriages have a magnet at each end. When he brings two carriages together one way, they push away from each other and will not join. When he turns one carriage around, they snap together. Explain why.",
+    requiredKeywords: [
+      ["like poles", "same poles", "same pole", "north and north", "south and south", "north pole and north pole", "south pole and south pole", "two north", "two south", " n and n", " s and s"],
+      ["unlike poles", "opposite poles", "different poles", "north and south", "south and north", "north pole and south pole", "south pole and north pole", " n and s", " s and n"],
+    ],
+    minWords: 12,
+    hint: "Every magnet has two ends called poles. Think about which kinds of poles push each other away, and which kinds pull each other together.",
+    modelAnswer:
+      "The first time, the same poles were facing each other, like north and north, so they repelled. When Aiden turned the carriage around, opposite poles faced each other, so they attracted and snapped together.",
+    sourceNotes: "Magnets — like poles repel, unlike poles attract — standard P3/P4 Interactions theme content.",
+  },
+  {
+    id: "kais-whale-is-not-a-fish",
+    topic: "classifying-animals",
+    icon: "🐋",
+    prompt:
+      "At the aquarium, Kai says the whale is a fish because it lives in the sea and swims with fins. His sister Lin says the whale is actually a mammal. Explain why Lin is right.",
+    requiredKeywords: [
+      ["lungs", "breathe air", "breathes air", "breathing air", "blowhole", "surface to breathe"],
+      ["give birth", "gives birth", "live young", "young alive", "babies alive", "milk"],
+    ],
+    minWords: 12,
+    hint: "Think about how a fish takes in air underwater, and why a whale has to keep coming up to the surface. Then think about how baby whales are born and fed, compared to baby fish.",
+    modelAnswer:
+      "Lin is right because a whale breathes air using lungs, not gills like a fish. A whale also gives birth to live young and feeds its babies with milk, just like other mammals.",
+    sourceNotes:
+      "Diversity — classifying animals by characteristics (mammals: lungs, give birth to live young, feed young with milk) vs. fish (gills, lay eggs) — standard P3/P4 Diversity theme content.",
+  },
+  {
+    id: "lilys-cupboard-seedlings",
+    topic: "plant-systems",
+    icon: "🌿",
+    prompt:
+      "Lily puts one pot of bean seedlings on a sunny windowsill and an identical pot inside a dark cupboard. She waters both the same amount. After a week, the seedlings in the cupboard are pale yellow, thin and weak, while the ones on the windowsill are green and healthy. Explain why.",
+    requiredKeywords: [
+      ["light", "sunlight"],
+      ["food"],
+    ],
+    minWords: 12,
+    hint: "Both pots got the same water, so the only difference is where they were kept. What was missing inside the cupboard, and what do green leaves need it for?",
+    modelAnswer:
+      "The seedlings in the cupboard did not get any light. Plants need light to make their own food, so without light they became weak and pale, while the seedlings on the windowsill could make food and grow healthily.",
+    sourceNotes: "Plants need light to make their own food (a fair test with water kept the same) — standard P3/P4 Systems/Diversity theme content.",
+  },
+  {
+    id: "joshs-door-and-window",
+    topic: "light-and-shadows",
+    icon: "🪟",
+    prompt:
+      "On a sunny afternoon, Josh notices that the wooden door casts a dark shadow on the floor, but the clear glass window next to it does not. Explain why.",
+    requiredKeywords: [
+      ["transparent", "lets light pass", "lets light through", "lets most light", "allows light to pass", "allows light through", "light passes through", "light can pass", "light goes through", "light can go through", "light can get through"],
+      ["opaque", "blocks light", "block light", "blocks the light", "does not let light", "doesn't let light", "does not allow light", "doesn't allow light", "light cannot pass", "cannot pass through", "cannot go through", "can't go through", "cannot get through", "can't get through", "does not go through", "doesn't go through"],
+    ],
+    minWords: 12,
+    hint: "Can you see through the glass? Can you see through the wood? Think about what that tells you about how much of the sunlight each one lets reach the floor behind it.",
+    modelAnswer:
+      "The glass window is transparent, so it lets most light pass through and does not form a dark shadow. The wooden door is opaque, so it blocks light and casts a dark shadow on the floor.",
+    sourceNotes: "Light — transparent materials let most light through, opaque materials block light and form shadows — standard P3/P4 Energy (Light) theme content.",
   },
 ];
 

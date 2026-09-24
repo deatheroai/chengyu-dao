@@ -14,12 +14,13 @@ const VALID_TOPICS = new Set([
   "human-digestive-system",
   "fungi",
   "heat",
+  "classifying-animals",
 ]);
 const REQUIRED_TEXT_FIELDS = ["icon", "prompt", "hint", "modelAnswer", "sourceNotes"] as const;
 
 describe("science-snake question content integrity", () => {
-  it("has at least the batch 1-3 count, growing in batches of 5", () => {
-    expect(scienceQuestions.length).toBeGreaterThanOrEqual(15);
+  it("has at least the batch 1-4 count, growing in batches of 5", () => {
+    expect(scienceQuestions.length).toBeGreaterThanOrEqual(20);
   });
 
   it("every question's id matches its registry key", () => {
