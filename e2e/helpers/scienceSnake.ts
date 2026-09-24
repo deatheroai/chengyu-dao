@@ -395,6 +395,13 @@ export async function chaseNearestScienceItem(page: Page, maxMs = 60000): Promis
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
     if (await isQuestionOverlayVisible(page)) return;
+    // Bail out fast on a self-collision instead of dispatching pointless
+    // direction presses to a dead snake until this function's own
+    // timeout — found live as a real multi-minute hang, not guessed.
+    if (await isCardVisible(page, "lose-card")) {
+      const reason = await page.locator("#lose-message").textContent();
+      throw new Error(`chaseNearestScienceItem: game already ended (${reason})`);
+    }
     const items = await readBoardItems(page);
     const scienceItems = items.filter((i) => i.type === "science");
     if (scienceItems.length === 0) {
