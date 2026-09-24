@@ -29,17 +29,33 @@ export function updateSnakeStatus(snake: SnakeState): void {
  * item). Lets a test navigate straight to the nearest item of a given
  * type (e.g. "the nearest science item, to deliberately answer it
  * wrong") instead of a blind search.
+ *
+ * Reuses existing `<span>`s by index (create/update in place, trim any
+ * surplus) rather than `replaceChildren()`-ing the whole list every
+ * call — this runs every tick, and a suffocating board can carry 190+
+ * items; destroying and recreating that many DOM nodes 5-6 times a
+ * second turned out to bog the whole tab down badly enough to make the
+ * game itself unresponsive (found live, as a genuine multi-minute
+ * stall, not guessed) — same "update in place" reasoning
+ * `SnakeGameScene.renderItems` already uses for its own Phaser Text
+ * objects, just for this hidden DOM mirror instead.
  */
 export function syncBoardItems(items: BoardItem[]): void {
   const container = document.getElementById("board-items");
   if (!container) return;
-  container.replaceChildren();
-  for (const item of items) {
-    const span = document.createElement("span");
+  items.forEach((item, i) => {
+    let span = container.children[i] as HTMLElement | undefined;
+    if (!span) {
+      span = document.createElement("span");
+      container.append(span);
+    }
     span.dataset.x = String(item.position.x);
     span.dataset.y = String(item.position.y);
     span.dataset.type = item.type;
     if (item.questionId) span.dataset.questionId = item.questionId;
-    container.append(span);
+    else delete span.dataset.questionId;
+  });
+  while (container.children.length > items.length) {
+    container.lastElementChild?.remove();
   }
 }
