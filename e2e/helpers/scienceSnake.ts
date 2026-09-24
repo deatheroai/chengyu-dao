@@ -111,7 +111,13 @@ export async function answerCurrentQuestionCorrectly(page: Page): Promise<void> 
   const question = scienceQuestions.find((q) => q.prompt === promptText);
   if (!question) throw new Error(`no scienceQuestions entry matches prompt: ${promptText}`);
   await submitAnswer(page, question.modelAnswer);
-  await expect(page.locator("#question-overlay")).not.toHaveClass(/visible/);
+  // Deliberately not asserting the overlay closes here — same reasoning
+  // as answerCurrentQuestionWrongTwiceAndContinue below: resuming can
+  // immediately land the head on a *different* already-active science
+  // item, reopening the overlay for a fresh question before this ever
+  // observes a "closed" moment. Found live on a real CI run (the win
+  // sweep passes through many items in a row), not guessed. The caller's
+  // own next isQuestionOverlayVisible check handles either case.
 }
 
 /** A validly-formed sentence that satisfies no question's requiredKeywords — deliberately wrong, not malformed (must still clear the minWords/sentence-shape check to reach the keyword grading at all). */
@@ -266,7 +272,17 @@ export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000)
   let queue: Waypoint[] = [...prefix, ...cycle];
 
   const deadline = Date.now() + maxMs;
+  // Real CI runs of this test have taken anywhere from ~5 to 90+ minutes
+  // (RNG-driven poison-apple luck) — logging progress periodically means
+  // a slow run's own CI output shows real growth (or the lack of it)
+  // instead of a single opaque timeout at the very end.
+  let lastLogAt = 0;
   while (Date.now() < deadline) {
+    if (Date.now() - lastLogAt > 60000) {
+      lastLogAt = Date.now();
+      const length = await page.locator("#snake-status").getAttribute("data-length");
+      console.log(`[sweepFullBoardUntilWin] length=${length} elapsedMs=${Date.now() - (deadline - maxMs)}`);
+    }
     const { winVisible, overlayVisible, head } = await readSweepStatus(page);
     if (winVisible) return;
     if (overlayVisible) {
