@@ -23,6 +23,29 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-24 — Daily cycle: Science Snake e2e test suite
+  (`e2e/science-snake.spec.ts`).** Pending Decisions was empty.
+  `BACKLOG.md`'s Science Snake "Content bank" item is next in that
+  section's own build-priority order and still `in-progress`, but it's
+  not buildable unattended: its own established process (this file's
+  2026-09-16 "author content directly, reviewed in batches of five
+  before landing" resolution) requires showing each new batch to you for
+  direct review/correction before it's committed, since P4 syllabus
+  content can't be independently verified against a primary source the
+  way idiom dictionary entries can — an unattended daily cycle has no
+  one to show a batch to, so authoring more questions on its own would
+  either guess at content that's supposed to be your call or violate
+  that established review step. Not a new decision to log (the process
+  itself was already decided); just not this cycle's to advance. Picked
+  the next unblocked item instead: the "E2E test suite" entry right
+  after it, which is pure engineering with no content-authoring/review
+  step. See `BACKLOG.md`'s own updated entry for the full detail
+  (two real test-navigation bugs found and fixed along the way, both in
+  how the test observes state rather than in the game itself). All gates
+  green: `npm run typecheck`/`test` (469 passed)/`build`/`test:e2e` (76
+  passed, mobile+desktop, run with `CI=true` to match the actual PR
+  gate). PR opened and merged per the standing 2026-08-26 auto-land
+  policy.
 - **2026-09-23 — Science Snake round-over-round scoring (PR #58) merged
   into `main`.** You asked to continue building the game with "a scoring
   system so the player knows if he has improved each round"; built it,

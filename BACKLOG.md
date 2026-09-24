@@ -1725,13 +1725,73 @@ other mechanic in this repo.
       score!" off a loss, header updated to the new value) — the exact
       case this feature didn't previously support. All green: typecheck,
       full unit suite (469 passed, up from 461), production build.
-- [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
-      `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
-      full suffocation-loss playthrough (repeated wrong answers piling up
-      poop), and specifically a test asserting the reveal overlay's
-      "Continue" is genuinely gated behind stepping through every
-      chunk (not just present from the start) — that gating is the actual
-      point of the mechanic, not incidental UI.
+- [x] `done` — **E2E test suite (`e2e/science-snake.spec.ts`,
+      2026-09-24).** Mirrors `idiom-door`'s `e2e/helpers/` pattern for
+      real: a new `src/science-snake/gameStatus.ts` mirrors otherwise
+      canvas-only state (head/body position, item positions, run
+      outcome, the currently-open question's id) into hidden DOM, the
+      same "expose it as a data attribute" approach `positionStatus.ts`/
+      `balloonPositionStatus.ts` already use — `e2e/helpers/snakeNav.ts`
+      steers off that live state every real tick (never a scripted
+      path), the same way `doorJump.ts`/`fullSession.ts` already do for
+      `idiom-door`.
+      Three tests, matching this entry's own original scope: (1) a real
+      winning playthrough — eating real apples until the win threshold
+      is crossed — shows the win card and records the high score; (2) a
+      real suffocation-loss playthrough, via one genuine wrong-twice
+      question resolution piling unresolved questions onto the board,
+      shows the lose card; (3) the reveal overlay's "Continue" is
+      asserted hidden through every "Next" tap and only appears once
+      every word-chunk has actually been stepped through — the actual
+      point of that mechanic, not just present from the start.
+      `WIN_LENGTH` (269 cells) and `SUFFOCATION_THRESHOLD_RATIO` (192
+      unresolved questions) are real constants sized for an actual
+      multi-minute play session, not a CI run — `hasWon`/`isSuffocating`
+      each gained an optional threshold parameter (default unchanged,
+      existing unit tests untouched), and `SnakeGameSceneData` gained
+      matching `winLength`/`suffocationThresholdRatio` overrides, read by
+      `main.ts` from two dev/e2e-only `localStorage` keys the shipped
+      game itself never writes (same convention as `idiom-door`'s own
+      dev-reroll-idioms seed override). Only the pass/fail *threshold* is
+      test data — movement, growth, collision, item spawning, question
+      grading, the predicates themselves, and the resulting card/
+      high-score write all still run for real either way, the same as a
+      unit test building a small board by hand instead of a
+      production-sized one.
+      Two real bugs found and fixed while building this, both in how the
+      test observes state rather than in the game itself:
+      (1) `steerToItem`'s first draft read the item-position mirror and
+      the "is the question overlay open" state as two separate
+      `page.evaluate` round-trips — real game ticks keep advancing
+      between any two separate round-trips (the browser's own timers
+      don't pause for Playwright), so a target's own item could still
+      look "on the board" in a stale snapshot taken a moment after the
+      *same* item had already been eaten and its overlay opened,
+      making the navigation helper treat the test's own deliberate pickup
+      as someone else's incidental one and auto-answer it correctly
+      before the test could submit its own deliberately-wrong answer.
+      Fixed by making `readSnakeState` one atomic snapshot (items,
+      overlay-open, and the active question id together) rather than
+      several independent reads — reproduced 1/8 runs before the fix, 0/8
+      after, so also re-ran the full suite 4x clean afterward rather than
+      trusting a single pass, given `AUTONOMY.md`'s own history of a
+      first "all green" not always holding (2026-09-14's PR #49 entry).
+      (2) The win-playthrough test's navigation picked whichever
+      direction most reduced Manhattan distance to the target apple
+      without checking the snake's own body, which could steer it into
+      its own tail — the exact real self-collision `snakeGrid.ts`'s
+      `step` enforces. Fixed by mirroring the whole body (not just the
+      head) via a new `updateSnakeBodyState`/`#snake-body-cells` hook and
+      having the navigation helper rank all 4 directions by progress
+      toward the target but skip any whose next cell is currently part of
+      the body — reproduced ~50% of runs before the fix (short snake,
+      large board, so purely bad luck on which direction got picked when
+      more than one made equal progress), 0/8 after.
+      All green: `npm run typecheck`/`test` (469 passed, unchanged — no
+      new pure-logic surface beyond the two now-parameterized
+      predicates, both covered by their own existing unit tests via their
+      unchanged default)/`build`/`test:e2e` (76 passed, mobile+desktop,
+      run with `CI=true` to match the actual PR gate, ~20.7 min).
 - [ ] `todo` — **Cloud-sync for the high score / last-run record
       (`scienceSnakeScore.ts`).** Currently localStorage-only — a
       device-typed 8-character code, same no-accounts model
