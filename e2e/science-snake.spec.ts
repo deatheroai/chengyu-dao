@@ -39,23 +39,39 @@ test("a full winning playthrough fills the board", async ({ page }, testInfo) =>
   // reached WIN_LENGTH in 2-4 *simulated* minutes each time, since a
   // poison apple's permanent 4x growth multiplier does most of the work
   // once one is eaten — but that's luck-dependent (a 10% roll per apple
-  // spawn). Real runs measured live show a genuinely wide spread: as
-  // fast as 3.5-6.3 minutes with an early poison hit, but a run without
-  // one is much slower (without it, growth is only ~1.67 per item
-  // encountered on average, needing ~160 encounters at the sweep's own
-  // passive rate), and CPU contention from other e2e tests running at
-  // the same time (this sandbox's own real, reproduced behavior — a run
-  // that took 4.3 minutes alone needed over 27 minutes racing another
-  // slow test) stacks on top of that. None of this makes the sweep
-  // unsafe (the cycle itself, not speed, is what guarantees it can't
-  // self-collide) — just slow in the worst case. 40 minutes covers the
-  // real worst case observed plus contention headroom; CI's own
-  // retries:1 (playwright.config.ts) gives a second, likely
-  // less-contended attempt on top of that if one run is still unlucky.
-  test.setTimeout(40 * 60 * 1000);
+  // spawn), and without one, growth is only ~1.67 per item encountered on
+  // average, needing ~160 encounters at the sweep's own passive rate.
+  // This project's own GRID_WIDTH/GRID_HEIGHT doc comment says the board
+  // is deliberately sized "to sustain a 10-15 min session" — a full real
+  // win is *meant* to take a while, not a testing inconvenience to
+  // engineer around. A same-day attempt at speeding this up with an
+  // aggressive item-hunting strategy (answer everything correctly/eat
+  // every apple instead of just what the safe sweep passively crosses)
+  // was reverted: verified against the real game logic, it self-collided
+  // in the large majority of simulated runs once the body grew past
+  // roughly 20-30 — a flood-fill "how much room does this leave me"
+  // check catches the *immediately* obviously-bad moves, but a snake
+  // chasing food directly can still walk itself into a shrinking pocket a
+  // few moves ahead, which is exactly the well-known reason real
+  // "solved snake" bots use a fixed Hamiltonian cycle for the *entire*
+  // run rather than switching to greedy chasing once seemingly-safe.
+  // That leaves this sweep's own real, wide timing spread as a fact
+  // about the feature, not a bug to fix away: 3.5-6.3 minutes locally
+  // with an early poison hit, but this test's own actual GitHub Actions
+  // run needed more than 39 minutes on *two consecutive* attempts (the
+  // full e2e suite contending for the runner's CPU the whole time, per
+  // its own "73 passed (1.6h)" total — nearly 4x this project's normal
+  // ~25-minute suite time). None of this makes the sweep unsafe — the
+  // cycle itself, not speed, is what guarantees it can't self-collide,
+  // so a long-enough timeout is a correct fix, not a papered-over one.
+  // 90 minutes gives real headroom above the worst case actually
+  // observed on the real CI runner; this repo is public, so GitHub
+  // Actions minutes aren't a quota concern, just a slower feedback loop
+  // for this one test.
+  test.setTimeout(90 * 60 * 1000);
   await startGame(page);
 
-  await sweepFullBoardUntilWin(page, 39 * 60 * 1000);
+  await sweepFullBoardUntilWin(page, 89 * 60 * 1000);
 
   await expect(page.locator("#win-card")).toHaveClass(/visible/);
   const stats = await page.locator("#win-stats").textContent();
