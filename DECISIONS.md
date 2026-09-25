@@ -23,6 +23,27 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-25 — Daily cycle: closed stale duplicate PR #59; landed
+  Science Snake cloud-sync for the high score / last-run record.**
+  Pending Decisions was empty. One open PR existed, #59 ("Science Snake:
+  e2e test suite"), opened by a prior cycle for the exact same scope
+  PR #60 had already landed to `main` the same day (`e2e/science-snake.spec.ts`,
+  `src/science-snake/snakeStatus.ts` both already present on `main`,
+  confirmed via `git ls-tree` before touching it) — closed as superseded
+  with a comment explaining why, same as this file's own #40/#57
+  precedent, rather than leaving a stale duplicate open indefinitely.
+  `BACKLOG.md`'s only other unblocked `todo` item was Science Snake's
+  cloud-sync entry (its "Content bank" item is still `in-progress` but
+  needs a human review round per the 2026-09-16 decision on how that
+  content gets vetted, same reasoning every prior cycle has left it
+  alone for) — picked that up. See `BACKLOG.md`'s own updated entry for
+  the full build detail (the `cloudSync.ts` `storageKey` generalization,
+  the merge rules, the new e2e coverage). All gates green: `npm run
+  typecheck`/`test` (482 passed)/`build`, plus the full `test:e2e` suite
+  (85 passed, 1 flaky-then-passed-on-retry — the pre-existing
+  self-collision/suffocation race already documented in this file's
+  2026-09-24 entry and `BACKLOG.md`'s e2e-suite entry, unrelated to this
+  change). Landed per the standing 2026-08-26 auto-land policy.
 - **2026-09-24 — PR #60 (Science Snake e2e suite + PR #56/#40 content)
   merged after two real CI-red rounds — the win-condition test's own
   timing needed real fixes, not just a bigger number.** Continuing the

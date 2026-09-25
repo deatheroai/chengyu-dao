@@ -1837,16 +1837,50 @@ other mechanic in this repo.
       win/suffocation tests all passed repeatedly; see this entry's own
       detail above for what remains a real, acknowledged timing risk
       under contention specifically, not a correctness one.
-- [ ] `todo` — **Cloud-sync for the high score / last-run record
-      (`scienceSnakeScore.ts`).** Currently localStorage-only — a
-      device-typed 8-character code, same no-accounts model
-      `idiom-door`'s own cloud save already uses (`shared/cloudSync.ts`,
+- [x] `done` — **Cloud-sync for the high score / last-run record
+      (`scienceSnakeScore.ts`, 2026-09-25).** Same no-accounts,
+      device-typed 8-character code model `idiom-door`'s own cloud save
+      already uses, and the *same* backend/API — `shared/cloudSync.ts`,
       `shared/cloudSaveValidation.ts`, `api/cloud-save.ts`'s Upstash Redis
-      backend), so scores follow the child between devices instead of
-      resetting on a new one. Reuse that existing backend/API rather than
-      standing up a second one — `science-snake-high-score`/
-      `science-snake-last-run` are their own storage keys already, so
-      this is wiring, not new infra.
+      store — reused rather than standing up a second one, per this
+      item's own original note. `cloudSync.ts`'s three device-code
+      functions (`getLocalCloudCode`/`ensureLocalCloudCode`/
+      `adoptCloudCode`) gained an optional `storageKey` parameter
+      (defaulting to idiom-door's own existing key, so every one of its
+      call sites keeps working unchanged) so Science Snake can keep its
+      own device code (`science-snake-cloud-code`) without colliding with
+      idiom-door's — the backend itself already namespaces purely by
+      code, needing no server-side change at all.
+      `scienceSnakeScore.ts` gained `exportForCloud`/`importFromCloud`:
+      merge-based restore, never a blind overwrite, same ethos as
+      idiom-door's own `sessionHistory.ts` import, but merging by two
+      different rules for its two different fields — the higher of the
+      two high scores wins (a record, not a snapshot), while the
+      more-recently-achieved of the two last-runs wins (whichever device
+      was actually played most recently is what the next round-over-round
+      comparison should build on, not whichever scored higher).
+      New `src/science-snake/cloudSaveStatus.ts` wires the panel
+      (`science-snake.html`'s new `#cloud-save-btn`/`#cloud-save-card`,
+      styled in `style.css` to this game's own green palette) — a
+      deliberate standalone copy of idiom-door's own `cloudSaveStatus.ts`
+      DOM-wiring module rather than a shared one, same "completely
+      independent games" reasoning `seededRandom.ts` already documents
+      for its own standalone copy.
+      New e2e/science-snake-cloud-save.spec.ts (6 tests, mirroring
+      idiom-door's own e2e/cloud-save.spec.ts structure exactly, mocking
+      `/api/cloud-save` the same way since the dev server has no real
+      route): minting/persisting the device code, the not-configured
+      message, restoring a valid code (asserts the merged high score
+      shows in `#high-score-display` after reload), a not-found code, and
+      a malformed code rejected without a network call.
+      All green: `npm run typecheck`/`test` (482 passed, up from
+      469)/`build`, plus the full `test:e2e` suite (85 passed clean, 1
+      flaky-then-passed-on-retry — the pre-existing self-collision/
+      suffocation race this section's own e2e-suite entry above already
+      documents as a real, acknowledged timing risk under contention,
+      unrelated to this change: nothing here touches `snakeGrid.ts`,
+      `itemSpawner.ts`, `suffocation.ts`, or the D-pad/self-collision
+      code at all).
 
 ## Platform / infra
 

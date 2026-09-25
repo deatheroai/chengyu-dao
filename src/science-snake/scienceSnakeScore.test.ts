@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { calculateScore, recordRun, describeRunOutcome, loadHighScore, loadLastRun, clearHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS, type RunOutcome } from "./scienceSnakeScore";
+import { calculateScore, recordRun, describeRunOutcome, loadHighScore, loadLastRun, clearHighScore, exportForCloud, importFromCloud, APPLE_POINTS, CORRECT_ANSWER_POINTS, type RunOutcome } from "./scienceSnakeScore";
 
 beforeEach(() => {
   localStorage.clear();
@@ -115,5 +115,57 @@ describe("clearHighScore", () => {
     clearHighScore();
     expect(loadHighScore()).toBeNull();
     expect(loadLastRun()).toBeNull();
+  });
+});
+
+describe("exportForCloud / importFromCloud", () => {
+  it("exports both null when nothing's been recorded yet", () => {
+    expect(exportForCloud()).toEqual({ highScore: null, lastRun: null });
+  });
+
+  it("exports exactly what's stored locally, round-tripping through import on a fresh device", () => {
+    recordRun({ applesEaten: 5, questionsCorrect: 1 }, 1000);
+    const exported = exportForCloud();
+    localStorage.clear();
+    importFromCloud(exported);
+    expect(loadHighScore()).toEqual(exported.highScore);
+    expect(loadLastRun()).toEqual(exported.lastRun);
+  });
+
+  it("keeps the higher of the two high scores rather than overwriting a better local one", () => {
+    recordRun({ applesEaten: 20, questionsCorrect: 10 }, 1000); // score 400
+    const weakerRemote = { highScore: { applesEaten: 1, questionsCorrect: 0, score: 5, achievedAt: 500 }, lastRun: null };
+    importFromCloud(weakerRemote);
+    expect(loadHighScore()?.score).toBe(400);
+  });
+
+  it("adopts a remote high score that beats the local one", () => {
+    recordRun({ applesEaten: 1, questionsCorrect: 0 }, 1000); // score 5
+    const strongerRemote = { highScore: { applesEaten: 20, questionsCorrect: 10, score: 400, achievedAt: 2000 }, lastRun: null };
+    importFromCloud(strongerRemote);
+    expect(loadHighScore()?.score).toBe(400);
+  });
+
+  it("keeps the more recently-achieved of the two last-runs, not the higher-scoring one", () => {
+    recordRun({ applesEaten: 20, questionsCorrect: 10 }, 1000); // score 400, but older
+    const olderHighScoreNewerRun = { highScore: null, lastRun: { applesEaten: 1, questionsCorrect: 0, score: 5, achievedAt: 5000 } };
+    importFromCloud(olderHighScoreNewerRun);
+    expect(loadLastRun()?.score).toBe(5);
+    expect(loadLastRun()?.achievedAt).toBe(5000);
+  });
+
+  it("ignores a stale remote last-run that's older than the local one", () => {
+    recordRun({ applesEaten: 1, questionsCorrect: 0 }, 9000);
+    importFromCloud({ highScore: null, lastRun: { applesEaten: 20, questionsCorrect: 10, score: 400, achievedAt: 100 } });
+    expect(loadLastRun()?.achievedAt).toBe(9000);
+  });
+
+  it("ignores malformed remote data instead of throwing or storing garbage", () => {
+    recordRun({ applesEaten: 5, questionsCorrect: 1 }, 1000);
+    const before = exportForCloud();
+    importFromCloud(null);
+    importFromCloud("not an object");
+    importFromCloud({ highScore: "not a record", lastRun: 42 });
+    expect(exportForCloud()).toEqual(before);
   });
 });

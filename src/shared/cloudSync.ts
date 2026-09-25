@@ -3,27 +3,35 @@ import { generateCloudSaveCode, isValidCloudSaveCode } from "./cloudSaveValidati
 const CLOUD_CODE_STORAGE_KEY = "idiom-cloud-code";
 const API_PATH = "/api/cloud-save";
 
+/** Which localStorage key holds this device's own code — defaults to
+ * idiom-door's own key (its original, only caller) so every existing
+ * call site keeps working unchanged. A second, independent game (e.g.
+ * Science Snake) passes its own key so the two never share or collide
+ * over the same device code — they're still free to reuse this same
+ * client/API/validation, per the "completely independent games" decision
+ * (DECISIONS.md), since the backend already namespaces by code alone. */
+
 /** The code this device is already syncing under, or null if cloud save
  * has never been turned on here. Storing the code itself locally (not
  * just "cloud save is on") is what makes restoring on a *second* device
  * possible — that device pastes this same code in. */
-export function getLocalCloudCode(): string | null {
-  const stored = localStorage.getItem(CLOUD_CODE_STORAGE_KEY);
+export function getLocalCloudCode(storageKey: string = CLOUD_CODE_STORAGE_KEY): string | null {
+  const stored = localStorage.getItem(storageKey);
   return isValidCloudSaveCode(stored) ? stored : null;
 }
 
-function setLocalCloudCode(code: string): void {
-  localStorage.setItem(CLOUD_CODE_STORAGE_KEY, code);
+function setLocalCloudCode(code: string, storageKey: string): void {
+  localStorage.setItem(storageKey, code);
 }
 
 /** Returns this device's existing cloud-save code, or mints and
  * remembers a fresh one on first use. Idempotent — safe to call every
  * time the cloud-save panel opens. */
-export function ensureLocalCloudCode(rng: () => number = Math.random): string {
-  const existing = getLocalCloudCode();
+export function ensureLocalCloudCode(rng: () => number = Math.random, storageKey: string = CLOUD_CODE_STORAGE_KEY): string {
+  const existing = getLocalCloudCode(storageKey);
   if (existing) return existing;
   const code = generateCloudSaveCode(rng);
-  setLocalCloudCode(code);
+  setLocalCloudCode(code, storageKey);
   return code;
 }
 
@@ -104,6 +112,6 @@ export async function pullFromCloud(code: string): Promise<CloudLoadResult> {
 /** A restored/typed code always becomes this device's own going-forward
  * sync code too — so playing more afterward keeps updating the same
  * save rather than silently drifting from it. */
-export function adoptCloudCode(code: string): void {
-  if (isValidCloudSaveCode(code)) setLocalCloudCode(code);
+export function adoptCloudCode(code: string, storageKey: string = CLOUD_CODE_STORAGE_KEY): void {
+  if (isValidCloudSaveCode(code)) setLocalCloudCode(code, storageKey);
 }

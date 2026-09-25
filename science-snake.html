@@ -42,6 +42,14 @@
 
       <div id="high-score-display" aria-live="polite"></div>
 
+      <!-- 2026-09-25: opens the cloud-save panel (#cloud-save-card
+           below) — persistent and always tappable, same "reachable
+           through every stage" placement as idiom-door's own
+           #cloud-save-btn/#cloud-save-card. Reuses that same backend/API
+           under its own device code (cloudSaveStatus.ts), not a new
+           one — see BACKLOG.md's cloud-sync entry. -->
+      <button id="cloud-save-btn" type="button" aria-label="Cloud save">☁️ Save</button>
+
       <div id="start-card" class="card-layer">
         <div class="card">
           <h1>🐍 Science Snake</h1>
@@ -86,6 +94,30 @@
             <button id="question-reveal-next-btn">Next →</button>
             <button id="question-reveal-continue-btn" class="hidden">Continue</button>
           </div>
+        </div>
+      </div>
+
+      <!-- 2026-09-25: cloud-save panel, opened via #cloud-save-btn above
+           (main.ts / cloudSaveStatus.ts). No accounts — this device's
+           own code (generated on first open) is shown for copying to
+           another device, and a second device pastes it back in below
+           to pull that progress in here. Both directions merge rather
+           than overwrite (scienceSnakeScore.ts's exportForCloud/
+           importFromCloud), so neither device can lose progress the
+           other has. Same panel shape as idiom-door.html's own. -->
+      <div id="cloud-save-card" class="card-layer">
+        <div class="card">
+          <p class="eyebrow">Cloud save</p>
+          <p class="cloud-save-text">This device's save code — copy it to another device to keep your high score in sync:</p>
+          <p data-cloud-code class="cloud-code" aria-live="polite"></p>
+          <button id="cloud-copy-btn" type="button">📋 Copy code</button>
+          <p class="cloud-save-text cloud-restore-label">Have a code from another device?</p>
+          <div class="cloud-restore-row">
+            <input id="cloud-restore-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Enter code" aria-label="Save code to restore" />
+            <button id="cloud-restore-btn" type="button">Restore</button>
+          </div>
+          <p data-cloud-status class="cloud-status" aria-live="polite"></p>
+          <button id="cloud-save-dismiss-btn" type="button" class="cloud-close-btn">Close</button>
         </div>
       </div>
 

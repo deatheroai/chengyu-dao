@@ -32,6 +32,14 @@ describe("ensureLocalCloudCode / getLocalCloudCode", () => {
     localStorage.setItem("idiom-cloud-code", "not a valid code");
     expect(getLocalCloudCode()).toBeNull();
   });
+
+  it("keeps a custom storageKey's code independent of the default (idiom-door) one", () => {
+    const defaultCode = ensureLocalCloudCode(() => 0.2);
+    const otherCode = ensureLocalCloudCode(() => 0.8, "other-game-cloud-code");
+    expect(getLocalCloudCode()).toBe(defaultCode);
+    expect(getLocalCloudCode("other-game-cloud-code")).toBe(otherCode);
+    expect(otherCode).not.toBe(defaultCode);
+  });
 });
 
 describe("adoptCloudCode", () => {
@@ -42,6 +50,12 @@ describe("adoptCloudCode", () => {
 
   it("ignores an invalid code rather than storing garbage", () => {
     adoptCloudCode("not valid");
+    expect(getLocalCloudCode()).toBeNull();
+  });
+
+  it("adopts under a custom storageKey without touching the default one", () => {
+    adoptCloudCode(VALID_CODE, "other-game-cloud-code");
+    expect(getLocalCloudCode("other-game-cloud-code")).toBe(VALID_CODE);
     expect(getLocalCloudCode()).toBeNull();
   });
 });
