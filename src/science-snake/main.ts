@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { SnakeGameScene, CELL_SIZE, type RunStats, type LoseReason } from "./SnakeGameScene";
 import { GRID_WIDTH, GRID_HEIGHT, type Direction } from "./snakeGrid";
 import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
+import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode } from "./cloudSaveStatus";
 
 function showCard(id: string): void {
   document.getElementById(id)?.classList.add("visible");
@@ -95,6 +96,16 @@ function bootstrap(): void {
   document.getElementById("start-btn")?.addEventListener("click", startGame);
   document.getElementById("win-play-again-btn")?.addEventListener("click", startGame);
   document.getElementById("lose-play-again-btn")?.addEventListener("click", startGame);
+
+  document.getElementById("cloud-save-btn")?.addEventListener("click", showCloudSaveCard);
+  document.getElementById("cloud-save-dismiss-btn")?.addEventListener("click", hideCloudSaveCard);
+  document.getElementById("cloud-copy-btn")?.addEventListener("click", () => {
+    void handleCopyCode();
+  });
+  document.getElementById("cloud-restore-btn")?.addEventListener("click", () => {
+    const input = document.getElementById("cloud-restore-input") as HTMLInputElement | null;
+    if (input) void handleRestoreFromCode(input.value);
+  });
 
   // Mobile-friendly tap-to-turn D-pad (per your ask) — same "DOM button
   // calls a public method on the live scene instance" pattern

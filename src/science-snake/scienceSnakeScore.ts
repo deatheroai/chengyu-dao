@@ -108,3 +108,48 @@ export function clearHighScore(): void {
   localStorage.removeItem(HIGH_SCORE_KEY);
   localStorage.removeItem(LAST_RUN_KEY);
 }
+
+/** Cloud-save export (shared/cloudSync.ts, via cloudSaveStatus.ts) — the
+ * exact shape stored under this device's code and expected back out of
+ * importFromCloud below, own storage keys as noted at this file's top,
+ * reusing idiom-door's existing backend/API rather than standing up a
+ * second one (see BACKLOG.md's cloud-sync entry). */
+export interface CloudScoreData {
+  highScore: ScoreRecord | null;
+  lastRun: ScoreRecord | null;
+}
+
+function isScoreRecord(value: unknown): value is ScoreRecord {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.score === "number" && typeof record.applesEaten === "number" && typeof record.questionsCorrect === "number" && typeof record.achievedAt === "number";
+}
+
+export function exportForCloud(): CloudScoreData {
+  return { highScore: loadHighScore(), lastRun: loadLastRun() };
+}
+
+/**
+ * Merge-based restore, never an overwrite — same ethos as idiom-door's
+ * own sessionHistory.ts import, so restoring on a device that already
+ * has its own runs can't lose them. The two fields merge independently
+ * and by different rules, since they answer different questions: the
+ * higher of the two high scores wins (it's a record, not a snapshot),
+ * while the more recently-achieved of the two last-runs wins (it's
+ * "what should the next round-over-round comparison build on", which is
+ * whichever device was actually played most recently).
+ */
+export function importFromCloud(remote: unknown): void {
+  if (!remote || typeof remote !== "object") return;
+  const { highScore, lastRun } = remote as Partial<CloudScoreData>;
+
+  const localHighScore = loadHighScore();
+  if (isScoreRecord(highScore) && (!localHighScore || highScore.score > localHighScore.score)) {
+    localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(highScore));
+  }
+
+  const localLastRun = loadLastRun();
+  if (isScoreRecord(lastRun) && (!localLastRun || lastRun.achievedAt > localLastRun.achievedAt)) {
+    localStorage.setItem(LAST_RUN_KEY, JSON.stringify(lastRun));
+  }
+}
