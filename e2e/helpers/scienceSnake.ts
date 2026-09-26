@@ -261,13 +261,17 @@ function reachedOrPassed(head: Position, wp: Waypoint): boolean {
 }
 
 /** Single round-trip per poll (win-card, overlay, head position all at once) rather than several sequential ones — cuts real per-poll latency enough to reliably catch each waypoint's one-tick dwell window. */
-async function readSweepStatus(page: Page): Promise<{ winVisible: boolean; overlayVisible: boolean; head: Position }> {
+async function readSweepStatus(
+  page: Page,
+): Promise<{ winVisible: boolean; loseMessage: string | null; overlayVisible: boolean; head: Position; length: number }> {
   return page.evaluate(() => {
     const winVisible = document.getElementById("win-card")?.classList.contains("visible") ?? false;
+    const loseVisible = document.getElementById("lose-card")?.classList.contains("visible") ?? false;
+    const loseMessage = loseVisible ? (document.getElementById("lose-message")?.textContent ?? "") : null;
     const overlayVisible = document.getElementById("question-overlay")?.classList.contains("visible") ?? false;
     const status = document.getElementById("snake-status");
     const head = { x: Number(status?.getAttribute("data-head-x")), y: Number(status?.getAttribute("data-head-y")) };
-    return { winVisible, overlayVisible, head };
+    return { winVisible, loseMessage, overlayVisible, head, length: Number(status?.getAttribute("data-length")) };
   });
 }
 
@@ -294,8 +298,15 @@ export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000)
       const length = await page.locator("#snake-status").getAttribute("data-length");
       console.log(`[sweepFullBoardUntilWin] length=${length} elapsedMs=${Date.now() - (deadline - maxMs)}`);
     }
-    const { winVisible, overlayVisible, head } = await readSweepStatus(page);
+    const { winVisible, loseMessage, overlayVisible, head, length } = await readSweepStatus(page);
     if (winVisible) return;
+    // A lost game never shows the win card, so without this the sweep
+    // just kept polling a frozen board until its full 90-minute budget
+    // ran out — CI's only clue was the logged length never changing.
+    // Fail straight away instead, saying why the game ended.
+    if (loseMessage !== null) {
+      throw new Error(`sweepFullBoardUntilWin: the game was lost at length ${length}, head (${head.x},${head.y}), next waypoint ${JSON.stringify(queue[0])}: "${loseMessage}"`);
+    }
     if (overlayVisible) {
       await answerCurrentQuestionCorrectly(page);
       continue;
