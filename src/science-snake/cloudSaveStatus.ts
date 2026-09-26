@@ -1,34 +1,23 @@
-import { ensureLocalCloudCode, pushToCloud, pullFromCloud, adoptCloudCode, type CloudSyncFailureReason } from "../shared/cloudSync";
-import { exportForCloud, importFromCloud } from "./scienceSnakeScore";
-import { isValidCloudSaveCode } from "../shared/cloudSaveValidation";
+import type { CloudSyncFailureReason, CloudSyncResult } from "../shared/cloudSync";
+import { ensureScienceSnakeCloudCode, getScienceSnakeCloudCode, restoreScoresFromCloud, syncScoresWithCloud } from "./scoreCloudSync";
 
 /**
- * Wires the cloud-save panel (science-snake.html's #cloud-save-card) —
- * BACKLOG.md's "Cloud-sync for the high score / last-run record" entry.
- * A deliberate standalone copy of idiom-door's own cloudSaveStatus.ts,
- * not a shared module — same "completely independent games" reasoning
- * seededRandom.ts already documents — but it reuses idiom-door's actual
- * cloud-save backend/API (shared/cloudSync.ts, shared/
- * cloudSaveValidation.ts, api/cloud-save.ts) under its own device code
- * (its own localStorage key, passed through to every cloudSync.ts call
- * below) so the two games' saves never collide under the same code.
+ * Wires science-snake.html's #cloud-save-card — the same panel shape as
+ * idiom-door's own (idiom-door/cloudSaveStatus.ts): this device's code
+ * to copy onto another device, plus a field to restore from a code
+ * typed in from one. It's opened only from the start/win/lose cards,
+ * never mid-run, so the game never keeps moving underneath it.
  */
-
-const CLOUD_CODE_STORAGE_KEY = "science-snake-cloud-code";
 
 const STATUS_MESSAGES: Record<CloudSyncFailureReason, string> = {
   "not-configured": "Cloud save isn't set up for this game yet — try again later.",
-  "not-found": "No save found for that code. Double-check it and try again.",
+  "not-found": "No Science Snake save found for that code. Double-check it and try again.",
   "invalid-code": "That doesn't look like a save code — check for typos.",
   network: "Couldn't reach the cloud save server. Check your connection and try again.",
 };
 
-function setStatus(card: HTMLElement, message: string): void {
-  const el = card.querySelector<HTMLElement>("[data-cloud-status]");
-  if (el) el.textContent = message;
-}
-
-function formatFailureMessage(result: { reason: CloudSyncFailureReason; detail?: string }): string {
+function formatResult(result: CloudSyncResult, successMessage: string): string {
+  if (result.ok) return successMessage;
   const message = STATUS_MESSAGES[result.reason];
   return result.detail ? `${message} (${result.detail})` : message;
 }
@@ -37,22 +26,28 @@ function getCard(): HTMLElement | null {
   return document.getElementById("cloud-save-card");
 }
 
-/** Opens the panel, revealing this device's own code (minting one on
- * first open) and best-effort pushing the current local high
- * score/last-run under it — so opening the panel is itself enough to
- * start syncing, with nothing further to press. */
-export function showCloudSaveCard(): void {
+function setStatus(card: HTMLElement, message: string): void {
+  const el = card.querySelector<HTMLElement>("[data-cloud-status]");
+  if (el) el.textContent = message;
+}
+
+/** Opens the panel showing this device's code (minting one on first
+ * open), then syncs straight away — opening it is enough to turn sync
+ * on, same as idiom-door. `onScoresChanged` lets the page refresh its
+ * high-score display if the sync pulled in a better score. */
+export function showCloudSaveCard(onScoresChanged: () => void): void {
   const card = getCard();
   if (!card) return;
-  const code = ensureLocalCloudCode(Math.random, CLOUD_CODE_STORAGE_KEY);
+  const code = ensureScienceSnakeCloudCode();
   const codeEl = card.querySelector<HTMLElement>("[data-cloud-code]");
   if (codeEl) codeEl.textContent = code;
-  setStatus(card, "");
+  setStatus(card, "Saving…");
   card.classList.add("visible");
 
-  void pushToCloud(code, exportForCloud()).then((result) => {
+  void syncScoresWithCloud(code).then((result) => {
+    if (result.ok) onScoresChanged();
     if (!card.classList.contains("visible")) return; // closed before this resolved
-    setStatus(card, result.ok ? "Saved to the cloud ✓" : formatFailureMessage(result));
+    setStatus(card, formatResult(result, "Saved to the cloud ✓"));
   });
 }
 
@@ -60,6 +55,8 @@ export function hideCloudSaveCard(): void {
   getCard()?.classList.remove("visible");
 }
 
+/** Copies this device's code, with a textarea fallback for a context
+ * where the async Clipboard API isn't available. */
 async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
@@ -86,33 +83,32 @@ export async function handleCopyCode(): Promise<void> {
   if (!card) return;
   const code = card.querySelector<HTMLElement>("[data-cloud-code]")?.textContent ?? "";
   if (!code) return;
-  const copied = await copyText(code);
-  setStatus(card, copied ? "Code copied!" : "Couldn't copy — select and copy the code by hand.");
+  setStatus(card, (await copyText(code)) ? "Code copied!" : "Couldn't copy — select and copy the code by hand.");
 }
 
-/**
- * Restores from a typed-in code: pulls that code's data, merges it into
- * local high-score/last-run (scienceSnakeScore.ts's importFromCloud —
- * higher score / more recent run wins, never a blind overwrite), and
- * adopts the code as this device's own going forward. Reloads on success
- * so the high-score header picks up the merged result immediately, same
- * as idiom-door's own restore flow.
- */
-export async function handleRestoreFromCode(rawCode: string): Promise<void> {
+/** Restores from a typed code. Unlike idiom-door this doesn't reload
+ * the page — the only thing that changes is the stored scores, so
+ * refreshing the high-score display is enough. */
+export async function handleRestoreFromCode(rawCode: string, onScoresChanged: () => void): Promise<void> {
   const card = getCard();
   if (!card) return;
-  const code = rawCode.trim().toUpperCase();
-  if (!isValidCloudSaveCode(code)) {
-    setStatus(card, STATUS_MESSAGES["invalid-code"]);
-    return;
-  }
   setStatus(card, "Restoring…");
-  const result = await pullFromCloud(code);
-  if (!result.ok) {
-    setStatus(card, formatFailureMessage(result));
-    return;
+  const result = await restoreScoresFromCloud(rawCode);
+  if (result.ok) {
+    const codeEl = card.querySelector<HTMLElement>("[data-cloud-code]");
+    if (codeEl) codeEl.textContent = getScienceSnakeCloudCode() ?? "";
+    onScoresChanged();
   }
-  importFromCloud(result.data);
-  adoptCloudCode(code, CLOUD_CODE_STORAGE_KEY);
-  location.reload();
+  setStatus(card, formatResult(result, "Scores restored ✓"));
+}
+
+/** Best-effort background sync after a finished run — only once sync
+ * has been turned on here (a code exists), and silently, without
+ * opening the panel. */
+export function syncAfterRun(onScoresChanged: () => void): void {
+  const code = getScienceSnakeCloudCode();
+  if (!code) return;
+  void syncScoresWithCloud(code).then((result) => {
+    if (result.ok) onScoresChanged();
+  });
 }

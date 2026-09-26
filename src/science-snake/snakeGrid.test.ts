@@ -75,6 +75,27 @@ describe("changeDirection", () => {
     const snake = createInitialSnake({ x: 5, y: 5 }, "right", 3);
     expect(changeDirection(snake, "right").direction).toBe("right");
   });
+
+  it("ignores two quick turns within one tick that would add up to a reversal into the neck", () => {
+    // Moving right, "up" then "left" before the next step: "left" isn't
+    // the reverse of the requested "up", but it is the reverse of the
+    // way the head actually moved.
+    const snake = changeDirection(changeDirection(createInitialSnake({ x: 5, y: 5 }, "right", 3), "up"), "left");
+    expect(snake.direction).toBe("up");
+    expect(step(snake).outcome).toBe("moved");
+  });
+
+  it("still allows swapping one pending turn for another, e.g. up then down while moving right", () => {
+    const snake = changeDirection(changeDirection(createInitialSnake({ x: 5, y: 5 }, "right", 3), "up"), "down");
+    expect(snake.direction).toBe("down");
+  });
+
+  it("works out the real last move across a board-edge wrap", () => {
+    // Head at x=0 having just wrapped from x=GRID_WIDTH-1 moving right.
+    const snake = { ...createInitialSnake({ x: 0, y: 5 }, "right", 1), body: [{ x: 0, y: 5 }, { x: GRID_WIDTH - 1, y: 5 }] };
+    expect(changeDirection({ ...snake, direction: "up" }, "left").direction).toBe("up");
+    expect(changeDirection(snake, "down").direction).toBe("down");
+  });
 });
 
 describe("step", () => {

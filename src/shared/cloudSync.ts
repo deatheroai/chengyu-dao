@@ -1,15 +1,10 @@
-import { generateCloudSaveCode, isValidCloudSaveCode } from "./cloudSaveValidation";
+import { generateCloudSaveCode, isValidCloudSaveCode, DEFAULT_CLOUD_SAVE_GAME, type CloudSaveGame } from "./cloudSaveValidation";
 
+/** idiom-door's key, and the default for every code helper below.
+ * Another game passes its own key so its code is its own — see
+ * science-snake/cloudSaveStatus.ts. */
 const CLOUD_CODE_STORAGE_KEY = "idiom-cloud-code";
 const API_PATH = "/api/cloud-save";
-
-/** Which localStorage key holds this device's own code — defaults to
- * idiom-door's own key (its original, only caller) so every existing
- * call site keeps working unchanged. A second, independent game (e.g.
- * Science Snake) passes its own key so the two never share or collide
- * over the same device code — they're still free to reuse this same
- * client/API/validation, per the "completely independent games" decision
- * (DECISIONS.md), since the backend already namespaces by code alone. */
 
 /** The code this device is already syncing under, or null if cloud save
  * has never been turned on here. Storing the code itself locally (not
@@ -77,13 +72,17 @@ function describeThrownError(err: unknown): string {
  * error) comes back as a typed result instead, since this always runs
  * best-effort alongside the local save that already succeeded; a cloud
  * hiccup must never look like *the game* failed to save. */
-export async function pushToCloud(code: string, data: unknown): Promise<CloudSyncResult> {
+export async function pushToCloud(code: string, data: unknown, game: CloudSaveGame = DEFAULT_CLOUD_SAVE_GAME): Promise<CloudSyncResult> {
   if (!isValidCloudSaveCode(code)) return { ok: false, reason: "invalid-code" };
   try {
+    // The default game is left out of the request entirely (the server
+    // treats a missing game as idiom-door), so idiom-door's requests are
+    // exactly what they were before per-game saves existed.
+    const body = game === DEFAULT_CLOUD_SAVE_GAME ? { code, data } : { code, data, game };
     const response = await fetch(API_PATH, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code, data }),
+      body: JSON.stringify(body),
     });
     if (response.status === 501) return { ok: false, reason: "not-configured" };
     if (!response.ok) return { ok: false, reason: "network", detail: await describeFailedResponse(response) };
@@ -95,10 +94,11 @@ export async function pushToCloud(code: string, data: unknown): Promise<CloudSyn
 
 /** Fetches whatever's stored under `code`. Same never-throws contract
  * as pushToCloud. */
-export async function pullFromCloud(code: string): Promise<CloudLoadResult> {
+export async function pullFromCloud(code: string, game: CloudSaveGame = DEFAULT_CLOUD_SAVE_GAME): Promise<CloudLoadResult> {
   if (!isValidCloudSaveCode(code)) return { ok: false, reason: "invalid-code" };
   try {
-    const response = await fetch(`${API_PATH}?code=${encodeURIComponent(code)}`);
+    const gameParam = game === DEFAULT_CLOUD_SAVE_GAME ? "" : `&game=${encodeURIComponent(game)}`;
+    const response = await fetch(`${API_PATH}?code=${encodeURIComponent(code)}${gameParam}`);
     if (response.status === 501) return { ok: false, reason: "not-configured" };
     if (response.status === 404) return { ok: false, reason: "not-found" };
     if (!response.ok) return { ok: false, reason: "network", detail: await describeFailedResponse(response) };
