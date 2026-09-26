@@ -1867,6 +1867,16 @@ other mechanic in this repo.
       against an in-memory stand-in for the API keyed the same way).
       All green: typecheck, unit suite (499 passed), build, the new e2e
       spec plus idiom-door's own `e2e/cloud-save.spec.ts`.
+      **Reconciled 2026-09-26 with a parallel version** a daily cycle
+      landed on `main` the day before (PR #63): same merge rules and same
+      local code key, but it pushed without pulling first and stored
+      Science Snake's save in idiom-door's own server namespace — so
+      restoring an idiom-door code in Science Snake would later push
+      snake scores over that idiom history. This version replaced it;
+      since that one was live, Science Snake's sync also falls back to
+      reading a save stored the old way and moves it into the new
+      namespace (`scoreCloudSync.ts`), so nothing saved in between is
+      lost.
 - [x] `done` — **Joystick instead of the 4-button D-pad
       (`joystick.ts` + `joystickControl.ts`, 2026-09-26).** Per your
       "sometimes it is hard to aim on the buttons, I tapped on empty

@@ -55,7 +55,9 @@ describe("syncScoresWithCloud", () => {
     const { store, requests } = stubServer();
     recordRun({ applesEaten: 10, questionsCorrect: 1 }, 1000);
     expect(await syncScoresWithCloud(VALID_CODE)).toEqual({ ok: true });
-    expect(requests).toEqual(["GET science-snake", "POST science-snake"]);
+    // The idiom-door GET is the fallback for saves made by the earlier,
+    // un-namespaced version (see the last describe block below).
+    expect(requests).toEqual(["GET science-snake", "GET idiom-door", "POST science-snake"]);
     const run = { applesEaten: 10, questionsCorrect: 1, score: 80, achievedAt: 1000 };
     expect(store.get(`science-snake:${VALID_CODE}`)).toEqual({ highScore: run, lastRun: run });
   });
@@ -123,5 +125,37 @@ describe("restoreScoresFromCloud", () => {
     stubServer({ [`science-snake:${VALID_CODE}`]: { completedSessions: [] } });
     expect(await restoreScoresFromCloud(VALID_CODE)).toEqual({ ok: false, reason: "not-found" });
     expect(getScienceSnakeCloudCode()).toBeNull();
+  });
+});
+
+describe("saves made by the earlier, un-namespaced version (PR #63)", () => {
+  it("are picked up on sync and moved into the science-snake namespace, leaving the old copy alone", async () => {
+    const legacy = { highScore: record(200, 500), lastRun: record(200, 500) };
+    const { store } = stubServer({ [`idiom-door:${VALID_CODE}`]: legacy });
+    expect(await syncScoresWithCloud(VALID_CODE)).toEqual({ ok: true });
+    expect(loadHighScore()).toEqual(record(200, 500));
+    expect(store.get(`science-snake:${VALID_CODE}`)).toEqual(legacy);
+    expect(store.get(`idiom-door:${VALID_CODE}`)).toEqual(legacy);
+  });
+
+  it("can be restored from on another device", async () => {
+    stubServer({ [`idiom-door:${VALID_CODE}`]: { highScore: record(200, 500), lastRun: record(200, 500) } });
+    expect(await restoreScoresFromCloud(VALID_CODE)).toEqual({ ok: true });
+    expect(loadHighScore()).toEqual(record(200, 500));
+    expect(getScienceSnakeCloudCode()).toBe(VALID_CODE);
+  });
+
+  it("are ignored when what's in the old namespace is really an idiom-door save", async () => {
+    stubServer({ [`idiom-door:${VALID_CODE}`]: { completedSessions: [] } });
+    expect(await restoreScoresFromCloud(VALID_CODE)).toEqual({ ok: false, reason: "not-found" });
+  });
+
+  it("don't win over a save already in the science-snake namespace", async () => {
+    stubServer({
+      [`science-snake:${VALID_CODE}`]: { highScore: record(90, 900), lastRun: record(90, 900) },
+      [`idiom-door:${VALID_CODE}`]: { highScore: record(200, 500), lastRun: record(200, 500) },
+    });
+    await syncScoresWithCloud(VALID_CODE);
+    expect(loadHighScore()).toEqual(record(90, 900));
   });
 });

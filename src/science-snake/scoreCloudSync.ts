@@ -1,6 +1,6 @@
-import { pullFromCloud, pushToCloud, adoptCloudCode, getLocalCloudCode, ensureLocalCloudCode, type CloudSyncResult } from "../shared/cloudSync";
+import { pullFromCloud, pushToCloud, adoptCloudCode, getLocalCloudCode, ensureLocalCloudCode, type CloudSyncResult, type CloudLoadResult } from "../shared/cloudSync";
 import { isValidCloudSaveCode } from "../shared/cloudSaveValidation";
-import { exportScoresForCloud, mergeScoresFromCloud } from "./scienceSnakeScore";
+import { exportScoresForCloud, mergeScoresFromCloud, isScienceSnakeCloudSave } from "./scienceSnakeScore";
 
 /**
  * Science Snake's cloud sync for its high score / last-run record
@@ -27,6 +27,24 @@ export function ensureScienceSnakeCloudCode(rng: () => number = Math.random): st
 }
 
 /**
+ * Pulls this code's Science Snake save. An earlier version of this sync
+ * (live briefly from 2026-09-25, PR #63) stored Science Snake saves
+ * without naming a game, i.e. in idiom-door's namespace. So when the
+ * science-snake namespace has nothing, this also looks there, and uses
+ * what it finds only if it's actually a Science Snake save — the next
+ * push then stores it in the right place. (The old copy is left alone:
+ * it can't be told apart from an idiom-door save by key alone, so
+ * nothing here ever writes to or deletes from that namespace.)
+ */
+async function pullScienceSnakeSave(code: string): Promise<CloudLoadResult> {
+  const pulled = await pullFromCloud(code, GAME);
+  if (pulled.ok || pulled.reason !== "not-found") return pulled;
+  const legacy = await pullFromCloud(code);
+  if (legacy.ok && isScienceSnakeCloudSave(legacy.data)) return legacy;
+  return pulled;
+}
+
+/**
  * Pull, merge, then push — not a blind push. A plain push would let
  * whichever device synced last overwrite the other's scores (device A
  * pushing its high score of 80 over the 120 device B pushed earlier);
@@ -36,7 +54,7 @@ export function ensureScienceSnakeCloudCode(rng: () => number = Math.random): st
  * having seen the cloud copy is exactly the overwrite this avoids.
  */
 export async function syncScoresWithCloud(code: string): Promise<CloudSyncResult> {
-  const pulled = await pullFromCloud(code, GAME);
+  const pulled = await pullScienceSnakeSave(code);
   if (pulled.ok) {
     mergeScoresFromCloud(pulled.data);
   } else if (pulled.reason !== "not-found") {
@@ -58,7 +76,7 @@ export async function syncScoresWithCloud(code: string): Promise<CloudSyncResult
 export async function restoreScoresFromCloud(rawCode: string): Promise<CloudSyncResult> {
   const code = rawCode.trim().toUpperCase();
   if (!isValidCloudSaveCode(code)) return { ok: false, reason: "invalid-code" };
-  const pulled = await pullFromCloud(code, GAME);
+  const pulled = await pullScienceSnakeSave(code);
   if (!pulled.ok) return pulled;
   if (!mergeScoresFromCloud(pulled.data)) return { ok: false, reason: "not-found" };
   adoptCloudCode(code, SCIENCE_SNAKE_CLOUD_CODE_KEY);
