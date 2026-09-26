@@ -166,7 +166,7 @@ export class SnakeGameScene extends Phaser.Scene {
   }
 
   /**
-   * Public entry point for the on-screen D-pad (`main.ts`'s tap
+   * Public entry point for the on-screen joystick (`main.ts`'s
    * handlers) — same "public method the DOM chrome calls on the live
    * scene instance" pattern `IdiomDoorScene.requestJump` already uses
    * for its own touch button.
@@ -182,7 +182,7 @@ export class SnakeGameScene extends Phaser.Scene {
    * overlay was open. By the time a correct answer resumed the game,
    * the direction was whatever letter was typed last — effectively
    * random, and very likely to immediately clip the snake's own body.
-   * The D-pad's taps were already visually blocked by the overlay's own
+   * The on-screen controls were already visually blocked by the overlay's own
    * z-index, but the keyboard path had no such guard — this fixes it at
    * the source so both paths are covered in one place, without needing
    * to trust incidental CSS stacking.

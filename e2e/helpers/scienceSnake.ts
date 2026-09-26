@@ -10,16 +10,10 @@ import { scienceQuestions } from "../../src/science-snake/scienceQuestions";
  * hooks (`snakeStatus.ts`'s #snake-status/#board-items, same
  * "canvas-internal state isn't otherwise observable, expose it as a
  * hidden data attribute" pattern idiom-door's own #player-position/
- * #balloon-target-positions already use) and clicks the same on-screen
- * D-pad a real child would tap.
+ * #balloon-target-positions already use) and taps the same on-screen
+ * joystick a real child would use.
  */
 
-const DIRECTION_BUTTON_ID: Record<Direction, string> = {
-  up: "dpad-up",
-  down: "dpad-down",
-  left: "dpad-left",
-  right: "dpad-right",
-};
 const OPPOSITE: Record<Direction, Direction> = { up: "down", down: "up", left: "right", right: "left" };
 const ALL_DIRECTIONS: Direction[] = ["up", "down", "left", "right"];
 const DELTA: Record<Direction, Position> = {
@@ -34,18 +28,35 @@ function wrap(n: number, size: number): number {
 }
 
 /**
- * The D-pad is wired on `pointerdown` (main.ts), not `click` — same as
- * idiom-door's own `#jump-btn` (see doorJump.ts's `pressJumpButton`).
+ * Steers with the on-screen joystick (joystickControl.ts) the way a tap
+ * on one side of the disc would: a pointerdown 35% of the disc's width
+ * out from its centre toward `direction` (well outside the dead zone),
+ * then a pointerup so the next press starts fresh.
+ *
  * `dispatchEvent` fires it directly rather than `page.click()`'s full
  * actionability-check simulation, which matters here specifically:
  * `page.click()` retries while any other element intercepts pointer
  * events at that position, and the question overlay (a `card-layer`
- * that sits above the D-pad in z-index whenever it's open) does exactly
- * that between direction presses — found the hard way as a real,
- * reproducible hang, not guessed.
+ * that sits above the joystick in z-index whenever it's open) does
+ * exactly that between direction presses — found the hard way as a
+ * real, reproducible hang, not guessed. The disc's box is read once and
+ * cached, since it doesn't move during a run.
  */
+let joystickBox: { x: number; y: number; width: number; height: number } | null = null;
+let joystickBoxPage: Page | null = null;
+
 async function pressDirection(page: Page, direction: Direction): Promise<void> {
-  await page.locator(`#${DIRECTION_BUTTON_ID[direction]}`).dispatchEvent("pointerdown");
+  const joystick = page.locator("#joystick");
+  if (!joystickBox || joystickBoxPage !== page) {
+    joystickBox = await joystick.boundingBox();
+    joystickBoxPage = page;
+  }
+  if (!joystickBox) throw new Error("#joystick isn't on the page");
+  const offset = joystickBox.width * 0.35;
+  const clientX = joystickBox.x + joystickBox.width / 2 + DELTA[direction].x * offset;
+  const clientY = joystickBox.y + joystickBox.height / 2 + DELTA[direction].y * offset;
+  await joystick.dispatchEvent("pointerdown", { pointerId: 1, clientX, clientY, bubbles: true });
+  await joystick.dispatchEvent("pointerup", { pointerId: 1, clientX, clientY, bubbles: true });
 }
 
 interface SnakeStatus {

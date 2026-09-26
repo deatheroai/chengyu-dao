@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { SnakeGameScene, CELL_SIZE, type RunStats, type LoseReason } from "./SnakeGameScene";
-import { GRID_WIDTH, GRID_HEIGHT, type Direction } from "./snakeGrid";
+import { GRID_WIDTH, GRID_HEIGHT } from "./snakeGrid";
+import { wireJoystick } from "./joystickControl";
 import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode, syncAfterRun } from "./cloudSaveStatus";
 
@@ -111,23 +112,12 @@ function bootstrap(): void {
     void handleRestoreFromCode(restoreInput?.value ?? "", showHighScore);
   });
 
-  // Mobile-friendly tap-to-turn D-pad (per your ask) — same "DOM button
-  // calls a public method on the live scene instance" pattern
-  // idiom-door's own #jump-btn uses. pointerdown (not click) so it
-  // responds the instant a finger touches down, same reasoning
-  // #jump-btn's own listener already uses.
-  const DPAD_DIRECTIONS: Record<string, Direction> = {
-    "dpad-up": "up",
-    "dpad-down": "down",
-    "dpad-left": "left",
-    "dpad-right": "right",
-  };
-  for (const [buttonId, direction] of Object.entries(DPAD_DIRECTIONS)) {
-    document.getElementById(buttonId)?.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      snakeScene()?.requestDirection(direction);
-    });
-  }
+  // On-screen joystick (joystickControl.ts) — same "DOM control calls a
+  // public method on the live scene instance" pattern idiom-door's own
+  // #jump-btn uses.
+  const joystick = document.getElementById("joystick");
+  const knob = document.getElementById("joystick-knob");
+  if (joystick && knob) wireJoystick(joystick, knob, (direction) => snakeScene()?.requestDirection(direction));
 }
 
 bootstrap();

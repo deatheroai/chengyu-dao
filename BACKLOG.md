@@ -1867,6 +1867,24 @@ other mechanic in this repo.
       against an in-memory stand-in for the API keyed the same way).
       All green: typecheck, unit suite (499 passed), build, the new e2e
       spec plus idiom-door's own `e2e/cloud-save.spec.ts`.
+- [x] `done` — **Joystick instead of the 4-button D-pad
+      (`joystick.ts` + `joystickControl.ts`, 2026-09-26).** Per your
+      "sometimes it is hard to aim on the buttons, I tapped on empty
+      space in between... just one button a bit joystick like so we can
+      slide": one round disc with a knob, split into four wedges by its
+      diagonals so there's no gap to miss. Slide the knob (it follows the
+      finger, turning the snake once it's outside the middle) or just tap
+      a side; keyboard steering is unchanged. **Real bug found and fixed
+      alongside:** `changeDirection` only refused a reversal of the last
+      *requested* direction, so two quick turns inside one 180ms tick
+      (moving right, "up" then "left") reversed the snake straight into
+      its own neck — possible before with fast key presses, and far
+      easier with a sliding thumb. It now checks against the way the head
+      last *actually moved* (unwrapped across board edges). Tests: unit
+      (joystick maths, the double-turn case, the edge-wrap case) and
+      `e2e/science-snake-joystick.spec.ts` (mouse slide, tap, a tap where
+      the old gaps were, and a real touch-event slide on mobile);
+      `e2e/helpers/scienceSnake.ts` now steers through the joystick too.
 
 ## Platform / infra
 
