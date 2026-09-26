@@ -204,8 +204,13 @@ body {
   width: 10rem;
   height: 10rem;
   border-radius: 50%;
-  background: rgba(60, 138, 76, 0.18);
-  border: 2px solid rgba(60, 138, 76, 0.45);
+  /* Rainbow (per your ask): a soft pastel rainbow fill inside a bright
+     rainbow rim — two backgrounds, the rim showing through a
+     transparent border. */
+  border: 4px solid transparent;
+  background:
+    conic-gradient(from 0deg, #ffd6d6, #ffe8c7, #fff6c2, #d8f5cf, #cdeefa, #d9dcff, #f0d6ff, #ffd6d6) padding-box,
+    conic-gradient(from 0deg, #ff4d4d, #ff9f1c, #ffd60a, #3ccf4e, #1fa8e0, #4b5bdc, #b14fe0, #ff4d4d) border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -217,28 +222,34 @@ body {
 }
 
 #joystick.active {
-  background: rgba(60, 138, 76, 0.26);
+  filter: saturate(1.3);
 }
 
 .joystick-arrow {
   position: absolute;
-  color: rgba(44, 107, 57, 0.7);
+  color: #fff;
   font-size: 1rem;
   line-height: 1;
+  text-shadow: 0 1px 2px rgba(44, 61, 36, 0.6);
   pointer-events: none;
 }
 
-.joystick-arrow-up { top: 0.55rem; }
-.joystick-arrow-down { bottom: 0.55rem; }
-.joystick-arrow-left { left: 0.6rem; }
-.joystick-arrow-right { right: 0.6rem; }
+.joystick-arrow-up { top: 0.5rem; }
+.joystick-arrow-down { bottom: 0.5rem; }
+.joystick-arrow-left { left: 0.55rem; }
+.joystick-arrow-right { right: 0.55rem; }
 
 #joystick-knob {
   width: 4rem;
   height: 4rem;
   border-radius: 50%;
-  background: #3c8a4c;
-  box-shadow: 0 4px 10px rgba(44, 61, 36, 0.3);
+  /* Full rainbow, with a white shine on top so it reads as a round
+     button you can grab. */
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%),
+    conic-gradient(from 0deg, #ff4d4d, #ff9f1c, #ffd60a, #3ccf4e, #1fa8e0, #4b5bdc, #b14fe0, #ff4d4d);
+  border: 3px solid #fff;
+  box-shadow: 0 4px 10px rgba(44, 61, 36, 0.35);
   pointer-events: none;
   transition: transform 0.12s ease-out;
 }
@@ -247,7 +258,7 @@ body {
    on release is animated. */
 #joystick.active #joystick-knob {
   transition: none;
-  background: #2c6b39;
+  box-shadow: 0 6px 14px rgba(44, 61, 36, 0.45);
 }
 
 .dpad-up {
