@@ -1837,6 +1837,20 @@ other mechanic in this repo.
       win/suffocation tests all passed repeatedly; see this entry's own
       detail above for what remains a real, acknowledged timing risk
       under contention specifically, not a correctness one.
+      **Follow-up (2026-09-26): that timing risk was a real bug, now
+      fixed.** CI kept timing out after the full 90 minutes (twice, with
+      the retry, on PR #65 and on main's own docs-only PR #64), with the
+      logged length frozen at 160 / 238: the sweep steered from the test
+      process (read head, then press — two round trips per turn) while
+      the route turns one tick (180ms) apart at every column change, so a
+      busy runner missed a turn, the snake left the cycle and ran into
+      itself, and the sweep — watching only for the win card — waited out
+      its budget. Steering now runs in the page (a MutationObserver on
+      `#snake-status` taps the joystick before the next tick), the route's
+      opening is built from the live head once the snake has actually
+      moved, and a lost game fails at once with the reason. Four parallel
+      local runs went from 0/4 to 4/4 wins; CI's full suite from 1.8-3.3h
+      (red) to 31 minutes (green).
 - [x] `done` — **Cloud-sync for the high score / last-run record
       (`scoreCloudSync.ts` + `cloudSaveStatus.ts`, 2026-09-24).** Reuses
       idiom-door's no-accounts backend (`shared/cloudSync.ts`,
