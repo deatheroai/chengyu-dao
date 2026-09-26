@@ -23,6 +23,21 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-26 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. No open PRs (the last one,
+  #63, merged 2026-09-25). `BACKLOG.md`'s only two open `todo`/
+  `in-progress` items are both genuinely not buildable unattended:
+  the standing example-sentence-review track is fully current (last run
+  2026-09-19 against the full 100-idiom pool; no idioms added since),
+  and Science Snake's `Content bank` item needs its next 5-question
+  batch reviewed interactively with you before landing (per the
+  2026-09-16 decision on how that content gets vetted) — same reasoning
+  every prior cycle has left it alone for, since an unattended session
+  can't get that review. The three `blocked` "Later / explicitly out of
+  scope" items remain deliberately deferred. CI on `main`
+  (`db51915`) is green. Sanity-grepped `src/` for stray TODO/FIXME
+  markers — none found. Per `AUTONOMY.md`'s "don't manufacture busywork"
+  guidance, this cycle made no changes and ends here.
 - **2026-09-25 — Daily cycle: closed stale duplicate PR #59; landed
   Science Snake cloud-sync for the high score / last-run record.**
   Pending Decisions was empty. One open PR existed, #59 ("Science Snake:
