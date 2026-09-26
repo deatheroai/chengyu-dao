@@ -21,8 +21,7 @@ body {
 }
 
 /* A real flex-column layout, not overlapping absolutely-positioned
-   pieces — #game-container and #dpad-bar are siblings that can never
-   overlap by construction, whatever size Phaser's own FIT+CENTER_BOTH
+   pieces — #game-container fills it, whatever size Phaser's own FIT+CENTER_BOTH
    scales the canvas to on a given screen. (An earlier version handed
    Phaser a #game-container that was *also* CSS flex-centered — two
    different systems fighting over the same canvas's size/position,
@@ -46,11 +45,23 @@ body {
   touch-action: none;
 }
 
+/* Floats over the bottom of the board rather than taking its own row
+   (2026-09-26, per "the joystick is taking up too much space on the
+   board... compact it at the bottom"): #game-container gets the full
+   height, so the board scales up, and only the knob and arrows are
+   drawn on top of it — the disc itself is see-through. The bar ignores
+   touches; only the disc inside it takes them. z-index sits under the
+   card-layer overlays (10), so cards and the question overlay still
+   cover it. */
 #dpad-bar {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
   display: flex;
   justify-content: center;
-  padding: 0.6rem 0 max(0.6rem, env(safe-area-inset-bottom));
+  pointer-events: none;
+  z-index: 4;
 }
 
 #high-score-display {
@@ -201,11 +212,14 @@ body {
    so it's inert while a card or the question overlay is open. */
 #joystick {
   position: relative;
-  width: 10rem;
-  height: 10rem;
+  /* 7/8 of the original 10rem, per your ask. */
+  width: 8.75rem;
+  height: 8.75rem;
   border-radius: 50%;
-  /* Rainbow (per your ask), no rim: a soft pastel rainbow fill. */
-  background: conic-gradient(from 0deg, #ffd6d6, #ffe8c7, #fff6c2, #d8f5cf, #cdeefa, #d9dcff, #f0d6ff, #ffd6d6);
+  /* See-through: the whole disc still takes slides and taps, but only
+     the knob and arrows are drawn over the board. */
+  background: transparent;
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,16 +230,11 @@ body {
   cursor: pointer;
 }
 
-#joystick.active {
-  filter: saturate(1.3);
-}
-
 .joystick-arrow {
   position: absolute;
-  color: #fff;
-  font-size: 1rem;
+  color: rgba(44, 61, 36, 0.45);
+  font-size: 0.9rem;
   line-height: 1;
-  text-shadow: 0 1px 2px rgba(44, 61, 36, 0.6);
   pointer-events: none;
 }
 
@@ -235,8 +244,8 @@ body {
 .joystick-arrow-right { right: 0.55rem; }
 
 #joystick-knob {
-  width: 4rem;
-  height: 4rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 50%;
   /* Full rainbow, with a white shine on top so it reads as a round
      button you can grab. */
@@ -252,6 +261,7 @@ body {
    on release is animated. */
 #joystick.active #joystick-knob {
   transition: none;
+  filter: saturate(1.3);
   box-shadow: 0 6px 14px rgba(44, 61, 36, 0.45);
 }
 

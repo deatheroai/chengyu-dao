@@ -14,14 +14,10 @@
   </head>
   <body>
     <div id="app">
-      <!-- Real layout, not overlapping absolutely-positioned pieces:
-           #play-area is a flex column so the game canvas and the joystick
-           bar are separate siblings that can never overlap by
-           construction, regardless of the exact FIT-scaled canvas size
-           on any given screen (a #game-container that was flex-centered
-           *and* handed to Phaser's own FIT+CENTER_BOTH autoCenter was
-           fighting itself over sizing/positioning — this replaces
-           that). -->
+      <!-- #game-container fills #play-area; #dpad-bar floats over the
+           bottom of it with a see-through joystick (style.css), so the
+           board gets the full height instead of sharing it with the
+           controls. -->
       <div id="play-area">
         <div id="game-container"></div>
         <div id="dpad-bar">
