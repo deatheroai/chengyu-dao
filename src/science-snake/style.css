@@ -204,13 +204,8 @@ body {
   width: 10rem;
   height: 10rem;
   border-radius: 50%;
-  /* Rainbow (per your ask): a soft pastel rainbow fill inside a bright
-     rainbow rim — two backgrounds, the rim showing through a
-     transparent border. */
-  border: 4px solid transparent;
-  background:
-    conic-gradient(from 0deg, #ffd6d6, #ffe8c7, #fff6c2, #d8f5cf, #cdeefa, #d9dcff, #f0d6ff, #ffd6d6) padding-box,
-    conic-gradient(from 0deg, #ff4d4d, #ff9f1c, #ffd60a, #3ccf4e, #1fa8e0, #4b5bdc, #b14fe0, #ff4d4d) border-box;
+  /* Rainbow (per your ask), no rim: a soft pastel rainbow fill. */
+  background: conic-gradient(from 0deg, #ffd6d6, #ffe8c7, #fff6c2, #d8f5cf, #cdeefa, #d9dcff, #f0d6ff, #ffd6d6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,7 +243,6 @@ body {
   background:
     radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%),
     conic-gradient(from 0deg, #ff4d4d, #ff9f1c, #ffd60a, #3ccf4e, #1fa8e0, #4b5bdc, #b14fe0, #ff4d4d);
-  border: 3px solid #fff;
   box-shadow: 0 4px 10px rgba(44, 61, 36, 0.35);
   pointer-events: none;
   transition: transform 0.12s ease-out;
