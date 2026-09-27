@@ -451,6 +451,18 @@ test("each jump costs HP, and a wrong catch costs extra on top", async ({ page }
   const afterOneCatch = Number(await page.locator("#door-hp").getAttribute("data-hp"));
   expect(afterOneCatch).toBeLessThanOrEqual(100 - JUMP_HP_COST);
 
+  // The same chain-catch a neighboring tile can advance progress by
+  // more than one step, not just cost extra HP — catchCharacter's own
+  // success check only requires nextIndex > 0, so a lucky/wide arc off
+  // character 0's own first tile can also sweep up character 1's,
+  // landing nextIndex on 2 rather than 1 (confirmed live 2026-09-27:
+  // 扶老携幼's own generated level puts 扶's first tile and 老's own
+  // very next tile only ~167px apart, inside one jump's real flight
+  // footprint). Reading the real value back, same as `afterOneCatch`
+  // just above, keeps the rest of this test correct either way instead
+  // of assuming exactly one catch happened.
+  const nextIndexAfterFirstCatch = (await status(page)).nextIndex;
+
   // Deliberately jump for a tile that does *not* match the next-needed
   // character — guaranteed "wrong" per orderedCatchProgress.ts's strict
   // ordering, whichever character it actually belongs to.
@@ -471,7 +483,7 @@ test("each jump costs HP, and a wrong catch costs extra on top", async ({ page }
   // `WRONG_CATCH_HP_PENALTY`) came off, and progress never advances
   // from a catch that wasn't the correct character (whether the one
   // aimed at or a chained-in neighbor).
-  const nextChar = Array.from(level.idiom.hanzi)[1];
+  const nextChar = Array.from(level.idiom.hanzi)[Number(nextIndexAfterFirstCatch)];
   await jumpForFirstReachableWrongTile(page, level.tiles, nextChar);
   await expect(page.locator("#door-status")).toHaveAttribute("data-outcome", "wrong", { timeout: 5000 });
   // Let the frame(s) right after the press finish resolving (see
@@ -481,7 +493,7 @@ test("each jump costs HP, and a wrong catch costs extra on top", async ({ page }
   const hpAfterWrongCatch = Number(await page.locator("#door-hp").getAttribute("data-hp"));
   expect(hpAfterWrongCatch).toBeLessThanOrEqual(afterOneCatch - JUMP_HP_COST - WRONG_CATCH_HP_PENALTY);
   // The wrong catch (or catches) never advanced progress.
-  expect((await status(page)).nextIndex).toBe("1");
+  expect((await status(page)).nextIndex).toBe(nextIndexAfterFirstCatch);
 });
 
 /**
