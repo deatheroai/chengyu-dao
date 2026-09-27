@@ -1837,50 +1837,78 @@ other mechanic in this repo.
       win/suffocation tests all passed repeatedly; see this entry's own
       detail above for what remains a real, acknowledged timing risk
       under contention specifically, not a correctness one.
+      **Follow-up (2026-09-26): that timing risk was a real bug, now
+      fixed.** CI kept timing out after the full 90 minutes (twice, with
+      the retry, on PR #65 and on main's own docs-only PR #64), with the
+      logged length frozen at 160 / 238: the sweep steered from the test
+      process (read head, then press — two round trips per turn) while
+      the route turns one tick (180ms) apart at every column change, so a
+      busy runner missed a turn, the snake left the cycle and ran into
+      itself, and the sweep — watching only for the win card — waited out
+      its budget. Steering now runs in the page (a MutationObserver on
+      `#snake-status` taps the joystick before the next tick), the route's
+      opening is built from the live head once the snake has actually
+      moved, and a lost game fails at once with the reason. Four parallel
+      local runs went from 0/4 to 4/4 wins; CI's full suite from 1.8-3.3h
+      (red) to 31 minutes (green).
 - [x] `done` — **Cloud-sync for the high score / last-run record
-      (`scienceSnakeScore.ts`, 2026-09-25).** Same no-accounts,
-      device-typed 8-character code model `idiom-door`'s own cloud save
-      already uses, and the *same* backend/API — `shared/cloudSync.ts`,
-      `shared/cloudSaveValidation.ts`, `api/cloud-save.ts`'s Upstash Redis
-      store — reused rather than standing up a second one, per this
-      item's own original note. `cloudSync.ts`'s three device-code
-      functions (`getLocalCloudCode`/`ensureLocalCloudCode`/
-      `adoptCloudCode`) gained an optional `storageKey` parameter
-      (defaulting to idiom-door's own existing key, so every one of its
-      call sites keeps working unchanged) so Science Snake can keep its
-      own device code (`science-snake-cloud-code`) without colliding with
-      idiom-door's — the backend itself already namespaces purely by
-      code, needing no server-side change at all.
-      `scienceSnakeScore.ts` gained `exportForCloud`/`importFromCloud`:
-      merge-based restore, never a blind overwrite, same ethos as
-      idiom-door's own `sessionHistory.ts` import, but merging by two
-      different rules for its two different fields — the higher of the
-      two high scores wins (a record, not a snapshot), while the
-      more-recently-achieved of the two last-runs wins (whichever device
-      was actually played most recently is what the next round-over-round
-      comparison should build on, not whichever scored higher).
-      New `src/science-snake/cloudSaveStatus.ts` wires the panel
-      (`science-snake.html`'s new `#cloud-save-btn`/`#cloud-save-card`,
-      styled in `style.css` to this game's own green palette) — a
-      deliberate standalone copy of idiom-door's own `cloudSaveStatus.ts`
-      DOM-wiring module rather than a shared one, same "completely
-      independent games" reasoning `seededRandom.ts` already documents
-      for its own standalone copy.
-      New e2e/science-snake-cloud-save.spec.ts (6 tests, mirroring
-      idiom-door's own e2e/cloud-save.spec.ts structure exactly, mocking
-      `/api/cloud-save` the same way since the dev server has no real
-      route): minting/persisting the device code, the not-configured
-      message, restoring a valid code (asserts the merged high score
-      shows in `#high-score-display` after reload), a not-found code, and
-      a malformed code rejected without a network call.
-      All green: `npm run typecheck`/`test` (482 passed, up from
-      469)/`build`, plus the full `test:e2e` suite (85 passed clean, 1
-      flaky-then-passed-on-retry — the pre-existing self-collision/
-      suffocation race this section's own e2e-suite entry above already
-      documents as a real, acknowledged timing risk under contention,
-      unrelated to this change: nothing here touches `snakeGrid.ts`,
-      `itemSpawner.ts`, `suffocation.ts`, or the D-pad/self-collision
-      code at all).
+      (`scoreCloudSync.ts` + `cloudSaveStatus.ts`, 2026-09-24).** Reuses
+      idiom-door's no-accounts backend (`shared/cloudSync.ts`,
+      `api/cloud-save.ts`) with a "☁️ Save code" button on the start/win/
+      lose cards (never mid-run) opening the same code + restore panel
+      shape idiom-door has; after that, every finished run syncs quietly.
+      Two things the "this is wiring, not new infra" note above didn't
+      anticipate, both fixed rather than worked around:
+      1. **Per-game server namespace.** Both games share an origin and
+         `api/cloud-save.ts` stored one blob per code, so a code used by
+         both games would have had Science Snake's scores pushed straight
+         over idiom-door's history. The API now takes an optional `game`
+         (`"idiom-door"` default, `"science-snake"`) keyed under its own
+         Redis prefix; idiom-door keeps its original prefix and sends
+         exactly the request it always did, so existing saves are
+         untouched. Science Snake also keeps its own local code
+         (`science-snake-cloud-code`), per the independent-game decision.
+      2. **Pull → merge → push, not a blind push.** idiom-door's
+         push-only sync lets the last device to sync overwrite the other.
+         Scores merge instead: the higher high score and the more recent
+         last run win (`mergeScoresFromCloud`), and a pull failure other
+         than 404 stops before pushing. A restore from a code with no
+         Science Snake save behind it reports not-found and is *not*
+         adopted.
+      Tests: unit (API namespacing, `cloudSync` game/storage-key params,
+      merge rules, sync/restore flows, after-run sync) and
+      `e2e/science-snake-cloud-save.spec.ts` (6 tests × mobile/desktop,
+      against an in-memory stand-in for the API keyed the same way).
+      All green: typecheck, unit suite (499 passed), build, the new e2e
+      spec plus idiom-door's own `e2e/cloud-save.spec.ts`.
+      **Reconciled 2026-09-26 with a parallel version** a daily cycle
+      landed on `main` the day before (PR #63): same merge rules and same
+      local code key, but it pushed without pulling first and stored
+      Science Snake's save in idiom-door's own server namespace — so
+      restoring an idiom-door code in Science Snake would later push
+      snake scores over that idiom history. This version replaced it;
+      since that one was live, Science Snake's sync also falls back to
+      reading a save stored the old way and moves it into the new
+      namespace (`scoreCloudSync.ts`), so nothing saved in between is
+      lost.
+- [x] `done` — **Joystick instead of the 4-button D-pad
+      (`joystick.ts` + `joystickControl.ts`, 2026-09-26).** Per your
+      "sometimes it is hard to aim on the buttons, I tapped on empty
+      space in between... just one button a bit joystick like so we can
+      slide": one round disc with a knob, split into four wedges by its
+      diagonals so there's no gap to miss. Slide the knob (it follows the
+      finger, turning the snake once it's outside the middle) or just tap
+      a side; keyboard steering is unchanged. **Real bug found and fixed
+      alongside:** `changeDirection` only refused a reversal of the last
+      *requested* direction, so two quick turns inside one 180ms tick
+      (moving right, "up" then "left") reversed the snake straight into
+      its own neck — possible before with fast key presses, and far
+      easier with a sliding thumb. It now checks against the way the head
+      last *actually moved* (unwrapped across board edges). Tests: unit
+      (joystick maths, the double-turn case, the edge-wrap case) and
+      `e2e/science-snake-joystick.spec.ts` (mouse slide, tap, a tap where
+      the old gaps were, and a real touch-event slide on mobile);
+      `e2e/helpers/scienceSnake.ts` now steers through the joystick too.
 
 ## Platform / infra
 

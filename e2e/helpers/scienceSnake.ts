@@ -10,76 +10,15 @@ import { scienceQuestions } from "../../src/science-snake/scienceQuestions";
  * hooks (`snakeStatus.ts`'s #snake-status/#board-items, same
  * "canvas-internal state isn't otherwise observable, expose it as a
  * hidden data attribute" pattern idiom-door's own #player-position/
- * #balloon-target-positions already use) and clicks the same on-screen
- * D-pad a real child would tap.
+ * #balloon-target-positions already use) and taps the same on-screen
+ * joystick a real child would use. Steering runs *inside the page*
+ * (installInPageSweepSteering, installInPageChaser), reacting to each
+ * tick before the next — see those for why: steering from the test
+ * process missed turns on busy CI runners. Taps are dispatched straight
+ * at #joystick rather than via page.click(), whose actionability checks
+ * hung while the question overlay (above the joystick in z-index)
+ * intercepted pointer events.
  */
-
-const DIRECTION_BUTTON_ID: Record<Direction, string> = {
-  up: "dpad-up",
-  down: "dpad-down",
-  left: "dpad-left",
-  right: "dpad-right",
-};
-const OPPOSITE: Record<Direction, Direction> = { up: "down", down: "up", left: "right", right: "left" };
-const ALL_DIRECTIONS: Direction[] = ["up", "down", "left", "right"];
-const DELTA: Record<Direction, Position> = {
-  up: { x: 0, y: -1 },
-  down: { x: 0, y: 1 },
-  left: { x: -1, y: 0 },
-  right: { x: 1, y: 0 },
-};
-
-function wrap(n: number, size: number): number {
-  return ((n % size) + size) % size;
-}
-
-/**
- * The D-pad is wired on `pointerdown` (main.ts), not `click` — same as
- * idiom-door's own `#jump-btn` (see doorJump.ts's `pressJumpButton`).
- * `dispatchEvent` fires it directly rather than `page.click()`'s full
- * actionability-check simulation, which matters here specifically:
- * `page.click()` retries while any other element intercepts pointer
- * events at that position, and the question overlay (a `card-layer`
- * that sits above the D-pad in z-index whenever it's open) does exactly
- * that between direction presses — found the hard way as a real,
- * reproducible hang, not guessed.
- */
-async function pressDirection(page: Page, direction: Direction): Promise<void> {
-  await page.locator(`#${DIRECTION_BUTTON_ID[direction]}`).dispatchEvent("pointerdown");
-}
-
-interface SnakeStatus {
-  head: Position;
-  length: number;
-}
-
-async function readSnakeStatus(page: Page): Promise<SnakeStatus> {
-  const el = page.locator("#snake-status");
-  const [x, y, length] = await Promise.all([
-    el.getAttribute("data-head-x"),
-    el.getAttribute("data-head-y"),
-    el.getAttribute("data-length"),
-  ]);
-  return { head: { x: Number(x), y: Number(y) }, length: Number(length) };
-}
-
-interface BoardItemStatus {
-  x: number;
-  y: number;
-  type: "apple" | "poison-apple" | "science";
-  questionId?: string;
-}
-
-async function readBoardItems(page: Page): Promise<BoardItemStatus[]> {
-  return page.locator("#board-items > span").evaluateAll((spans) =>
-    spans.map((span) => ({
-      x: Number((span as HTMLElement).dataset.x),
-      y: Number((span as HTMLElement).dataset.y),
-      type: (span as HTMLElement).dataset.type as BoardItemStatus["type"],
-      questionId: (span as HTMLElement).dataset.questionId,
-    })),
-  );
-}
 
 async function isQuestionOverlayVisible(page: Page): Promise<boolean> {
   return page.locator("#question-overlay").evaluate((el) => el.classList.contains("visible"));
@@ -177,7 +116,7 @@ interface Waypoint {
   x: number;
   y: number;
   direction: Direction;
-  /** The direction the snake is travelling in *while approaching* this waypoint (i.e. the previous waypoint's own `direction`) — see `reachedOrPassed` below for why this matters. */
+  /** The direction the snake is travelling in *while approaching* this waypoint (i.e. the previous waypoint's own `direction`) — see the in-page `reachedOrPassed` below for why this matters. */
   approach: Direction;
 }
 
@@ -186,22 +125,19 @@ function waypoint(x: number, y: number, direction: Direction, approach: Directio
 }
 
 /**
- * `prefix` gets the snake from its real starting position/direction
- * (main.ts's createInitialSnake — always the board's center, facing
- * right) to the cycle's own entry point (0,0) facing down. `cycle` is
- * one full lap (width*height moves) that returns to (0,0) facing down
- * again — looping it (repeat `cycle`, skip `prefix`) is always safe up
- * to a body length just under width*height.
+ * The route's opening (built in the page by installInPageSweepSteering)
+ * gets the snake from wherever its head is when steering starts (still on its starting row, moving right — see
+ * sweepFullBoardUntilWin) to the cycle's own entry point (0,0) facing
+ * down: up its current column to row 0, then left. Built from the live
+ * head rather than the known start cell, because the very first turn can
+ * only take effect once the scene is actually running — sending it at the
+ * start cell raced the scene starting up, and a lost first turn left the
+ * sweep waiting for a column the snake would never turn up (seen as four
+ * parallel runs stuck at length 3 for minutes). `cycle` is one full lap
+ * (width*height moves) that returns to (0,0) facing down again — looping
+ * it is always safe up to a body length just under width*height.
  */
-function buildFullBoardPlan(width: number, height: number): { prefix: Waypoint[]; cycle: Waypoint[] } {
-  const startX = Math.floor(width / 2);
-  const startY = Math.floor(height / 2);
-  const prefix: Waypoint[] = [
-    waypoint(startX, startY, "up", "right"),
-    waypoint(startX, 0, "left", "up"),
-    waypoint(0, 0, "down", "left"),
-  ];
-
+function buildFullBoardCycle(width: number, height: number): Waypoint[] {
   const cycle: Waypoint[] = [waypoint(0, height - 1, "right", "down")];
   for (let col = 1; col <= width - 1; col++) {
     const isLast = col === width - 1;
@@ -221,55 +157,119 @@ function buildFullBoardPlan(width: number, height: number): { prefix: Waypoint[]
     }
   }
   cycle.push(waypoint(0, 0, "down", cycle[cycle.length - 1].direction));
-  return { prefix, cycle };
-}
-
-/**
- * Whether the head has reached *or already passed* `wp`, given it's been
- * travelling in `wp.approach` to get there. Exact equality alone isn't
- * safe here: found live that a slow poll cycle (headless Chromium under
- * load) can occasionally miss a waypoint's exact one-tick dwell window
- * entirely, and once missed the snake keeps going straight past it,
- * eventually wrapping around into a cell its own recent tail still
- * occupies — a real, reproduced self-collision, not a theoretical one.
- * Tolerating "passed" (checked on the very next poll instead of exactly
- * on arrival) costs at most a few cells of the same already-safe
- * straight segment, never a wrong turn.
- */
-function reachedOrPassed(head: Position, wp: Waypoint): boolean {
-  switch (wp.approach) {
-    case "up":
-      return head.x === wp.x && head.y <= wp.y;
-    case "down":
-      return head.x === wp.x && head.y >= wp.y;
-    case "left":
-      return head.y === wp.y && head.x <= wp.x;
-    case "right":
-      return head.y === wp.y && head.x >= wp.x;
-  }
+  return cycle;
 }
 
 /** Single round-trip per poll (win-card, overlay, head position all at once) rather than several sequential ones — cuts real per-poll latency enough to reliably catch each waypoint's one-tick dwell window. */
-async function readSweepStatus(page: Page): Promise<{ winVisible: boolean; overlayVisible: boolean; head: Position }> {
+async function readSweepStatus(
+  page: Page,
+): Promise<{ winVisible: boolean; loseMessage: string | null; overlayVisible: boolean; head: Position; length: number }> {
   return page.evaluate(() => {
     const winVisible = document.getElementById("win-card")?.classList.contains("visible") ?? false;
+    const loseVisible = document.getElementById("lose-card")?.classList.contains("visible") ?? false;
+    const loseMessage = loseVisible ? (document.getElementById("lose-message")?.textContent ?? "") : null;
     const overlayVisible = document.getElementById("question-overlay")?.classList.contains("visible") ?? false;
     const status = document.getElementById("snake-status");
     const head = { x: Number(status?.getAttribute("data-head-x")), y: Number(status?.getAttribute("data-head-y")) };
-    return { winVisible, overlayVisible, head };
+    return { winVisible, loseMessage, overlayVisible, head, length: Number(status?.getAttribute("data-length")) };
   });
 }
 
 /**
- * Steers along `buildFullBoardPlan`'s cycle (looping it as many times as
- * it takes), answering every science item correctly, until the win card
- * appears. Polls the live head position frequently relative to
- * `TICK_MS` (180ms) so it reliably catches each waypoint at or shortly
- * after arrival, before the snake gets far past it.
+ * Installs the sweep's steering *inside the page*: a MutationObserver on
+ * #snake-status (which the scene rewrites once per tick) checks each new
+ * head position against the next waypoint and taps the joystick straight
+ * away, before the next tick. Steering from the test process instead —
+ * poll the head, then send a press — needs two round trips per turn, and
+ * the plan has turns just one tick (180ms) apart at every column change.
+ * On a busy CI runner those round trips ran long, a turn was missed, the
+ * snake left the cycle and later ran into itself (CI logs: length frozen
+ * at 160 / 238 for the rest of a 90-minute budget, on this branch and on
+ * main's own docs-only PR #64). Reacting in the page can't miss a tick.
+ *
+ * A turn due while the question overlay is open is held until it closes:
+ * the scene ignores direction changes while paused (SnakeGameScene's
+ * requestDirection), and the head hasn't moved in the meantime.
+ */
+async function installInPageSweepSteering(page: Page, cycle: Waypoint[]): Promise<void> {
+  await page.evaluate(
+    ({ cycle }) => {
+      type Dir = "up" | "down" | "left" | "right";
+      type Wp = { x: number; y: number; direction: Dir; approach: Dir };
+      const status = document.getElementById("snake-status")!;
+      const joystick = document.getElementById("joystick")!;
+      const overlay = document.getElementById("question-overlay")!;
+      const offset: Record<Dir, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+      // The opening, from the live head in this same synchronous step, so
+      // the snake can't have moved on since it was read (see the doc on
+      // buildFullBoardCycle for why it isn't the fixed start cell).
+      const hx = Number(status.getAttribute("data-head-x"));
+      const hy = Number(status.getAttribute("data-head-y"));
+      const prefix: Wp[] = [
+        { x: hx, y: hy, direction: "up", approach: "right" },
+        { x: hx, y: 0, direction: "left", approach: "up" },
+        { x: 0, y: 0, direction: "down", approach: "left" },
+      ];
+      let queue: Wp[] = [...prefix, ...cycle];
+
+      // Whether the head has reached *or already passed* `wp`, given it's
+      // been travelling in `wp.approach` to get there. Exact equality was
+      // once missed on a slow poll; with a check every tick it shouldn't
+      // be, but "passed" costs nothing on an already-safe straight run.
+      const reachedOrPassed = (x: number, y: number, wp: Wp): boolean => {
+        switch (wp.approach) {
+          case "up":
+            return x === wp.x && y <= wp.y;
+          case "down":
+            return x === wp.x && y >= wp.y;
+          case "left":
+            return y === wp.y && x <= wp.x;
+          case "right":
+            return y === wp.y && x >= wp.x;
+        }
+      };
+
+      // Same tap the test process's pressDirection sends: 35% of the
+      // disc's width out from its centre toward the direction.
+      const press = (direction: Dir): void => {
+        const rect = joystick.getBoundingClientRect();
+        const clientX = rect.left + rect.width / 2 + offset[direction][0] * rect.width * 0.35;
+        const clientY = rect.top + rect.height / 2 + offset[direction][1] * rect.height * 0.35;
+        const init = { pointerId: 1, clientX, clientY, bubbles: true, cancelable: true };
+        joystick.dispatchEvent(new PointerEvent("pointerdown", init));
+        joystick.dispatchEvent(new PointerEvent("pointerup", init));
+      };
+
+      const check = (): void => {
+        if (overlay.classList.contains("visible")) return;
+        const x = Number(status.getAttribute("data-head-x"));
+        const y = Number(status.getAttribute("data-head-y"));
+        if (!reachedOrPassed(x, y, queue[0])) return;
+        press(queue[0].direction);
+        queue.shift();
+        if (queue.length === 0) queue = [...cycle];
+      };
+
+      new MutationObserver(check).observe(status, { attributes: true, attributeFilter: ["data-head-x", "data-head-y"] });
+      new MutationObserver(check).observe(overlay, { attributes: true, attributeFilter: ["class"] });
+      check();
+    },
+    { cycle },
+  );
+}
+
+/**
+ * Steers along `buildFullBoardCycle`'s cycle (looping it as many times as
+ * it takes — the steering itself runs in the page, see
+ * installInPageSweepSteering), answering every science item correctly,
+ * until the win card appears. Fails straight away if the game is lost.
  */
 export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000): Promise<void> {
-  const { prefix, cycle } = buildFullBoardPlan(GRID_WIDTH, GRID_HEIGHT);
-  let queue: Waypoint[] = [...prefix, ...cycle];
+  // Wait for the snake's first real move, so the scene is running and the
+  // route's first turn can't be dropped (see buildFullBoardCycle's doc).
+  const start = await readSweepStatus(page);
+  await expect.poll(async () => (await readSweepStatus(page)).head.x, { timeout: 10000 }).not.toBe(start.head.x);
+  await installInPageSweepSteering(page, buildFullBoardCycle(GRID_WIDTH, GRID_HEIGHT));
 
   const deadline = Date.now() + maxMs;
   // Real CI runs of this test have taken anywhere from ~5 to 90+ minutes
@@ -278,24 +278,23 @@ export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000)
   // instead of a single opaque timeout at the very end.
   let lastLogAt = 0;
   while (Date.now() < deadline) {
+    const { winVisible, loseMessage, overlayVisible, head, length } = await readSweepStatus(page);
     if (Date.now() - lastLogAt > 60000) {
       lastLogAt = Date.now();
-      const length = await page.locator("#snake-status").getAttribute("data-length");
       console.log(`[sweepFullBoardUntilWin] length=${length} elapsedMs=${Date.now() - (deadline - maxMs)}`);
     }
-    const { winVisible, overlayVisible, head } = await readSweepStatus(page);
     if (winVisible) return;
+    // A lost game never shows the win card, so without this the sweep
+    // just kept polling a frozen board until its full 90-minute budget
+    // ran out — CI's only clue was the logged length never changing.
+    if (loseMessage !== null) {
+      throw new Error(`sweepFullBoardUntilWin: the game was lost at length ${length}, head (${head.x},${head.y}): "${loseMessage}"`);
+    }
     if (overlayVisible) {
       await answerCurrentQuestionCorrectly(page);
       continue;
     }
-    const next = queue[0];
-    if (reachedOrPassed(head, next)) {
-      await pressDirection(page, next.direction);
-      queue.shift();
-      if (queue.length === 0) queue = [...cycle];
-    }
-    await page.waitForTimeout(20);
+    await page.waitForTimeout(200);
   }
   throw new Error("sweepFullBoardUntilWin timed out");
 }
@@ -323,81 +322,126 @@ export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000)
 // within 50 simulated seconds every time.
 // ---------------------------------------------------------------------
 
-function manhattan(a: Position, b: Position): number {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-}
+/**
+ * Installs the chase inside the page (idempotent), for the same reason
+ * the win sweep's steering lives there (installInPageSweepSteering): it
+ * reacts to every tick's fresh state before the next tick. The test
+ * process used to read the board, decide, then press — and if a tick
+ * landed in between, the direction was chosen for where the head *had
+ * been*, which could steer it straight into its own body (CI: this test
+ * flaky with "the snake ran into itself" under load). Each tick it picks
+ * the nearest science item and a direction toward it that's
+ * reversal-aware and confinement-aware (see this section's doc above),
+ * then taps the joystick. It does nothing while a question is open.
+ */
+async function installInPageChaser(page: Page): Promise<void> {
+  await page.evaluate(
+    ({ width, height }) => {
+      const w = window as unknown as { __scienceSnakeChaser?: boolean };
+      if (w.__scienceSnakeChaser) return;
+      w.__scienceSnakeChaser = true;
 
-function freeSpaceFrom(start: Position, blocked: Set<string>, limit: number): number {
-  const startKey = `${start.x},${start.y}`;
-  if (blocked.has(startKey)) return 0;
-  const visited = new Set<string>([startKey]);
-  const queue: Position[] = [start];
-  let count = 0;
-  while (queue.length > 0 && count < limit) {
-    const p = queue.shift()!;
-    count++;
-    for (const d of ALL_DIRECTIONS) {
-      const n = { x: wrap(p.x + DELTA[d].x, GRID_WIDTH), y: wrap(p.y + DELTA[d].y, GRID_HEIGHT) };
-      const key = `${n.x},${n.y}`;
-      if (visited.has(key) || blocked.has(key)) continue;
-      visited.add(key);
-      queue.push(n);
-    }
-  }
-  return count;
-}
+      type Dir = "up" | "down" | "left" | "right";
+      type Pos = { x: number; y: number };
+      const status = document.getElementById("snake-status")!;
+      const boardItems = document.getElementById("board-items")!;
+      const joystick = document.getElementById("joystick")!;
+      const overlay = document.getElementById("question-overlay")!;
+      const ALL: Dir[] = ["up", "down", "left", "right"];
+      const DELTA: Record<Dir, Pos> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
+      const OPPOSITE: Record<Dir, Dir> = { up: "down", down: "up", left: "right", right: "left" };
+      const wrap = (n: number, size: number): number => ((n % size) + size) % size;
+      const step = (p: Pos, d: Dir): Pos => ({ x: wrap(p.x + DELTA[d].x, width), y: wrap(p.y + DELTA[d].y, height) });
+      const key = (p: Pos): string => `${p.x},${p.y}`;
 
-/** See this file's own "Suffocation drive" doc comment above for why this needs to be both reversal-aware and confinement-aware, not just a plain "move toward target" picker. */
-function directionToward(head: Position, target: Position, currentDirection: Direction, body: Position[]): Direction {
-  const desiredX: Direction | null = head.x === target.x ? null : target.x > head.x ? "right" : "left";
-  const desiredY: Direction | null = head.y === target.y ? null : target.y > head.y ? "down" : "up";
-  const ordered = [desiredX, desiredY, ...ALL_DIRECTIONS].filter((d): d is Direction => d !== null);
-  const bodySet = new Set(body.map((p) => `${p.x},${p.y}`));
-  const safetyMargin = body.length + 5;
+      const freeSpaceFrom = (start: Pos, blocked: Set<string>, limit: number): number => {
+        if (blocked.has(key(start))) return 0;
+        const visited = new Set([key(start)]);
+        const queue = [start];
+        let count = 0;
+        while (queue.length > 0 && count < limit) {
+          const p = queue.shift()!;
+          count++;
+          for (const d of ALL) {
+            const n = step(p, d);
+            if (visited.has(key(n)) || blocked.has(key(n))) continue;
+            visited.add(key(n));
+            queue.push(n);
+          }
+        }
+        return count;
+      };
 
-  let bestCandidate: Direction | null = null;
-  let bestFreeSpace = -1;
-  const seen = new Set<Direction>();
-  for (const candidate of ordered) {
-    if (seen.has(candidate) || candidate === OPPOSITE[currentDirection]) continue;
-    seen.add(candidate);
-    const next = { x: wrap(head.x + DELTA[candidate].x, GRID_WIDTH), y: wrap(head.y + DELTA[candidate].y, GRID_HEIGHT) };
-    const nextKey = `${next.x},${next.y}`;
-    if (bodySet.has(nextKey)) continue;
-    // The tail is about to vacate its current cell (unless growing), so
-    // don't count it as "blocked" for this lookahead — same nuance
-    // step() itself accounts for.
-    const blockedForFloodFill = new Set(bodySet);
-    const tail = body[body.length - 1];
-    blockedForFloodFill.delete(`${tail.x},${tail.y}`);
-    const freeSpace = freeSpaceFrom(next, blockedForFloodFill, safetyMargin);
-    if (freeSpace >= safetyMargin) return candidate;
-    if (freeSpace > bestFreeSpace) {
-      bestFreeSpace = freeSpace;
-      bestCandidate = candidate;
-    }
-  }
-  return bestCandidate ?? currentDirection;
-}
+      const directionToward = (head: Pos, target: Pos, moved: Dir, body: Pos[]): Dir => {
+        const desiredX: Dir | null = head.x === target.x ? null : target.x > head.x ? "right" : "left";
+        const desiredY: Dir | null = head.y === target.y ? null : target.y > head.y ? "down" : "up";
+        const ordered = [desiredX, desiredY, ...ALL].filter((d): d is Dir => d !== null);
+        const bodySet = new Set(body.map(key));
+        const safetyMargin = body.length + 5;
+        // The tail is about to vacate its cell (unless growing), so it
+        // isn't counted as blocked for the lookahead — same nuance the
+        // game's own step() accounts for.
+        const blockedForFloodFill = new Set(bodySet);
+        blockedForFloodFill.delete(key(body[body.length - 1]));
+        let best: Dir | null = null;
+        let bestFree = -1;
+        const seen = new Set<Dir>();
+        for (const candidate of ordered) {
+          if (seen.has(candidate) || candidate === OPPOSITE[moved]) continue;
+          seen.add(candidate);
+          const next = step(head, candidate);
+          if (bodySet.has(key(next))) continue;
+          const free = freeSpaceFrom(next, blockedForFloodFill, safetyMargin);
+          if (free >= safetyMargin) return candidate;
+          if (free > bestFree) {
+            bestFree = free;
+            best = candidate;
+          }
+        }
+        return best ?? moved;
+      };
 
-async function readFullSnakeStatus(page: Page): Promise<{ head: Position; direction: Direction; body: Position[] }> {
-  // Only the head/length are exposed via #snake-status; approximate the
-  // rest of the body from #board-items being absent there isn't
-  // possible, so the confinement check below reads the same hook the
-  // production render() writes every tick, extended with a body list
-  // for this driver's own use — see #snake-status's `data-body`.
-  const el = page.locator("#snake-status");
-  const [x, y, direction, bodyJson] = await Promise.all([
-    el.getAttribute("data-head-x"),
-    el.getAttribute("data-head-y"),
-    el.getAttribute("data-direction"),
-    el.getAttribute("data-body"),
-  ]);
-  return {
-    head: { x: Number(x), y: Number(y) },
-    direction: direction as Direction,
-    body: JSON.parse(bodyJson ?? "[]"),
-  };
+      // The way the head last actually moved (neck to head, unwrapped
+      // across an edge) — what the game checks reversals against.
+      const lastMoved = (body: Pos[], fallback: Dir): Dir => {
+        if (body.length < 2) return fallback;
+        let dx = body[0].x - body[1].x;
+        let dy = body[0].y - body[1].y;
+        if (Math.abs(dx) > 1) dx = -Math.sign(dx);
+        if (Math.abs(dy) > 1) dy = -Math.sign(dy);
+        return dx === 1 ? "right" : dx === -1 ? "left" : dy === 1 ? "down" : dy === -1 ? "up" : fallback;
+      };
+
+      const press = (direction: Dir): void => {
+        const rect = joystick.getBoundingClientRect();
+        const clientX = rect.left + rect.width / 2 + DELTA[direction].x * rect.width * 0.35;
+        const clientY = rect.top + rect.height / 2 + DELTA[direction].y * rect.height * 0.35;
+        const init = { pointerId: 1, clientX, clientY, bubbles: true, cancelable: true };
+        joystick.dispatchEvent(new PointerEvent("pointerdown", init));
+        joystick.dispatchEvent(new PointerEvent("pointerup", init));
+      };
+
+      const tick = (): void => {
+        if (overlay.classList.contains("visible")) return;
+        const body = JSON.parse(status.getAttribute("data-body") ?? "[]") as Pos[];
+        if (body.length === 0) return;
+        const head = body[0];
+        const science = Array.from(boardItems.children)
+          .filter((el) => el.getAttribute("data-type") === "science")
+          .map((el) => ({ x: Number(el.getAttribute("data-x")), y: Number(el.getAttribute("data-y")) }));
+        if (science.length === 0) return;
+        const dist = (p: Pos): number => Math.abs(p.x - head.x) + Math.abs(p.y - head.y);
+        const nearest = science.reduce((a, b) => (dist(b) < dist(a) ? b : a));
+        const moved = lastMoved(body, status.getAttribute("data-direction") as Dir);
+        press(directionToward(head, nearest, moved, body));
+      };
+
+      new MutationObserver(tick).observe(status, { attributes: true, attributeFilter: ["data-head-x", "data-head-y"] });
+      new MutationObserver(tick).observe(overlay, { attributes: true, attributeFilter: ["class"] });
+      tick();
+    },
+    { width: GRID_WIDTH, height: GRID_HEIGHT },
+  );
 }
 
 /** Thrown by chaseNearestScienceItem when the game already ended mid-chase — carries the real lose-card message so a caller expecting suffocation specifically can tell that apart from a genuine bug (e.g. a self-collision). */
@@ -415,35 +459,17 @@ export class GameEndedError extends Error {
  * answering it is the caller's own choice.
  */
 export async function chaseNearestScienceItem(page: Page, maxMs = 60000): Promise<void> {
+  await installInPageChaser(page);
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
     if (await isQuestionOverlayVisible(page)) return;
-    // Bail out fast on a self-collision instead of dispatching pointless
-    // direction presses to a dead snake until this function's own
-    // timeout — found live as a real multi-minute hang, not guessed.
+    // Bail out fast on a self-collision instead of waiting out this
+    // function's own timeout — found live as a real multi-minute hang.
     if (await isCardVisible(page, "lose-card")) {
       const reason = (await page.locator("#lose-message").textContent()) ?? "";
       throw new GameEndedError(reason);
     }
-    const items = await readBoardItems(page);
-    const scienceItems = items.filter((i) => i.type === "science");
-    if (scienceItems.length === 0) {
-      await page.waitForTimeout(100);
-      continue;
-    }
-    const { head, direction, body } = await readFullSnakeStatus(page);
-    let nearest = scienceItems[0];
-    let bestDist = manhattan(head, nearest);
-    for (const candidate of scienceItems.slice(1)) {
-      const d = manhattan(head, candidate);
-      if (d < bestDist) {
-        nearest = candidate;
-        bestDist = d;
-      }
-    }
-    const dir = directionToward(head, nearest, direction, body);
-    await pressDirection(page, dir);
-    await page.waitForTimeout(30);
+    await page.waitForTimeout(100);
   }
   throw new Error("chaseNearestScienceItem timed out");
 }

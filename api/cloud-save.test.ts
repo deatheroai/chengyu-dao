@@ -125,6 +125,38 @@ describe("configured", () => {
     expect(res.status).toBe(400);
   });
 
+  it("keeps a save that names no game at idiom-door's original key", async () => {
+    await post({ code: VALID_CODE, data: { completedSessions: [] } });
+    expect(store.has(`chengyu-dao:cloud-save:${VALID_CODE}`)).toBe(true);
+  });
+
+  it("keeps each game's save separate under the same code", async () => {
+    const idiomData = { completedSessions: [{ idiomIds: ["a"], completedAt: 1 }] };
+    const snakeData = { highScore: null, lastRun: null };
+    await post({ code: VALID_CODE, data: idiomData });
+    await post({ code: VALID_CODE, data: snakeData, game: "science-snake" });
+
+    expect(await (await get(VALID_CODE)).json()).toEqual({ ok: true, data: idiomData });
+    const snakeRes = await handler.fetch(new Request(`https://example.com/api/cloud-save?code=${VALID_CODE}&game=science-snake`));
+    expect(await snakeRes.json()).toEqual({ ok: true, data: snakeData });
+  });
+
+  it("404s a science-snake GET for a code that only has an idiom-door save", async () => {
+    await post({ code: VALID_CODE, data: { completedSessions: [] } });
+    const res = await handler.fetch(new Request(`https://example.com/api/cloud-save?code=${VALID_CODE}&game=science-snake`));
+    expect(res.status).toBe(404);
+  });
+
+  it("400s an unknown game on POST or GET, without touching redis", async () => {
+    const postRes = await post({ code: VALID_CODE, data: {}, game: "tetris" });
+    expect(postRes.status).toBe(400);
+    expect(await postRes.json()).toEqual({ error: "invalid-game" });
+    const getRes = await handler.fetch(new Request(`https://example.com/api/cloud-save?code=${VALID_CODE}&game=tetris`));
+    expect(getRes.status).toBe(400);
+    expect(mockSet).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
+  });
+
   it("405s any method other than GET/POST", async () => {
     const res = await handler.fetch(new Request("https://example.com/api/cloud-save", { method: "DELETE" }));
     expect(res.status).toBe(405);

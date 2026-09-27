@@ -1,118 +1,127 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
-// Mirrors e2e/cloud-save.spec.ts (idiom-door's own suite) — same panel
-// shape, same Vite-dev-server-has-no-/api-route reasoning, adapted to
-// Science Snake's own high-score/last-run cloud data instead of
-// idiom-door's discovered-idiom history. #cloud-save-btn is placed
-// alongside #high-score-display specifically so it's reachable
-// throughout, including underneath #start-card, which is visible the
-// instant the page loads — every test here can open the panel right
-// after page.goto with nothing to dismiss first.
+// Science Snake's cloud save panel (cloudSaveStatus.ts / scoreCloudSync.ts).
+// Same approach as e2e/cloud-save.spec.ts: the Vite dev server has no
+// /api/cloud-save route (it's Vercel-only), so every test stands one in
+// via page.route — here an in-memory store keyed by game + code, the
+// same way api/cloud-save.ts keys Redis, so the tests also check that
+// Science Snake only ever reads and writes its own namespace.
 
-test("opening the panel mints and shows an 8-character code, then confirms it saved", async ({ page }) => {
+const CODE_PATTERN = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/;
+
+interface FakeServer {
+  store: Map<string, unknown>;
+  posts: { code: string; game?: string; data: unknown }[];
+  gets: number;
+}
+
+async function fakeCloudServer(page: Page, initial: Record<string, unknown> = {}, status?: number): Promise<FakeServer> {
+  const server: FakeServer = { store: new Map(Object.entries(initial)), posts: [], gets: 0 };
   await page.route("**/api/cloud-save**", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+    const request = route.request();
+    if (status) {
+      await route.fulfill({ status, contentType: "application/json", body: JSON.stringify({ error: "not-configured" }) });
+      return;
+    }
+    if (request.method() === "POST") {
+      const body = request.postDataJSON() as { code: string; game?: string; data: unknown };
+      server.posts.push(body);
+      server.store.set(`${body.game ?? "idiom-door"}:${body.code}`, body.data);
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+      return;
+    }
+    server.gets++;
+    const params = new URL(request.url()).searchParams;
+    const key = `${params.get("game") ?? "idiom-door"}:${params.get("code")}`;
+    if (!server.store.has(key)) {
+      await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "not-found" }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: server.store.get(key) }) });
   });
-  await page.goto("/science-snake.html");
+  return server;
+}
 
-  await page.click("#cloud-save-btn");
+async function openPanelFromStartCard(page: Page): Promise<void> {
+  await page.goto("/science-snake.html");
+  await expect(page.locator("#start-card")).toHaveClass(/visible/);
+  await page.locator("#start-card .cloud-save-open-btn").click();
   await expect(page.locator("#cloud-save-card")).toHaveClass(/visible/);
+}
+
+test("opening the panel shows an 8-character code and saves under Science Snake's own namespace", async ({ page }) => {
+  const server = await fakeCloudServer(page);
+  await openPanelFromStartCard(page);
 
   const code = await page.locator("[data-cloud-code]").textContent();
-  expect(code).toMatch(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/);
-
+  expect(code).toMatch(CODE_PATTERN);
   await expect(page.locator("[data-cloud-status]")).toHaveText("Saved to the cloud ✓");
+  expect(server.posts).toEqual([{ code, game: "science-snake", data: { highScore: null, lastRun: null } }]);
 });
 
-test("reopening the panel shows the same code rather than minting a new one", async ({ page }) => {
-  await page.route("**/api/cloud-save**", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
-  });
-  await page.goto("/science-snake.html");
-
-  await page.click("#cloud-save-btn");
+test("closing the panel returns to the start card, and reopening shows the same code", async ({ page }) => {
+  await fakeCloudServer(page);
+  await openPanelFromStartCard(page);
   const firstCode = await page.locator("[data-cloud-code]").textContent();
 
   await page.click("#cloud-save-dismiss-btn");
   await expect(page.locator("#cloud-save-card")).not.toHaveClass(/visible/);
+  await expect(page.locator("#start-card")).toHaveClass(/visible/);
 
-  await page.click("#cloud-save-btn");
+  await page.locator("#start-card .cloud-save-open-btn").click();
   await expect(page.locator("[data-cloud-code]")).toHaveText(firstCode ?? "");
 });
 
-test("the backend not being provisioned yet shows a friendly message, not a raw error", async ({ page }) => {
-  await page.route("**/api/cloud-save**", async (route) => {
-    await route.fulfill({ status: 501, contentType: "application/json", body: JSON.stringify({ error: "not-configured" }) });
+test("restoring from another device's code brings its high score in, without touching an idiom-door save", async ({ page }) => {
+  const record = { applesEaten: 12, questionsCorrect: 3, score: 150, achievedAt: 1000 };
+  const idiomSave = { completedSessions: [{ idiomIds: ["x"], completedAt: 1 }] };
+  const server = await fakeCloudServer(page, {
+    "science-snake:234567AB": { highScore: record, lastRun: record },
+    "idiom-door:234567AB": idiomSave,
   });
-  await page.goto("/science-snake.html");
+  await openPanelFromStartCard(page);
+  await expect(page.locator("#high-score-display")).toHaveText("");
 
-  await page.click("#cloud-save-btn");
-  await expect(page.locator("[data-cloud-status]")).toHaveText(/isn't set up/);
+  await page.fill("#cloud-restore-input", "234567ab");
+  await page.click("#cloud-restore-btn");
+
+  await expect(page.locator("[data-cloud-status]")).toHaveText("Scores restored ✓");
+  await expect(page.locator("[data-cloud-code]")).toHaveText("234567AB");
+  await expect(page.locator("#high-score-display")).toHaveText("🏆 High score: 150");
+  expect(server.store.get("idiom-door:234567AB")).toEqual(idiomSave);
+
+  // Still there after a reload — it was saved locally, not just shown.
+  await page.reload();
+  await expect(page.locator("#high-score-display")).toHaveText("🏆 High score: 150");
 });
 
-test("restoring from a valid code merges that high score in and reloads", async ({ page }) => {
-  await page.route("**/api/cloud-save**", async (route) => {
-    if (route.request().method() === "GET") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          ok: true,
-          data: {
-            highScore: { applesEaten: 5, questionsCorrect: 2, score: 85, achievedAt: 1000 },
-            lastRun: { applesEaten: 5, questionsCorrect: 2, score: 85, achievedAt: 1000 },
-          },
-        }),
-      });
-    } else {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
-    }
-  });
-  await page.goto("/science-snake.html");
-  // A fresh visit has no high score yet — confirms the header below is
-  // actually caused by the restore, not already there.
-  await expect(page.locator("#high-score-display")).toBeEmpty();
+test("restoring from a code with no Science Snake save shows a not-found message and keeps this device's code", async ({ page }) => {
+  await fakeCloudServer(page, { "idiom-door:234567AB": { completedSessions: [] } });
+  await openPanelFromStartCard(page);
+  const ownCode = await page.locator("[data-cloud-code]").textContent();
 
-  await page.click("#cloud-save-btn");
   await page.fill("#cloud-restore-input", "234567AB");
   await page.click("#cloud-restore-btn");
 
-  // handleRestoreFromCode reloads the page on success (cloudSaveStatus.ts).
-  await page.waitForURL("**/science-snake.html");
-  await expect(page.locator("#high-score-display")).toHaveText("🏆 High score: 85");
-});
-
-test("restoring from a code nothing was ever saved under shows a not-found message", async ({ page }) => {
-  await page.route("**/api/cloud-save**", async (route) => {
-    if (route.request().method() === "GET") {
-      await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "not-found" }) });
-    } else {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
-    }
-  });
-  await page.goto("/science-snake.html");
-
-  await page.click("#cloud-save-btn");
-  await page.fill("#cloud-restore-input", "234567AB");
-  await page.click("#cloud-restore-btn");
-
-  await expect(page.locator("[data-cloud-status]")).toHaveText(/No save found/);
-  // No reload on failure — the panel and its code are still right there.
-  await expect(page.locator("#cloud-save-card")).toHaveClass(/visible/);
+  await expect(page.locator("[data-cloud-status]")).toHaveText(/No Science Snake save found/);
+  await expect(page.locator("[data-cloud-code]")).toHaveText(ownCode ?? "");
 });
 
 test("restoring rejects an obviously malformed code without any network call", async ({ page }) => {
-  let getCalled = false;
-  await page.route("**/api/cloud-save**", async (route) => {
-    if (route.request().method() === "GET") getCalled = true;
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
-  });
-  await page.goto("/science-snake.html");
+  const server = await fakeCloudServer(page);
+  await openPanelFromStartCard(page);
+  await expect(page.locator("[data-cloud-status]")).toHaveText("Saved to the cloud ✓");
+  const getsBefore = server.gets;
 
-  await page.click("#cloud-save-btn");
   await page.fill("#cloud-restore-input", "nope");
   await page.click("#cloud-restore-btn");
 
   await expect(page.locator("[data-cloud-status]")).toHaveText(/doesn't look like a save code/);
-  expect(getCalled).toBe(false);
+  expect(server.gets).toBe(getsBefore);
+});
+
+test("the backend not being provisioned yet shows a friendly message, not a raw error", async ({ page }) => {
+  await fakeCloudServer(page, {}, 501);
+  await openPanelFromStartCard(page);
+  await expect(page.locator("[data-cloud-status]")).toHaveText(/isn't set up/);
 });

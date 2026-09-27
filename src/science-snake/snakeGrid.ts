@@ -94,9 +94,39 @@ export function wrapPosition(position: Position): Position {
   };
 }
 
-/** Ignores a direct reversal (e.g. up → down) — the classic Snake rule against instantly doubling back into your own neck. Any other requested direction (including the current one) is accepted as-is. */
+/**
+ * Which way the head last actually moved: the step from the neck
+ * (`body[1]`) to the head, unwrapped across a board edge (a one-cell
+ * step that wrapped shows up as a jump of the full board width/height).
+ * Null for a one-cell body, which has no neck to go back into.
+ */
+function lastMovedDirection(body: Position[]): Direction | null {
+  if (body.length < 2) return null;
+  const [head, neck] = body;
+  let dx = head.x - neck.x;
+  let dy = head.y - neck.y;
+  if (Math.abs(dx) > 1) dx = -Math.sign(dx);
+  if (Math.abs(dy) > 1) dy = -Math.sign(dy);
+  if (dx === 1) return "right";
+  if (dx === -1) return "left";
+  if (dy === 1) return "down";
+  if (dy === -1) return "up";
+  return null;
+}
+
+/**
+ * Ignores a reversal back into the snake's own neck — the classic Snake
+ * rule. Checked against the way the head last *actually moved*, not
+ * just the last *requested* direction: two quick turns inside one tick
+ * (moving right, then "up", then "left" before the next step) each
+ * look fine against the request before them, but together point the
+ * head straight back into the neck — an instant self-collision. Easy to
+ * hit with a sliding joystick thumb or fast key presses. Any other
+ * requested direction (including the current one) is accepted as-is.
+ */
 export function changeDirection(state: SnakeState, requested: Direction): SnakeState {
-  if (requested === OPPOSITE_DIRECTION[state.direction]) return state;
+  const moved = lastMovedDirection(state.body) ?? state.direction;
+  if (requested === OPPOSITE_DIRECTION[moved]) return state;
   return { ...state, direction: requested };
 }
 

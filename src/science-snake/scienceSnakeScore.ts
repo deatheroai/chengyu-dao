@@ -104,52 +104,62 @@ export function describeRunOutcome(outcome: RunOutcome): string {
   return `Same as your last run (best: ${outcome.highScore})`;
 }
 
-export function clearHighScore(): void {
-  localStorage.removeItem(HIGH_SCORE_KEY);
-  localStorage.removeItem(LAST_RUN_KEY);
-}
-
-/** Cloud-save export (shared/cloudSync.ts, via cloudSaveStatus.ts) — the
- * exact shape stored under this device's code and expected back out of
- * importFromCloud below, own storage keys as noted at this file's top,
- * reusing idiom-door's existing backend/API rather than standing up a
- * second one (see BACKLOG.md's cloud-sync entry). */
-export interface CloudScoreData {
+/** What a Science Snake cloud save holds: just the two records this
+ * module already keeps locally. */
+export interface ScienceSnakeCloudSave {
   highScore: ScoreRecord | null;
   lastRun: ScoreRecord | null;
+}
+
+export function exportScoresForCloud(): ScienceSnakeCloudSave {
+  return { highScore: loadHighScore(), lastRun: loadLastRun() };
 }
 
 function isScoreRecord(value: unknown): value is ScoreRecord {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
-  return typeof record.score === "number" && typeof record.applesEaten === "number" && typeof record.questionsCorrect === "number" && typeof record.achievedAt === "number";
+  return (
+    typeof record.score === "number" &&
+    typeof record.achievedAt === "number" &&
+    typeof record.applesEaten === "number" &&
+    typeof record.questionsCorrect === "number"
+  );
 }
 
-export function exportForCloud(): CloudScoreData {
-  return { highScore: loadHighScore(), lastRun: loadLastRun() };
+function isScoreRecordOrNull(value: unknown): value is ScoreRecord | null {
+  return value === null || isScoreRecord(value);
+}
+
+/** Whether `remote` is shaped like a Science Snake save at all. */
+export function isScienceSnakeCloudSave(remote: unknown): remote is ScienceSnakeCloudSave {
+  if (!remote || typeof remote !== "object") return false;
+  const save = remote as Record<string, unknown>;
+  return "highScore" in save && "lastRun" in save && isScoreRecordOrNull(save.highScore) && isScoreRecordOrNull(save.lastRun);
 }
 
 /**
- * Merge-based restore, never an overwrite — same ethos as idiom-door's
- * own sessionHistory.ts import, so restoring on a device that already
- * has its own runs can't lose them. The two fields merge independently
- * and by different rules, since they answer different questions: the
- * higher of the two high scores wins (it's a record, not a snapshot),
- * while the more recently-achieved of the two last-runs wins (it's
- * "what should the next round-over-round comparison build on", which is
- * whichever device was actually played most recently).
+ * Merges a fetched cloud save into this device's records rather than
+ * overwriting them, so syncing can never lose a score either side
+ * has: the high score is whichever is higher (a tie keeps the local
+ * one), and the last run is whichever happened most recently. Returns
+ * false, changing nothing, when `remote` isn't a Science Snake save —
+ * the caller uses that to tell "nothing to restore from that code"
+ * apart from a real restore.
  */
-export function importFromCloud(remote: unknown): void {
-  if (!remote || typeof remote !== "object") return;
-  const { highScore, lastRun } = remote as Partial<CloudScoreData>;
-
-  const localHighScore = loadHighScore();
-  if (isScoreRecord(highScore) && (!localHighScore || highScore.score > localHighScore.score)) {
-    localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(highScore));
+export function mergeScoresFromCloud(remote: unknown): boolean {
+  if (!isScienceSnakeCloudSave(remote)) return false;
+  const localHigh = loadHighScore();
+  if (remote.highScore && (!localHigh || remote.highScore.score > localHigh.score)) {
+    localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(remote.highScore));
   }
-
-  const localLastRun = loadLastRun();
-  if (isScoreRecord(lastRun) && (!localLastRun || lastRun.achievedAt > localLastRun.achievedAt)) {
-    localStorage.setItem(LAST_RUN_KEY, JSON.stringify(lastRun));
+  const localLast = loadLastRun();
+  if (remote.lastRun && (!localLast || remote.lastRun.achievedAt > localLast.achievedAt)) {
+    localStorage.setItem(LAST_RUN_KEY, JSON.stringify(remote.lastRun));
   }
+  return true;
+}
+
+export function clearHighScore(): void {
+  localStorage.removeItem(HIGH_SCORE_KEY);
+  localStorage.removeItem(LAST_RUN_KEY);
 }

@@ -35,6 +35,23 @@ export function generateCloudSaveCode(rng: () => number = Math.random): string {
   return code;
 }
 
+/**
+ * Which game a save belongs to. Each game's saves live under their own
+ * server-side key, so the same code can never let one game's push
+ * overwrite another game's save (Science Snake and idiom-door share an
+ * origin, so without this a restored idiom-door code would get Science
+ * Snake's scores pushed straight over its idiom history).
+ * "idiom-door" is the default for a request that names no game, which
+ * keeps every save written before this existed at its original key.
+ */
+export const CLOUD_SAVE_GAMES = ["idiom-door", "science-snake"] as const;
+export type CloudSaveGame = (typeof CLOUD_SAVE_GAMES)[number];
+export const DEFAULT_CLOUD_SAVE_GAME: CloudSaveGame = "idiom-door";
+
+export function isValidCloudSaveGame(game: unknown): game is CloudSaveGame {
+  return typeof game === "string" && (CLOUD_SAVE_GAMES as readonly string[]).includes(game);
+}
+
 /** A generous but real ceiling on what a save blob may contain — this
  * repo's whole save today is a short list of {idiomIds, completedAt}
  * records, nowhere near this size; the cap exists so an unauthenticated

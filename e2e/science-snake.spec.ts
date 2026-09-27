@@ -6,7 +6,7 @@ import { sweepFullBoardUntilWin, driveToSuffocation, chaseNearestScienceItem, wa
  * for this mechanic). Mirrors idiom-door's own e2e/helpers/ split: real
  * ticks, real spawner, real grading throughout — `helpers/scienceSnake.ts`
  * only reads the game's own test-only DOM hooks (`snakeStatus.ts`'s
- * #snake-status/#board-items) and clicks the same on-screen D-pad a real
+ * #snake-status/#board-items) and taps the same on-screen joystick a real
  * child would tap, the same "expose canvas-internal state as a hidden
  * data attribute, then steer through the real UI" approach idiom-door's
  * own #player-position/#balloon-target-positions already use.
@@ -29,7 +29,7 @@ test("a full winning playthrough fills the board", async ({ page }, testInfo) =>
   // Real per-run time here has a wide, RNG-driven spread (see the sweep
   // budget's own comment below) — running this on both projects would
   // double an already-large worst case for no real benefit: it exercises
-  // game *logic* and DOM state, not the mobile D-pad's own touch
+  // game *logic* and DOM state, not the mobile joystick's own touch
   // handling (already covered live per BACKLOG.md's mobile-friendliness
   // entries, and by this suite's own lighter tests elsewhere). Desktop
   // only.

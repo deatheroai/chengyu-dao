@@ -14,41 +14,30 @@
   </head>
   <body>
     <div id="app">
-      <!-- Real layout, not overlapping absolutely-positioned pieces:
-           #play-area is a flex column so the game canvas and the D-pad
-           bar are separate siblings that can never overlap by
-           construction, regardless of the exact FIT-scaled canvas size
-           on any given screen (a #game-container that was flex-centered
-           *and* handed to Phaser's own FIT+CENTER_BOTH autoCenter was
-           fighting itself over sizing/positioning — this replaces
-           that). -->
+      <!-- #game-container fills #play-area; #dpad-bar floats over the
+           bottom of it with a see-through joystick (style.css), so the
+           board gets the full height instead of sharing it with the
+           controls. -->
       <div id="play-area">
         <div id="game-container"></div>
         <div id="dpad-bar">
-          <!-- Mobile-friendly tap-to-turn controls (per your ask) —
-               same "public method the DOM chrome calls on the live
-               scene instance" pattern idiom-door's own #jump-btn
-               already uses. Always visible (not gated to touch
-               devices) so it's also a usable click target on desktop,
-               matching #jump-btn's own convention there. -->
-          <div id="dpad" aria-label="Steer">
-            <button id="dpad-up" class="dpad-btn dpad-up" type="button" aria-label="Up">▲</button>
-            <button id="dpad-left" class="dpad-btn dpad-left" type="button" aria-label="Left">◀</button>
-            <button id="dpad-right" class="dpad-btn dpad-right" type="button" aria-label="Right">▶</button>
-            <button id="dpad-down" class="dpad-btn dpad-down" type="button" aria-label="Down">▼</button>
+          <!-- One joystick disc instead of four buttons (2026-09-26, per
+               "sometimes it is hard to aim on the buttons, I tapped on
+               empty space in between"): the whole disc is one target,
+               split into four wedges, so there's no gap to miss. Slide
+               the knob or tap a side (joystickControl.ts). Always
+               visible, so it's also usable with a mouse on desktop. -->
+          <div id="joystick" role="group" aria-label="Steer: slide or tap toward a direction">
+            <span class="joystick-arrow joystick-arrow-up" aria-hidden="true">▲</span>
+            <span class="joystick-arrow joystick-arrow-down" aria-hidden="true">▼</span>
+            <span class="joystick-arrow joystick-arrow-left" aria-hidden="true">◀</span>
+            <span class="joystick-arrow joystick-arrow-right" aria-hidden="true">▶</span>
+            <div id="joystick-knob" aria-hidden="true"></div>
           </div>
         </div>
       </div>
 
       <div id="high-score-display" aria-live="polite"></div>
-
-      <!-- 2026-09-25: opens the cloud-save panel (#cloud-save-card
-           below) — persistent and always tappable, same "reachable
-           through every stage" placement as idiom-door's own
-           #cloud-save-btn/#cloud-save-card. Reuses that same backend/API
-           under its own device code (cloudSaveStatus.ts), not a new
-           one — see BACKLOG.md's cloud-sync entry. -->
-      <button id="cloud-save-btn" type="button" aria-label="Cloud save">☁️ Save</button>
 
       <div id="start-card" class="card-layer">
         <div class="card">
@@ -56,8 +45,9 @@
           <p>Eat apples 🍎 to grow. Eat a science item to answer a P4 Science question — get it right (in up to two tries) to grow even more!</p>
           <p>Watch out for purple poison apples 🟣, and don't let unanswered questions pile up on the board.</p>
           <p class="controls-hint">Reaching an edge wraps you around to the other side.</p>
-          <p class="controls-hint">Arrow keys, WASD, or tap the on-screen arrows to steer.</p>
+          <p class="controls-hint">Slide or tap the joystick to steer (or use the arrow keys / WASD).</p>
           <button id="start-btn">Start</button>
+          <button type="button" class="cloud-save-open-btn">☁️ Save code</button>
         </div>
       </div>
 
@@ -67,6 +57,7 @@
           <p id="win-stats"></p>
           <p id="win-comparison" class="score-comparison"></p>
           <button id="win-play-again-btn">Play again</button>
+          <button type="button" class="cloud-save-open-btn">☁️ Save code</button>
         </div>
       </div>
 
@@ -77,6 +68,27 @@
           <p id="lose-stats"></p>
           <p id="lose-comparison" class="score-comparison"></p>
           <button id="lose-play-again-btn">Play again</button>
+          <button type="button" class="cloud-save-open-btn">☁️ Save code</button>
+        </div>
+      </div>
+
+      <!-- Cloud save for the high score / last run (cloudSaveStatus.ts).
+           Opened only from the start/win/lose cards above, never mid-run.
+           Comes after them in the document so it stacks on top of
+           whichever one opened it; closing it returns to that card. -->
+      <div id="cloud-save-card" class="card-layer">
+        <div class="card">
+          <h1>☁️ Save code</h1>
+          <p class="cloud-save-text">Type this code into Science Snake on another device to keep your scores in sync:</p>
+          <p data-cloud-code class="cloud-code" aria-live="polite"></p>
+          <button id="cloud-copy-btn" type="button">📋 Copy code</button>
+          <p class="cloud-save-text cloud-restore-label">Have a code from another device?</p>
+          <div class="cloud-restore-row">
+            <input id="cloud-restore-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Enter code" aria-label="Save code to restore" />
+            <button id="cloud-restore-btn" type="button">Restore</button>
+          </div>
+          <p data-cloud-status class="cloud-status" aria-live="polite"></p>
+          <button id="cloud-save-dismiss-btn" type="button" class="cloud-close-btn">Close</button>
         </div>
       </div>
 
@@ -94,30 +106,6 @@
             <button id="question-reveal-next-btn">Next →</button>
             <button id="question-reveal-continue-btn" class="hidden">Continue</button>
           </div>
-        </div>
-      </div>
-
-      <!-- 2026-09-25: cloud-save panel, opened via #cloud-save-btn above
-           (main.ts / cloudSaveStatus.ts). No accounts — this device's
-           own code (generated on first open) is shown for copying to
-           another device, and a second device pastes it back in below
-           to pull that progress in here. Both directions merge rather
-           than overwrite (scienceSnakeScore.ts's exportForCloud/
-           importFromCloud), so neither device can lose progress the
-           other has. Same panel shape as idiom-door.html's own. -->
-      <div id="cloud-save-card" class="card-layer">
-        <div class="card">
-          <p class="eyebrow">Cloud save</p>
-          <p class="cloud-save-text">This device's save code — copy it to another device to keep your high score in sync:</p>
-          <p data-cloud-code class="cloud-code" aria-live="polite"></p>
-          <button id="cloud-copy-btn" type="button">📋 Copy code</button>
-          <p class="cloud-save-text cloud-restore-label">Have a code from another device?</p>
-          <div class="cloud-restore-row">
-            <input id="cloud-restore-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Enter code" aria-label="Save code to restore" />
-            <button id="cloud-restore-btn" type="button">Restore</button>
-          </div>
-          <p data-cloud-status class="cloud-status" aria-live="polite"></p>
-          <button id="cloud-save-dismiss-btn" type="button" class="cloud-close-btn">Close</button>
         </div>
       </div>
 

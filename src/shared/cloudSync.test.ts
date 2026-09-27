@@ -32,13 +32,16 @@ describe("ensureLocalCloudCode / getLocalCloudCode", () => {
     localStorage.setItem("idiom-cloud-code", "not a valid code");
     expect(getLocalCloudCode()).toBeNull();
   });
+});
 
-  it("keeps a custom storageKey's code independent of the default (idiom-door) one", () => {
-    const defaultCode = ensureLocalCloudCode(() => 0.2);
-    const otherCode = ensureLocalCloudCode(() => 0.8, "other-game-cloud-code");
-    expect(getLocalCloudCode()).toBe(defaultCode);
-    expect(getLocalCloudCode("other-game-cloud-code")).toBe(otherCode);
-    expect(otherCode).not.toBe(defaultCode);
+describe("a game's own code storage key", () => {
+  it("keeps a code stored under another key separate from idiom-door's", () => {
+    const snakeCode = ensureLocalCloudCode(() => 0.5, "science-snake-cloud-code");
+    expect(getLocalCloudCode()).toBeNull();
+    expect(getLocalCloudCode("science-snake-cloud-code")).toBe(snakeCode);
+    adoptCloudCode(VALID_CODE, "science-snake-cloud-code");
+    expect(getLocalCloudCode("science-snake-cloud-code")).toBe(VALID_CODE);
+    expect(getLocalCloudCode()).toBeNull();
   });
 });
 
@@ -50,12 +53,6 @@ describe("adoptCloudCode", () => {
 
   it("ignores an invalid code rather than storing garbage", () => {
     adoptCloudCode("not valid");
-    expect(getLocalCloudCode()).toBeNull();
-  });
-
-  it("adopts under a custom storageKey without touching the default one", () => {
-    adoptCloudCode(VALID_CODE, "other-game-cloud-code");
-    expect(getLocalCloudCode("other-game-cloud-code")).toBe(VALID_CODE);
     expect(getLocalCloudCode()).toBeNull();
   });
 });
@@ -91,6 +88,20 @@ describe("pushToCloud", () => {
     await pushToCloud(VALID_CODE, { completedSessions: [] });
     expect(capturedInit?.method).toBe("POST");
     expect(JSON.parse(String(capturedInit?.body))).toEqual({ code: VALID_CODE, data: { completedSessions: [] } });
+  });
+
+  it("names a non-default game in the body, so its save lands in that game's own namespace", async () => {
+    let capturedInit: RequestInit | undefined;
+    stubFetch((_url, init) => {
+      capturedInit = init;
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    });
+    await pushToCloud(VALID_CODE, { highScore: null, lastRun: null }, "science-snake");
+    expect(JSON.parse(String(capturedInit?.body))).toEqual({
+      code: VALID_CODE,
+      data: { highScore: null, lastRun: null },
+      game: "science-snake",
+    });
   });
 
   it("reports not-configured on a 501 (backend not provisioned yet)", async () => {
@@ -135,6 +146,17 @@ describe("pullFromCloud", () => {
     stubFetch(() => new Response(JSON.stringify({ ok: true, data }), { status: 200 }));
     const result = await pullFromCloud(VALID_CODE);
     expect(result).toEqual({ ok: true, data });
+  });
+
+  it("asks for a non-default game's own save via the query string, and idiom-door's without one", async () => {
+    const urls: string[] = [];
+    stubFetch((url) => {
+      urls.push(url);
+      return new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 });
+    });
+    await pullFromCloud(VALID_CODE, "science-snake");
+    await pullFromCloud(VALID_CODE);
+    expect(urls).toEqual([`/api/cloud-save?code=${VALID_CODE}&game=science-snake`, `/api/cloud-save?code=${VALID_CODE}`]);
   });
 
   it("reports not-found on a 404 (code never saved to)", async () => {
