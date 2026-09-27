@@ -23,6 +23,58 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-27 — Daily cycle: merged PR #65 (Science Snake safer cloud
+  sync, joystick, self-collision fix), closed stale PR #64, and
+  root-caused/fixed a real e2e bug PR #65 didn't touch.** Pending
+  Decisions was empty. Two open PRs existed: #64 (yesterday's daily
+  cycle, docs-only, its own `test` CI check red) and #65 (an interactive
+  session's Science Snake follow-up — safer per-game cloud-sync
+  namespacing/merge rules replacing PR #63's version, a joystick
+  replacing the 4-button D-pad plus a real quick-turn self-collision fix
+  it found along the way, and an e2e steering rework fixing the
+  multi-hour CI timeouts that had been sinking PR #64 and #65 alike).
+  #65's own actual GitHub Actions run was green and its description
+  didn't ask for a human playtest, so this cycle re-validated it fresh
+  (checked out its branch, confirmed it was already based on current
+  `main`, re-ran `typecheck`/`test` (511 passed)/`build` locally) and
+  merged it (`a250d3e`) under the standing 2026-08-26 auto-land policy,
+  same as this repo's past practice of adopting an already-ready PR from
+  another session once its own gate is genuinely green and nothing in it
+  is waiting on a subjective read. Closed #64 as superseded (its own red
+  check was exactly the bug #65's e2e rework fixed) with a comment
+  explaining why.
+  **Found a second, real bug while re-validating #65 locally**: the full
+  `test:e2e` suite (run fresh, since #65 doesn't touch anything in
+  `idiom-door`) failed on `idiom-door.spec.ts:431`'s "each jump costs
+  HP..." test — reproduced identically 2/3 in isolation, and identically
+  on a clean, unmodified `origin/main` checkout too, confirming it
+  wasn't caused by anything in #65. Root-caused with real position data
+  (a throwaway probe script dumping today's date-seeded level's own tile
+  layout), not guessed: today's session draws 扶老携幼 as its first
+  idiom, and that idiom's freshly-generated level happens to place 扶's
+  own first tile and 老's very next tile only ~167px apart — inside one
+  jump's real flight footprint (~168px). Catching character 0 legitimately
+  chain-catches character 1 in the same arc (the same intended,
+  already-documented chain-catch behavior this exact test's own comments
+  describe) — but the test's `catchCharacter` helper only checks
+  `nextIndex > 0` for success, so it accepted the double-catch as fine,
+  while the rest of the test still assumed exactly one character had
+  advanced (hardcoding `nextChar = hanzi[1]` and asserting
+  `nextIndex === "1"` afterward). Fixed by reading the real
+  `nextIndex` after the first catch instead — same "read the real value
+  back" principle this test already applies to HP just above it — so the
+  test holds regardless of how many characters one arc happens to catch.
+  Verified: 6/6 clean repeats (3× desktop, 3× mobile) of the
+  previously-failing test after the fix, reproduced failing before it on
+  both the `pr65-verify` checkout and unmodified `main`. Pushed as this
+  cycle's own commit on `claude/daily-2026-09-27`; landing it is this
+  entry's own PR (see `BACKLOG.md`'s idiom-pool-growth section for
+  where this bug class's history lives).
+  All gates green on top of both changes together:
+  `typecheck`/`test` (511 passed)/`build`, plus the full `test:e2e`
+  suite (93 passed, 3 skipped — the mobile-only real-touch-event
+  joystick test and 2 others already marked skip, unrelated to this
+  cycle — 26.1 minutes, no flakes).
 - **2026-09-26 — Cloud saves are namespaced per game; Science Snake's
   scores merge rather than overwrite.** You asked to build Science
   Snake's cloud sync (2026-09-24), and a daily cycle landed its own

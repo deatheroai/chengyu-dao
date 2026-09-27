@@ -15,6 +15,26 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
 ## Chinese Idiom Discovery Game (current focus)
 
+- [x] `done` — **Fix: the "each jump costs HP..." e2e test assumed
+      exactly one character gets chain-caught per jump (2026-09-27).**
+      Same chain-catch class of bug this section's own idiom-pool-growth
+      entry documents at length (PR #40/#47/#49/#65's history below) —
+      this time in the *test*, not the game. Today's date-seeded first
+      idiom, 扶老携幼, generated a level where 扶's own first tile and
+      老's very next tile sit only ~167px apart, inside one jump's real
+      flight footprint (~168px) — a legitimate, already-intended
+      chain-catch (documented in this same test's own comments), but
+      `catchCharacter`'s success check only requires `nextIndex > 0`, so
+      it accepted the resulting double-catch while the rest of the test
+      still hardcoded "exactly one character was caught" (`nextChar =
+      hanzi[1]`, asserting `nextIndex === "1"` afterward). Fixed by
+      reading the real `nextIndex` after the first catch instead — the
+      same "read the real value back" principle this test already
+      applies to HP right above it. See `DECISIONS.md`'s 2026-09-27
+      entry for the full root-cause detail (verified with a throwaway
+      probe script dumping the actual generated level's tile positions,
+      not guessed) and how it was found (re-validating PR #65, an
+      unrelated Science Snake change, before merging it).
 - [x] `done` — **Fix: a wrong catch chain-caught during the out-of-HP
       retrace epilogue silently overwrote "depleted" back to "wrong" on
       `#door-status` (2026-09-11).** Found while merging the fall-gravity
