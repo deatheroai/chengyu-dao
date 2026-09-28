@@ -23,6 +23,26 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-28 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. No open PRs. `BACKLOG.md`'s
+  only `todo` item is the standing example-sentence-review track, and
+  it's fully current: the idiom pool reached its ~100 target on
+  2026-09-18 and every idiom in it (1-15 via PR #44, landed 2026-09-21;
+  16-100 via the 2026-09-19 cycle's own full read-through) has already
+  been reviewed against this same "does the example actually demonstrate
+  the idiom's meaning" bar — no new idioms have landed since to re-check.
+  Science Snake's "Content bank" item is still `in-progress` but, per
+  the 2026-09-16 decision on how that content gets vetted, needs a
+  human review round for its next batch of 5 questions before more can
+  be authored — not something an unattended cycle can do, same reasoning
+  every prior cycle has left it alone for. The three `blocked` "Later"
+  items (multiplayer, monetization, Upper Primary tier) remain
+  deliberately deferred, not waiting on a decision to raise. Sanity
+  grep for stray TODO/FIXME in `src/` found none (the two hits are
+  false positives from `...PositionsToDom`/`...FastForwardToDoor`
+  identifiers, same as prior check-ins' own finding). CI on `main`
+  (`716b50e`) is green. Per `AUTONOMY.md`'s "don't manufacture busywork"
+  guidance, this cycle makes no `src/` changes and ends here.
 - **2026-09-27 — Daily cycle: merged PR #65 (Science Snake safer cloud
   sync, joystick, self-collision fix), closed stale PR #64, and
   root-caused/fixed a real e2e bug PR #65 didn't touch.** Pending
