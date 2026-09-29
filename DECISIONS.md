@@ -23,6 +23,18 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-29 — Science Snake: replace typing every answer with "eat the
+  sentence".** Raised because the child found the long question and
+  full typed answer too disruptive on a phone. Resolved in conversation:
+  framing a complete sentence is the goal, typing isn't; the game keeps
+  running but slower while the child eats word pieces in a very obvious
+  order; the question is read aloud via text-to-speech; a golden apple
+  is offered after every sentence (optional — chase or avoid it) where
+  typing the full sentence from memory, with no peek, earns lots of
+  points and a dancing snake. Voice timing (question + final sentence
+  spoken, chime per piece) was left to the session's judgement. Full
+  design in `BACKLOG.md`'s Science Snake section.
+
 - **2026-09-28 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. No open PRs. `BACKLOG.md`'s
   only `todo` item is the standing example-sentence-review track, and
