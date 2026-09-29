@@ -472,6 +472,94 @@ export const scienceQuestions: ScienceQuestion[] = [
     sourceNotes:
       "Plant life cycle — germination needs water, air and warmth, but not light (both containers are dark, so the only difference is temperature) — standard P3/P4 Cycles theme content.",
   },
+  // --- Batch 6: drafted 2026-09-29, pending chat review. ---
+  {
+    id: "weis-bat-argument",
+    topic: "classifying-animals",
+    icon: "🦇",
+    prompt:
+      "At the zoo's night safari, Wei's cousin points at a bat and says it must be a bird because it has wings and can fly. Wei says a bat is actually a mammal. Explain why Wei is right.",
+    requiredKeywords: [
+      ["hair", "fur", "furry", "hairy"],
+      ["give birth", "gives birth", "live young", "young alive", "babies alive", "milk"],
+    ],
+    minWords: 12,
+    hint: "Flying doesn't decide which group an animal belongs to. Look closely at what covers a bat's body compared with a bird's feathers, and think about how baby bats are born and fed.",
+    modelAnswer:
+      "A bat is a mammal, not a bird. It has fur on its body instead of feathers, gives birth to live young, and feeds its babies with milk.",
+    sourceNotes:
+      "Diversity — classifying animals by characteristics, not by how they move (mammals: hair/fur, give birth to live young, feed young with milk; birds: feathers, lay eggs) — standard P3/P4 Diversity theme content.",
+  },
+  {
+    id: "the-fridge-door-note",
+    topic: "magnets",
+    icon: "🧲",
+    prompt:
+      "Priya uses a magnet to stick a paper note onto the fridge door, and it stays up even with the paper in between. When she tries to stick the same note onto her wooden bedroom door, the magnet falls straight off. Explain both things she noticed.",
+    requiredKeywords: [
+      ["steel", "iron", "magnetic material"],
+      ["pass through", "passes through", "go through", "goes through", "through the paper", "act through", "acts through"],
+    ],
+    minWords: 12,
+    hint: "What is a fridge door usually made of, compared with a wooden door? And does a thin sheet of paper stop the magnet's pull from reaching the door behind it?",
+    modelAnswer:
+      "The fridge door is made of steel, which is a magnetic material, but wood is not. The magnet's pull can pass through the thin paper, so it still attracts the fridge door.",
+    sourceNotes:
+      "Magnets — attract magnetic materials (iron/steel) but not wood; magnetic force can act through non-magnetic materials such as paper — standard P3/P4 Interactions theme content.",
+  },
+  {
+    id: "mias-syringe-squeeze",
+    topic: "states-of-matter",
+    icon: "💉",
+    prompt:
+      "Mia has two plastic syringes with no needles, one filled with air and one filled with water. She covers the tip of each with her finger and pushes the plunger. She can push the air one in a little way, but the water one will not move at all. Explain why.",
+    requiredKeywords: [
+      ["compress", "compressed", "compressible", "squeeze", "squeezed", "squashed", "pushed into a smaller space", "smaller space"],
+      ["definite volume", "fixed volume", "water cannot", "water can't", "liquid cannot", "liquid can't", "water does not", "water doesn't", "cannot be compressed", "can't be compressed"],
+    ],
+    minWords: 12,
+    hint: "Think about how much empty space there is between the tiny particles in a gas compared with a liquid. Which one can be pushed into less room, and which one keeps its own amount of room?",
+    modelAnswer:
+      "Air is a gas, so it can be compressed into a smaller space when Mia pushes the plunger. Water is a liquid with a definite volume, so it cannot be compressed.",
+    sourceNotes:
+      "Matter — gases have no definite volume and can be compressed; liquids have a definite volume and cannot be compressed — standard P3/P4 Cycles (Matter) theme content.",
+  },
+  {
+    id: "two-wet-shirts",
+    topic: "water-cycle",
+    icon: "👕",
+    prompt:
+      "After washing, Mum hangs one wet shirt outside on a sunny, windy balcony. She forgets another identical wet shirt, folded up inside the washing bag in the bathroom. That evening the balcony shirt is dry, but the folded one is still damp. Explain why the shirt outside dried so much faster.",
+    requiredKeywords: [
+      ["evaporate", "evaporates", "evaporated", "evaporating", "evaporation"],
+      ["heat", "sun", "warm", "wind", "windy", "moving air", "spread out", "exposed", "surface"],
+    ],
+    minWords: 12,
+    hint: "Where does the water in a wet shirt actually go as it dries? Then think about everything that was different about where each shirt was left.",
+    modelAnswer:
+      "The shirt outside gained heat from the sun and was spread out in the wind, so the water in it evaporated much faster than from the shirt folded up in the bag.",
+    sourceNotes:
+      "Water cycle — evaporation is faster with more heat, moving air and a larger exposed surface area — standard P4 Cycles (Water) theme content.",
+  },
+  {
+    id: "sitis-drawer-seeds",
+    topic: "diversity-living-nonliving",
+    icon: "🌰",
+    prompt:
+      "Siti finds a packet of dry seeds that has been in a drawer for a whole year. Her friend says the seeds must be non-living because they do not move, eat or grow. Explain why Siti's friend is wrong.",
+    requiredKeywords: [
+      // Not a bare "living": "non-living" contains it, so a wrong answer
+      // like "they are non-living because they cannot grow" would pass.
+      ["are living", "is living", "a living thing", "still living", "alive"],
+      ["grow", "grows", "germinate", "germinates", "sprout", "sprouts", "reproduce", "new plant", "new plants"],
+    ],
+    minWords: 12,
+    hint: "The seeds are only resting right now. What would happen if Siti planted them in damp soil and waited a few days?",
+    modelAnswer:
+      "The seeds are living things that are resting. When they get water, air and warmth, they can germinate and grow into new plants.",
+    sourceNotes:
+      "Diversity of living and non-living things — dormant seeds are living: given the right conditions they germinate and grow — standard P3/P4 Diversity theme content.",
+  },
 ];
 
 export const scienceQuestionsById: Record<string, ScienceQuestion> = Object.fromEntries(
