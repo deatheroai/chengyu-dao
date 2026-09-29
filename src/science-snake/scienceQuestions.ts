@@ -472,7 +472,7 @@ export const scienceQuestions: ScienceQuestion[] = [
     sourceNotes:
       "Plant life cycle — germination needs water, air and warmth, but not light (both containers are dark, so the only difference is temperature) — standard P3/P4 Cycles theme content.",
   },
-  // --- Batch 6: drafted 2026-09-29, pending chat review. ---
+  // --- Batch 6: authored and approved on chat review 2026-09-29. ---
   {
     id: "weis-bat-argument",
     topic: "classifying-animals",

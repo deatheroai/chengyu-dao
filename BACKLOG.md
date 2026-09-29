@@ -1392,7 +1392,14 @@ other mechanic in this repo.
       thermometer; emptying flowerpot plates against mosquitoes; a
       cracker turning sweet as saliva starts digestion; mushrooms rotting
       a fallen log; seeds that won't sprout in a dark fridge vs. a dark
-      cupboard — warmth, not light). 25 questions total.
+      cupboard — warmth, not light). 25 questions total. Batch 6 (5 more,
+      2026-09-29, approved as drafted: a bat at the night safari —
+      mammal, not bird; a fridge-door note — steel vs. wood, and the pull
+      passing through paper; squeezing air vs. water in a capped syringe;
+      two wet shirts — heat, wind and spreading out speed evaporation;
+      year-old seeds in a drawer are still living). 30 questions total.
+      The seed question's keyword avoids a bare "living", since
+      "non-living" contains it and would let a wrong answer pass.
       More batches
       follow the same author-then-review-5-at-a-time flow before this
       item is done. Foundational —
