@@ -374,6 +374,104 @@ export const scienceQuestions: ScienceQuestion[] = [
       "The glass window is transparent, so it lets most light pass through and does not form a dark shadow. The wooden door is opaque, so it blocks light and casts a dark shadow on the floor.",
     sourceNotes: "Light — transparent materials let most light through, opaque materials block light and form shadows — standard P3/P4 Energy (Light) theme content.",
   },
+  // --- Batch 5: drafted 2026-09-29, pending chat review. ---
+  {
+    id: "bens-bathwater-argument",
+    topic: "heat",
+    icon: "🌡️",
+    prompt:
+      "Ben has just been holding an ice pack, and his sister Zoe has just come in from playing in the hot sun. They both dip a hand into the same basin of water. Ben says the water is hot, but Zoe says it is cold. Explain why they disagree, and what they should use to find out how hot the water really is.",
+    requiredKeywords: [
+      ["thermometer"],
+      [
+        "not reliable",
+        "unreliable",
+        "not accurate",
+        "inaccurate",
+        "cannot tell",
+        "can't tell",
+        "different temperature",
+        "different temperatures",
+        "feel it differently",
+        "feel differently",
+        "feels different",
+        "feel different",
+        "hand was cold",
+        "hand was hot",
+        "hand was warm",
+      ],
+    ],
+    minWords: 12,
+    hint: "Their hands started out very differently before touching the same water. Can a hand really tell how hot something is? What instrument measures temperature properly?",
+    modelAnswer:
+      "Their hands were at different temperatures before touching the water, so our sense of touch is not reliable. They should use a thermometer to measure the temperature of the water accurately.",
+    sourceNotes: "Heat — temperature is measured with a thermometer; our sense of touch is not a reliable measure of temperature — standard P4 Energy (Heat) theme content.",
+  },
+  {
+    id: "kavyas-mosquito-plates",
+    topic: "life-cycles",
+    icon: "🦟",
+    prompt:
+      "Every week, Kavya's mum empties the water that collects in the plates under their flowerpots. She says this stops mosquitoes from breeding at home. Explain how emptying the water helps.",
+    requiredKeywords: [
+      ["egg", "eggs", "larva", "larvae", "wriggler", "wrigglers"],
+      ["cannot develop", "can't develop", "cannot grow", "can't grow", "cannot become", "can't become", "die", "dies", "survive", "complete", "adult", "adults"],
+    ],
+    minWords: 12,
+    hint: "Think about where a mosquito's young live before they can fly. What happens to them if that place is gone before they grow up?",
+    modelAnswer:
+      "Mosquitoes lay their eggs in still water, and the larvae live in the water. Emptying the water means the eggs and larvae cannot survive to become adult mosquitoes.",
+    sourceNotes:
+      "Life cycles — the mosquito's egg and larval stages develop in stagnant water, so removing it breaks the life cycle (Singapore's own anti-dengue 'mozzie wipeout' habit) — standard P3/P4 Cycles theme content.",
+  },
+  {
+    id: "ethans-sweet-cracker",
+    topic: "human-digestive-system",
+    icon: "🍘",
+    prompt:
+      "Ethan chews a plain, unsweetened cracker for a long time without swallowing it. After a while he notices it starts to taste slightly sweet. Explain what is happening to the cracker in his mouth.",
+    requiredKeywords: [
+      ["saliva", "digestive juice"],
+      ["digest", "digested", "digesting", "digestion", "break down", "breaks down", "breaking down", "broken down"],
+    ],
+    minWords: 12,
+    hint: "Your mouth does more than chew. What watery liquid is made in your mouth, and what job does it start doing on food?",
+    modelAnswer:
+      "Digestion starts in the mouth. The saliva mixes with the cracker and starts to digest it, breaking the starch down into sugar, so it begins to taste sweet.",
+    sourceNotes:
+      "Human digestive system — digestion begins in the mouth, where saliva starts breaking down starch (so starchy food tastes sweeter the longer it's chewed) — standard P3/P4 Systems theme content.",
+  },
+  {
+    id: "the-mushroom-log",
+    topic: "fungi",
+    icon: "🪵",
+    prompt:
+      "In the school garden, mushrooms have started growing on an old fallen log. Over the months, the log becomes soft and crumbly and slowly rots away. Explain how the mushrooms get their food, and what they are doing to the log.",
+    requiredKeywords: [
+      ["break down", "breaks down", "breaking down", "broken down", "decompose", "decomposes", "decomposing", "decomposer", "rot", "rotting"],
+      ["cannot make", "can't make", "do not make", "don't make", "does not make", "doesn't make", "feed on", "feeds on", "feeding on", "absorb", "absorbs", "get food from", "gets food from", "get their food from", "food from the log"],
+    ],
+    minWords: 12,
+    hint: "Mushrooms are not plants, so sunlight is no use to them. Where could they be getting their food from, and what happens to the log over the months?",
+    modelAnswer:
+      "The mushrooms are fungi. They cannot make their own food, so they feed on the dead log, breaking it down slowly until it rots away.",
+    sourceNotes:
+      "Fungi — cannot make their own food; they feed on dead or decaying matter and break it down (decomposers) — standard P3/P4 Diversity theme content.",
+  },
+  {
+    id: "aarons-fridge-seeds",
+    topic: "plant-systems",
+    icon: "🫘",
+    prompt:
+      "Aaron puts bean seeds on damp cotton wool in two containers. He keeps one container in a dark kitchen cupboard and the other in the fridge. After five days, only the seeds in the cupboard have started to sprout. Explain why the seeds in the fridge did not sprout.",
+    requiredKeywords: [["warmth", "warm", "warmer", "too cold", "cold", "temperature"]],
+    minWords: 10,
+    hint: "Both containers had damp cotton wool and air, and both were dark. What was different about the fridge, and what else do seeds need to start growing?",
+    modelAnswer:
+      "Seeds need warmth, water and air to germinate. The fridge was too cold, so those seeds could not germinate, but the seeds in the warm cupboard could.",
+    sourceNotes:
+      "Plant life cycle — germination needs water, air and warmth, but not light (both containers are dark, so the only difference is temperature) — standard P3/P4 Cycles theme content.",
+  },
 ];
 
 export const scienceQuestionsById: Record<string, ScienceQuestion> = Object.fromEntries(
