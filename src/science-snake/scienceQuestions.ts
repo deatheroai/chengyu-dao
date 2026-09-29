@@ -374,7 +374,7 @@ export const scienceQuestions: ScienceQuestion[] = [
       "The glass window is transparent, so it lets most light pass through and does not form a dark shadow. The wooden door is opaque, so it blocks light and casts a dark shadow on the floor.",
     sourceNotes: "Light — transparent materials let most light through, opaque materials block light and form shadows — standard P3/P4 Energy (Light) theme content.",
   },
-  // --- Batch 5: drafted 2026-09-29, pending chat review. ---
+  // --- Batch 5: authored and approved on chat review 2026-09-29. ---
   {
     id: "bens-bathwater-argument",
     topic: "heat",

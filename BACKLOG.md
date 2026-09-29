@@ -1387,6 +1387,12 @@ other mechanic in this repo.
       light to grow" or "see-through" stay marked wrong on purpose (per
       review): the question wants the reason (making food) / the light
       mechanism, not just the observation.
+      Batch 5 (5 more, 2026-09-29, approved as drafted: siblings
+      disagreeing about bathwater — touch isn't reliable, use a
+      thermometer; emptying flowerpot plates against mosquitoes; a
+      cracker turning sweet as saliva starts digestion; mushrooms rotting
+      a fallen log; seeds that won't sprout in a dark fridge vs. a dark
+      cupboard — warmth, not light). 25 questions total.
       More batches
       follow the same author-then-review-5-at-a-time flow before this
       item is done. Foundational —
