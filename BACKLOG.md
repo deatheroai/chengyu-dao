@@ -1725,13 +1725,29 @@ other mechanic in this repo.
       score!" off a loss, header updated to the new value) — the exact
       case this feature didn't previously support. All green: typecheck,
       full unit suite (469 passed, up from 461), production build.
-- [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
+- [x] `done` — **E2E test suite (`e2e/science-snake.spec.ts`, 2026-09-29 daily cycle).** Mirrors
       `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
       full suffocation-loss playthrough (repeated wrong answers piling up
       poop), and specifically a test asserting the reveal overlay's
       "Continue" is genuinely gated behind stepping through every
       chunk (not just present from the start) — that gating is the actual
       point of the mechanic, not incidental UI.
+
+      **Landed 2026-09-29:** start card → run, correct answer closes the
+      overlay and grows the snake, wrong-first-try shows the hint (and a
+      correct second try still counts), and the wrong-twice reveal's
+      "Continue" staying hidden until every chunk is stepped through (then
+      indigestion items pile onto the board). Uses a test-only
+      `#snake-state` hook (`SnakeGameScene.syncStateToDom`) plus a
+      steering helper (`e2e/helpers/scienceSnake.ts`) that reads it to
+      drive the snake into a science item. **Deliberately not covered
+      end-to-end:** a full board-filling win and a suffocation loss —
+      suffocation needs ~192 science items on a 384-cell board (each wrong
+      answer only adds 3), so both stay with the pure `snakeGrid`/
+      `suffocation` unit tests. Note: `idiom-door.spec.ts:431` ("each jump
+      costs HP…", desktop) failed ~50% locally on unmodified `main` this
+      run too — same timing-margin flake class as the door-stage history
+      above, unrelated to this change.
 - [ ] `todo` — **Cloud-sync for the high score / last-run record
       (`scienceSnakeScore.ts`).** Currently localStorage-only — a
       device-typed 8-character code, same no-accounts model

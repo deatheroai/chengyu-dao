@@ -381,6 +381,24 @@ export class SnakeGameScene extends Phaser.Scene {
   private render(): void {
     this.renderGridAndItems();
     this.renderSnakeBody(this.gfx);
+    this.syncStateToDom();
+  }
+
+  /**
+   * Test-only hook, same idea as idiom-match's `#match-tile-positions`:
+   * everything on the board is drawn to the Phaser canvas, so e2e tests
+   * have no DOM element to read the head/item positions from. Mirrors
+   * them onto `#snake-state`'s data attributes each render instead.
+   */
+  private syncStateToDom(): void {
+    const el = document.getElementById("snake-state");
+    if (!el) return;
+    const head = this.snake.body[0];
+    el.dataset.headX = String(head.x);
+    el.dataset.headY = String(head.y);
+    el.dataset.direction = this.snake.direction;
+    el.dataset.length = String(this.snake.body.length);
+    el.dataset.items = JSON.stringify(this.items.map((item) => ({ type: item.type, x: item.position.x, y: item.position.y })));
   }
 
   private renderGridAndItems(): void {
