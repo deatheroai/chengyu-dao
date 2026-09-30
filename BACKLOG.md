@@ -2051,8 +2051,11 @@ other mechanic in this repo.
         worded apples"): at the A/B choice the snake only moves while the
         joystick or an arrow key is held (600ms a step, with a "✋ Hold
         the joystick to move" line in the A/B box); word apples and the
-        climb to the ladder run on their own at 375ms (80% of the room's
-        first 300ms speed). The board also now refits properly when the
+        climb to the ladder run on their own at 225ms — 80% of the main
+        board's 180ms speed (first read as 80% of the room's own speed,
+        375ms, then corrected: "it was too slow so we need it faster").
+        Apples are drawn apple-shaped (two lobes, stem, leaf, shine) per
+        "apple looks like an orange". The board also now refits properly when the
         A/B box appears (it used to keep its first size and cover option
         B). Earlier the same day: all 20 questions loaded (random first
         question, `?q=` to pick, "Next question ➜" on the finished card);

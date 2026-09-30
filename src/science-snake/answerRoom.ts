@@ -1,5 +1,5 @@
 import type { Direction, Position } from "./snakeGrid";
-import { changeDirection, type SnakeState } from "./snakeGrid";
+import { changeDirection, TICK_MS, type SnakeState } from "./snakeGrid";
 
 /**
  * Pure rules for the answer room (BACKLOG.md's "Redesign: question
@@ -20,11 +20,11 @@ import { changeDirection, type SnakeState } from "./snakeGrid";
 export const ROOM_WIDTH = 8;
 export const ROOM_HEIGHT = 10;
 /**
- * Word apples: 80% of the room's first speed (300ms a step), per "resume
- * 80% speed when collecting the worded apples" — after a playtest at
- * half speed (600ms) felt right for the choice but slow for the words.
+ * Word apples: 80% of the main board's speed (its 180ms step → 225ms),
+ * per "it was half the speed from main screen so I want it 80%" —
+ * half speed (600ms) felt right for the choice but too slow for words.
  */
-export const WORD_TICK_MS = 375;
+export const WORD_TICK_MS = Math.round(TICK_MS / 0.8);
 /** The A/B choice: the snake only moves while the joystick (or an arrow key) is held, and then at the gentler half speed. */
 export const CHOICE_TICK_MS = 600;
 /** While waiting for a hold at the choice, how often the scene checks again — short, so a press feels instant. */
