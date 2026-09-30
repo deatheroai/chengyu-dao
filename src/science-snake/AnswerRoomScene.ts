@@ -6,6 +6,7 @@ import {
   spawnStep,
   roomStep,
   roomChangeDirection,
+  queueTurn,
   resolveHead,
   QUESTION_DOOR_CELLS,
   LADDER_CELLS,
@@ -87,6 +88,8 @@ export class AnswerRoomScene extends Phaser.Scene {
   /** Whether the child is holding the joystick (set by the page) or an arrow key — only matters at the A/B choice. */
   private joystickHeld = false;
   private keysHeld = new Set<string>();
+  /** Taps waiting to be applied, one per step (see answerRoom.ts's queueTurn). */
+  private pendingTurns: Direction[] = [];
 
   constructor() {
     super("AnswerRoomScene");
@@ -113,6 +116,7 @@ export class AnswerRoomScene extends Phaser.Scene {
     this.spawnCurrentStep();
     this.joystickHeld = false;
     this.keysHeld = new Set();
+    this.pendingTurns = [];
     this.keydownHandler = (e: KeyboardEvent) => {
       const direction = KEY_TO_DIRECTION[e.key];
       if (!direction) return;
@@ -164,7 +168,10 @@ export class AnswerRoomScene extends Phaser.Scene {
   /** Called by the on-screen joystick. Turning during the countdown is allowed, so the child can aim before the off. */
   requestDirection(direction: Direction): void {
     if (!this.snake || this.dead) return;
-    this.snake = roomChangeDirection(this.snake, direction);
+    // Before the off (the countdown), aim straight away; once moving,
+    // queue it so quick taps each get their own step.
+    if (!this.running) this.snake = roomChangeDirection(this.snake, direction);
+    else this.pendingTurns = queueTurn(this.pendingTurns, direction);
   }
 
   private spawnCurrentStep(): void {
@@ -182,6 +189,8 @@ export class AnswerRoomScene extends Phaser.Scene {
       this.scheduleTick(HOLD_POLL_MS);
       return;
     }
+    const turn = this.pendingTurns.shift();
+    if (turn) this.snake = roomChangeDirection(this.snake, turn);
     this.snake = roomStep(this.snake);
     const event = resolveHead(this.snake.body[0], this.apples, this.finished);
 

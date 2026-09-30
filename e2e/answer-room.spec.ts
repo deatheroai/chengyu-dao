@@ -132,11 +132,18 @@ test("the QUESTION door goes back to reread, keeping the words eaten so far", as
   await steerTo(page, "right");
   await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(2, { timeout: 60_000 });
   await steerTo(page, "door");
-  await expect(page.locator("#question-card")).toHaveClass(/visible/, { timeout: 60_000 });
+  // It asks first, so an accidental bump doesn't lose the child's place.
+  await expect(page.locator("#door-confirm-card")).toHaveClass(/visible/, { timeout: 60_000 });
+  // The snake can eat one more word before the door steering takes
+  // over, so compare against what's actually eaten at the door.
+  const eatenAtDoor = await page.locator("#sentence-strip .word-chip:not(.upcoming)").count();
+  expect(eatenAtDoor).toBeGreaterThanOrEqual(2);
+  await page.click("#door-reread-btn");
+  await expect(page.locator("#question-card")).toHaveClass(/visible/);
   await expect(page.locator("#question-card .question-parts p")).toHaveCount(3);
 
   await enter(page, "back-in-btn");
-  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(2);
+  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(eatenAtDoor);
   expect(choiceStep).toBeGreaterThan(2);
 });
 
@@ -208,4 +215,34 @@ test("holding the on-screen joystick at the A/B choice moves the snake; lifting 
   const stopped = await head();
   await page.waitForTimeout(1500);
   expect(await head()).toBe(stopped);
+});
+
+test("bumping into the Q door by accident: Keep building goes straight back in, words kept", async ({ page }) => {
+  await enter(page, "start-btn");
+  await steerTo(page, "right");
+  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(2, { timeout: 60_000 });
+  await steerTo(page, "door");
+  await expect(page.locator("#door-confirm-card")).toHaveClass(/visible/, { timeout: 60_000 });
+  // Same as above: compare against what's actually eaten at the door.
+  const eatenAtDoor = await page.locator("#sentence-strip .word-chip:not(.upcoming)").count();
+  expect(eatenAtDoor).toBeGreaterThanOrEqual(2);
+  await enter(page, "door-stay-btn");
+  await expect(page.locator("#question-card")).not.toHaveClass(/visible/);
+  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(eatenAtDoor);
+});
+
+test("a tap anywhere in the strip under the board steers — even well outside the joystick disc", async ({ page }) => {
+  await page.click("#start-btn");
+  await expect(page.locator("#countdown")).toHaveText("", { timeout: 5_000 });
+  await expect(page.locator("#room-status")).toHaveAttribute("data-direction", "right");
+
+  const strip = (await page.locator("#room-controls").boundingBox())!;
+  const disc = (await page.locator("#joystick").boundingBox())!;
+  const discCentreY = disc.y + disc.height / 2;
+  // Far left of the strip, level with the disc's centre, well outside
+  // the disc itself: "left" — a backwards tap, which turns the snake round.
+  const outsideLeft = strip.x + 4;
+  expect(outsideLeft).toBeLessThan(disc.x);
+  await page.mouse.click(outsideLeft, discCentreY);
+  await expect(page.locator("#room-status")).toHaveAttribute("data-direction", "left", { timeout: 3_000 });
 });

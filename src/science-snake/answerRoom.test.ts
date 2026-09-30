@@ -15,6 +15,8 @@ import {
   SPAWN_MIN_DISTANCE,
   SPAWN_MAX_DISTANCE,
   paceFor,
+  queueTurn,
+  MAX_QUEUED_TURNS,
   WORD_TICK_MS,
   CHOICE_TICK_MS,
   type RoomApple,
@@ -136,9 +138,36 @@ describe("room movement", () => {
     expect(snake.body[0].y).toBe((createRoomSnake().body[0].y + 2) % ROOM_HEIGHT);
   });
 
-  it("ignores a reversal into its own neck", () => {
-    const snake = roomChangeDirection(createRoomSnake(), "left");
-    expect(snake.direction).toBe("right");
+  it("turns right around on a backwards tap — the tail becomes the head", () => {
+    const start = createRoomSnake();
+    const turned = roomChangeDirection(start, "left");
+    expect(turned.body).toEqual([...start.body].reverse());
+    expect(turned.direction).toBe("left");
+    // …and carries on from the old tail, not back through its own body.
+    const moved = roomStep(turned);
+    expect(moved.body[0]).toEqual({ x: (start.body[2].x - 1 + ROOM_WIDTH) % ROOM_WIDTH, y: start.body[2].y });
+  });
+
+  it("turning around a bent snake heads off the way its tail was pointing", () => {
+    // Head at (3,3) came up from (3,4), which came from (2,4): an L shape heading up.
+    const bent = { body: [{ x: 3, y: 3 }, { x: 3, y: 4 }, { x: 2, y: 4 }], direction: "up" as const, owedGrowth: 0, isPoisoned: false };
+    const turned = roomChangeDirection(bent, "down");
+    expect(turned.body[0]).toEqual({ x: 2, y: 4 });
+    expect(turned.direction).toBe("left");
+  });
+
+  it("an ordinary turn is just a turn", () => {
+    expect(roomChangeDirection(createRoomSnake(), "up").direction).toBe("up");
+  });
+});
+
+describe("queueTurn", () => {
+  it("keeps quick taps in order, skips a repeat, and drops the oldest past the limit", () => {
+    expect(queueTurn([], "up")).toEqual(["up"]);
+    expect(queueTurn(["up"], "left")).toEqual(["up", "left"]);
+    expect(queueTurn(["up"], "up")).toEqual(["up"]);
+    expect(MAX_QUEUED_TURNS).toBe(2);
+    expect(queueTurn(["up", "left"], "down")).toEqual(["left", "down"]);
   });
 });
 

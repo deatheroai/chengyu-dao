@@ -178,8 +178,50 @@ export function spawnStep(step: RoomStep, snake: SnakeState, rng: () => number):
   ];
 }
 
+const OPPOSITE: Record<Direction, Direction> = { up: "down", down: "up", left: "right", right: "left" };
+
+/** Which way `body[0]` last moved, from its neck — unwrapped across a board edge. Null for a one-cell body. */
+function headingOf(body: Position[]): Direction | null {
+  if (body.length < 2) return null;
+  let dx = body[0].x - body[1].x;
+  let dy = body[0].y - body[1].y;
+  if (Math.abs(dx) > 1) dx = -Math.sign(dx);
+  if (Math.abs(dy) > 1) dy = -Math.sign(dy);
+  if (dx === 1) return "right";
+  if (dx === -1) return "left";
+  if (dy === 1) return "down";
+  if (dy === -1) return "up";
+  return null;
+}
+
+/**
+ * A turn in the answer room. Unlike the main board, asking to go
+ * straight back the way the snake came turns it around (the tail
+ * becomes the head and it carries on from there) instead of being
+ * ignored — per "I missed turning the snake many times": every tap
+ * should do something, and at a fixed length of 3 the room snake can't
+ * run into itself anyway.
+ */
 export function roomChangeDirection(snake: SnakeState, requested: Direction): SnakeState {
-  return changeDirection(snake, requested);
+  const heading = headingOf(snake.body) ?? snake.direction;
+  if (requested !== OPPOSITE[heading]) return changeDirection(snake, requested);
+  const body = [...snake.body].reverse();
+  return { ...snake, body, direction: headingOf(body) ?? requested };
+}
+
+/** How many quick taps are remembered at once. */
+export const MAX_QUEUED_TURNS = 2;
+
+/**
+ * Two quick taps inside one step ("up, then left" to go round a corner)
+ * used to overwrite each other; now they're queued and the scene applies
+ * one per step. A repeat of the last queued turn adds nothing, and past
+ * `MAX_QUEUED_TURNS` the oldest is dropped, so a burst of taps can't
+ * steer the snake for seconds after the finger has stopped.
+ */
+export function queueTurn(queue: Direction[], turn: Direction): Direction[] {
+  if (queue[queue.length - 1] === turn) return queue;
+  return [...queue, turn].slice(-MAX_QUEUED_TURNS);
 }
 
 const DELTA: Record<Direction, Position> = {

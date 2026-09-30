@@ -163,7 +163,9 @@ function handleRoomEvent(event: RoomEvent, newStepIndex: number): void {
     renderSentence();
     showCard("thrown-out-card");
   } else if (event.kind === "question-door") {
-    showCard("question-card");
+    // Asks first — running into the door by accident while steering
+    // was sending children back to the question mid-sentence.
+    showCard("door-confirm-card");
   } else if (event.kind === "exited") {
     const sentenceEl = document.getElementById("complete-sentence");
     if (sentenceEl) sentenceEl.textContent = fullSentence();
@@ -234,6 +236,11 @@ function bootstrap(): void {
     enterRoom();
   });
   document.getElementById("back-in-btn")?.addEventListener("click", enterRoom);
+  document.getElementById("door-reread-btn")?.addEventListener("click", () => {
+    hideCards();
+    showCard("question-card");
+  });
+  document.getElementById("door-stay-btn")?.addEventListener("click", enterRoom);
   document.getElementById("retry-btn")?.addEventListener("click", enterRoom);
   document.getElementById("read-question-btn")?.addEventListener("click", readQuestion);
   document.getElementById("hear-again-btn")?.addEventListener("click", () => speak(fullSentence()));
@@ -265,11 +272,16 @@ function bootstrap(): void {
   const joystick = document.getElementById("joystick");
   const knob = document.getElementById("joystick-knob");
   if (joystick && knob) {
+    // The whole strip under the board takes touches, with a smaller
+    // dead zone than the main board's — per "I missed turning the snake
+    // many times": a tap on or past an arrow, or anywhere near the disc,
+    // still steers.
     wireJoystick(
       joystick,
       knob,
       (direction) => scene()?.requestDirection(direction),
       (held) => scene()?.setJoystickHeld(held),
+      { hitArea: document.getElementById("room-controls") ?? undefined, deadZoneRatio: 0.2 },
     );
   }
 }

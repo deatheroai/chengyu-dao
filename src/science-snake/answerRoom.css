@@ -167,17 +167,28 @@ body:has(.answer-room-app) {
   text-shadow: 0 3px 0 #fff;
 }
 
+/* The whole strip under the board is the controller (answerRoomMain.ts
+   passes it as the joystick's hit area): a touch anywhere in it steers
+   by where it is relative to the disc's centre. */
 #room-controls {
   flex: 0 0 auto;
   display: flex;
   justify-content: center;
-  padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+  padding: 0.3rem 0 max(0.4rem, env(safe-area-inset-bottom));
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #room-controls #joystick {
-  width: 7.5rem;
-  height: 7.5rem;
-  background: rgba(44, 61, 36, 0.06);
+  width: 9rem;
+  height: 9rem;
+  background: rgba(44, 61, 36, 0.07);
+}
+
+#room-controls .joystick-arrow {
+  font-size: 1.3rem;
+  color: rgba(44, 61, 36, 0.6);
 }
 
 .question-parts p {

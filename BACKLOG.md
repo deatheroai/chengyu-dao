@@ -2054,6 +2054,15 @@ other mechanic in this repo.
         climb to the ladder run on their own at 225ms — 80% of the main
         board's 180ms speed (first read as 80% of the room's own speed,
         375ms, then corrected: "it was too slow so we need it faster").
+        Controls tuned (per "I missed turning the snake many times and
+        invoking the return to question page"): the whole strip under
+        the board is the joystick's touch area (a tap on or past an arrow
+        steers, by where it is relative to the disc's centre), the disc
+        and arrows are bigger, the dead zone smaller (0.2 vs 0.3); a
+        backwards tap turns the room snake round instead of being
+        ignored; up to 2 quick taps are queued, one per step; and the Q
+        door now asks "Back to the question?" (Reread / Keep building)
+        instead of leaving at once. The main board's joystick is unchanged.
         Tapping to steer zoomed an iPhone in with no way back out (the
         viewport meta blocks pinch): fixed for both Science Snake pages
         with `touch-action: manipulation` on the page (style.css) plus

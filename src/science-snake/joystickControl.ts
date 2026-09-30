@@ -4,6 +4,18 @@ import { joystickDirection, clampKnobOffset } from "./joystick";
 /** Dead zone as a share of the disc's radius — roughly the knob itself. */
 const DEAD_ZONE_RATIO = 0.3;
 
+export interface JoystickOptions {
+  /**
+   * A bigger element to take touches on instead of just the disc — a
+   * touch anywhere in it steers by where it is relative to the disc's
+   * centre. The answer room passes its whole control strip, so a tap on
+   * or past an arrow still counts.
+   */
+  hitArea?: HTMLElement;
+  /** Overrides DEAD_ZONE_RATIO. */
+  deadZoneRatio?: number;
+}
+
 /**
  * Wires the joystick disc (science-snake.html's #joystick). Touching
  * anywhere on it counts: the knob jumps to the finger and follows it as
@@ -22,7 +34,10 @@ export function wireJoystick(
   onDirection: (direction: Direction) => void,
   /** Optional: told `true` once a press is pointing somewhere, `false` when the finger lifts — the answer room's hold-to-move choice uses it. */
   onHoldChange?: (held: boolean) => void,
+  options: JoystickOptions = {},
 ): void {
+  const zone = options.hitArea ?? base;
+  const deadZoneRatio = options.deadZoneRatio ?? DEAD_ZONE_RATIO;
   let activePointer: number | null = null;
   let lastSent: Direction | null = null;
 
@@ -33,7 +48,7 @@ export function wireJoystick(
     const dy = event.clientY - (rect.top + rect.height / 2);
     const knobOffset = clampKnobOffset(dx, dy, radius - knob.offsetWidth / 2);
     knob.style.transform = `translate(${knobOffset.x}px, ${knobOffset.y}px)`;
-    const direction = joystickDirection(dx, dy, radius * DEAD_ZONE_RATIO);
+    const direction = joystickDirection(dx, dy, radius * deadZoneRatio);
     if (direction && direction !== lastSent) {
       if (lastSent === null) onHoldChange?.(true);
       lastSent = direction;
@@ -50,22 +65,22 @@ export function wireJoystick(
     knob.style.transform = "";
   };
 
-  base.addEventListener("pointerdown", (event) => {
+  zone.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     activePointer = event.pointerId;
     lastSent = null;
     base.classList.add("active");
     try {
-      base.setPointerCapture(event.pointerId);
+      zone.setPointerCapture(event.pointerId);
     } catch {
       // A synthetic event (e.g. from a test) has no real pointer to
       // capture — steering from this one event still works.
     }
     update(event);
   });
-  base.addEventListener("pointermove", (event) => {
+  zone.addEventListener("pointermove", (event) => {
     if (event.pointerId === activePointer) update(event);
   });
-  base.addEventListener("pointerup", release);
-  base.addEventListener("pointercancel", release);
+  zone.addEventListener("pointerup", release);
+  zone.addEventListener("pointercancel", release);
 }
