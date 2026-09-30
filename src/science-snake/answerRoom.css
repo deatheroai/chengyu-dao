@@ -50,92 +50,87 @@ body:has(.answer-room-app) {
   cursor: pointer;
 }
 
-/* The sentence being built: one slot per phrase. */
-#sentence-slots {
+/* The sentence being built, one chip per eaten word, then a faint dot
+   per word still to come. */
+#sentence-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
-  margin: 0.4rem 0;
-}
-
-.slot {
-  min-width: 3.2rem;
+  gap: 0.25rem;
+  margin: 0.4rem 0 0.2rem;
   min-height: 1.9rem;
-  padding: 0.25rem 0.45rem;
-  border-radius: 8px;
-  border: 2px dashed #cdbf9f;
-  font-size: 0.9rem;
-  line-height: 1.2;
-  display: flex;
   align-items: center;
 }
 
-.slot.filled {
-  border-style: solid;
-  border-color: #3c8a4c;
+.word-chip {
+  padding: 0.15rem 0.4rem;
+  border-radius: 7px;
   background: #eaf6e4;
+  border: 2px solid #3c8a4c;
   font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.word-chip.joining {
+  border-color: #f08a1c;
+  background: rgba(240, 138, 28, 0.2);
+}
+
+.word-chip.chosen {
+  border-color: #2f7fd6;
+  background: rgba(47, 127, 214, 0.15);
+}
+
+.word-chip.just-eaten {
   animation: slot-pop 0.3s ease-out;
 }
 
-.slot.joining {
-  border-color: #f08a1c;
-  background: rgba(240, 138, 28, 0.12);
-}
-
-.slot.joining.filled {
-  background: rgba(240, 138, 28, 0.25);
-}
-
-/* The next slot to fill glows, so the order is never a mystery. */
-.slot.next {
-  border-color: #e0a800;
-  box-shadow: 0 0 0 3px rgba(255, 200, 0, 0.45);
-  animation: slot-glow 1s ease-in-out infinite alternate;
-}
-
-@keyframes slot-glow {
-  from { box-shadow: 0 0 0 2px rgba(255, 200, 0, 0.3); }
-  to { box-shadow: 0 0 0 5px rgba(255, 200, 0, 0.6); }
+.word-chip.upcoming {
+  border: none;
+  background: none;
+  color: #cdbf9f;
+  padding: 0 0.1rem;
 }
 
 @keyframes slot-pop {
-  from { transform: scale(1.25); }
+  from { transform: scale(1.3); }
   to { transform: scale(1); }
 }
 
-/* The key: which symbol is which phrase, mixed up. */
-#phrase-key {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem 0.5rem;
+/* The A/B box — only while the two blue apples are on the board. */
+#choice-box {
+  margin: 0.3rem 0 0.1rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(47, 127, 214, 0.1);
+  border: 2px solid #2f7fd6;
 }
 
-.key-entry {
+.choice-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.88rem;
-  line-height: 1.2;
+  gap: 0.5rem;
+  margin: 0.2rem 0;
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
-.key-entry.used {
-  opacity: 0.35;
-  text-decoration: line-through;
-}
-
-.key-symbol {
+.choice-badge {
   flex: 0 0 auto;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.8rem;
+  height: 1.8rem;
   border-radius: 50%;
-  border: 2px solid currentColor;
-  background: #fff;
+  background: #2f7fd6;
+  color: #fff;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+#room-hint {
+  margin: 0.3rem 0 0.1rem;
   font-weight: 700;
-  font-size: 0.95rem;
+  color: #9a6331;
 }
 
 #room-board {

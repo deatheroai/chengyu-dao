@@ -4,27 +4,30 @@ import { changeDirection, type SnakeState } from "./snakeGrid";
 /**
  * Pure rules for the answer room (BACKLOG.md's "Redesign: question
  * apples, ANSWER door + answer room" entry): a small separate board
- * where the child eats symbol apples in sentence order. Same
+ * where the snake eats the answer sentence one word at a time. Same
  * pure-function-plus-thin-Scene split as snakeGrid.ts —
  * `AnswerRoomScene.ts` only calls these on a tick and draws the result.
  *
+ * Only one thing is ever on the board: the next word, or — at the
+ * sentence's one science choice — two blue apples, A and B. After the
+ * last word the QUESTION door goes and a ladder appears to climb out.
+ *
  * The room has its own size, so it can't reuse snakeGrid.ts's `step`
- * (which wraps against the main board's 16×24). The room snake also
- * never grows — at a fixed length of 3 it can't run into itself, so
- * the child can't lose in here; only the order of what they eat
- * matters.
+ * (which wraps against the main board's 16×24). The room snake never
+ * grows — at a fixed length of 3 it can't run into itself.
  */
 
 export const ROOM_WIDTH = 8;
 export const ROOM_HEIGHT = 10;
-export const ROOM_TICK_MS = 300;
+/** Half the main board's pace and then some (per "try half the speed for a start"): the room is for reading, not racing. */
+export const ROOM_TICK_MS = 600;
 export const ROOM_SNAKE_LENGTH = 3;
 
 /**
  * The QUESTION door: a 2×2 wooden door in the bottom-right corner,
- * drawn with a big "Q" and a ↩ back arrow (AnswerRoomScene.ts) rather
- * than the whole word, so it reads as a door at a glance. Running into
- * any of its four cells goes back to reread.
+ * drawn with a big "Q" and a ↩ back arrow (AnswerRoomScene.ts). Running
+ * into any of its cells goes back to reread. It disappears once the
+ * sentence is finished, when the ladder takes over.
  */
 export const QUESTION_DOOR_CELLS: Position[] = [
   { x: ROOM_WIDTH - 2, y: ROOM_HEIGHT - 2 },
@@ -33,7 +36,13 @@ export const QUESTION_DOOR_CELLS: Position[] = [
   { x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 1 },
 ];
 
-/** Joining words always get the same colour and pre-coloured slot, so the child learns to spot where they go. */
+/** The exit ladder, top-left corner, one cell wide and two tall — only there once every word is eaten. */
+export const LADDER_CELLS: Position[] = [
+  { x: 0, y: 0 },
+  { x: 0, y: 1 },
+];
+
+/** Joining words always get the same colour in the sentence, so the child learns to spot where they go. */
 export const JOINING_WORDS = ["because", "so", "and", "but"];
 
 export function isJoiningPhrase(phrase: string): boolean {
@@ -41,49 +50,57 @@ export function isJoiningPhrase(phrase: string): boolean {
 }
 
 export interface AnswerRoomContent {
-  /** The correct sentence, in order, one phrase per apple. */
+  /** The correct sentence in 4 pieces. Every piece but `wrongReplaces` is eaten word by word. */
   phrases: string[];
-  /** One scientifically wrong phrase — the one real science choice. */
+  /** The scientifically wrong alternative to `phrases[wrongReplaces]` — the one real choice. */
   wrongPhrase: string;
-  /** The slot `wrongPhrase` competes for: swapped in for `phrases[wrongReplaces]`, the sentence still reads fine but is wrong. */
+  /** Which piece is the A/B choice. Swapped for `wrongPhrase`, the sentence still reads fine but is wrong. */
   wrongReplaces: number;
 }
 
-export interface SymbolStyle {
-  glyph: string;
-  /** CSS colour, also parsed into a Phaser fill by the scene. */
-  color: string;
+export type RoomStep =
+  | { kind: "word"; text: string }
+  | { kind: "choice"; correct: string; wrong: string };
+
+/** The whole sentence as the snake will eat it: single words, with the science choice as one step where it falls. */
+export function buildSteps(content: AnswerRoomContent): RoomStep[] {
+  const steps: RoomStep[] = [];
+  content.phrases.forEach((phrase, i) => {
+    if (i === content.wrongReplaces) {
+      steps.push({ kind: "choice", correct: phrase, wrong: content.wrongPhrase });
+    } else {
+      for (const word of phrase.split(/\s+/).filter(Boolean)) steps.push({ kind: "word", text: word });
+    }
+  });
+  return steps;
 }
 
-/**
- * Shapes as well as colours, so the symbols still tell apart for a
- * colour-blind child. U+FE0E after ♥ asks for the plain text glyph — without
- * it, phones tend to draw ♥ as a red emoji and lose the chosen colour.
- */
-export const PHRASE_SYMBOLS: SymbolStyle[] = [
-  { glyph: "★", color: "#d93838" },
-  { glyph: "▲", color: "#2f7fd6" },
-  { glyph: "◆", color: "#8a4fd8" },
-  { glyph: "■", color: "#2f9e57" },
-  { glyph: "♥︎", color: "#e0529c" },
-  { glyph: "✚", color: "#1b9aa6" },
-  { glyph: "⬟", color: "#6b6f2a" },
-];
-/** Orange is kept for joining words only — no other phrase ever gets it. */
-export const JOINING_SYMBOL: SymbolStyle = { glyph: "●", color: "#f08a1c" };
+/** A single word apple, or one of the two blue choice apples. */
+export type RoomApple =
+  | { kind: "word"; text: string; position: Position }
+  | { kind: "option"; label: "A" | "B"; text: string; correct: boolean; position: Position };
 
-/**
- * `phraseIndex` is the phrase's place in the sentence, or null for the
- * wrong phrase. `slot` is the sentence position it competes for — the
- * same as `phraseIndex` for a correct phrase, `wrongReplaces` for the
- * wrong one. Once that slot is filled, the entry is spent.
- */
-export interface KeyEntry {
-  phraseIndex: number | null;
-  slot: number;
-  text: string;
-  symbol: SymbolStyle;
+export function createRoomSnake(): SnakeState {
+  const head = { x: 2, y: Math.floor(ROOM_HEIGHT / 2) - 1 };
+  const body: Position[] = [];
+  for (let i = 0; i < ROOM_SNAKE_LENGTH; i++) body.push({ x: head.x - i, y: head.y });
+  return { body, direction: "right", owedGrowth: 0, isPoisoned: false };
 }
+
+function sameCell(a: Position, b: Position): boolean {
+  return a.x === b.x && a.y === b.y;
+}
+
+/** Shortest distance between two cells on the wrapping board. */
+export function wrapDistance(a: Position, b: Position): number {
+  const dx = Math.abs(a.x - b.x);
+  const dy = Math.abs(a.y - b.y);
+  return Math.min(dx, ROOM_WIDTH - dx) + Math.min(dy, ROOM_HEIGHT - dy);
+}
+
+/** A new apple lands this far from the head: never on top of it, never across the board — each word should be a quick snack. */
+export const SPAWN_MIN_DISTANCE = 3;
+export const SPAWN_MAX_DISTANCE = 5;
 
 function shuffle<T>(items: T[], rng: () => number): T[] {
   const result = [...items];
@@ -95,82 +112,52 @@ function shuffle<T>(items: T[], rng: () => number): T[] {
 }
 
 /**
- * Gives every phrase (and the wrong one) its symbol, and returns the
- * key mixed up — the child works out the order themselves. Symbols are
- * shuffled too, so ★ doesn't always mean "first".
+ * Cells a new apple may land on: a few steps from the head (so it's
+ * never eaten before the child has seen it, and never a trek across
+ * the board), off the snake, and off (and not beside) the door and the
+ * ladder corner. Falls back to any such cell at any distance if the
+ * ring happens to be empty.
  */
-export function buildKey(content: AnswerRoomContent, rng: () => number): KeyEntry[] {
-  const symbols = shuffle(PHRASE_SYMBOLS, rng);
-  let next = 0;
-  const entries: KeyEntry[] = content.phrases.map((text, phraseIndex) => ({
-    phraseIndex,
-    slot: phraseIndex,
-    text,
-    symbol: isJoiningPhrase(text) ? JOINING_SYMBOL : symbols[next++ % symbols.length],
-  }));
-  entries.push({ phraseIndex: null, slot: content.wrongReplaces, text: content.wrongPhrase, symbol: symbols[next % symbols.length] });
-  return shuffle(entries, rng);
+function spawnCells(snake: SnakeState): Position[] {
+  const near = spawnCellsWithin(snake, SPAWN_MIN_DISTANCE, SPAWN_MAX_DISTANCE);
+  return near.length >= 2 ? near : spawnCellsWithin(snake, 1, ROOM_WIDTH + ROOM_HEIGHT);
 }
 
-export interface RoomApple {
-  /** Same as the KeyEntry it stands for. */
-  phraseIndex: number | null;
-  position: Position;
-}
-
-/** Starts on the left, heading right, well away from the door in the bottom-right corner. */
-export function createRoomSnake(): SnakeState {
-  const head = { x: 2, y: Math.floor(ROOM_HEIGHT / 2) - 1 };
-  const body: Position[] = [];
-  for (let i = 0; i < ROOM_SNAKE_LENGTH; i++) body.push({ x: head.x - i, y: head.y });
-  return { body, direction: "right", owedGrowth: 0, isPoisoned: false };
-}
-
-function isDoorCell(position: Position): boolean {
-  return QUESTION_DOOR_CELLS.some((cell) => cell.x === position.x && cell.y === position.y);
-}
-
-/** Whether a key entry's slot is already filled — its apple leaves the board and its key line is struck through. */
-export function isSpent(entry: KeyEntry, placedCount: number): boolean {
-  return entry.slot < placedCount;
+function spawnCellsWithin(snake: SnakeState, minDistance: number, maxDistance: number): Position[] {
+  const head = snake.body[0];
+  const nearAny = (cells: Position[], p: Position): boolean => cells.some((c) => Math.abs(c.x - p.x) <= 1 && Math.abs(c.y - p.y) <= 1);
+  const cells: Position[] = [];
+  for (let y = 0; y < ROOM_HEIGHT; y++) {
+    for (let x = 0; x < ROOM_WIDTH; x++) {
+      const p = { x, y };
+      const distance = wrapDistance(head, p);
+      if (distance < minDistance || distance > maxDistance) continue;
+      if (snake.body.some((s) => sameCell(s, p))) continue;
+      if (nearAny(QUESTION_DOOR_CELLS, p) || nearAny(LADDER_CELLS, p)) continue;
+      cells.push(p);
+    }
+  }
+  return cells;
 }
 
 /**
- * Scatters one apple per still-unplaced phrase, plus the wrong one
- * while its slot is still open.
- * Apples are kept off and away from the door (so going for an apple
- * never sends the child through it by accident), off the snake and the few cells
- * straight ahead of it (so re-entering never lands on an apple before
- * the child has steered), and never touching each other — on a small
- * board a child aiming for one apple shouldn't clip its neighbour.
+ * What the board holds for `step`: one word apple, or the two blue
+ * choice apples with A/B shuffled (so "A" isn't always right) and never
+ * touching, so the child picks one on purpose.
  */
-export function placeApples(
-  key: KeyEntry[],
-  placedCount: number,
-  snake: SnakeState,
-  rng: () => number,
-): RoomApple[] {
-  const wanted = key.filter((entry) => !isSpent(entry, placedCount));
-  const head = snake.body[0];
-  const blocked = (p: Position): boolean =>
-    QUESTION_DOOR_CELLS.some((c) => Math.abs(c.x - p.x) <= 1 && Math.abs(c.y - p.y) <= 1) ||
-    snake.body.some((s) => s.x === p.x && s.y === p.y) ||
-    (p.y === head.y && p.x > head.x && p.x <= head.x + 3);
-
-  const free: Position[] = [];
-  for (let y = 0; y < ROOM_HEIGHT; y++) {
-    for (let x = 0; x < ROOM_WIDTH; x++) {
-      if (!blocked({ x, y })) free.push({ x, y });
-    }
+export function spawnStep(step: RoomStep, snake: SnakeState, rng: () => number): RoomApple[] {
+  const cells = shuffle(spawnCells(snake), rng);
+  if (step.kind === "word") {
+    return cells.length ? [{ kind: "word", text: step.text, position: cells[0] }] : [];
   }
-
-  const apples: RoomApple[] = [];
-  for (const cell of shuffle(free, rng)) {
-    if (apples.length === wanted.length) break;
-    const touches = apples.some((a) => Math.abs(a.position.x - cell.x) <= 1 && Math.abs(a.position.y - cell.y) <= 1);
-    if (!touches) apples.push({ phraseIndex: wanted[apples.length].phraseIndex, position: cell });
-  }
-  return apples;
+  const first = cells[0];
+  const second = cells.find((c) => Math.abs(c.x - first.x) > 1 || Math.abs(c.y - first.y) > 1);
+  if (!first || !second) return [];
+  const correctIsA = rng() < 0.5;
+  return [
+    { kind: "option", label: "A", text: correctIsA ? step.correct : step.wrong, correct: correctIsA, position: first },
+    { kind: "option", label: "B", text: correctIsA ? step.wrong : step.correct, correct: !correctIsA, position: second },
+  ];
 }
 
 export function roomChangeDirection(snake: SnakeState, requested: Direction): SnakeState {
@@ -198,32 +185,21 @@ export function roomStep(snake: SnakeState): SnakeState {
 export type RoomEvent =
   | { kind: "none" }
   | { kind: "question-door" }
-  | { kind: "placed"; phraseIndex: number; placedCount: number }
-  | { kind: "complete"; placedCount: number }
-  /** Out of order, or the wrong science phrase. Placed phrases are kept — the punishment lands on the snake, not the sentence. */
-  | { kind: "thrown-out"; reason: "out-of-order" | "wrong-phrase"; placedCount: number };
+  | { kind: "ate-word"; text: string }
+  | { kind: "chose-right"; text: string }
+  /** The snake dies and the sentence starts again from the first word. */
+  | { kind: "chose-wrong"; text: string }
+  | { kind: "exited" };
 
-/** What the head's current cell means, given how much of the sentence is already placed. */
-export function resolveHead(
-  head: Position,
-  apples: RoomApple[],
-  placedCount: number,
-  totalPhrases: number,
-): { event: RoomEvent; apples: RoomApple[] } {
-  if (isDoorCell(head)) return { event: { kind: "question-door" }, apples };
-
-  const index = apples.findIndex((a) => a.position.x === head.x && a.position.y === head.y);
-  if (index === -1) return { event: { kind: "none" }, apples };
-
-  const apple = apples[index];
-  const remaining = apples.filter((_, i) => i !== index);
-  if (apple.phraseIndex === null) {
-    return { event: { kind: "thrown-out", reason: "wrong-phrase", placedCount }, apples: remaining };
-  }
-  if (apple.phraseIndex !== placedCount) {
-    return { event: { kind: "thrown-out", reason: "out-of-order", placedCount }, apples: remaining };
-  }
-  const newCount = placedCount + 1;
-  if (newCount === totalPhrases) return { event: { kind: "complete", placedCount: newCount }, apples: remaining };
-  return { event: { kind: "placed", phraseIndex: apple.phraseIndex, placedCount: newCount }, apples: remaining };
+/**
+ * What the head's cell means. `finished` is true once every step is
+ * eaten: the door is gone by then and only the ladder counts.
+ */
+export function resolveHead(head: Position, apples: RoomApple[], finished: boolean): RoomEvent {
+  if (finished) return LADDER_CELLS.some((c) => sameCell(c, head)) ? { kind: "exited" } : { kind: "none" };
+  if (QUESTION_DOOR_CELLS.some((c) => sameCell(c, head))) return { kind: "question-door" };
+  const apple = apples.find((a) => sameCell(a.position, head));
+  if (!apple) return { kind: "none" };
+  if (apple.kind === "word") return { kind: "ate-word", text: apple.text };
+  return apple.correct ? { kind: "chose-right", text: apple.text } : { kind: "chose-wrong", text: apple.text };
 }

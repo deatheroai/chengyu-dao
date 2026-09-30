@@ -3,32 +3,32 @@ import type { Direction } from "./snakeGrid";
 import type { SnakeState } from "./snakeGrid";
 import {
   createRoomSnake,
-  placeApples,
+  spawnStep,
   roomStep,
   roomChangeDirection,
   resolveHead,
-  isSpent,
   QUESTION_DOOR_CELLS,
+  LADDER_CELLS,
   ROOM_WIDTH,
   ROOM_HEIGHT,
   ROOM_TICK_MS,
-  type KeyEntry,
   type RoomApple,
   type RoomEvent,
+  type RoomStep,
 } from "./answerRoom";
 
 /**
  * The answer room's Phaser scene — thin wiring over answerRoom.ts, same
- * split as SnakeGameScene. Started fresh on every entry (with however
- * many phrases are already placed), and reports each eat back through
- * `onEvent`; the page decides what a thrown-out or finished sentence
- * looks like.
+ * split as SnakeGameScene. Started fresh on every entry (at whichever
+ * step the sentence has reached), and reports each eat back through
+ * `onEvent`; the page decides what a wrong choice or a finished
+ * sentence looks like.
  */
 
 export const ROOM_CELL_SIZE = 40;
 export const COUNTDOWN_STEP_MS = 700;
-/** After this long without placing a phrase, the right apple starts to pulse — a nudge, not the answer on a plate. */
-export const HINT_AFTER_MS = 5000;
+/** Same short beat as the main board's suffocation death — a clear "oops", not a wait. */
+export const DEATH_DURATION_MS = 1100;
 
 const BG_COLOR = 0xfdf8ec;
 const GRID_LINE_COLOR = 0xeee4cc;
@@ -37,9 +37,16 @@ const DOOR_WOOD_COLOR = 0x9a6331;
 const DOOR_PANEL_COLOR = 0x86542a;
 const DOOR_KNOB_COLOR = 0xf2c230;
 const DOOR_BADGE_COLOR = 0x2f7fd6;
+const LADDER_COLOR = 0x9a6331;
+const LADDER_GLOW = 0xffe27a;
 const SNAKE_COLOR = 0x3c8a4c;
 const SNAKE_HEAD_COLOR = 0x2c6b39;
-const APPLE_BG = 0xffffff;
+const BELLY_COLOR = 0xf3e9c9;
+const DEAD_EYE_COLOR = 0x2a2a2a;
+const SMOKE_COLOR = 0x8a8a8a;
+const WORD_APPLE_COLOR = 0xe0463a;
+const OPTION_APPLE_COLOR = 0x2f7fd6;
+const LEAF_COLOR = 0x3c8a4c;
 
 const KEY_TO_DIRECTION: Record<string, Direction> = {
   ArrowUp: "up",
@@ -53,24 +60,25 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 };
 
 export interface AnswerRoomSceneData {
-  key: KeyEntry[];
-  placedCount: number;
-  totalPhrases: number;
+  steps: RoomStep[];
+  /** How far through `steps` the sentence already is — 0 after a wrong choice, kept after a trip to reread. */
+  stepIndex: number;
   rng: () => number;
-  onEvent: (event: RoomEvent) => void;
+  onEvent: (event: RoomEvent, stepIndex: number) => void;
   onCountdown: (value: number | null) => void;
-  onState: (snake: SnakeState, apples: RoomApple[]) => void;
+  onState: (snake: SnakeState, apples: RoomApple[], finished: boolean) => void;
 }
 
 export class AnswerRoomScene extends Phaser.Scene {
   private data_!: AnswerRoomSceneData;
   private snake!: SnakeState;
   private apples: RoomApple[] = [];
-  private placedCount = 0;
+  private stepIndex = 0;
   private running = false;
-  private lastProgressAt = 0;
+  private dead = false;
   private gfx!: Phaser.GameObjects.Graphics;
-  private appleTexts: Phaser.GameObjects.Text[] = [];
+  private appleLabels: Phaser.GameObjects.Text[] = [];
+  private doorLabels: Phaser.GameObjects.Text[] = [];
   private tickEvent?: Phaser.Time.TimerEvent;
   private keydownHandler?: (e: KeyboardEvent) => void;
 
@@ -80,23 +88,23 @@ export class AnswerRoomScene extends Phaser.Scene {
 
   init(data: AnswerRoomSceneData): void {
     this.data_ = data;
-    this.placedCount = data.placedCount;
+    this.stepIndex = data.stepIndex;
+  }
+
+  private get finished(): boolean {
+    return this.stepIndex >= this.data_.steps.length;
   }
 
   create(): void {
     this.cameras.main.setBackgroundColor(BG_COLOR);
     this.gfx = this.add.graphics();
     this.snake = createRoomSnake();
-    this.apples = placeApples(this.data_.key, this.placedCount, this.snake, this.data_.rng);
     this.running = false;
-    this.drawDoor();
-    this.appleTexts = this.apples.map((apple) => {
-      const entry = this.entryFor(apple);
-      return this.add
-        .text(0, 0, entry.symbol.glyph, { fontSize: `${ROOM_CELL_SIZE - 12}px`, color: entry.symbol.color, fontStyle: "bold" })
-        .setOrigin(0.5)
-        .setDepth(2);
-    });
+    this.dead = false;
+    this.appleLabels = [];
+    this.doorLabels = [];
+    this.drawDoorLettering();
+    this.spawnCurrentStep();
     this.keydownHandler = (e: KeyboardEvent) => {
       const direction = KEY_TO_DIRECTION[e.key];
       if (direction) this.requestDirection(direction);
@@ -120,48 +128,103 @@ export class AnswerRoomScene extends Phaser.Scene {
       }
       this.data_.onCountdown(null);
       this.running = true;
-      this.lastProgressAt = this.time.now;
       this.tickEvent = this.time.addEvent({ delay: ROOM_TICK_MS, loop: true, callback: () => this.tick() });
     });
   }
 
   /** Called by the on-screen joystick. Turning during the countdown is allowed, so the child can aim before the off. */
   requestDirection(direction: Direction): void {
-    if (!this.snake) return;
+    if (!this.snake || this.dead) return;
     this.snake = roomChangeDirection(this.snake, direction);
   }
 
-  private entryFor(apple: RoomApple): KeyEntry {
-    return this.data_.key.find((entry) => entry.phraseIndex === apple.phraseIndex)!;
+  private spawnCurrentStep(): void {
+    for (const label of this.appleLabels) label.destroy();
+    this.appleLabels = [];
+    this.apples = this.finished ? [] : spawnStep(this.data_.steps[this.stepIndex], this.snake, this.data_.rng);
+    for (const apple of this.apples) this.drawAppleLabel(apple);
   }
 
   private tick(): void {
     if (!this.running) return;
     this.snake = roomStep(this.snake);
-    const { event, apples } = resolveHead(this.snake.body[0], this.apples, this.placedCount, this.data_.totalPhrases);
-    this.keepApples(apples);
-    if (event.kind === "placed") {
-      this.placedCount = event.placedCount;
-      this.lastProgressAt = this.time.now;
-      // The wrong phrase's slot may have just been filled — it has
-      // nothing left to compete for, so it leaves the board.
-      this.keepApples(this.apples.filter((apple) => !isSpent(this.entryFor(apple), this.placedCount)));
-    }
-    if (event.kind !== "none" && event.kind !== "placed") {
+    const event = resolveHead(this.snake.body[0], this.apples, this.finished);
+
+    if (event.kind === "ate-word" || event.kind === "chose-right") {
+      this.stepIndex += 1;
+      this.spawnCurrentStep();
+      // Last word eaten: the QUESTION door goes, the ladder takes over.
+      if (this.finished) for (const label of this.doorLabels) label.destroy();
+    } else if (event.kind !== "none") {
       this.running = false;
       this.tickEvent?.remove();
     }
+
+    if (event.kind === "chose-wrong") {
+      this.playDeath(() => this.data_.onEvent(event, this.stepIndex));
+      return;
+    }
     this.render();
-    if (event.kind !== "none") this.data_.onEvent(event);
+    if (event.kind !== "none") this.data_.onEvent(event, this.stepIndex);
   }
 
-  /** Narrows the board to `kept`, destroying the symbol text of any apple that's gone. */
-  private keepApples(kept: RoomApple[]): void {
-    this.apples.forEach((apple, i) => {
-      if (!kept.includes(apple)) this.appleTexts[i]?.destroy();
-    });
-    this.appleTexts = this.appleTexts.filter((_, i) => kept.includes(this.apples[i]));
-    this.apples = kept;
+  /** The wrong blue apple: belly-up snake with "X X" eyes and a few smoke puffs, then the page takes over. */
+  private playDeath(onComplete: () => void): void {
+    this.dead = true;
+    for (const label of this.appleLabels) label.destroy();
+    this.appleLabels = [];
+    this.apples = [];
+    this.render();
+    const { x: cx, y: cy } = this.cellCenter(this.snake.body[0]);
+    for (let i = 0; i < 8; i++) {
+      const puff = this.add.circle(cx + (Math.random() - 0.5) * 40, cy, 5 + Math.random() * 4, SMOKE_COLOR, 0.7).setDepth(4);
+      this.tweens.add({
+        targets: puff,
+        y: cy - 50 - Math.random() * 30,
+        alpha: 0,
+        scale: 2.2,
+        duration: 900,
+        delay: i * 60,
+        onComplete: () => puff.destroy(),
+      });
+    }
+    this.time.delayedCall(DEATH_DURATION_MS, onComplete);
+  }
+
+  private cellCenter(p: { x: number; y: number }): { x: number; y: number } {
+    return { x: p.x * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2, y: p.y * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2 };
+  }
+
+  /**
+   * A word apple gets its word in a white bubble just above it (below
+   * it on the top row), kept inside the board — a word is wider than a
+   * cell, but only one is ever on the board, so it can't overlap
+   * another. A blue choice apple just gets a big A or B: what each one
+   * means is shown above the board.
+   */
+  private drawAppleLabel(apple: RoomApple): void {
+    const { x, y } = this.cellCenter(apple.position);
+    if (apple.kind === "option") {
+      this.appleLabels.push(
+        this.add.text(x, y, apple.label, { fontSize: "22px", color: "#ffffff", fontStyle: "bold" }).setOrigin(0.5).setDepth(3),
+      );
+      return;
+    }
+    const label = this.add
+      .text(0, 0, apple.text, {
+        fontSize: "17px",
+        color: "#2c3d24",
+        fontStyle: "bold",
+        backgroundColor: "#ffffff",
+        padding: { x: 6, y: 3 },
+      })
+      .setOrigin(0.5)
+      .setDepth(3);
+    const labelY = apple.position.y > 0 ? y - ROOM_CELL_SIZE * 0.85 : y + ROOM_CELL_SIZE * 0.85;
+    const half = label.width / 2;
+    const labelX = Math.min(Math.max(x, half + 2), ROOM_WIDTH * ROOM_CELL_SIZE - half - 2);
+    label.setPosition(labelX, labelY);
+    this.appleLabels.push(label);
   }
 
   /** Top-left corner and size of the door, in pixels. */
@@ -173,17 +236,17 @@ export class AnswerRoomScene extends Phaser.Scene {
     return { x, y, w: (Math.max(...xs) + 1) * ROOM_CELL_SIZE - x, h: (Math.max(...ys) + 1) * ROOM_CELL_SIZE - y };
   }
 
-  /** The door's lettering: a big "Q" on the wood and a ↩ badge on its top-left corner — "back to the question". The wood itself is drawn in `renderDoor`. */
-  private drawDoor(): void {
+  /** The door's lettering: a big "Q" on the wood and a ↩ badge — "back to the question". */
+  private drawDoorLettering(): void {
+    if (this.finished) return;
     const { x, y, w, h } = this.doorRect();
-    this.add
-      .text(x + w / 2, y + h * 0.6, "Q", { fontSize: `${Math.round(h * 0.4)}px`, color: "#fff4d6", fontStyle: "bold" })
-      .setOrigin(0.5)
-      .setDepth(2);
-    this.add
-      .text(x + 12, y + 12, "↩", { fontSize: "18px", color: "#ffffff", fontStyle: "bold" })
-      .setOrigin(0.5)
-      .setDepth(3);
+    this.doorLabels.push(
+      this.add
+        .text(x + w / 2, y + h * 0.6, "Q", { fontSize: `${Math.round(h * 0.4)}px`, color: "#fff4d6", fontStyle: "bold" })
+        .setOrigin(0.5)
+        .setDepth(2),
+      this.add.text(x + 12, y + 12, "↩", { fontSize: "18px", color: "#ffffff", fontStyle: "bold" }).setOrigin(0.5).setDepth(3),
+    );
   }
 
   /** An arched wooden door in its frame, with panels and a knob. */
@@ -204,9 +267,22 @@ export class AnswerRoomScene extends Phaser.Scene {
     g.fillCircle(x + 12, y + 12, 12);
   }
 
+  /** The exit: a little wooden ladder up the top-left corner, on a pulsing glow so it's easy to spot. */
+  private renderLadder(g: Phaser.GameObjects.Graphics): void {
+    const x = LADDER_CELLS[0].x * ROOM_CELL_SIZE;
+    const top = Math.min(...LADDER_CELLS.map((c) => c.y)) * ROOM_CELL_SIZE;
+    const h = LADDER_CELLS.length * ROOM_CELL_SIZE;
+    g.fillStyle(LADDER_GLOW, 0.5 + 0.3 * Math.abs(Math.sin(this.time.now / 300)));
+    g.fillRoundedRect(x + 1, top + 1, ROOM_CELL_SIZE - 2, h - 2, 8);
+    g.lineStyle(4, LADDER_COLOR, 1);
+    g.lineBetween(x + 10, top + 2, x + 10, top + h - 2);
+    g.lineBetween(x + ROOM_CELL_SIZE - 10, top + 2, x + ROOM_CELL_SIZE - 10, top + h - 2);
+    for (let rung = top + 10; rung < top + h; rung += 14) g.lineBetween(x + 10, rung, x + ROOM_CELL_SIZE - 10, rung);
+  }
+
   update(): void {
-    // Only the hint pulse animates between ticks.
-    if (this.running) this.renderApples();
+    // The ladder's glow is the only thing that animates between ticks.
+    if (this.finished && !this.dead) this.render();
   }
 
   private render(): void {
@@ -216,49 +292,46 @@ export class AnswerRoomScene extends Phaser.Scene {
     for (let x = 0; x <= ROOM_WIDTH; x++) g.lineBetween(x * ROOM_CELL_SIZE, 0, x * ROOM_CELL_SIZE, ROOM_HEIGHT * ROOM_CELL_SIZE);
     for (let y = 0; y <= ROOM_HEIGHT; y++) g.lineBetween(0, y * ROOM_CELL_SIZE, ROOM_WIDTH * ROOM_CELL_SIZE, y * ROOM_CELL_SIZE);
 
-    this.renderDoor(g);
+    if (this.finished) this.renderLadder(g);
+    else this.renderDoor(g);
 
     for (const apple of this.apples) {
-      const cx = apple.position.x * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2;
-      const cy = apple.position.y * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2;
-      g.fillStyle(APPLE_BG, 1);
-      g.lineStyle(2, Phaser.Display.Color.HexStringToColor(this.entryFor(apple).symbol.color).color, 1);
-      g.fillCircle(cx, cy, ROOM_CELL_SIZE / 2 - 2);
-      g.strokeCircle(cx, cy, ROOM_CELL_SIZE / 2 - 2);
+      const { x, y } = this.cellCenter(apple.position);
+      g.fillStyle(apple.kind === "option" ? OPTION_APPLE_COLOR : WORD_APPLE_COLOR, 1);
+      g.fillCircle(x, y, ROOM_CELL_SIZE / 2 - 3);
+      g.fillStyle(LEAF_COLOR, 1);
+      g.fillEllipse(x + 5, y - ROOM_CELL_SIZE / 2 + 5, 10, 6);
     }
 
-    this.snake.body.forEach((segment, i) => {
-      const isHead = i === 0;
-      g.fillStyle(isHead ? SNAKE_HEAD_COLOR : SNAKE_COLOR, 1);
-      g.fillRoundedRect(segment.x * ROOM_CELL_SIZE + 3, segment.y * ROOM_CELL_SIZE + 3, ROOM_CELL_SIZE - 6, ROOM_CELL_SIZE - 6, isHead ? 10 : 7);
-      if (isHead) {
-        const cx = segment.x * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2;
-        const cy = segment.y * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2;
-        const horizontal = this.snake.direction === "left" || this.snake.direction === "right";
-        const fwd = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[this.snake.direction];
-        const ex = cx + fwd[0] * 5;
-        const ey = cy + fwd[1] * 5;
-        g.fillStyle(0xffffff, 1);
-        g.fillCircle(ex + (horizontal ? 0 : 6), ey + (horizontal ? 6 : 0), 3);
-        g.fillCircle(ex - (horizontal ? 0 : 6), ey - (horizontal ? 6 : 0), 3);
-      }
-    });
-
-    this.renderApples();
-    this.data_.onState(this.snake, this.apples);
+    this.renderSnake(g);
+    this.data_.onState(this.snake, this.apples, this.finished);
   }
 
-  private renderApples(): void {
-    const hinting = this.running && this.time.now - this.lastProgressAt > HINT_AFTER_MS;
-    this.apples.forEach((apple, i) => {
-      const text = this.appleTexts[i];
-      if (!text) return;
-      text.setPosition(apple.position.x * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2, apple.position.y * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2);
-      // Both apples competing for the next slot pulse (the correct one
-      // and, at its slot, the wrong one), so the nudge narrows the
-      // choice without making the science decision for the child.
-      const pulse = hinting && this.entryFor(apple).slot === this.placedCount ? 1 + 0.25 * Math.abs(Math.sin(this.time.now / 180)) : 1;
-      text.setScale(pulse);
+  private renderSnake(g: Phaser.GameObjects.Graphics): void {
+    this.snake.body.forEach((segment, i) => {
+      const isHead = i === 0;
+      g.fillStyle(this.dead ? BELLY_COLOR : isHead ? SNAKE_HEAD_COLOR : SNAKE_COLOR, 1);
+      g.fillRoundedRect(segment.x * ROOM_CELL_SIZE + 3, segment.y * ROOM_CELL_SIZE + 3, ROOM_CELL_SIZE - 6, ROOM_CELL_SIZE - 6, isHead ? 10 : 7);
+      if (!isHead) return;
+      const { x: cx, y: cy } = this.cellCenter(segment);
+      const horizontal = this.snake.direction === "left" || this.snake.direction === "right";
+      const fwd = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[this.snake.direction];
+      const ex = cx + fwd[0] * 5;
+      const ey = cy + fwd[1] * 5;
+      const eyes = [
+        { x: ex + (horizontal ? 0 : 6), y: ey + (horizontal ? 6 : 0) },
+        { x: ex - (horizontal ? 0 : 6), y: ey - (horizontal ? 6 : 0) },
+      ];
+      if (this.dead) {
+        g.lineStyle(2, DEAD_EYE_COLOR, 1);
+        for (const eye of eyes) {
+          g.lineBetween(eye.x - 4, eye.y - 4, eye.x + 4, eye.y + 4);
+          g.lineBetween(eye.x - 4, eye.y + 4, eye.x + 4, eye.y - 4);
+        }
+      } else {
+        g.fillStyle(0xffffff, 1);
+        for (const eye of eyes) g.fillCircle(eye.x, eye.y, 3);
+      }
     });
   }
 }

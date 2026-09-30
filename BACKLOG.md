@@ -2030,7 +2030,23 @@ other mechanic in this repo.
         `AnswerRoomScene.ts`, `answerRoomMain.ts`, `answerRoom.css`,
         `voice.ts` (speech + chime). 3-2-1 countdown on every entry, next
         slot glows, the right apple pulses after 5s without progress.
-        Follow-up the same day: all 20 questions loaded (random first
+        **Reworked 2026-09-30 after playtest** ("attention every where at
+        the top and then on the board and then trying to control a snake,
+        absolutely overwhelmed and not fun"): the symbol key and
+        work-out-the-order puzzle are gone. The snake now eats the room
+        sentence **one word at a time** — only the next word is on the
+        board, its text in a bubble on the apple, spawned 3-5 steps from
+        the head — and the sentence builds at the top as it goes. At the
+        science choice, **two blue apples A and B** appear, with what
+        each means in a box above the board (read aloud; which letter is
+        right is shuffled). Wrong one → the snake dies (belly-up, X eyes,
+        smoke) and the sentence is **practised again from the first
+        word**. After the last word the QUESTION door disappears and a
+        **ladder in the top-left corner** glows for the snake to climb
+        out. Room speed halved (300ms → 600ms per step). Content
+        unchanged: the choice piece is `wrongReplaces`, every other
+        piece is split into words (ice = 8 eats, the longest 15).
+        Earlier the same day: all 20 questions loaded (random first
         question, `?q=` to pick, "Next question ➜" on the finished card);
         the wrong apple is tied to its slot — when the hint pulses, both
         apples competing for that slot pulse, and the wrong one leaves

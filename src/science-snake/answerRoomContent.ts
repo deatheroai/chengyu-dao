@@ -6,8 +6,9 @@ import type { AnswerRoomContent } from "./answerRoom";
  *
  * - `questionParts`: the question's existing `prompt`, cut at two
  *   points — not rewritten (checked in answerRoom.test.ts).
- * - `phrases`: a short "room sentence" in 4 pieces, written for
- *   building rather than taken from `modelAnswer` (which runs 17-61
+ * - `phrases`: a short "room sentence" in 4 pieces (eaten word by word,
+ *   except the choice piece), written for building rather than taken
+ *   from `modelAnswer` (which runs 17-61
  *   words — too long to split into 4 easy pieces). It must still grade
  *   correct against the question's own keywords (also tested). The full
  *   `modelAnswer` stays as the golden-apple typing target.

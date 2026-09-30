@@ -23,8 +23,9 @@
             <span class="room-points">+30</span>
             <button id="mute-btn" type="button" aria-label="Sound on">🔊</button>
           </div>
-          <div id="sentence-slots" aria-label="Your sentence so far"></div>
-          <div id="phrase-key" aria-label="Which symbol is which phrase"></div>
+          <div id="sentence-strip" aria-label="Your sentence so far"></div>
+          <div id="choice-box" class="hidden" aria-live="polite"></div>
+          <p id="room-hint" class="hidden">🎉 Sentence done! Climb the ladder ↖ to get out.</p>
         </div>
         <div id="room-board">
           <div id="game-container"></div>
@@ -46,8 +47,8 @@
           <h1><span data-question-icon></span> Answer room</h1>
           <p class="room-card-note">Prototype: just the answer room, one question at a time.</p>
           <div class="question-parts" data-question-parts></div>
-          <p>Eat the symbol apples in the order that makes a good answer. The key at the top tells you which symbol is which phrase.</p>
-          <p class="controls-hint">Wrong apple? You get thrown out. The <b>↩ Q</b> door in the bottom corner takes you back to reread the question.</p>
+          <p>Eat the words one by one to build the answer. When two <b style="color:#2f7fd6">blue apples</b> appear, pick <b>A</b> or <b>B</b> — the one that's right.</p>
+          <p class="controls-hint">Wrong choice and the snake dies, so you practise the sentence again. The <b>↩ Q</b> door in the bottom corner takes you back to reread the question.</p>
           <button id="start-btn" type="button">Go in ➜</button>
         </div>
       </div>
@@ -63,11 +64,11 @@
 
       <div id="thrown-out-card" class="card-layer">
         <div class="card">
-          <h1>🤢 Thrown out!</h1>
+          <h1>😵 Wrong choice!</h1>
           <div class="ugly-snake" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-          <p id="thrown-out-reason"></p>
-          <p class="room-card-note">In the real game your snake would now be twice as long, muddy brown and gooey. Your sentence so far is kept.</p>
-          <button id="retry-btn" type="button">Try again ➜</button>
+          <p>That option doesn't fit the science. Let's practise the sentence again from the first word.</p>
+          <p class="room-card-note">In the real game you'd go back to the question board with a snake twice as long, muddy brown and gooey.</p>
+          <button id="retry-btn" type="button">Practise again ➜</button>
         </div>
       </div>
 

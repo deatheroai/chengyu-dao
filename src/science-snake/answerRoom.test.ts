@@ -1,17 +1,19 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildKey,
-  placeApples,
+  buildSteps,
+  spawnStep,
   createRoomSnake,
   roomStep,
   roomChangeDirection,
   resolveHead,
+  wrapDistance,
   isJoiningPhrase,
-  isSpent,
-  JOINING_SYMBOL,
   QUESTION_DOOR_CELLS,
+  LADDER_CELLS,
   ROOM_WIDTH,
   ROOM_HEIGHT,
+  SPAWN_MIN_DISTANCE,
+  SPAWN_MAX_DISTANCE,
   type RoomApple,
 } from "./answerRoom";
 import { answerRoomContent } from "./answerRoomContent";
@@ -34,7 +36,7 @@ describe("answer room content", () => {
         expect(content.questionParts.join(" ")).toBe(question.prompt);
       });
 
-      it("is 4 pieces plus 1 wrong one — five apples in all", () => {
+      it("is 4 pieces plus 1 wrong alternative to one of them", () => {
         expect(content.phrases).toHaveLength(4);
         expect(content.phrases).not.toContain(content.wrongPhrase);
       });
@@ -57,74 +59,64 @@ describe("answer room content", () => {
   }
 });
 
-describe("buildKey", () => {
-  it("has one entry per phrase plus the wrong one, each symbol used once, the wrong one tied to its slot", () => {
-    const key = buildKey(ice, createRng(1));
-    expect(key).toHaveLength(ice.phrases.length + 1);
-    expect(key.filter((e) => e.phraseIndex === null)).toHaveLength(1);
-    expect(new Set(key.map((e) => e.symbol.glyph)).size).toBe(key.length);
-    expect(key.find((e) => e.phraseIndex === null)?.slot).toBe(ice.wrongReplaces);
-    for (const e of key) if (e.phraseIndex !== null) expect(e.slot).toBe(e.phraseIndex);
+describe("buildSteps", () => {
+  it("is every word in order, with the science choice as one step where it falls", () => {
+    expect(buildSteps(ice)).toEqual([
+      { kind: "word", text: "The" },
+      { kind: "word", text: "ice" },
+      { kind: "word", text: "melted" },
+      { kind: "word", text: "because" },
+      { kind: "choice", correct: "it warmed up", wrong: "it cooled down" },
+      { kind: "word", text: "to" },
+      { kind: "word", text: "room" },
+      { kind: "word", text: "temperature." },
+    ]);
   });
 
-  it("joining words, and only joining words, get the orange joining symbol", () => {
-    const key = buildKey(ice, createRng(7));
-    for (const entry of key) {
-      expect(entry.symbol === JOINING_SYMBOL).toBe(isJoiningPhrase(entry.text));
+  it("has exactly one choice for every question", () => {
+    for (const content of Object.values(answerRoomContent)) {
+      expect(buildSteps(content).filter((s) => s.kind === "choice")).toHaveLength(1);
     }
-    expect(isJoiningPhrase("because")).toBe(true);
-    expect(isJoiningPhrase("it warmed up")).toBe(false);
-  });
-
-  it("mixes the order up for at least some seeds", () => {
-    const inOrder = [1, 2, 3, 4, 5].every((seed) =>
-      buildKey(ice, createRng(seed))
-        .filter((e) => e.phraseIndex !== null)
-        .every((e, i) => e.phraseIndex === i),
-    );
-    expect(inOrder).toBe(false);
   });
 });
 
-describe("placeApples", () => {
-  it("places the unplaced phrases plus the wrong one, away from the door and never touching", () => {
-    for (let seed = 1; seed <= 30; seed++) {
-      const rng = createRng(seed);
-      const key = buildKey(ice, rng);
+describe("spawnStep", () => {
+  const wordStep = { kind: "word", text: "ice" } as const;
+  const choiceStep = { kind: "choice", correct: "it warmed up", wrong: "it cooled down" } as const;
+
+  it("puts one word a short, steerable distance from the head — never on the snake, the door or the ladder corner", () => {
+    for (let seed = 1; seed <= 40; seed++) {
       const snake = createRoomSnake();
-      const apples = placeApples(key, 2, snake, rng);
-      expect(apples.map((a) => a.phraseIndex).sort()).toEqual([2, 3, null].sort());
-      for (const a of apples) {
-        const nearDoor = QUESTION_DOOR_CELLS.some((c) => Math.abs(c.x - a.position.x) <= 1 && Math.abs(c.y - a.position.y) <= 1);
-        expect(nearDoor).toBe(false);
-        expect(snake.body.some((s) => s.x === a.position.x && s.y === a.position.y)).toBe(false);
-        for (const b of apples) {
-          if (a === b) continue;
-          const touching = Math.abs(a.position.x - b.position.x) <= 1 && Math.abs(a.position.y - b.position.y) <= 1;
-          expect(touching).toBe(false);
-        }
+      const [apple, ...rest] = spawnStep(wordStep, snake, createRng(seed));
+      expect(rest).toHaveLength(0);
+      expect(apple).toMatchObject({ kind: "word", text: "ice" });
+      const distance = wrapDistance(snake.body[0], apple.position);
+      expect(distance).toBeGreaterThanOrEqual(SPAWN_MIN_DISTANCE);
+      expect(distance).toBeLessThanOrEqual(SPAWN_MAX_DISTANCE);
+      expect(snake.body.some((s) => s.x === apple.position.x && s.y === apple.position.y)).toBe(false);
+      for (const cell of [...QUESTION_DOOR_CELLS, ...LADDER_CELLS]) {
+        expect(Math.abs(cell.x - apple.position.x) <= 1 && Math.abs(cell.y - apple.position.y) <= 1).toBe(false);
       }
     }
   });
 
-  it("leaves the wrong phrase off once its slot is filled", () => {
-    const rng = createRng(4);
-    const apples = placeApples(buildKey(ice, rng), ice.wrongReplaces + 1, createRoomSnake(), rng);
-    expect(apples.map((a) => a.phraseIndex)).not.toContain(null);
-    expect(isSpent({ phraseIndex: null, slot: 2, text: "", symbol: JOINING_SYMBOL }, 3)).toBe(true);
-    expect(isSpent({ phraseIndex: null, slot: 2, text: "", symbol: JOINING_SYMBOL }, 2)).toBe(false);
-  });
-
-  it("keeps the cells straight ahead of the snake clear", () => {
-    for (let seed = 1; seed <= 30; seed++) {
-      const rng = createRng(seed);
-      const snake = createRoomSnake();
-      const head = snake.body[0];
-      const apples = placeApples(buildKey(ice, rng), 0, snake, rng);
-      for (let dx = 1; dx <= 3; dx++) {
-        expect(apples.some((a) => a.position.x === head.x + dx && a.position.y === head.y)).toBe(false);
+  it("puts two blue apples, A and B, one right and one wrong, not touching — and A isn't always the right one", () => {
+    const rightLabels = new Set<string>();
+    for (let seed = 1; seed <= 40; seed++) {
+      const apples = spawnStep(choiceStep, createRoomSnake(), createRng(seed));
+      expect(apples.map((a) => (a.kind === "option" ? a.label : ""))).toEqual(["A", "B"]);
+      const texts = apples.map((a) => (a.kind === "option" ? a.text : "")).sort();
+      expect(texts).toEqual(["it cooled down", "it warmed up"]);
+      const right = apples.filter((a) => a.kind === "option" && a.correct);
+      expect(right).toHaveLength(1);
+      if (right[0].kind === "option") {
+        expect(right[0].text).toBe("it warmed up");
+        rightLabels.add(right[0].label);
       }
+      const [a, b] = apples;
+      expect(Math.abs(a.position.x - b.position.x) <= 1 && Math.abs(a.position.y - b.position.y) <= 1).toBe(false);
     }
+    expect(rightLabels).toEqual(new Set(["A", "B"]));
   });
 });
 
@@ -148,42 +140,37 @@ describe("room movement", () => {
 });
 
 describe("resolveHead", () => {
-  const apples: RoomApple[] = [
-    { phraseIndex: 0, position: { x: 2, y: 3 } },
-    { phraseIndex: 1, position: { x: 5, y: 5 } },
-    { phraseIndex: null, position: { x: 7, y: 5 } },
+  const word: RoomApple[] = [{ kind: "word", text: "ice", position: { x: 3, y: 3 } }];
+  const choice: RoomApple[] = [
+    { kind: "option", label: "A", text: "it cooled down", correct: false, position: { x: 2, y: 2 } },
+    { kind: "option", label: "B", text: "it warmed up", correct: true, position: { x: 5, y: 5 } },
   ];
 
-  it("places the next phrase in order", () => {
-    const { event, apples: left } = resolveHead({ x: 2, y: 3 }, apples, 0, 2);
-    expect(event).toEqual({ kind: "placed", phraseIndex: 0, placedCount: 1 });
-    expect(left).toHaveLength(2);
+  it("eats a word", () => {
+    expect(resolveHead({ x: 3, y: 3 }, word, false)).toEqual({ kind: "ate-word", text: "ice" });
+    expect(resolveHead({ x: 4, y: 3 }, word, false)).toEqual({ kind: "none" });
   });
 
-  it("completes on the last phrase", () => {
-    const { event } = resolveHead({ x: 5, y: 5 }, apples, 1, 2);
-    expect(event).toEqual({ kind: "complete", placedCount: 2 });
+  it("tells the right blue apple from the wrong one", () => {
+    expect(resolveHead({ x: 5, y: 5 }, choice, false)).toEqual({ kind: "chose-right", text: "it warmed up" });
+    expect(resolveHead({ x: 2, y: 2 }, choice, false)).toEqual({ kind: "chose-wrong", text: "it cooled down" });
   });
 
-  it("throws the snake out for an out-of-order phrase, keeping placed progress", () => {
-    const { event } = resolveHead({ x: 5, y: 5 }, apples, 0, 2);
-    expect(event).toEqual({ kind: "thrown-out", reason: "out-of-order", placedCount: 0 });
-  });
-
-  it("throws the snake out for the wrong science phrase", () => {
-    const { event } = resolveHead({ x: 7, y: 5 }, apples, 1, 2);
-    expect(event).toEqual({ kind: "thrown-out", reason: "wrong-phrase", placedCount: 1 });
-  });
-
-  it("the QUESTION door is the 2×2 bottom-right corner", () => {
+  it("the QUESTION door is the 2×2 bottom-right corner, until the sentence is finished", () => {
     expect(QUESTION_DOOR_CELLS).toHaveLength(4);
     for (const cell of QUESTION_DOOR_CELLS) {
       expect(cell.x).toBeGreaterThanOrEqual(ROOM_WIDTH - 2);
       expect(cell.y).toBeGreaterThanOrEqual(ROOM_HEIGHT - 2);
+      expect(resolveHead(cell, word, false)).toEqual({ kind: "question-door" });
+      expect(resolveHead(cell, [], true)).toEqual({ kind: "none" });
     }
-    for (const cell of QUESTION_DOOR_CELLS) {
-      expect(resolveHead(cell, apples, 0, 2).event).toEqual({ kind: "question-door" });
+  });
+
+  it("the ladder in the top-left corner is the way out, only once the sentence is finished", () => {
+    for (const cell of LADDER_CELLS) {
+      expect(cell.x).toBe(0);
+      expect(resolveHead(cell, [], true)).toEqual({ kind: "exited" });
+      expect(resolveHead(cell, word, false)).toEqual({ kind: "none" });
     }
-    expect(resolveHead({ x: 0, y: 0 }, apples, 0, 2).event).toEqual({ kind: "none" });
   });
 });

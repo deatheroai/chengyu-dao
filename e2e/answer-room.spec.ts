@@ -1,23 +1,26 @@
 import { test, expect, type Page } from "@playwright/test";
-import { ROOM_WIDTH, ROOM_HEIGHT, QUESTION_DOOR_CELLS } from "../src/science-snake/answerRoom";
+import { ROOM_WIDTH, ROOM_HEIGHT, QUESTION_DOOR_CELLS, LADDER_CELLS, buildSteps } from "../src/science-snake/answerRoom";
 import { answerRoomContent } from "../src/science-snake/answerRoomContent";
 
 /**
  * Plays the answer-room prototype (answer-room.html) for real: real
  * ticks, real eating rules. Steering runs inside the page — after each
  * tick it finds the shortest path on the wrapping board to the chosen
- * target that doesn't pass over any other apple or the QUESTION door,
- * and presses the arrow key for its first step (same "steer in the page,
- * reacting to each tick" reasoning as helpers/scienceSnake.ts).
+ * target that doesn't pass over any other apple, the QUESTION door or
+ * the ladder, and presses the arrow key for its first step (same "steer
+ * in the page, reacting to each tick" reasoning as
+ * helpers/scienceSnake.ts). "right" eats whatever is next (the word, or
+ * the correct blue apple) and then the ladder; "wrong" does the same
+ * but takes the wrong blue apple.
  */
 
-type Target = "next" | "wrong" | "door";
+type Target = "right" | "wrong" | "door";
 
 const ice = answerRoomContent["aishas-melting-ice"];
 
 async function steerTo(page: Page, target: Target): Promise<void> {
   await page.evaluate(
-    ({ target, width, height, door }) => {
+    ({ target, width, height, door, ladder }) => {
       const w = window as unknown as { __roomSteer?: MutationObserver };
       w.__roomSteer?.disconnect();
       const status = document.getElementById("room-status")!;
@@ -31,19 +34,22 @@ async function steerTo(page: Page, target: Target): Promise<void> {
         const hx = Number(status.dataset.headX);
         const hy = Number(status.dataset.headY);
         const dir = status.dataset.direction as Dir;
-        const placed = status.dataset.placed;
+        const finished = status.dataset.finished === "true";
         const apples = [...document.querySelectorAll<HTMLElement>("#room-apples span")].map((s) => ({
           x: Number(s.dataset.x),
           y: Number(s.dataset.y),
-          id: s.dataset.phraseIndex!,
+          kind: s.dataset.kind,
+          correct: s.dataset.correct === "true",
         }));
+        const at = (cells: { x: number; y: number }[], x: number, y: number): boolean => cells.some((c) => c.x === x && c.y === y);
         const isGoal = (x: number, y: number): boolean => {
-          if (target === "door") return door.some((c) => c.x === x && c.y === y);
-          const wanted = target === "wrong" ? "wrong" : placed;
-          return apples.some((a) => a.x === x && a.y === y && a.id === wanted);
+          if (target === "door") return !finished && at(door, x, y);
+          if (finished) return at(ladder, x, y);
+          const wantCorrect = target !== "wrong";
+          return apples.some((a) => a.x === x && a.y === y && (a.kind === "word" || a.correct === wantCorrect));
         };
         const isBlocked = (x: number, y: number): boolean =>
-          !isGoal(x, y) && (apples.some((a) => a.x === x && a.y === y) || door.some((c) => c.x === x && c.y === y));
+          !isGoal(x, y) && (at(apples, x, y) || (!finished && at(door, x, y)) || (finished && at(ladder, x, y)));
 
         const seen = new Set([`${hx},${hy}`]);
         const queue: { x: number; y: number; first: Dir }[] = [];
@@ -77,7 +83,7 @@ async function steerTo(page: Page, target: Target): Promise<void> {
       w.__roomSteer = observer;
       steer();
     },
-    { target, width: ROOM_WIDTH, height: ROOM_HEIGHT, door: QUESTION_DOOR_CELLS },
+    { target, width: ROOM_WIDTH, height: ROOM_HEIGHT, door: QUESTION_DOOR_CELLS, ladder: LADDER_CELLS },
   );
 }
 
@@ -86,53 +92,60 @@ async function enter(page: Page, buttonId: string): Promise<void> {
   await expect(page.locator("#countdown")).toHaveText("3");
 }
 
+const iceSteps = buildSteps(ice);
+const choiceStep = iceSteps.findIndex((step) => step.kind === "choice");
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/answer-room.html?q=aishas-melting-ice&seed=3");
   await expect(page.locator("#start-card")).toHaveClass(/visible/);
 });
 
-test("eating the phrases in order builds the whole sentence", async ({ page }) => {
-  await expect(page.locator("#phrase-key .key-entry")).toHaveCount(ice.phrases.length + 1);
+test("eating the words one by one, the right blue apple, then the ladder finishes the sentence", async ({ page }) => {
   await enter(page, "start-btn");
-  await steerTo(page, "next");
-  await expect(page.locator("#complete-card")).toHaveClass(/visible/, { timeout: 60_000 });
+  await steerTo(page, "right");
+  // One word at a time; two blue apples only at the choice.
+  await expect(page.locator("#room-apples span")).toHaveCount(1);
+  await expect(page.locator("#choice-box")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator("#room-apples span[data-kind=option]")).toHaveCount(2);
+  await expect(page.locator("#choice-box")).toContainText("it warmed up");
+  await expect(page.locator("#choice-box")).toContainText("it cooled down");
+
+  await expect(page.locator("#room-hint")).toBeVisible({ timeout: 90_000 });
+  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(iceSteps.length);
+  await expect(page.locator("#complete-card")).toHaveClass(/visible/, { timeout: 30_000 });
   await expect(page.locator("#complete-sentence")).toHaveText(ice.phrases.join(" "));
-  await expect(page.locator("#sentence-slots .slot.filled")).toHaveCount(ice.phrases.length);
 });
 
-test("the wrong science phrase throws the snake out, but keeps the sentence so far", async ({ page }) => {
+test("the wrong blue apple kills the snake, and the sentence is practised again from the first word", async ({ page }) => {
   await enter(page, "start-btn");
-  await steerTo(page, "next");
-  await expect(page.locator("#sentence-slots .slot.filled")).toHaveCount(2, { timeout: 30_000 });
   await steerTo(page, "wrong");
-  await expect(page.locator("#thrown-out-card")).toHaveClass(/visible/, { timeout: 30_000 });
-  await expect(page.locator("#thrown-out-reason")).toContainText("science");
+  await expect(page.locator("#thrown-out-card")).toHaveClass(/visible/, { timeout: 90_000 });
+  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(0);
 
   await enter(page, "retry-btn");
-  await expect(page.locator("#sentence-slots .slot.filled")).toHaveCount(2);
-  // Only the unplaced phrases and the wrong one come back.
-  await expect(page.locator("#room-apples span")).toHaveCount(ice.phrases.length - 2 + 1);
+  await expect(page.locator("#room-status")).toHaveAttribute("data-step", "0");
+  await expect(page.locator("#room-apples span[data-kind=word]")).toHaveCount(1);
 });
 
-test("the QUESTION door goes back to reread, with no penalty", async ({ page }) => {
+test("the QUESTION door goes back to reread, keeping the words eaten so far", async ({ page }) => {
   await enter(page, "start-btn");
-  await steerTo(page, "next");
-  await expect(page.locator("#sentence-slots .slot.filled")).toHaveCount(1, { timeout: 30_000 });
+  await steerTo(page, "right");
+  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(2, { timeout: 60_000 });
   await steerTo(page, "door");
-  await expect(page.locator("#question-card")).toHaveClass(/visible/, { timeout: 30_000 });
+  await expect(page.locator("#question-card")).toHaveClass(/visible/, { timeout: 60_000 });
   await expect(page.locator("#question-card .question-parts p")).toHaveCount(3);
 
   await enter(page, "back-in-btn");
-  await expect(page.locator("#sentence-slots .slot.filled")).toHaveCount(1);
+  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(2);
+  expect(choiceStep).toBeGreaterThan(2);
 });
 
 test("after a finished sentence, Next question moves on to a fresh one", async ({ page }) => {
   await enter(page, "start-btn");
-  await steerTo(page, "next");
-  await expect(page.locator("#complete-card")).toHaveClass(/visible/, { timeout: 60_000 });
+  await steerTo(page, "right");
+  await expect(page.locator("#complete-card")).toHaveClass(/visible/, { timeout: 120_000 });
   await page.click("#next-question-btn");
   await expect(page.locator("#start-card")).toHaveClass(/visible/);
   await expect(page.locator("#start-card .question-parts")).not.toContainText("Aisha");
-  await expect(page.locator("#sentence-slots .slot.filled")).toHaveCount(0);
-  await expect(page.locator("#phrase-key .key-entry")).toHaveCount(5);
+  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(0);
 });

@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { AnswerRoomScene, ROOM_CELL_SIZE, type AnswerRoomSceneData } from "./AnswerRoomScene";
-import { buildKey, isJoiningPhrase, isSpent, ROOM_WIDTH, ROOM_HEIGHT, type KeyEntry, type RoomApple, type RoomEvent } from "./answerRoom";
+import { buildSteps, isJoiningPhrase, ROOM_WIDTH, ROOM_HEIGHT, type RoomApple, type RoomEvent, type RoomStep } from "./answerRoom";
 import { answerRoomContent } from "./answerRoomContent";
 import { createRng } from "./seededRandom";
 import { scienceQuestionsById } from "./scienceQuestions";
@@ -10,13 +10,13 @@ import type { SnakeState } from "./snakeGrid";
 
 /**
  * Entry point for the answer-room prototype page (answer-room.html):
- * every question's answer room, one at a time, and cards standing
- * in for the parts of the real game that aren't built yet — being
- * thrown back to the main board, or going back to reread.
+ * every question's answer room, one at a time, and cards standing in
+ * for the parts of the real game that aren't built yet — dying on a
+ * wrong choice and going back, or going back to reread.
  *
  * `?q=<question id>` picks the first question (otherwise a random one),
- * and `?seed=N` fixes the key order and apple layout (both used by the
- * e2e test).
+ * and `?seed=N` fixes where apples land and which of A/B is right (both
+ * used by the e2e test).
  */
 
 const params = new URLSearchParams(location.search);
@@ -27,9 +27,9 @@ const questionIds = Object.keys(answerRoomContent);
 const requestedId = params.get("q");
 let questionIndex = requestedId && questionIds.includes(requestedId) ? questionIds.indexOf(requestedId) : Math.floor(rng() * questionIds.length);
 let content = answerRoomContent[questionIds[questionIndex]];
-
-let key: KeyEntry[] = buildKey(content, rng);
-let placedCount = 0;
+let steps: RoomStep[] = buildSteps(content);
+/** How much of the sentence is eaten. Kept across a trip through the QUESTION door; back to 0 after a wrong choice. */
+let stepIndex = 0;
 
 function showCard(id: string): void {
   document.getElementById(id)?.classList.add("visible");
@@ -37,6 +37,10 @@ function showCard(id: string): void {
 
 function hideCards(): void {
   for (const el of document.querySelectorAll(".card-layer")) el.classList.remove("visible");
+}
+
+function fullSentence(): string {
+  return content.phrases.join(" ");
 }
 
 /** The question's own icon, in the panel title and on the cards. */
@@ -60,46 +64,74 @@ function renderQuestionParts(): void {
   }
 }
 
-function renderPanel(): void {
-  const slots = document.getElementById("sentence-slots");
-  slots?.replaceChildren(
-    ...content.phrases.map((phrase, i) => {
-      const slot = document.createElement("span");
-      slot.className = "slot";
-      if (isJoiningPhrase(phrase)) slot.classList.add("joining");
-      if (i < placedCount) {
-        slot.classList.add("filled");
-        slot.textContent = phrase;
-      } else if (i === placedCount) {
-        slot.classList.add("next");
-      }
-      return slot;
-    }),
-  );
+/**
+ * The sentence so far, one chip per eaten step (joining words in
+ * orange, the chosen science phrase in blue), then one faint dot per
+ * step still to come so the child can see how far there is to go.
+ */
+function renderSentence(): void {
+  const strip = document.getElementById("sentence-strip");
+  if (!strip) return;
+  const chips = steps.map((step, i) => {
+    const chip = document.createElement("span");
+    if (i >= stepIndex) {
+      chip.className = "word-chip upcoming";
+      chip.textContent = "•";
+      return chip;
+    }
+    chip.className = "word-chip";
+    if (step.kind === "choice") {
+      chip.classList.add("chosen");
+      chip.textContent = step.correct;
+    } else {
+      if (isJoiningPhrase(step.text)) chip.classList.add("joining");
+      chip.textContent = step.text;
+    }
+    if (i === stepIndex - 1) chip.classList.add("just-eaten");
+    return chip;
+  });
+  strip.replaceChildren(...chips);
+}
 
-  const keyEl = document.getElementById("phrase-key");
-  keyEl?.replaceChildren(
-    ...key.map((entry) => {
-      const row = document.createElement("span");
-      row.className = "key-entry";
-      if (isSpent(entry, placedCount)) row.classList.add("used");
-      const symbol = document.createElement("span");
-      symbol.className = "key-symbol";
-      symbol.style.color = entry.symbol.color;
-      symbol.textContent = entry.symbol.glyph;
-      row.append(symbol, entry.text);
+/** The A/B box: only there while the two blue apples are on the board. */
+function renderChoice(apples: RoomApple[]): void {
+  const box = document.getElementById("choice-box");
+  if (!box) return;
+  const options = apples.filter((a) => a.kind === "option");
+  box.classList.toggle("hidden", options.length === 0);
+  box.replaceChildren(
+    ...options.map((option) => {
+      const row = document.createElement("p");
+      row.className = "choice-row";
+      const badge = document.createElement("span");
+      badge.className = "choice-badge";
+      badge.textContent = option.kind === "option" ? option.label : "";
+      row.append(badge, option.kind === "option" ? option.text : "");
       return row;
     }),
   );
 }
 
-function updateStatus(snake: SnakeState, apples: RoomApple[]): void {
+let lastChoiceShown = "";
+
+function updateStatus(snake: SnakeState, apples: RoomApple[], finished: boolean): void {
+  renderChoice(apples);
+  // Read the two options out once, the moment they appear.
+  const choiceKey = apples.map((a) => (a.kind === "option" ? `${a.label}:${a.text}` : "")).join("|");
+  if (apples.some((a) => a.kind === "option") && choiceKey !== lastChoiceShown) {
+    lastChoiceShown = choiceKey;
+    speak(apples.map((a) => (a.kind === "option" ? `${a.label}. ${a.text}.` : "")).join(" "));
+  }
+  if (!apples.some((a) => a.kind === "option")) lastChoiceShown = "";
+  document.getElementById("room-hint")?.classList.toggle("hidden", !finished);
+
   const status = document.getElementById("room-status");
   if (status) {
     status.dataset.headX = String(snake.body[0].x);
     status.dataset.headY = String(snake.body[0].y);
     status.dataset.direction = snake.direction;
-    status.dataset.placed = String(placedCount);
+    status.dataset.step = String(stepIndex);
+    status.dataset.finished = String(finished);
   }
   const container = document.getElementById("room-apples");
   container?.replaceChildren(
@@ -107,52 +139,42 @@ function updateStatus(snake: SnakeState, apples: RoomApple[]): void {
       const span = document.createElement("span");
       span.dataset.x = String(apple.position.x);
       span.dataset.y = String(apple.position.y);
-      span.dataset.phraseIndex = apple.phraseIndex === null ? "wrong" : String(apple.phraseIndex);
+      span.dataset.kind = apple.kind;
+      if (apple.kind === "option") span.dataset.correct = String(apple.correct);
       return span;
     }),
   );
 }
 
-function fullSentence(): string {
-  return content.phrases.join(" ");
-}
-
-function handleRoomEvent(event: RoomEvent): void {
-  if (event.kind === "placed") {
-    placedCount = event.placedCount;
+function handleRoomEvent(event: RoomEvent, newStepIndex: number): void {
+  if (event.kind === "ate-word" || event.kind === "chose-right") {
+    stepIndex = newStepIndex;
     chime();
-    renderPanel();
-  } else if (event.kind === "complete") {
-    placedCount = event.placedCount;
-    renderPanel();
-    const sentenceEl = document.getElementById("complete-sentence");
-    if (sentenceEl) sentenceEl.textContent = fullSentence();
-    showCard("complete-card");
-    speak(fullSentence());
-  } else if (event.kind === "thrown-out") {
+    renderSentence();
+    if (stepIndex === steps.length) speak(fullSentence());
+  } else if (event.kind === "chose-wrong") {
     chime(true);
-    const reasonEl = document.getElementById("thrown-out-reason");
-    if (reasonEl) {
-      reasonEl.textContent =
-        event.reason === "wrong-phrase"
-          ? "That phrase doesn't fit the science. Go through the ↩ Q door to reread the question if you need to."
-          : "That piece doesn't come next. Look at the glowing slot: what goes there?";
-    }
+    stepIndex = 0;
+    renderSentence();
     showCard("thrown-out-card");
   } else if (event.kind === "question-door") {
     showCard("question-card");
+  } else if (event.kind === "exited") {
+    const sentenceEl = document.getElementById("complete-sentence");
+    if (sentenceEl) sentenceEl.textContent = fullSentence();
+    showCard("complete-card");
   }
 }
 
 function bootstrap(): void {
   // The panel above the board is filled in before Phaser measures its
   // space, and a ResizeObserver re-fits the board whenever the panel's
-  // height changes (a filled slot can wrap onto a new line) — otherwise
-  // the board keeps its first size and slides under the panel or the
-  // joystick.
+  // height changes (the sentence can wrap onto a new line, the A/B box
+  // comes and goes) — otherwise the board keeps its first size and
+  // slides under the panel or the joystick.
   renderQuestionIcon();
   renderQuestionParts();
-  renderPanel();
+  renderSentence();
 
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -171,10 +193,10 @@ function bootstrap(): void {
   const enterRoom = (): void => {
     hideCards();
     if (game.scene.isActive("AnswerRoomScene")) game.scene.stop("AnswerRoomScene");
+    lastChoiceShown = "";
     const data: AnswerRoomSceneData = {
-      key,
-      placedCount,
-      totalPhrases: content.phrases.length,
+      steps,
+      stepIndex,
       rng,
       onEvent: handleRoomEvent,
       onCountdown: (value) => {
@@ -183,24 +205,25 @@ function bootstrap(): void {
       onState: updateStatus,
     };
     game.scene.start("AnswerRoomScene", data);
-    renderPanel();
+    renderSentence();
   };
 
   const container = document.getElementById("game-container");
   if (container) new ResizeObserver(() => game.scale.refresh()).observe(container);
 
+  const readQuestion = (): void => speak(content.questionParts.join(" "));
+
   document.getElementById("start-btn")?.addEventListener("click", () => {
     // This tap also unlocks speech on iOS for the rest of the visit.
-    speak(content.questionParts.join(" "));
+    readQuestion();
     enterRoom();
   });
   document.getElementById("back-in-btn")?.addEventListener("click", enterRoom);
   document.getElementById("retry-btn")?.addEventListener("click", enterRoom);
-  document.getElementById("read-question-btn")?.addEventListener("click", () => speak(content.questionParts.join(" ")));
+  document.getElementById("read-question-btn")?.addEventListener("click", readQuestion);
   document.getElementById("hear-again-btn")?.addEventListener("click", () => speak(fullSentence()));
   document.getElementById("play-again-btn")?.addEventListener("click", () => {
-    key = buildKey(content, rng);
-    placedCount = 0;
+    stepIndex = 0;
     enterRoom();
   });
   // Moves on to the next question: shows its start card (the question
@@ -208,11 +231,11 @@ function bootstrap(): void {
   document.getElementById("next-question-btn")?.addEventListener("click", () => {
     questionIndex = (questionIndex + 1) % questionIds.length;
     content = answerRoomContent[questionIds[questionIndex]];
-    key = buildKey(content, rng);
-    placedCount = 0;
+    steps = buildSteps(content);
+    stepIndex = 0;
     renderQuestionIcon();
     renderQuestionParts();
-    renderPanel();
+    renderSentence();
     hideCards();
     showCard("start-card");
   });
