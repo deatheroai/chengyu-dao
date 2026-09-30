@@ -7,6 +7,7 @@ import {
   roomChangeDirection,
   resolveHead,
   isJoiningPhrase,
+  isSpent,
   JOINING_SYMBOL,
   QUESTION_DOOR_CELLS,
   ROOM_WIDTH,
@@ -14,29 +15,56 @@ import {
   type RoomApple,
 } from "./answerRoom";
 import { answerRoomContent } from "./answerRoomContent";
-import { scienceQuestionsById } from "./scienceQuestions";
+import { scienceQuestions, scienceQuestionsById } from "./scienceQuestions";
+import { gradeAnswer } from "./answerGrading";
 import { createRng } from "./seededRandom";
 
 const ice = answerRoomContent["aishas-melting-ice"];
 
 describe("answer room content", () => {
-  it("every entry's phrases join back into its question's modelAnswer, and its parts into its prompt", () => {
-    for (const [id, content] of Object.entries(answerRoomContent)) {
-      const question = scienceQuestionsById[id];
-      expect(question, id).toBeDefined();
-      expect(content.phrases.join(" ")).toBe(question.modelAnswer);
-      expect(content.questionParts.join(" ")).toBe(question.prompt);
-      expect(content.phrases).not.toContain(content.wrongPhrase);
-    }
+  it("covers every science question", () => {
+    expect(Object.keys(answerRoomContent).sort()).toEqual(scienceQuestions.map((q) => q.id).sort());
   });
+
+  for (const [id, content] of Object.entries(answerRoomContent)) {
+    describe(id, () => {
+      const question = scienceQuestionsById[id];
+
+      it("splits the existing prompt into three parts, word for word", () => {
+        expect(content.questionParts.join(" ")).toBe(question.prompt);
+      });
+
+      it("is 4 pieces plus 1 wrong one — five apples in all", () => {
+        expect(content.phrases).toHaveLength(4);
+        expect(content.phrases).not.toContain(content.wrongPhrase);
+      });
+
+      it("builds a sentence that still grades correct against the question's own keywords", () => {
+        expect(gradeAnswer(content.phrases.join(" "), question)).toBe("correct");
+      });
+
+      it("has a wrong piece shaped like the piece it replaces (same capital, same end punctuation)", () => {
+        expect(content.wrongReplaces).toBeGreaterThanOrEqual(0);
+        expect(content.wrongReplaces).toBeLessThan(content.phrases.length);
+        const replaced = content.phrases[content.wrongReplaces];
+        expect(isJoiningPhrase(replaced)).toBe(false);
+        const startsUpper = (t: string): boolean => t[0] === t[0].toUpperCase();
+        const endPunct = (t: string): string => (/[.,!?]$/.exec(t) ?? [""])[0];
+        expect(startsUpper(content.wrongPhrase)).toBe(startsUpper(replaced));
+        expect(endPunct(content.wrongPhrase)).toBe(endPunct(replaced));
+      });
+    });
+  }
 });
 
 describe("buildKey", () => {
-  it("has one entry per phrase plus the wrong one, each symbol used once", () => {
+  it("has one entry per phrase plus the wrong one, each symbol used once, the wrong one tied to its slot", () => {
     const key = buildKey(ice, createRng(1));
     expect(key).toHaveLength(ice.phrases.length + 1);
     expect(key.filter((e) => e.phraseIndex === null)).toHaveLength(1);
     expect(new Set(key.map((e) => e.symbol.glyph)).size).toBe(key.length);
+    expect(key.find((e) => e.phraseIndex === null)?.slot).toBe(ice.wrongReplaces);
+    for (const e of key) if (e.phraseIndex !== null) expect(e.slot).toBe(e.phraseIndex);
   });
 
   it("joining words, and only joining words, get the orange joining symbol", () => {
@@ -65,7 +93,7 @@ describe("placeApples", () => {
       const key = buildKey(ice, rng);
       const snake = createRoomSnake();
       const apples = placeApples(key, 2, snake, rng);
-      expect(apples.map((a) => a.phraseIndex).sort()).toEqual([2, 3, 4, 5, null].sort());
+      expect(apples.map((a) => a.phraseIndex).sort()).toEqual([2, 3, null].sort());
       for (const a of apples) {
         const nearDoor = QUESTION_DOOR_CELLS.some((c) => Math.abs(c.x - a.position.x) <= 1 && Math.abs(c.y - a.position.y) <= 1);
         expect(nearDoor).toBe(false);
@@ -77,6 +105,14 @@ describe("placeApples", () => {
         }
       }
     }
+  });
+
+  it("leaves the wrong phrase off once its slot is filled", () => {
+    const rng = createRng(4);
+    const apples = placeApples(buildKey(ice, rng), ice.wrongReplaces + 1, createRoomSnake(), rng);
+    expect(apples.map((a) => a.phraseIndex)).not.toContain(null);
+    expect(isSpent({ phraseIndex: null, slot: 2, text: "", symbol: JOINING_SYMBOL }, 3)).toBe(true);
+    expect(isSpent({ phraseIndex: null, slot: 2, text: "", symbol: JOINING_SYMBOL }, 2)).toBe(false);
   });
 
   it("keeps the cells straight ahead of the snake clear", () => {

@@ -7,6 +7,7 @@ import {
   roomStep,
   roomChangeDirection,
   resolveHead,
+  isSpent,
   QUESTION_DOOR_CELLS,
   ROOM_WIDTH,
   ROOM_HEIGHT,
@@ -137,17 +138,14 @@ export class AnswerRoomScene extends Phaser.Scene {
   private tick(): void {
     if (!this.running) return;
     this.snake = roomStep(this.snake);
-    const before = this.apples;
     const { event, apples } = resolveHead(this.snake.body[0], this.apples, this.placedCount, this.data_.totalPhrases);
-    if (apples.length !== before.length) {
-      const eatenIndex = before.findIndex((a) => !apples.includes(a));
-      this.appleTexts[eatenIndex]?.destroy();
-      this.appleTexts.splice(eatenIndex, 1);
-      this.apples = apples;
-    }
+    this.keepApples(apples);
     if (event.kind === "placed") {
       this.placedCount = event.placedCount;
       this.lastProgressAt = this.time.now;
+      // The wrong phrase's slot may have just been filled — it has
+      // nothing left to compete for, so it leaves the board.
+      this.keepApples(this.apples.filter((apple) => !isSpent(this.entryFor(apple), this.placedCount)));
     }
     if (event.kind !== "none" && event.kind !== "placed") {
       this.running = false;
@@ -155,6 +153,15 @@ export class AnswerRoomScene extends Phaser.Scene {
     }
     this.render();
     if (event.kind !== "none") this.data_.onEvent(event);
+  }
+
+  /** Narrows the board to `kept`, destroying the symbol text of any apple that's gone. */
+  private keepApples(kept: RoomApple[]): void {
+    this.apples.forEach((apple, i) => {
+      if (!kept.includes(apple)) this.appleTexts[i]?.destroy();
+    });
+    this.appleTexts = this.appleTexts.filter((_, i) => kept.includes(this.apples[i]));
+    this.apples = kept;
   }
 
   /** Top-left corner and size of the door, in pixels. */
@@ -247,7 +254,10 @@ export class AnswerRoomScene extends Phaser.Scene {
       const text = this.appleTexts[i];
       if (!text) return;
       text.setPosition(apple.position.x * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2, apple.position.y * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2);
-      const pulse = hinting && apple.phraseIndex === this.placedCount ? 1 + 0.25 * Math.abs(Math.sin(this.time.now / 180)) : 1;
+      // Both apples competing for the next slot pulse (the correct one
+      // and, at its slot, the wrong one), so the nudge narrows the
+      // choice without making the science decision for the child.
+      const pulse = hinting && this.entryFor(apple).slot === this.placedCount ? 1 + 0.25 * Math.abs(Math.sin(this.time.now / 180)) : 1;
       text.setScale(pulse);
     });
   }

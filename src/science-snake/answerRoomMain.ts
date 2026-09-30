@@ -1,26 +1,32 @@
 import Phaser from "phaser";
 import { AnswerRoomScene, ROOM_CELL_SIZE, type AnswerRoomSceneData } from "./AnswerRoomScene";
-import { buildKey, isJoiningPhrase, ROOM_WIDTH, ROOM_HEIGHT, type KeyEntry, type RoomApple, type RoomEvent } from "./answerRoom";
+import { buildKey, isJoiningPhrase, isSpent, ROOM_WIDTH, ROOM_HEIGHT, type KeyEntry, type RoomApple, type RoomEvent } from "./answerRoom";
 import { answerRoomContent } from "./answerRoomContent";
 import { createRng } from "./seededRandom";
+import { scienceQuestionsById } from "./scienceQuestions";
 import { wireJoystick } from "./joystickControl";
 import { speak, chime, isMuted, setMuted } from "./voice";
 import type { SnakeState } from "./snakeGrid";
 
 /**
  * Entry point for the answer-room prototype page (answer-room.html):
- * one question (the melting ice), the room itself, and cards standing
+ * every question's answer room, one at a time, and cards standing
  * in for the parts of the real game that aren't built yet — being
  * thrown back to the main board, or going back to reread.
  *
- * `?seed=N` fixes the key order and apple layout (used by the e2e test).
+ * `?q=<question id>` picks the first question (otherwise a random one),
+ * and `?seed=N` fixes the key order and apple layout (both used by the
+ * e2e test).
  */
 
-const QUESTION_ID = "aishas-melting-ice";
-const content = answerRoomContent[QUESTION_ID];
-
-const seedParam = Number(new URLSearchParams(location.search).get("seed"));
+const params = new URLSearchParams(location.search);
+const seedParam = Number(params.get("seed"));
 const rng = createRng(Number.isFinite(seedParam) && seedParam > 0 ? seedParam : Date.now());
+
+const questionIds = Object.keys(answerRoomContent);
+const requestedId = params.get("q");
+let questionIndex = requestedId && questionIds.includes(requestedId) ? questionIds.indexOf(requestedId) : Math.floor(rng() * questionIds.length);
+let content = answerRoomContent[questionIds[questionIndex]];
 
 let key: KeyEntry[] = buildKey(content, rng);
 let placedCount = 0;
@@ -31,6 +37,12 @@ function showCard(id: string): void {
 
 function hideCards(): void {
   for (const el of document.querySelectorAll(".card-layer")) el.classList.remove("visible");
+}
+
+/** The question's own icon, in the panel title and on the cards. */
+function renderQuestionIcon(): void {
+  const icon = scienceQuestionsById[questionIds[questionIndex]]?.icon ?? "❓";
+  for (const el of document.querySelectorAll("[data-question-icon]")) el.textContent = icon;
 }
 
 function renderQuestionParts(): void {
@@ -70,7 +82,7 @@ function renderPanel(): void {
     ...key.map((entry) => {
       const row = document.createElement("span");
       row.className = "key-entry";
-      if (entry.phraseIndex !== null && entry.phraseIndex < placedCount) row.classList.add("used");
+      if (isSpent(entry, placedCount)) row.classList.add("used");
       const symbol = document.createElement("span");
       symbol.className = "key-symbol";
       symbol.style.color = entry.symbol.color;
@@ -123,7 +135,7 @@ function handleRoomEvent(event: RoomEvent): void {
     if (reasonEl) {
       reasonEl.textContent =
         event.reason === "wrong-phrase"
-          ? "That phrase doesn't fit the science. Think about what really happened to the ice."
+          ? "That phrase doesn't fit the science. Go through the ↩ Q door to reread the question if you need to."
           : "That piece doesn't come next. Look at the glowing slot: what goes there?";
     }
     showCard("thrown-out-card");
@@ -138,6 +150,7 @@ function bootstrap(): void {
   // height changes (a filled slot can wrap onto a new line) — otherwise
   // the board keeps its first size and slides under the panel or the
   // joystick.
+  renderQuestionIcon();
   renderQuestionParts();
   renderPanel();
 
@@ -189,6 +202,19 @@ function bootstrap(): void {
     key = buildKey(content, rng);
     placedCount = 0;
     enterRoom();
+  });
+  // Moves on to the next question: shows its start card (the question
+  // read aloud again) rather than dropping straight into the room.
+  document.getElementById("next-question-btn")?.addEventListener("click", () => {
+    questionIndex = (questionIndex + 1) % questionIds.length;
+    content = answerRoomContent[questionIds[questionIndex]];
+    key = buildKey(content, rng);
+    placedCount = 0;
+    renderQuestionIcon();
+    renderQuestionParts();
+    renderPanel();
+    hideCards();
+    showCard("start-card");
   });
 
   const muteBtn = document.getElementById("mute-btn");

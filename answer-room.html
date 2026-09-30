@@ -12,14 +12,14 @@
   </head>
   <body>
     <!-- Prototype of the answer room only (BACKLOG.md's Science Snake
-         redesign entry), for trying on a phone before it goes into the
-         real game. The main board isn't here: the cards below stand in
+         redesign entry), every question one at a time, for trying on a
+         phone before it goes into the real game. The main board isn't here: the cards below stand in
          for "back on the main board". -->
     <div id="app" class="answer-room-app">
       <div id="room-layout">
         <div id="room-panel">
           <div class="room-panel-top">
-            <span class="room-title">🧊 Build the answer</span>
+            <span class="room-title"><span data-question-icon></span> Build the answer</span>
             <span class="room-points">+30</span>
             <button id="mute-btn" type="button" aria-label="Sound on">🔊</button>
           </div>
@@ -43,8 +43,8 @@
 
       <div id="start-card" class="card-layer visible">
         <div class="card">
-          <h1>🧊 Answer room</h1>
-          <p class="room-card-note">Prototype: just the answer room, for one question.</p>
+          <h1><span data-question-icon></span> Answer room</h1>
+          <p class="room-card-note">Prototype: just the answer room, one question at a time.</p>
           <div class="question-parts" data-question-parts></div>
           <p>Eat the symbol apples in the order that makes a good answer. The key at the top tells you which symbol is which phrase.</p>
           <p class="controls-hint">Wrong apple? You get thrown out. The <b>↩ Q</b> door in the bottom corner takes you back to reread the question.</p>
@@ -77,7 +77,8 @@
           <p id="complete-sentence" class="complete-sentence"></p>
           <p class="complete-points">+30 points</p>
           <button id="hear-again-btn" type="button" class="secondary-btn">🔊 Hear it again</button>
-          <button id="play-again-btn" type="button">Play again</button>
+          <button id="next-question-btn" type="button">Next question ➜</button>
+          <button id="play-again-btn" type="button" class="secondary-btn">Play this one again</button>
         </div>
       </div>
 

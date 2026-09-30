@@ -1998,11 +1998,22 @@ other mechanic in this repo.
       - **Voice timing:** each question part read when revealed, the
         finished sentence once at the end; a chime (not speech) per
         placed phrase. Easy to revisit after a playtest.
-      - **Content work:** each of the 20 questions needs two split points
-        in its existing `prompt` (no rewriting), its `modelAnswer` split
-        into 5-6 phrases (full answer kept — phrases live in the key, not
-        on the board), and one wrong phrase. Drafted and reviewed in
-        batches of 5 like the original bank.
+      - **Content (done 2026-09-30, `answerRoomContent.ts`, all 20
+        approved in chat):** per "too many pieces... limit the number of
+        chunks to five", every question has **5 apples in all**: a short
+        "room sentence" in 4 pieces (10-19 words, not the 17-61 word
+        `modelAnswer`, which stays as the golden-apple typing target)
+        plus 1 wrong piece. Each room sentence still grades correct
+        against its question's own keywords. Per "use 'it cooled down'
+        as a grammatically right replacement for 'it warmed up'", every
+        wrong piece drops into one named slot (`wrongReplaces`) with the
+        same shape as the correct piece there: a straight opposite
+        (evaporated/condensed, expanded/contracted), or the question's
+        own misconception where it fits (light from Zara's eyes,
+        Grandpa's stomach, gills). Mei's shadow uses "the sun is higher
+        in the sky" (opposite) over "smaller" (the brother's belief). The
+        question `prompt`s are only cut in three, not rewritten. The
+        finished sentence read aloud is the short one the child built.
       - **Replaces** the current typed two-try flow (`QuestionOverlay.ts`,
         `chunkWords.ts` reveal); the typing box survives only as the
         golden-apple challenge.
@@ -2019,7 +2030,11 @@ other mechanic in this repo.
         `AnswerRoomScene.ts`, `answerRoomMain.ts`, `answerRoom.css`,
         `voice.ts` (speech + chime). 3-2-1 countdown on every entry, next
         slot glows, the right apple pulses after 5s without progress.
-        Follow-up the same day: the QUESTION door moved from a lettered
+        Follow-up the same day: all 20 questions loaded (random first
+        question, `?q=` to pick, "Next question ➜" on the finished card);
+        the wrong apple is tied to its slot — when the hint pulses, both
+        apples competing for that slot pulse, and the wrong one leaves
+        the board once its slot is filled. Before that: the QUESTION door moved from a lettered
         top row to the 2×2 wooden "↩ Q" door in the bottom-right corner,
         which let the room shrink from 10×12 to 8×10 (bigger squares on
         a phone).

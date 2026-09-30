@@ -87,7 +87,7 @@ async function enter(page: Page, buttonId: string): Promise<void> {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/answer-room.html?seed=3");
+  await page.goto("/answer-room.html?q=aishas-melting-ice&seed=3");
   await expect(page.locator("#start-card")).toHaveClass(/visible/);
 });
 
@@ -124,4 +124,15 @@ test("the QUESTION door goes back to reread, with no penalty", async ({ page }) 
 
   await enter(page, "back-in-btn");
   await expect(page.locator("#sentence-slots .slot.filled")).toHaveCount(1);
+});
+
+test("after a finished sentence, Next question moves on to a fresh one", async ({ page }) => {
+  await enter(page, "start-btn");
+  await steerTo(page, "next");
+  await expect(page.locator("#complete-card")).toHaveClass(/visible/, { timeout: 60_000 });
+  await page.click("#next-question-btn");
+  await expect(page.locator("#start-card")).toHaveClass(/visible/);
+  await expect(page.locator("#start-card .question-parts")).not.toContainText("Aisha");
+  await expect(page.locator("#sentence-slots .slot.filled")).toHaveCount(0);
+  await expect(page.locator("#phrase-key .key-entry")).toHaveCount(5);
 });

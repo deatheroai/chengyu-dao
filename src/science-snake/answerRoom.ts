@@ -43,8 +43,10 @@ export function isJoiningPhrase(phrase: string): boolean {
 export interface AnswerRoomContent {
   /** The correct sentence, in order, one phrase per apple. */
   phrases: string[];
-  /** One grammatical but scientifically wrong phrase — the one real science choice. */
+  /** One scientifically wrong phrase — the one real science choice. */
   wrongPhrase: string;
+  /** The slot `wrongPhrase` competes for: swapped in for `phrases[wrongReplaces]`, the sentence still reads fine but is wrong. */
+  wrongReplaces: number;
 }
 
 export interface SymbolStyle {
@@ -55,7 +57,7 @@ export interface SymbolStyle {
 
 /**
  * Shapes as well as colours, so the symbols still tell apart for a
- * colour-blind child. `︎` asks for the plain text glyph — without
+ * colour-blind child. U+FE0E after ♥ asks for the plain text glyph — without
  * it, phones tend to draw ♥ as a red emoji and lose the chosen colour.
  */
 export const PHRASE_SYMBOLS: SymbolStyle[] = [
@@ -70,9 +72,15 @@ export const PHRASE_SYMBOLS: SymbolStyle[] = [
 /** Orange is kept for joining words only — no other phrase ever gets it. */
 export const JOINING_SYMBOL: SymbolStyle = { glyph: "●", color: "#f08a1c" };
 
-/** `phraseIndex` is the phrase's place in the sentence, or null for the wrong phrase. */
+/**
+ * `phraseIndex` is the phrase's place in the sentence, or null for the
+ * wrong phrase. `slot` is the sentence position it competes for — the
+ * same as `phraseIndex` for a correct phrase, `wrongReplaces` for the
+ * wrong one. Once that slot is filled, the entry is spent.
+ */
 export interface KeyEntry {
   phraseIndex: number | null;
+  slot: number;
   text: string;
   symbol: SymbolStyle;
 }
@@ -96,10 +104,11 @@ export function buildKey(content: AnswerRoomContent, rng: () => number): KeyEntr
   let next = 0;
   const entries: KeyEntry[] = content.phrases.map((text, phraseIndex) => ({
     phraseIndex,
+    slot: phraseIndex,
     text,
     symbol: isJoiningPhrase(text) ? JOINING_SYMBOL : symbols[next++ % symbols.length],
   }));
-  entries.push({ phraseIndex: null, text: content.wrongPhrase, symbol: symbols[next % symbols.length] });
+  entries.push({ phraseIndex: null, slot: content.wrongReplaces, text: content.wrongPhrase, symbol: symbols[next % symbols.length] });
   return shuffle(entries, rng);
 }
 
@@ -121,8 +130,14 @@ function isDoorCell(position: Position): boolean {
   return QUESTION_DOOR_CELLS.some((cell) => cell.x === position.x && cell.y === position.y);
 }
 
+/** Whether a key entry's slot is already filled — its apple leaves the board and its key line is struck through. */
+export function isSpent(entry: KeyEntry, placedCount: number): boolean {
+  return entry.slot < placedCount;
+}
+
 /**
- * Scatters one apple per still-unplaced phrase, plus the wrong one.
+ * Scatters one apple per still-unplaced phrase, plus the wrong one
+ * while its slot is still open.
  * Apples are kept off and away from the door (so going for an apple
  * never sends the child through it by accident), off the snake and the few cells
  * straight ahead of it (so re-entering never lands on an apple before
@@ -135,7 +150,7 @@ export function placeApples(
   snake: SnakeState,
   rng: () => number,
 ): RoomApple[] {
-  const wanted = key.filter((entry) => entry.phraseIndex === null || entry.phraseIndex >= placedCount);
+  const wanted = key.filter((entry) => !isSpent(entry, placedCount));
   const head = snake.body[0];
   const blocked = (p: Position): boolean =>
     QUESTION_DOOR_CELLS.some((c) => Math.abs(c.x - p.x) <= 1 && Math.abs(c.y - p.y) <= 1) ||
