@@ -2003,6 +2003,21 @@ other mechanic in this repo.
         golden-apple challenge.
       - **First thing to prototype:** the answer room on a phone — board
         size, symbol legibility, how the key + slots fit above it.
+      - **Answer-room prototype built (2026-09-30), waiting on a phone
+        playtest.** Standalone page `/answer-room.html` (not linked from
+        the game), one question (the melting ice): `answerRoom.ts` (pure
+        rules: mixed-up key with orange joining symbol, apple placement
+        that never touches, fixed-length wrapping room snake, in-order /
+        out-of-order / wrong-phrase / QUESTION-door resolution),
+        `answerRoomContent.ts` (question split in three + answer phrases,
+        tested to join back into the existing `prompt`/`modelAnswer`),
+        `AnswerRoomScene.ts`, `answerRoomMain.ts`, `answerRoom.css`,
+        `voice.ts` (speech + chime). 3-2-1 countdown on every entry, next
+        slot glows, the right apple pulses after 5s without progress.
+        Cards stand in for the main board (thrown out, QUESTION door,
+        finished). Tests: `answerRoom.test.ts` (13) and
+        `e2e/answer-room.spec.ts` (in-order win, wrong phrase keeps
+        progress, QUESTION door), mobile + desktop.
 
 ## Platform / infra
 

@@ -1,0 +1,247 @@
+/* Answer room prototype (answer-room.html). Loaded after style.css, so
+   it reuses the cards and joystick and only adds the room's own layout:
+   panel on top, board in the middle, joystick in its own row below —
+   the room's board is small, so the joystick doesn't float over it. */
+
+body:has(.answer-room-app) {
+  background: #fdf8ec;
+}
+
+#room-layout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+
+#room-panel {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.75rem 0.4rem;
+  background: #fffaf0;
+  border-bottom: 1px solid #eee4cc;
+}
+
+.room-panel-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.room-title {
+  font-weight: 700;
+  flex: 1;
+}
+
+.room-points {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #3c8a4c;
+  background: rgba(60, 138, 76, 0.12);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+}
+
+#mute-btn {
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+}
+
+/* The sentence being built: one slot per phrase. */
+#sentence-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.4rem 0;
+}
+
+.slot {
+  min-width: 3.2rem;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 8px;
+  border: 2px dashed #cdbf9f;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+}
+
+.slot.filled {
+  border-style: solid;
+  border-color: #3c8a4c;
+  background: #eaf6e4;
+  font-weight: 600;
+  animation: slot-pop 0.3s ease-out;
+}
+
+.slot.joining {
+  border-color: #f08a1c;
+  background: rgba(240, 138, 28, 0.12);
+}
+
+.slot.joining.filled {
+  background: rgba(240, 138, 28, 0.25);
+}
+
+/* The next slot to fill glows, so the order is never a mystery. */
+.slot.next {
+  border-color: #e0a800;
+  box-shadow: 0 0 0 3px rgba(255, 200, 0, 0.45);
+  animation: slot-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes slot-glow {
+  from { box-shadow: 0 0 0 2px rgba(255, 200, 0, 0.3); }
+  to { box-shadow: 0 0 0 5px rgba(255, 200, 0, 0.6); }
+}
+
+@keyframes slot-pop {
+  from { transform: scale(1.25); }
+  to { transform: scale(1); }
+}
+
+/* The key: which symbol is which phrase, mixed up. */
+#phrase-key {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.5rem;
+}
+
+.key-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  line-height: 1.2;
+}
+
+.key-entry.used {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+
+.key-symbol {
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+#room-board {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#room-board #game-container {
+  position: absolute;
+  inset: 0.25rem 0.5rem;
+}
+
+#countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  font-weight: 800;
+  color: rgba(44, 61, 36, 0.75);
+  pointer-events: none;
+  text-shadow: 0 3px 0 #fff;
+}
+
+#room-controls {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+}
+
+#room-controls #joystick {
+  width: 7.5rem;
+  height: 7.5rem;
+  background: rgba(44, 61, 36, 0.06);
+}
+
+.question-parts p {
+  text-align: left;
+  margin: 0.4rem 0;
+  line-height: 1.4;
+}
+
+.question-parts .part-number {
+  display: inline-flex;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: #3c8a4c;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.35rem;
+}
+
+.card .secondary-btn {
+  background: none;
+  color: #3c8a4c;
+  border: 2px solid rgba(60, 138, 76, 0.45);
+  display: block;
+  margin: 0.75rem auto 0;
+}
+
+.room-card-note {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.complete-sentence {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.complete-points {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #3c8a4c;
+}
+
+/* A preview of the muddy, gooey punishment look. */
+.ugly-snake {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin: 0.5rem 0;
+}
+
+.ugly-snake span {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 45%;
+  background: radial-gradient(circle at 30% 30%, #8a7a6a, #4a3526 70%);
+  animation: goo 0.9s ease-in-out infinite alternate;
+}
+
+.ugly-snake span:nth-child(odd) {
+  background: radial-gradient(circle at 30% 30%, #9a9a90, #5a4a3c 70%);
+  animation-delay: 0.2s;
+}
+
+@keyframes goo {
+  from { transform: translateY(-2px) scale(1, 0.9); }
+  to { transform: translateY(3px) scale(0.9, 1.1); }
+}
