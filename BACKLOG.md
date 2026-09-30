@@ -1930,61 +1930,79 @@ other mechanic in this repo.
       the old gaps were, and a real touch-event slide on mobile);
       `e2e/helpers/scienceSnake.ts` now steers through the joystick too.
 
-- [ ] `todo` — **Redesign: question apples + answer room instead of
-      typing every answer (design settled by conversation 2026-09-29/30,
-      see `DECISIONS.md`).** Problem, from playtesting: the child disliked
-      the game stopping to read a long scenario and then type a 20-35
-      word answer on a phone. Goals kept: the full authored scenario
-      questions (they're meaningful — don't shorten them), and the child
-      still frames a complete sentence; typing itself is not a goal.
-      Mobile-first. Nothing below is built yet.
-      - **Main board = exploring the question.** Eating a science item
-        spawns three numbered apples ①②③ and slows the tick (~180ms →
-        ~260ms). Each one eaten reveals the next third of the question in
-        a panel above the board (parts accumulate) and reads it aloud via
+- [ ] `todo` — **Redesign: question apples, ANSWER door + answer room,
+      golden typing challenge (design settled by conversation
+      2026-09-29/30, see `DECISIONS.md`).** Problem, from playtesting: the
+      child disliked the game stopping to read a long scenario and then
+      type a 20-35 word answer on a phone. Goals kept: the full authored
+      scenario questions (meaningful — don't shorten them), and the child
+      still frames a complete sentence. Typing is optional, rewarded, not
+      required. Mobile-first. Nothing below is built yet.
+      - **Main board: reading the question.** Eating a science item
+        spawns numbered apples ①②③ and slows the tick (~180ms → ~260ms).
+        Each one eaten reveals the next third of the question in a panel
+        above the board (parts accumulate) and reads it aloud via
         `speechSynthesis` (free, offline; the start-game tap satisfies
-        iOS's first-gesture rule; needs a mute toggle). Eating a number
-        out of order just bounces — no penalty for reading. No time limit.
-        After ③, an "Answer ➜" button appears.
-      - **Answer room = building the sentence.** "Answer ➜" sends the
-        snake through a portal to a separate small board (~8×10, so cells
-        are ~3× bigger on a phone) holding only answer apples. The main
-        board freezes meanwhile — same snake, same length, same spot.
-        In the room: a short, non-growing answer snake (length 3, edges
-        wrap) so the child can't lose here. Each apple shows only a
-        symbol (★ ▲ ● ◆ ♥…, each with its own colour, shapes kept for
-        colour-blind play, distinct from ①②③ and the poison apple).
-        The panel shows the sentence slots and a key mapping each symbol
-        to its phrase, **listed mixed up** — the child works out the
-        order. Order kept obvious via the next empty slot glowing, the
-        joining-word slot pre-coloured (because/so/and/but always one
-        colour), and the right symbol pulsing after a few seconds'
-        hesitation. Out-of-order apple → bounces. One grammatical but
-        scientifically wrong phrase (♥ "it got colder") → wobble +
-        existing indigestion, applied to the main snake on return. A
-        "Question" tab flips back to reread; placed phrases stay put.
-      - **Voice timing:** each question part is read when revealed, the
+        iOS's first-gesture rule; needs a mute toggle; tapping the panel
+        replays it). Eating a number out of order just bounces — reading
+        is never punished. No time limit.
+      - **ANSWER door.** After ③, a row of six letter cells spelling
+        A N S W E R appears on the main board; running into it takes the
+        snake into the answer room. It stays until used, so the child can
+        circle and reread as many times as they like.
+      - **Golden apples** sit one row above and one row below the door
+        (one-cell gap so a child heading for the door doesn't bite one by
+        accident) — the "hard way". Eating one pauses the game and opens
+        a typing box: the child writes the full answer from having read
+        the question. Graded by the existing lenient `answerGrading.ts`
+        (keywords + sentence shape), so their own wording passes.
+        Correct → question done, +150, and the snake sparkles with a
+        golden shimmer (until the next science item). Wrong → no penalty,
+        both golden apples vanish for this question, the existing `hint`
+        shows, and the ANSWER door remains as the easier route.
+      - **Showing golden is worth more:** a big, sparkling "+150 ⭐" label
+        bobs over the golden apples; a smaller "+30" sits on the ANSWER
+        door.
+      - **Answer room.** A separate small board (~10×12 — wide enough for
+        an 8-letter QUESTION door) holding only answer apples; the main
+        board freezes meanwhile. Short, non-growing answer snake (length
+        3, edges wrap). Each apple shows only a symbol (★ ▲ ● ◆ ♥…, each
+        with its own colour, shapes kept for colour-blind play, distinct
+        from ①②③ and the poison apple). The panel shows the sentence
+        slots and a key mapping each symbol to its phrase, **listed mixed
+        up** — the child works out the order. Next empty slot glows, the
+        joining-word slot is pre-coloured (because/so/and/but always one
+        colour). One grammatical but scientifically wrong phrase per
+        question (♥ "it got colder").
+      - **Wrong apple in the room** (out of order, or the wrong science
+        phrase) → thrown back to the main board, snake length doubles
+        (like the poison apple, but *without* its permanent 4× apple
+        growth) and it turns muddy dark brown/grey and gooey — ugly on
+        purpose — until that question is answered correctly. Placed
+        phrases are **kept**: the punishment is on the snake, not the
+        sentence. The ANSWER door and golden apples are still there.
+      - **QUESTION door** on the room's edge → back to the main board to
+        reread, no penalty, placed phrases kept.
+      - **Correct sentence** → read aloud, +30, back to the main board.
+        Every return to the frozen main board starts with a 3-2-1
+        countdown.
+      - **Points** (`scienceSnakeScore.ts` today: apple 5, correct 30):
+        normal apple 5 · each question apple ①②③ 5 · eating a golden
+        apple (the attempt) 5 · correct sentence in the answer room 30 ·
+        correct typed golden answer 150 · thrown out 0 (plus the growth).
+      - **Voice timing:** each question part read when revealed, the
         finished sentence once at the end; a chime (not speech) per
         placed phrase. Easy to revisit after a playtest.
-      - **Golden apple after every sentence, optional.** Appears in the
-        answer room once the sentence is complete, next to an exit
-        portal: eat it to type the sentence from memory (built sentence
-        hidden, **no peek**), or take the exit to skip. Graded by the
-        existing lenient `answerGrading.ts`, so the child's own wording
-        passes. Success → big points bonus + dancing snake (wiggle,
-        rainbow, confetti) for a few seconds. Miss → no penalty; the
-        sentence is shown and read aloud once.
-      - **Returning:** back to the frozen main board with a 3-2-1
-        countdown before the snake moves again.
-      - **Content work:** each of the 20 questions needs two split
-        points in its existing `prompt` (no rewriting), its `modelAnswer`
-        split into 5-6 phrases (full answer kept — phrases live in the
-        key, not on the board), and one wrong phrase. Drafted and
-        reviewed in batches of 5 like the original bank.
+      - **Content work:** each of the 20 questions needs two split points
+        in its existing `prompt` (no rewriting), its `modelAnswer` split
+        into 5-6 phrases (full answer kept — phrases live in the key, not
+        on the board), and one wrong phrase. Drafted and reviewed in
+        batches of 5 like the original bank.
       - **Replaces** the current typed two-try flow (`QuestionOverlay.ts`,
-        hint + `chunkWords.ts` reveal) as the default path.
+        `chunkWords.ts` reveal); the typing box survives only as the
+        golden-apple challenge.
       - **First thing to prototype:** the answer room on a phone — board
-        size, symbol legibility, and how the key + slots fit above it.
+        size, symbol legibility, how the key + slots fit above it.
 
 ## Platform / infra
 
