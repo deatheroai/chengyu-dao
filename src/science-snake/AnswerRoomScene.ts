@@ -11,7 +11,8 @@ import {
   LADDER_CELLS,
   ROOM_WIDTH,
   ROOM_HEIGHT,
-  ROOM_TICK_MS,
+  HOLD_POLL_MS,
+  paceFor,
   type RoomApple,
   type RoomEvent,
   type RoomStep,
@@ -81,6 +82,10 @@ export class AnswerRoomScene extends Phaser.Scene {
   private doorLabels: Phaser.GameObjects.Text[] = [];
   private tickEvent?: Phaser.Time.TimerEvent;
   private keydownHandler?: (e: KeyboardEvent) => void;
+  private keyupHandler?: (e: KeyboardEvent) => void;
+  /** Whether the child is holding the joystick (set by the page) or an arrow key — only matters at the A/B choice. */
+  private joystickHeld = false;
+  private keysHeld = new Set<string>();
 
   constructor() {
     super("AnswerRoomScene");
@@ -105,14 +110,23 @@ export class AnswerRoomScene extends Phaser.Scene {
     this.doorLabels = [];
     this.drawDoorLettering();
     this.spawnCurrentStep();
+    this.joystickHeld = false;
+    this.keysHeld = new Set();
     this.keydownHandler = (e: KeyboardEvent) => {
       const direction = KEY_TO_DIRECTION[e.key];
-      if (direction) this.requestDirection(direction);
+      if (!direction) return;
+      this.keysHeld.add(e.key);
+      this.requestDirection(direction);
+    };
+    this.keyupHandler = (e: KeyboardEvent) => {
+      this.keysHeld.delete(e.key);
     };
     this.input.keyboard?.on("keydown", this.keydownHandler);
+    this.input.keyboard?.on("keyup", this.keyupHandler);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.tickEvent?.remove();
       if (this.keydownHandler) this.input.keyboard?.off("keydown", this.keydownHandler);
+      if (this.keyupHandler) this.input.keyboard?.off("keyup", this.keyupHandler);
     });
     this.render();
     this.runCountdown(3);
@@ -128,8 +142,22 @@ export class AnswerRoomScene extends Phaser.Scene {
       }
       this.data_.onCountdown(null);
       this.running = true;
-      this.tickEvent = this.time.addEvent({ delay: ROOM_TICK_MS, loop: true, callback: () => this.tick() });
+      this.scheduleTick(this.pace().tickMs);
     });
+  }
+
+  /** The page tells the scene when the joystick is pressed or let go. */
+  setJoystickHeld(held: boolean): void {
+    this.joystickHeld = held;
+  }
+
+  private pace(): { holdToMove: boolean; tickMs: number } {
+    return paceFor(this.finished ? undefined : this.data_.steps[this.stepIndex]);
+  }
+
+  private scheduleTick(delay: number): void {
+    this.tickEvent?.remove();
+    this.tickEvent = this.time.delayedCall(delay, () => this.tick());
   }
 
   /** Called by the on-screen joystick. Turning during the countdown is allowed, so the child can aim before the off. */
@@ -147,6 +175,12 @@ export class AnswerRoomScene extends Phaser.Scene {
 
   private tick(): void {
     if (!this.running) return;
+    const pace = this.pace();
+    if (pace.holdToMove && !this.joystickHeld && this.keysHeld.size === 0) {
+      // At the A/B choice and nothing held: stay put and check again soon.
+      this.scheduleTick(HOLD_POLL_MS);
+      return;
+    }
     this.snake = roomStep(this.snake);
     const event = resolveHead(this.snake.body[0], this.apples, this.finished);
 
@@ -165,6 +199,7 @@ export class AnswerRoomScene extends Phaser.Scene {
       return;
     }
     this.render();
+    if (this.running) this.scheduleTick(this.pace().tickMs);
     if (event.kind !== "none") this.data_.onEvent(event, this.stepIndex);
   }
 

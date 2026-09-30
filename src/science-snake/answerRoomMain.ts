@@ -99,7 +99,11 @@ function renderChoice(apples: RoomApple[]): void {
   if (!box) return;
   const options = apples.filter((a) => a.kind === "option");
   box.classList.toggle("hidden", options.length === 0);
+  const holdHint = document.createElement("p");
+  holdHint.className = "choice-hold-hint";
+  holdHint.textContent = "✋ Hold the joystick to move. Let go to stop and think.";
   box.replaceChildren(
+    holdHint,
     ...options.map((option) => {
       const row = document.createElement("p");
       row.className = "choice-row";
@@ -259,7 +263,14 @@ function bootstrap(): void {
 
   const joystick = document.getElementById("joystick");
   const knob = document.getElementById("joystick-knob");
-  if (joystick && knob) wireJoystick(joystick, knob, (direction) => scene()?.requestDirection(direction));
+  if (joystick && knob) {
+    wireJoystick(
+      joystick,
+      knob,
+      (direction) => scene()?.requestDirection(direction),
+      (held) => scene()?.setJoystickHeld(held),
+    );
+  }
 }
 
 bootstrap();

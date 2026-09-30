@@ -166,3 +166,46 @@ test("the board shrinks to make room for the A/B box, never covering it", async 
     })
     .toBe(true);
 });
+
+test("at the A/B choice the snake stays put until the joystick or a key is held", async ({ page }) => {
+  // The whale question's choice is its first step.
+  await page.goto("/answer-room.html?q=kais-whale-is-not-a-fish&seed=2");
+  await page.click("#start-btn");
+  await expect(page.locator("#choice-box")).toContainText("Hold the joystick");
+  await expect(page.locator("#countdown")).toHaveText("", { timeout: 5_000 });
+
+  const head = async (): Promise<string> =>
+    `${await page.locator("#room-status").getAttribute("data-head-x")},${await page.locator("#room-status").getAttribute("data-head-y")}`;
+  const still = await head();
+  await page.waitForTimeout(1500);
+  expect(await head()).toBe(still);
+
+  // Holding a key moves it; letting go stops it again.
+  await page.keyboard.down("ArrowUp");
+  await expect.poll(head, { timeout: 3_000 }).not.toBe(still);
+  await page.keyboard.up("ArrowUp");
+  await page.waitForTimeout(700);
+  const stopped = await head();
+  await page.waitForTimeout(1500);
+  expect(await head()).toBe(stopped);
+});
+
+test("holding the on-screen joystick at the A/B choice moves the snake; lifting the finger stops it", async ({ page }) => {
+  await page.goto("/answer-room.html?q=kais-whale-is-not-a-fish&seed=2");
+  await page.click("#start-btn");
+  await expect(page.locator("#countdown")).toHaveText("", { timeout: 5_000 });
+  const head = async (): Promise<string> =>
+    `${await page.locator("#room-status").getAttribute("data-head-x")},${await page.locator("#room-status").getAttribute("data-head-y")}`;
+  const still = await head();
+
+  const disc = (await page.locator("#joystick").boundingBox())!;
+  // Press on the top edge of the disc ("up") and keep holding.
+  await page.mouse.move(disc.x + disc.width / 2, disc.y + 6);
+  await page.mouse.down();
+  await expect.poll(head, { timeout: 3_000 }).not.toBe(still);
+  await page.mouse.up();
+  await page.waitForTimeout(700);
+  const stopped = await head();
+  await page.waitForTimeout(1500);
+  expect(await head()).toBe(stopped);
+});

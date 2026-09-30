@@ -2046,7 +2046,15 @@ other mechanic in this repo.
         out. Room speed halved (300ms → 600ms per step). Content
         unchanged: the choice piece is `wrongReplaces`, every other
         piece is split into words (ice = 8 eats, the longest 15).
-        Earlier the same day: all 20 questions loaded (random first
+        **Pace follow-up** (per "at the option phase let the snake move
+        by holding the button but resume 80% speed when collecting the
+        worded apples"): at the A/B choice the snake only moves while the
+        joystick or an arrow key is held (600ms a step, with a "✋ Hold
+        the joystick to move" line in the A/B box); word apples and the
+        climb to the ladder run on their own at 375ms (80% of the room's
+        first 300ms speed). The board also now refits properly when the
+        A/B box appears (it used to keep its first size and cover option
+        B). Earlier the same day: all 20 questions loaded (random first
         question, `?q=` to pick, "Next question ➜" on the finished card);
         the wrong apple is tied to its slot — when the hint pulses, both
         apples competing for that slot pulse, and the wrong one leaves

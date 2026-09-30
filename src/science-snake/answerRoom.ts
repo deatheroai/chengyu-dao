@@ -19,8 +19,26 @@ import { changeDirection, type SnakeState } from "./snakeGrid";
 
 export const ROOM_WIDTH = 8;
 export const ROOM_HEIGHT = 10;
-/** Half the main board's pace and then some (per "try half the speed for a start"): the room is for reading, not racing. */
-export const ROOM_TICK_MS = 600;
+/**
+ * Word apples: 80% of the room's first speed (300ms a step), per "resume
+ * 80% speed when collecting the worded apples" — after a playtest at
+ * half speed (600ms) felt right for the choice but slow for the words.
+ */
+export const WORD_TICK_MS = 375;
+/** The A/B choice: the snake only moves while the joystick (or an arrow key) is held, and then at the gentler half speed. */
+export const CHOICE_TICK_MS = 600;
+/** While waiting for a hold at the choice, how often the scene checks again — short, so a press feels instant. */
+export const HOLD_POLL_MS = 80;
+
+/**
+ * How the snake moves for the step the sentence is on: on its own at
+ * word pace, or — at the science choice — only while held, so the child
+ * can stop and think between the two blue apples. After the last word
+ * (the climb to the ladder) it's word pace again.
+ */
+export function paceFor(step: RoomStep | undefined): { holdToMove: boolean; tickMs: number } {
+  return step?.kind === "choice" ? { holdToMove: true, tickMs: CHOICE_TICK_MS } : { holdToMove: false, tickMs: WORD_TICK_MS };
+}
 export const ROOM_SNAKE_LENGTH = 3;
 
 /**

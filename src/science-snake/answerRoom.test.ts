@@ -14,6 +14,9 @@ import {
   ROOM_HEIGHT,
   SPAWN_MIN_DISTANCE,
   SPAWN_MAX_DISTANCE,
+  paceFor,
+  WORD_TICK_MS,
+  CHOICE_TICK_MS,
   type RoomApple,
 } from "./answerRoom";
 import { answerRoomContent } from "./answerRoomContent";
@@ -172,5 +175,16 @@ describe("resolveHead", () => {
       expect(resolveHead(cell, [], true)).toEqual({ kind: "exited" });
       expect(resolveHead(cell, word, false)).toEqual({ kind: "none" });
     }
+  });
+});
+
+describe("paceFor", () => {
+  it("words move on their own at 80% of the room's first speed; the A/B choice only moves while held, at half speed", () => {
+    expect(paceFor({ kind: "word", text: "ice" })).toEqual({ holdToMove: false, tickMs: WORD_TICK_MS });
+    expect(paceFor({ kind: "choice", correct: "a", wrong: "b" })).toEqual({ holdToMove: true, tickMs: CHOICE_TICK_MS });
+    // After the last word — the climb to the ladder.
+    expect(paceFor(undefined)).toEqual({ holdToMove: false, tickMs: WORD_TICK_MS });
+    expect(WORD_TICK_MS).toBe(375);
+    expect(CHOICE_TICK_MS).toBe(600);
   });
 });

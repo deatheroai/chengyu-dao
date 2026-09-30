@@ -16,7 +16,13 @@ const DEAD_ZONE_RATIO = 0.3;
  * wanders off the disc keeps steering, and it responds the instant a
  * finger lands — same reasoning the old D-pad's pointerdown had.
  */
-export function wireJoystick(base: HTMLElement, knob: HTMLElement, onDirection: (direction: Direction) => void): void {
+export function wireJoystick(
+  base: HTMLElement,
+  knob: HTMLElement,
+  onDirection: (direction: Direction) => void,
+  /** Optional: told `true` once a press is pointing somewhere, `false` when the finger lifts — the answer room's hold-to-move choice uses it. */
+  onHoldChange?: (held: boolean) => void,
+): void {
   let activePointer: number | null = null;
   let lastSent: Direction | null = null;
 
@@ -29,6 +35,7 @@ export function wireJoystick(base: HTMLElement, knob: HTMLElement, onDirection: 
     knob.style.transform = `translate(${knobOffset.x}px, ${knobOffset.y}px)`;
     const direction = joystickDirection(dx, dy, radius * DEAD_ZONE_RATIO);
     if (direction && direction !== lastSent) {
+      if (lastSent === null) onHoldChange?.(true);
       lastSent = direction;
       onDirection(direction);
     }
@@ -37,6 +44,7 @@ export function wireJoystick(base: HTMLElement, knob: HTMLElement, onDirection: 
   const release = (event: PointerEvent): void => {
     if (event.pointerId !== activePointer) return;
     activePointer = null;
+    if (lastSent !== null) onHoldChange?.(false);
     lastSent = null;
     base.classList.remove("active");
     knob.style.transform = "";

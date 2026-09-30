@@ -127,6 +127,13 @@ body:has(.answer-room-app) {
   justify-content: center;
 }
 
+.choice-hold-hint {
+  margin: 0 0 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2f7fd6;
+}
+
 #room-hint {
   margin: 0.3rem 0 0.1rem;
   font-weight: 700;
