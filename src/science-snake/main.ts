@@ -90,6 +90,16 @@ function bootstrap(): void {
     });
   };
 
+  // E2E-only seam (see SnakeGameScene's e2e* methods): opt-in via
+  // `?e2e`, so a normal page load exposes nothing extra.
+  if (new URLSearchParams(window.location.search).has("e2e")) {
+    (window as unknown as { __snakeE2E: unknown }).__snakeE2E = {
+      eatScienceItem: () => snakeScene()?.e2eEatScienceItem() ?? false,
+      fillBoardWithScienceItems: () => snakeScene()?.e2eFillBoardWithScienceItems(),
+      forceWinLength: () => snakeScene()?.e2eForceWinLength(),
+    };
+  }
+
   showHighScore();
   showCard("start-card");
   document.getElementById("start-btn")?.addEventListener("click", startGame);

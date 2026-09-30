@@ -7,6 +7,9 @@ import {
   applyCorrectAnswerEaten,
   applyPoisonAppleEaten,
   hasWon,
+  wrapPosition,
+  nextHeadPosition,
+  WIN_LENGTH,
   GRID_WIDTH,
   GRID_HEIGHT,
   TICK_MS,
@@ -18,6 +21,7 @@ import {
   spawnApple,
   spawnScienceItem,
   spawnIndigestionItems,
+  pickRandomFreeCell,
   pickNextItemType,
   pickNextQuestionId,
   INDIGESTION_SPAWN_COUNT,
@@ -189,6 +193,42 @@ export class SnakeGameScene extends Phaser.Scene {
   requestDirection(direction: Direction): void {
     if (this.paused || this.ended) return;
     this.snake = changeDirection(this.snake, direction);
+  }
+
+  /**
+   * E2E test seams (e2e/science-snake.spec.ts) — real play is random
+   * and steering a bot to a specific tile is flaky, so the spec drives
+   * these instead. Only reachable from the page when it's loaded with
+   * `?e2e` (see main.ts); they go through the same handlers real play
+   * does, they just skip the "steer over there" part.
+   */
+  e2eEatScienceItem(): boolean {
+    const item = this.items.find((i) => i.type === "science");
+    if (!item || this.paused || this.ended) return false;
+    this.snake = { ...this.snake, body: [{ ...item.position }, ...this.snake.body.slice(1)] };
+    this.handleHeadPosition();
+    return true;
+  }
+
+  e2eFillBoardWithScienceItems(): void {
+    const allIds = scienceQuestions.map((q) => q.id);
+    // Keep the cell the snake is about to step onto clear — eating a
+    // filler item on the very next tick would open a question overlay
+    // instead of letting the suffocation check fire.
+    const aheadOfHead = wrapPosition(nextHeadPosition(this.snake.body[0], this.snake.direction));
+    while (!isSuffocating(this.items)) {
+      const cell = pickRandomFreeCell([...this.occupiedCells(), aheadOfHead], this.rng);
+      if (!cell) break;
+      this.items.push({ position: cell, type: "science", questionId: allIds[this.items.length % allIds.length] });
+    }
+  }
+
+  e2eForceWinLength(): void {
+    const body: Position[] = [];
+    for (let i = 0; i < WIN_LENGTH; i++) body.push({ x: i % GRID_WIDTH, y: Math.floor(i / GRID_WIDTH) });
+    this.snake = { ...this.snake, body };
+    this.items = [];
+    this.checkOutcome();
   }
 
   private teardown(): void {

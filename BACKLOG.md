@@ -1725,13 +1725,24 @@ other mechanic in this repo.
       score!" off a loss, header updated to the new value) — the exact
       case this feature didn't previously support. All green: typecheck,
       full unit suite (469 passed, up from 461), production build.
-- [ ] `todo` — **E2E test suite (`e2e/science-snake*.spec.ts`).** Mirrors
+- [x] `done` — **E2E test suite (`e2e/science-snake.spec.ts`, 2026-09-30).** Mirrors
       `idiom-door`'s `e2e/helpers/` pattern: a full winning playthrough, a
       full suffocation-loss playthrough (repeated wrong answers piling up
       poop), and specifically a test asserting the reveal overlay's
       "Continue" is genuinely gated behind stepping through every
       chunk (not just present from the start) — that gating is the actual
       point of the mechanic, not incidental UI.
+      Landed as three tests (mobile+desktop): a winning run (correct
+      answer closes the overlay → win card + score + high-score display),
+      the reveal-gating test (hint appears after try 1; after try 2
+      "Continue" stays hidden until every chunk is stepped through, the
+      full model answer is showing, then Continue closes the overlay),
+      and a suffocation loss (lose card + message + comparison line).
+      Real play is random and steering a bot is flaky, so the spec uses
+      `?e2e`-only seams (`window.__snakeE2E`, `SnakeGameScene.e2e*`
+      methods) to skip the "steer onto a tile" step only — everything
+      after that is the real code path. Not a fully organic playthrough
+      (win is forced via `forceWinLength`). 54/54 across 3 repeats.
 - [ ] `todo` — **Cloud-sync for the high score / last-run record
       (`scienceSnakeScore.ts`).** Currently localStorage-only — a
       device-typed 8-character code, same no-accounts model
