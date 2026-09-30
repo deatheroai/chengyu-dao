@@ -374,6 +374,192 @@ export const scienceQuestions: ScienceQuestion[] = [
       "The glass window is transparent, so it lets most light pass through and does not form a dark shadow. The wooden door is opaque, so it blocks light and casts a dark shadow on the floor.",
     sourceNotes: "Light — transparent materials let most light through, opaque materials block light and form shadows — standard P3/P4 Energy (Light) theme content.",
   },
+  // --- Batch 5: authored and approved on chat review 2026-09-29. ---
+  {
+    id: "bens-bathwater-argument",
+    topic: "heat",
+    icon: "🌡️",
+    prompt:
+      "Ben has just been holding an ice pack, and his sister Zoe has just come in from playing in the hot sun. They both dip a hand into the same basin of water. Ben says the water is hot, but Zoe says it is cold. Explain why they disagree, and what they should use to find out how hot the water really is.",
+    requiredKeywords: [
+      ["thermometer"],
+      [
+        "not reliable",
+        "unreliable",
+        "not accurate",
+        "inaccurate",
+        "cannot tell",
+        "can't tell",
+        "different temperature",
+        "different temperatures",
+        "feel it differently",
+        "feel differently",
+        "feels different",
+        "feel different",
+        "hand was cold",
+        "hand was hot",
+        "hand was warm",
+      ],
+    ],
+    minWords: 12,
+    hint: "Their hands started out very differently before touching the same water. Can a hand really tell how hot something is? What instrument measures temperature properly?",
+    modelAnswer:
+      "Their hands were at different temperatures before touching the water, so our sense of touch is not reliable. They should use a thermometer to measure the temperature of the water accurately.",
+    sourceNotes: "Heat — temperature is measured with a thermometer; our sense of touch is not a reliable measure of temperature — standard P4 Energy (Heat) theme content.",
+  },
+  {
+    id: "kavyas-mosquito-plates",
+    topic: "life-cycles",
+    icon: "🦟",
+    prompt:
+      "Every week, Kavya's mum empties the water that collects in the plates under their flowerpots. She says this stops mosquitoes from breeding at home. Explain how emptying the water helps.",
+    requiredKeywords: [
+      ["egg", "eggs", "larva", "larvae", "wriggler", "wrigglers"],
+      ["cannot develop", "can't develop", "cannot grow", "can't grow", "cannot become", "can't become", "die", "dies", "survive", "complete", "adult", "adults"],
+    ],
+    minWords: 12,
+    hint: "Think about where a mosquito's young live before they can fly. What happens to them if that place is gone before they grow up?",
+    modelAnswer:
+      "Mosquitoes lay their eggs in still water, and the larvae live in the water. Emptying the water means the eggs and larvae cannot survive to become adult mosquitoes.",
+    sourceNotes:
+      "Life cycles — the mosquito's egg and larval stages develop in stagnant water, so removing it breaks the life cycle (Singapore's own anti-dengue 'mozzie wipeout' habit) — standard P3/P4 Cycles theme content.",
+  },
+  {
+    id: "ethans-sweet-cracker",
+    topic: "human-digestive-system",
+    icon: "🍘",
+    prompt:
+      "Ethan chews a plain, unsweetened cracker for a long time without swallowing it. After a while he notices it starts to taste slightly sweet. Explain what is happening to the cracker in his mouth.",
+    requiredKeywords: [
+      ["saliva", "digestive juice"],
+      ["digest", "digested", "digesting", "digestion", "break down", "breaks down", "breaking down", "broken down"],
+    ],
+    minWords: 12,
+    hint: "Your mouth does more than chew. What watery liquid is made in your mouth, and what job does it start doing on food?",
+    modelAnswer:
+      "Digestion starts in the mouth. The saliva mixes with the cracker and starts to digest it, breaking the starch down into sugar, so it begins to taste sweet.",
+    sourceNotes:
+      "Human digestive system — digestion begins in the mouth, where saliva starts breaking down starch (so starchy food tastes sweeter the longer it's chewed) — standard P3/P4 Systems theme content.",
+  },
+  {
+    id: "the-mushroom-log",
+    topic: "fungi",
+    icon: "🪵",
+    prompt:
+      "In the school garden, mushrooms have started growing on an old fallen log. Over the months, the log becomes soft and crumbly and slowly rots away. Explain how the mushrooms get their food, and what they are doing to the log.",
+    requiredKeywords: [
+      ["break down", "breaks down", "breaking down", "broken down", "decompose", "decomposes", "decomposing", "decomposer", "rot", "rotting"],
+      ["cannot make", "can't make", "do not make", "don't make", "does not make", "doesn't make", "feed on", "feeds on", "feeding on", "absorb", "absorbs", "get food from", "gets food from", "get their food from", "food from the log"],
+    ],
+    minWords: 12,
+    hint: "Mushrooms are not plants, so sunlight is no use to them. Where could they be getting their food from, and what happens to the log over the months?",
+    modelAnswer:
+      "The mushrooms are fungi. They cannot make their own food, so they feed on the dead log, breaking it down slowly until it rots away.",
+    sourceNotes:
+      "Fungi — cannot make their own food; they feed on dead or decaying matter and break it down (decomposers) — standard P3/P4 Diversity theme content.",
+  },
+  {
+    id: "aarons-fridge-seeds",
+    topic: "plant-systems",
+    icon: "🫘",
+    prompt:
+      "Aaron puts bean seeds on damp cotton wool in two containers. He keeps one container in a dark kitchen cupboard and the other in the fridge. After five days, only the seeds in the cupboard have started to sprout. Explain why the seeds in the fridge did not sprout.",
+    requiredKeywords: [["warmth", "warm", "warmer", "too cold", "cold", "temperature"]],
+    minWords: 10,
+    hint: "Both containers had damp cotton wool and air, and both were dark. What was different about the fridge, and what else do seeds need to start growing?",
+    modelAnswer:
+      "Seeds need warmth, water and air to germinate. The fridge was too cold, so those seeds could not germinate, but the seeds in the warm cupboard could.",
+    sourceNotes:
+      "Plant life cycle — germination needs water, air and warmth, but not light (both containers are dark, so the only difference is temperature) — standard P3/P4 Cycles theme content.",
+  },
+  // --- Batch 6: authored and approved on chat review 2026-09-29. ---
+  {
+    id: "weis-bat-argument",
+    topic: "classifying-animals",
+    icon: "🦇",
+    prompt:
+      "At the zoo's night safari, Wei's cousin points at a bat and says it must be a bird because it has wings and can fly. Wei says a bat is actually a mammal. Explain why Wei is right.",
+    requiredKeywords: [
+      ["hair", "fur", "furry", "hairy"],
+      ["give birth", "gives birth", "live young", "young alive", "babies alive", "milk"],
+    ],
+    minWords: 12,
+    hint: "Flying doesn't decide which group an animal belongs to. Look closely at what covers a bat's body compared with a bird's feathers, and think about how baby bats are born and fed.",
+    modelAnswer:
+      "A bat is a mammal, not a bird. It has fur on its body instead of feathers, gives birth to live young, and feeds its babies with milk.",
+    sourceNotes:
+      "Diversity — classifying animals by characteristics, not by how they move (mammals: hair/fur, give birth to live young, feed young with milk; birds: feathers, lay eggs) — standard P3/P4 Diversity theme content.",
+  },
+  {
+    id: "the-fridge-door-note",
+    topic: "magnets",
+    icon: "🧲",
+    prompt:
+      "Priya uses a magnet to stick a paper note onto the fridge door, and it stays up even with the paper in between. When she tries to stick the same note onto her wooden bedroom door, the magnet falls straight off. Explain both things she noticed.",
+    requiredKeywords: [
+      ["steel", "iron", "magnetic material"],
+      ["pass through", "passes through", "go through", "goes through", "through the paper", "act through", "acts through"],
+    ],
+    minWords: 12,
+    hint: "What is a fridge door usually made of, compared with a wooden door? And does a thin sheet of paper stop the magnet's pull from reaching the door behind it?",
+    modelAnswer:
+      "The fridge door is made of steel, which is a magnetic material, but wood is not. The magnet's pull can pass through the thin paper, so it still attracts the fridge door.",
+    sourceNotes:
+      "Magnets — attract magnetic materials (iron/steel) but not wood; magnetic force can act through non-magnetic materials such as paper — standard P3/P4 Interactions theme content.",
+  },
+  {
+    id: "mias-syringe-squeeze",
+    topic: "states-of-matter",
+    icon: "💉",
+    prompt:
+      "Mia has two plastic syringes with no needles, one filled with air and one filled with water. She covers the tip of each with her finger and pushes the plunger. She can push the air one in a little way, but the water one will not move at all. Explain why.",
+    requiredKeywords: [
+      ["compress", "compressed", "compressible", "squeeze", "squeezed", "squashed", "pushed into a smaller space", "smaller space"],
+      ["definite volume", "fixed volume", "water cannot", "water can't", "liquid cannot", "liquid can't", "water does not", "water doesn't", "cannot be compressed", "can't be compressed"],
+    ],
+    minWords: 12,
+    hint: "Think about how much empty space there is between the tiny particles in a gas compared with a liquid. Which one can be pushed into less room, and which one keeps its own amount of room?",
+    modelAnswer:
+      "Air is a gas, so it can be compressed into a smaller space when Mia pushes the plunger. Water is a liquid with a definite volume, so it cannot be compressed.",
+    sourceNotes:
+      "Matter — gases have no definite volume and can be compressed; liquids have a definite volume and cannot be compressed — standard P3/P4 Cycles (Matter) theme content.",
+  },
+  {
+    id: "two-wet-shirts",
+    topic: "water-cycle",
+    icon: "👕",
+    prompt:
+      "After washing, Mum hangs one wet shirt outside on a sunny, windy balcony. She forgets another identical wet shirt, folded up inside the washing bag in the bathroom. That evening the balcony shirt is dry, but the folded one is still damp. Explain why the shirt outside dried so much faster.",
+    requiredKeywords: [
+      ["evaporate", "evaporates", "evaporated", "evaporating", "evaporation"],
+      ["heat", "sun", "warm", "wind", "windy", "moving air", "spread out", "exposed", "surface"],
+    ],
+    minWords: 12,
+    hint: "Where does the water in a wet shirt actually go as it dries? Then think about everything that was different about where each shirt was left.",
+    modelAnswer:
+      "The shirt outside gained heat from the sun and was spread out in the wind, so the water in it evaporated much faster than from the shirt folded up in the bag.",
+    sourceNotes:
+      "Water cycle — evaporation is faster with more heat, moving air and a larger exposed surface area — standard P4 Cycles (Water) theme content.",
+  },
+  {
+    id: "sitis-drawer-seeds",
+    topic: "diversity-living-nonliving",
+    icon: "🌰",
+    prompt:
+      "Siti finds a packet of dry seeds that has been in a drawer for a whole year. Her friend says the seeds must be non-living because they do not move, eat or grow. Explain why Siti's friend is wrong.",
+    requiredKeywords: [
+      // Not a bare "living": "non-living" contains it, so a wrong answer
+      // like "they are non-living because they cannot grow" would pass.
+      ["are living", "is living", "a living thing", "still living", "alive"],
+      ["grow", "grows", "germinate", "germinates", "sprout", "sprouts", "reproduce", "new plant", "new plants"],
+    ],
+    minWords: 12,
+    hint: "The seeds are only resting right now. What would happen if Siti planted them in damp soil and waited a few days?",
+    modelAnswer:
+      "The seeds are living things that are resting. When they get water, air and warmth, they can germinate and grow into new plants.",
+    sourceNotes:
+      "Diversity of living and non-living things — dormant seeds are living: given the right conditions they germinate and grow — standard P3/P4 Diversity theme content.",
+  },
 ];
 
 export const scienceQuestionsById: Record<string, ScienceQuestion> = Object.fromEntries(
