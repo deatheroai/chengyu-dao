@@ -15,15 +15,23 @@ import { changeDirection, type SnakeState } from "./snakeGrid";
  * matters.
  */
 
-/** Wide enough for the 8-letter QUESTION door along the top row with a free cell either side. */
-export const ROOM_WIDTH = 10;
-export const ROOM_HEIGHT = 12;
+export const ROOM_WIDTH = 8;
+export const ROOM_HEIGHT = 10;
 export const ROOM_TICK_MS = 300;
 export const ROOM_SNAKE_LENGTH = 3;
 
-export const QUESTION_DOOR_WORD = "QUESTION";
-/** The door sits on row 0, one cell in from the left, so it's centred on the 10-wide room. */
-export const QUESTION_DOOR_CELLS: Position[] = [...QUESTION_DOOR_WORD].map((_, i) => ({ x: 1 + i, y: 0 }));
+/**
+ * The QUESTION door: a 2×2 wooden door in the bottom-right corner,
+ * drawn with a big "Q" and a ↩ back arrow (AnswerRoomScene.ts) rather
+ * than the whole word, so it reads as a door at a glance. Running into
+ * any of its four cells goes back to reread.
+ */
+export const QUESTION_DOOR_CELLS: Position[] = [
+  { x: ROOM_WIDTH - 2, y: ROOM_HEIGHT - 2 },
+  { x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 2 },
+  { x: ROOM_WIDTH - 2, y: ROOM_HEIGHT - 1 },
+  { x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 1 },
+];
 
 /** Joining words always get the same colour and pre-coloured slot, so the child learns to spot where they go. */
 export const JOINING_WORDS = ["because", "so", "and", "but"];
@@ -101,8 +109,9 @@ export interface RoomApple {
   position: Position;
 }
 
+/** Starts on the left, heading right, well away from the door in the bottom-right corner. */
 export function createRoomSnake(): SnakeState {
-  const head = { x: Math.floor(ROOM_WIDTH / 2), y: ROOM_HEIGHT - 2 };
+  const head = { x: 2, y: Math.floor(ROOM_HEIGHT / 2) - 1 };
   const body: Position[] = [];
   for (let i = 0; i < ROOM_SNAKE_LENGTH; i++) body.push({ x: head.x - i, y: head.y });
   return { body, direction: "right", owedGrowth: 0, isPoisoned: false };
@@ -114,7 +123,8 @@ function isDoorCell(position: Position): boolean {
 
 /**
  * Scatters one apple per still-unplaced phrase, plus the wrong one.
- * Apples are kept off the door row, off the snake and the few cells
+ * Apples are kept off and away from the door (so going for an apple
+ * never sends the child through it by accident), off the snake and the few cells
  * straight ahead of it (so re-entering never lands on an apple before
  * the child has steered), and never touching each other — on a small
  * board a child aiming for one apple shouldn't clip its neighbour.
@@ -128,7 +138,7 @@ export function placeApples(
   const wanted = key.filter((entry) => entry.phraseIndex === null || entry.phraseIndex >= placedCount);
   const head = snake.body[0];
   const blocked = (p: Position): boolean =>
-    p.y === 0 ||
+    QUESTION_DOOR_CELLS.some((c) => Math.abs(c.x - p.x) <= 1 && Math.abs(c.y - p.y) <= 1) ||
     snake.body.some((s) => s.x === p.x && s.y === p.y) ||
     (p.y === head.y && p.x > head.x && p.x <= head.x + 3);
 

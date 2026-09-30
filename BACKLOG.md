@@ -1963,8 +1963,8 @@ other mechanic in this repo.
       - **Showing golden is worth more:** a big, sparkling "+150 ⭐" label
         bobs over the golden apples; a smaller "+30" sits on the ANSWER
         door.
-      - **Answer room.** A separate small board (~10×12 — wide enough for
-        an 8-letter QUESTION door) holding only answer apples; the main
+      - **Answer room.** A separate small board (8×10) holding only
+        answer apples; the main
         board freezes meanwhile. Short, non-growing answer snake (length
         3, edges wrap). Each apple shows only a symbol (★ ▲ ● ◆ ♥…, each
         with its own colour, shapes kept for colour-blind play, distinct
@@ -1981,8 +1981,13 @@ other mechanic in this repo.
         purpose — until that question is answered correctly. Placed
         phrases are **kept**: the punishment is on the snake, not the
         sentence. The ANSWER door and golden apples are still there.
-      - **QUESTION door** on the room's edge → back to the main board to
-        reread, no penalty, placed phrases kept.
+      - **QUESTION door** → back to the main board to reread, no
+        penalty, placed phrases kept. Drawn as a real door (per "have the
+        question door look really like a door... bottom right corner...
+        the alphabet Q... with an arrow"): a 2×2 arched wooden door in
+        the bottom-right corner with a big "Q", a knob and a blue ↩ badge.
+        Apples never spawn next to it, so going for one can't carry the
+        child through the door by accident.
       - **Correct sentence** → read aloud, +30, back to the main board.
         Every return to the frozen main board starts with a 3-2-1
         countdown.
@@ -2014,6 +2019,10 @@ other mechanic in this repo.
         `AnswerRoomScene.ts`, `answerRoomMain.ts`, `answerRoom.css`,
         `voice.ts` (speech + chime). 3-2-1 countdown on every entry, next
         slot glows, the right apple pulses after 5s without progress.
+        Follow-up the same day: the QUESTION door moved from a lettered
+        top row to the 2×2 wooden "↩ Q" door in the bottom-right corner,
+        which let the room shrink from 10×12 to 8×10 (bigger squares on
+        a phone).
         Cards stand in for the main board (thrown out, QUESTION door,
         finished). Tests: `answerRoom.test.ts` (13) and
         `e2e/answer-room.spec.ts` (in-order win, wrong phrase keeps

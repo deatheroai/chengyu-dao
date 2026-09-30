@@ -59,7 +59,7 @@ describe("buildKey", () => {
 });
 
 describe("placeApples", () => {
-  it("places the unplaced phrases plus the wrong one, off the door row and never touching", () => {
+  it("places the unplaced phrases plus the wrong one, away from the door and never touching", () => {
     for (let seed = 1; seed <= 30; seed++) {
       const rng = createRng(seed);
       const key = buildKey(ice, rng);
@@ -67,7 +67,8 @@ describe("placeApples", () => {
       const apples = placeApples(key, 2, snake, rng);
       expect(apples.map((a) => a.phraseIndex).sort()).toEqual([2, 3, 4, 5, null].sort());
       for (const a of apples) {
-        expect(a.position.y).toBeGreaterThan(0);
+        const nearDoor = QUESTION_DOOR_CELLS.some((c) => Math.abs(c.x - a.position.x) <= 1 && Math.abs(c.y - a.position.y) <= 1);
+        expect(nearDoor).toBe(false);
         expect(snake.body.some((s) => s.x === a.position.x && s.y === a.position.y)).toBe(false);
         for (const b of apples) {
           if (a === b) continue;
@@ -101,7 +102,7 @@ describe("room movement", () => {
     snake = roomChangeDirection(snake, "down");
     snake = roomStep(snake);
     snake = roomStep(snake);
-    expect(snake.body[0].y).toBe((ROOM_HEIGHT - 2 + 2) % ROOM_HEIGHT);
+    expect(snake.body[0].y).toBe((createRoomSnake().body[0].y + 2) % ROOM_HEIGHT);
   });
 
   it("ignores a reversal into its own neck", () => {
@@ -114,7 +115,7 @@ describe("resolveHead", () => {
   const apples: RoomApple[] = [
     { phraseIndex: 0, position: { x: 2, y: 3 } },
     { phraseIndex: 1, position: { x: 5, y: 5 } },
-    { phraseIndex: null, position: { x: 7, y: 8 } },
+    { phraseIndex: null, position: { x: 7, y: 5 } },
   ];
 
   it("places the next phrase in order", () => {
@@ -134,12 +135,16 @@ describe("resolveHead", () => {
   });
 
   it("throws the snake out for the wrong science phrase", () => {
-    const { event } = resolveHead({ x: 7, y: 8 }, apples, 1, 2);
+    const { event } = resolveHead({ x: 7, y: 5 }, apples, 1, 2);
     expect(event).toEqual({ kind: "thrown-out", reason: "wrong-phrase", placedCount: 1 });
   });
 
-  it("the QUESTION door is every cell of its word on the top row", () => {
-    expect(QUESTION_DOOR_CELLS).toHaveLength(8);
+  it("the QUESTION door is the 2×2 bottom-right corner", () => {
+    expect(QUESTION_DOOR_CELLS).toHaveLength(4);
+    for (const cell of QUESTION_DOOR_CELLS) {
+      expect(cell.x).toBeGreaterThanOrEqual(ROOM_WIDTH - 2);
+      expect(cell.y).toBeGreaterThanOrEqual(ROOM_HEIGHT - 2);
+    }
     for (const cell of QUESTION_DOOR_CELLS) {
       expect(resolveHead(cell, apples, 0, 2).event).toEqual({ kind: "question-door" });
     }

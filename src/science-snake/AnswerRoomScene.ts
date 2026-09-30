@@ -8,7 +8,6 @@ import {
   roomChangeDirection,
   resolveHead,
   QUESTION_DOOR_CELLS,
-  QUESTION_DOOR_WORD,
   ROOM_WIDTH,
   ROOM_HEIGHT,
   ROOM_TICK_MS,
@@ -25,14 +24,18 @@ import {
  * looks like.
  */
 
-export const ROOM_CELL_SIZE = 36;
+export const ROOM_CELL_SIZE = 40;
 export const COUNTDOWN_STEP_MS = 700;
 /** After this long without placing a phrase, the right apple starts to pulse — a nudge, not the answer on a plate. */
 export const HINT_AFTER_MS = 5000;
 
 const BG_COLOR = 0xfdf8ec;
 const GRID_LINE_COLOR = 0xeee4cc;
-const DOOR_COLOR = 0x5b7fd0;
+const DOOR_FRAME_COLOR = 0x5a3a1c;
+const DOOR_WOOD_COLOR = 0x9a6331;
+const DOOR_PANEL_COLOR = 0x86542a;
+const DOOR_KNOB_COLOR = 0xf2c230;
+const DOOR_BADGE_COLOR = 0x2f7fd6;
 const SNAKE_COLOR = 0x3c8a4c;
 const SNAKE_HEAD_COLOR = 0x2c6b39;
 const APPLE_BG = 0xffffff;
@@ -154,17 +157,44 @@ export class AnswerRoomScene extends Phaser.Scene {
     if (event.kind !== "none") this.data_.onEvent(event);
   }
 
+  /** Top-left corner and size of the door, in pixels. */
+  private doorRect(): { x: number; y: number; w: number; h: number } {
+    const xs = QUESTION_DOOR_CELLS.map((c) => c.x);
+    const ys = QUESTION_DOOR_CELLS.map((c) => c.y);
+    const x = Math.min(...xs) * ROOM_CELL_SIZE;
+    const y = Math.min(...ys) * ROOM_CELL_SIZE;
+    return { x, y, w: (Math.max(...xs) + 1) * ROOM_CELL_SIZE - x, h: (Math.max(...ys) + 1) * ROOM_CELL_SIZE - y };
+  }
+
+  /** The door's lettering: a big "Q" on the wood and a ↩ badge on its top-left corner — "back to the question". The wood itself is drawn in `renderDoor`. */
   private drawDoor(): void {
-    QUESTION_DOOR_CELLS.forEach((cell, i) => {
-      this.add
-        .text(cell.x * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2, cell.y * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2, QUESTION_DOOR_WORD[i], {
-          fontSize: `${ROOM_CELL_SIZE - 14}px`,
-          color: "#ffffff",
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5)
-        .setDepth(2);
-    });
+    const { x, y, w, h } = this.doorRect();
+    this.add
+      .text(x + w / 2, y + h * 0.6, "Q", { fontSize: `${Math.round(h * 0.4)}px`, color: "#fff4d6", fontStyle: "bold" })
+      .setOrigin(0.5)
+      .setDepth(2);
+    this.add
+      .text(x + 12, y + 12, "↩", { fontSize: "18px", color: "#ffffff", fontStyle: "bold" })
+      .setOrigin(0.5)
+      .setDepth(3);
+  }
+
+  /** An arched wooden door in its frame, with panels and a knob. */
+  private renderDoor(g: Phaser.GameObjects.Graphics): void {
+    const { x, y, w, h } = this.doorRect();
+    const pad = 5;
+    const arch = w / 2 - pad;
+    g.fillStyle(DOOR_FRAME_COLOR, 1);
+    g.fillRoundedRect(x + pad - 3, y + pad - 3, w - 2 * pad + 6, h - pad + 3, { tl: arch + 3, tr: arch + 3, bl: 0, br: 0 });
+    g.fillStyle(DOOR_WOOD_COLOR, 1);
+    g.fillRoundedRect(x + pad, y + pad, w - 2 * pad, h - pad, { tl: arch, tr: arch, bl: 0, br: 0 });
+    g.fillStyle(DOOR_PANEL_COLOR, 1);
+    g.fillRoundedRect(x + w * 0.24, y + h * 0.36, w * 0.52, h * 0.24, 4);
+    g.fillRoundedRect(x + w * 0.24, y + h * 0.66, w * 0.52, h * 0.24, 4);
+    g.fillStyle(DOOR_KNOB_COLOR, 1);
+    g.fillCircle(x + w * 0.82, y + h * 0.63, 4);
+    g.fillStyle(DOOR_BADGE_COLOR, 1);
+    g.fillCircle(x + 12, y + 12, 12);
   }
 
   update(): void {
@@ -179,10 +209,7 @@ export class AnswerRoomScene extends Phaser.Scene {
     for (let x = 0; x <= ROOM_WIDTH; x++) g.lineBetween(x * ROOM_CELL_SIZE, 0, x * ROOM_CELL_SIZE, ROOM_HEIGHT * ROOM_CELL_SIZE);
     for (let y = 0; y <= ROOM_HEIGHT; y++) g.lineBetween(0, y * ROOM_CELL_SIZE, ROOM_WIDTH * ROOM_CELL_SIZE, y * ROOM_CELL_SIZE);
 
-    g.fillStyle(DOOR_COLOR, 1);
-    for (const cell of QUESTION_DOOR_CELLS) {
-      g.fillRoundedRect(cell.x * ROOM_CELL_SIZE + 1, cell.y * ROOM_CELL_SIZE + 1, ROOM_CELL_SIZE - 2, ROOM_CELL_SIZE - 2, 6);
-    }
+    this.renderDoor(g);
 
     for (const apple of this.apples) {
       const cx = apple.position.x * ROOM_CELL_SIZE + ROOM_CELL_SIZE / 2;
