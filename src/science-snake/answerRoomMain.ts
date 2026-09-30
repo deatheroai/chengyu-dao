@@ -209,7 +209,17 @@ function bootstrap(): void {
   };
 
   const container = document.getElementById("game-container");
-  if (container) new ResizeObserver(() => game.scale.refresh()).observe(container);
+  // refresh() alone reuses the parent size Phaser measured last time;
+  // getParentBounds() re-reads it first, same as Phaser's own
+  // fullscreen handlers do. Without it the board kept its first size
+  // and slid over the A/B box whenever that appeared (found on a phone
+  // with the whale question, whose choice is the very first step).
+  if (container) {
+    new ResizeObserver(() => {
+      game.scale.getParentBounds();
+      game.scale.refresh();
+    }).observe(container);
+  }
 
   const readQuestion = (): void => speak(content.questionParts.join(" "));
 

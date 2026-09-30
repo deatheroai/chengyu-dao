@@ -149,3 +149,20 @@ test("after a finished sentence, Next question moves on to a fresh one", async (
   await expect(page.locator("#start-card .question-parts")).not.toContainText("Aisha");
   await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(0);
 });
+
+test("the board shrinks to make room for the A/B box, never covering it", async ({ page }) => {
+  // The whale question's choice is its very first step, so the A/B box
+  // appears the moment the room opens.
+  await page.goto("/answer-room.html?q=kais-whale-is-not-a-fish&seed=2");
+  await page.click("#start-btn");
+  await expect(page.locator("#choice-box")).toBeVisible();
+  await expect
+    .poll(async () => {
+      const box = await page.locator("#choice-box").boundingBox();
+      const canvas = await page.locator("#game-container canvas").boundingBox();
+      const joystick = await page.locator("#joystick").boundingBox();
+      if (!box || !canvas || !joystick) return false;
+      return canvas.y >= box.y + box.height && canvas.y + canvas.height <= joystick.y + 1;
+    })
+    .toBe(true);
+});

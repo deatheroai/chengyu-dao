@@ -142,6 +142,9 @@ body:has(.answer-room-app) {
 #room-board #game-container {
   position: absolute;
   inset: 0.25rem 0.5rem;
+  /* Belt and braces: even a board that hasn't refitted yet can't spill
+     over the panel above or the joystick below. */
+  overflow: hidden;
 }
 
 #countdown {
