@@ -1930,57 +1930,61 @@ other mechanic in this repo.
       the old gaps were, and a real touch-event slide on mobile);
       `e2e/helpers/scienceSnake.ts` now steers through the joystick too.
 
-- [ ] `todo` — **Redesign: "eat the sentence" instead of typing every
-      answer (design settled by conversation 2026-09-29, see
-      `DECISIONS.md`).** Problem, from playtesting: the child disliked the
-      game stopping to read a long scenario and then type a 20-35 word
-      answer on a phone. Goal kept: the child still frames a complete
-      sentence (claim + joining word + reason); typing itself is not a
-      goal. Mobile-first. Nothing below is built yet.
-      - **Keep it running, slower.** Eating a science item doesn't pause
-        the game — the tick slows (~180ms → ~260ms) until the sentence is
-        done.
-      - **One-line question, read aloud.** A short prompt slides in at
-        the top (e.g. "🧊 Ice on the table → puddle. Why?") and is spoken
-        via the browser's `speechSynthesis` (free, offline; the
-        start-game tap satisfies iOS's first-gesture rule). Tapping it
-        replays the audio or expands the full scenario. Needs a mute
-        toggle.
-      - **Eat the pieces in order, order made very obvious.** 4-5 word
-        pieces (1-3 words each, so a label spans ~3 cells on the 16×24
-        grid) appear on the board. A sentence strip of empty slots shows
-        the shape up front; only the *next* piece is bright, pulsing and
-        number-badged, the rest dimmed. Joining words (because/so/and/but)
-        always get one fixed colour. Each eaten piece flies into its slot
-        with a chime. One fixed correct order per question.
-      - **The one real choice is the science.** At the reason slot, two
-        pieces light up together: the correct one and a grammatical but
-        scientifically wrong one ("it got warm" vs "it got cold"). Wrong
-        one → existing indigestion, correct piece glows again so the
-        sentence can still finish. Mistakes never end the round.
-      - **Voice timing:** speak the question when it appears and the
-        full sentence once at the end; a chime (not speech) per piece.
-        Easy to revisit after a playtest.
-      - **Golden apple after every sentence, optional.** Appears on the
-        board after every completed sentence; the child can chase it or
-        steer around it (it expires if ignored). Eating it pauses the
-        game and asks the child to type the sentence from memory: the
-        built sentence is hidden and there is **no peek** (per "the child
-        should be able to word it"). Graded by the existing lenient
-        `answerGrading.ts` (keywords + sentence shape), so their own
-        wording passes. Success → big points bonus + the snake dances
-        (wiggle, rainbow colours, confetti) for a few seconds while
-        paused. Miss → no penalty; the sentence is shown and read aloud
-        once, then play resumes.
-      - **Content work:** each of the 20 questions needs a one-line
-        prompt, a 4-5 piece answer and one wrong reason piece — drafted
-        and reviewed in batches of 5 like the original bank. The existing
-        long `prompt`/`modelAnswer` stay as the "read more" text and the
-        golden-apple target.
+- [ ] `todo` — **Redesign: question apples + answer room instead of
+      typing every answer (design settled by conversation 2026-09-29/30,
+      see `DECISIONS.md`).** Problem, from playtesting: the child disliked
+      the game stopping to read a long scenario and then type a 20-35
+      word answer on a phone. Goals kept: the full authored scenario
+      questions (they're meaningful — don't shorten them), and the child
+      still frames a complete sentence; typing itself is not a goal.
+      Mobile-first. Nothing below is built yet.
+      - **Main board = exploring the question.** Eating a science item
+        spawns three numbered apples ①②③ and slows the tick (~180ms →
+        ~260ms). Each one eaten reveals the next third of the question in
+        a panel above the board (parts accumulate) and reads it aloud via
+        `speechSynthesis` (free, offline; the start-game tap satisfies
+        iOS's first-gesture rule; needs a mute toggle). Eating a number
+        out of order just bounces — no penalty for reading. No time limit.
+        After ③, an "Answer ➜" button appears.
+      - **Answer room = building the sentence.** "Answer ➜" sends the
+        snake through a portal to a separate small board (~8×10, so cells
+        are ~3× bigger on a phone) holding only answer apples. The main
+        board freezes meanwhile — same snake, same length, same spot.
+        In the room: a short, non-growing answer snake (length 3, edges
+        wrap) so the child can't lose here. Each apple shows only a
+        symbol (★ ▲ ● ◆ ♥…, each with its own colour, shapes kept for
+        colour-blind play, distinct from ①②③ and the poison apple).
+        The panel shows the sentence slots and a key mapping each symbol
+        to its phrase, **listed mixed up** — the child works out the
+        order. Order kept obvious via the next empty slot glowing, the
+        joining-word slot pre-coloured (because/so/and/but always one
+        colour), and the right symbol pulsing after a few seconds'
+        hesitation. Out-of-order apple → bounces. One grammatical but
+        scientifically wrong phrase (♥ "it got colder") → wobble +
+        existing indigestion, applied to the main snake on return. A
+        "Question" tab flips back to reread; placed phrases stay put.
+      - **Voice timing:** each question part is read when revealed, the
+        finished sentence once at the end; a chime (not speech) per
+        placed phrase. Easy to revisit after a playtest.
+      - **Golden apple after every sentence, optional.** Appears in the
+        answer room once the sentence is complete, next to an exit
+        portal: eat it to type the sentence from memory (built sentence
+        hidden, **no peek**), or take the exit to skip. Graded by the
+        existing lenient `answerGrading.ts`, so the child's own wording
+        passes. Success → big points bonus + dancing snake (wiggle,
+        rainbow, confetti) for a few seconds. Miss → no penalty; the
+        sentence is shown and read aloud once.
+      - **Returning:** back to the frozen main board with a 3-2-1
+        countdown before the snake moves again.
+      - **Content work:** each of the 20 questions needs two split
+        points in its existing `prompt` (no rewriting), its `modelAnswer`
+        split into 5-6 phrases (full answer kept — phrases live in the
+        key, not on the board), and one wrong phrase. Drafted and
+        reviewed in batches of 5 like the original bank.
       - **Replaces** the current typed two-try flow (`QuestionOverlay.ts`,
         hint + `chunkWords.ts` reveal) as the default path.
-      - **First thing to prototype:** word-piece labels on a phone-sized
-        board, to check 5-6 pieces on screen isn't too cluttered.
+      - **First thing to prototype:** the answer room on a phone — board
+        size, symbol legibility, and how the key + slots fit above it.
 
 ## Platform / infra
 

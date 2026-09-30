@@ -23,17 +23,21 @@ None open right now.
 
 ## Resolved
 
-- **2026-09-29 — Science Snake: replace typing every answer with "eat the
-  sentence".** Raised because the child found the long question and
-  full typed answer too disruptive on a phone. Resolved in conversation:
-  framing a complete sentence is the goal, typing isn't; the game keeps
-  running but slower while the child eats word pieces in a very obvious
-  order; the question is read aloud via text-to-speech; a golden apple
-  is offered after every sentence (optional — chase or avoid it) where
-  typing the full sentence from memory, with no peek, earns lots of
-  points and a dancing snake. Voice timing (question + final sentence
-  spoken, chime per piece) was left to the session's judgement. Full
-  design in `BACKLOG.md`'s Science Snake section.
+- **2026-09-29/30 — Science Snake: question apples + answer room
+  instead of typing every answer.** Raised because the child found the
+  long question and full typed answer too disruptive on a phone.
+  Resolved in conversation: framing a complete sentence is the goal,
+  typing isn't; the full authored questions stay (revealed in three
+  parts by eating numbered apples ①②③ on the main board, read aloud);
+  answering happens in a separate small "answer room" board where the
+  child eats symbol apples, matched to phrases in a mixed-up key, in
+  sentence order; the main board freezes meanwhile. A golden apple is
+  offered after every sentence (optional) where typing it from memory,
+  with no peek, earns lots of points and a dancing snake. Voice timing
+  (question parts + final sentence spoken, chime per phrase) was left to
+  the session's judgement. Supersedes the same day's earlier "word
+  pieces on the main board" version. Full design in `BACKLOG.md`'s
+  Science Snake section.
 
 - **2026-09-28 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. No open PRs. `BACKLOG.md`'s
