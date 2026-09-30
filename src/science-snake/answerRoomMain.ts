@@ -5,6 +5,7 @@ import { answerRoomContent } from "./answerRoomContent";
 import { createRng } from "./seededRandom";
 import { scienceQuestionsById } from "./scienceQuestions";
 import { wireJoystick } from "./joystickControl";
+import { preventDoubleTapZoom } from "./noZoom";
 import { speak, chime, isMuted, setMuted } from "./voice";
 import type { SnakeState } from "./snakeGrid";
 
@@ -273,4 +274,5 @@ function bootstrap(): void {
   }
 }
 
+preventDoubleTapZoom();
 bootstrap();

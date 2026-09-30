@@ -2054,6 +2054,11 @@ other mechanic in this repo.
         climb to the ladder run on their own at 225ms — 80% of the main
         board's 180ms speed (first read as 80% of the room's own speed,
         375ms, then corrected: "it was too slow so we need it faster").
+        Tapping to steer zoomed an iPhone in with no way back out (the
+        viewport meta blocks pinch): fixed for both Science Snake pages
+        with `touch-action: manipulation` on the page (style.css) plus
+        `noZoom.ts`, which cancels a quick second tap's zoom everywhere
+        except buttons, links and text fields.
         Apples are drawn apple-shaped (two lobes, stem, leaf, shine) per
         "apple looks like an orange". The board also now refits properly when the
         A/B box appears (it used to keep its first size and cover option

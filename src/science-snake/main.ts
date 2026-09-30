@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { SnakeGameScene, CELL_SIZE, type RunStats, type LoseReason } from "./SnakeGameScene";
 import { GRID_WIDTH, GRID_HEIGHT } from "./snakeGrid";
 import { wireJoystick } from "./joystickControl";
+import { preventDoubleTapZoom } from "./noZoom";
 import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode, syncAfterRun } from "./cloudSaveStatus";
 
@@ -120,4 +121,5 @@ function bootstrap(): void {
   if (joystick && knob) wireJoystick(joystick, knob, (direction) => snakeScene()?.requestDirection(direction));
 }
 
+preventDoubleTapZoom();
 bootstrap();
