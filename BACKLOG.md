@@ -2032,6 +2032,30 @@ other mechanic in this repo.
         golden-apple challenge.
       - **First thing to prototype:** the answer room on a phone — board
         size, symbol legibility, how the key + slots fit above it.
+      - **Step 1 built (2026-10-01), opt-in with
+        `science-snake.html?answer=room`** — the default game keeps the
+        typed overlay until step 4. Eating a science item opens the
+        question panel above the board and places ①②③ (next one bright,
+        the rest faded; `questionFlow.ts`), and the board slows to
+        `QUESTION_TICK_MS` (~260ms). Each one eaten in order reveals and
+        reads aloud its part; out of order does nothing. After ③ an
+        A-N-S-W-E-R door appears (six free cells in a row, away from the
+        head, rows two above/below its middle kept clear for step 2's
+        golden apples). Going in freezes the board and runs the answer
+        room in the same canvas (`questionFlowPage.ts`, room zoomed to
+        fit, top-aligned); climbing out = the usual correct-answer growth
+        + score, question cleared. A wrong blue apple or "Reread" goes
+        back to the board with the question and door still there (the
+        door re-arms once the head has left it). 3-2-1 on every return.
+        Room panel code shared with answer-room.html (`answerRoomUi.ts`).
+        Tests: `questionFlow.test.ts`,
+        `e2e/science-snake-question-flow.spec.ts` (full right path, and
+        wrong choice → back with the door still there).
+      - **Next:** step 2 (golden apples + points), step 3 (wrong-choice
+        punishment: doubled, muddy brown-grey), step 4 (make it the
+        default, retire the overlay and its e2e).
+      - **Content review pending:** room sentences for question batches
+        5-6 (drafted 2026-10-01 in `answerRoomContent.ts`).
       - **Answer-room prototype built (2026-09-30), waiting on a phone
         playtest.** Standalone page `/answer-room.html` (not linked from
         the game), one question (the melting ice): `answerRoom.ts` (pure

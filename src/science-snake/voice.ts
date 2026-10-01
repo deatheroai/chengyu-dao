@@ -69,3 +69,20 @@ export function chime(sad = false): void {
     // No Web Audio — the on-screen change is enough.
   }
 }
+
+/**
+ * Call from a tap handler before any speech that isn't itself started by
+ * a tap (the question flow reads parts aloud as the snake eats them).
+ * iOS only lets speech start from a user gesture; speaking a silent,
+ * empty utterance inside one unlocks it for the rest of the visit.
+ */
+export function unlockSpeech(): void {
+  if (!("speechSynthesis" in window)) return;
+  try {
+    const utterance = new SpeechSynthesisUtterance("");
+    utterance.volume = 0;
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    // No speech on this browser.
+  }
+}

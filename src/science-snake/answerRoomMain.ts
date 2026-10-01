@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { AnswerRoomScene, ROOM_CELL_SIZE, type AnswerRoomSceneData } from "./AnswerRoomScene";
-import { buildSteps, isJoiningPhrase, ROOM_WIDTH, ROOM_HEIGHT, type RoomApple, type RoomEvent, type RoomStep } from "./answerRoom";
+import { renderSentence as renderRoomSentence, updateRoomUi, resetRoomUi } from "./answerRoomUi";
+import { buildSteps, ROOM_WIDTH, ROOM_HEIGHT, type RoomApple, type RoomEvent, type RoomStep } from "./answerRoom";
 import { answerRoomContent } from "./answerRoomContent";
 import { createRng } from "./seededRandom";
 import { scienceQuestionsById } from "./scienceQuestions";
@@ -65,90 +66,12 @@ function renderQuestionParts(): void {
   }
 }
 
-/**
- * The sentence so far, one chip per eaten step (joining words in
- * orange, the chosen science phrase in blue), then one faint dot per
- * step still to come so the child can see how far there is to go.
- */
 function renderSentence(): void {
-  const strip = document.getElementById("sentence-strip");
-  if (!strip) return;
-  const chips = steps.map((step, i) => {
-    const chip = document.createElement("span");
-    if (i >= stepIndex) {
-      chip.className = "word-chip upcoming";
-      chip.textContent = "•";
-      return chip;
-    }
-    chip.className = "word-chip";
-    if (step.kind === "choice") {
-      chip.classList.add("chosen");
-      chip.textContent = step.correct;
-    } else {
-      if (isJoiningPhrase(step.text)) chip.classList.add("joining");
-      chip.textContent = step.text;
-    }
-    if (i === stepIndex - 1) chip.classList.add("just-eaten");
-    return chip;
-  });
-  strip.replaceChildren(...chips);
+  renderRoomSentence(steps, stepIndex);
 }
-
-/** The A/B box: only there while the two blue apples are on the board. */
-function renderChoice(apples: RoomApple[]): void {
-  const box = document.getElementById("choice-box");
-  if (!box) return;
-  const options = apples.filter((a) => a.kind === "option");
-  box.classList.toggle("hidden", options.length === 0);
-  const holdHint = document.createElement("p");
-  holdHint.className = "choice-hold-hint";
-  holdHint.textContent = "✋ Hold the joystick to move. Let go to stop and think.";
-  box.replaceChildren(
-    holdHint,
-    ...options.map((option) => {
-      const row = document.createElement("p");
-      row.className = "choice-row";
-      const badge = document.createElement("span");
-      badge.className = "choice-badge";
-      badge.textContent = option.kind === "option" ? option.label : "";
-      row.append(badge, option.kind === "option" ? option.text : "");
-      return row;
-    }),
-  );
-}
-
-let lastChoiceShown = "";
 
 function updateStatus(snake: SnakeState, apples: RoomApple[], finished: boolean): void {
-  renderChoice(apples);
-  // Read the two options out once, the moment they appear.
-  const choiceKey = apples.map((a) => (a.kind === "option" ? `${a.label}:${a.text}` : "")).join("|");
-  if (apples.some((a) => a.kind === "option") && choiceKey !== lastChoiceShown) {
-    lastChoiceShown = choiceKey;
-    speak(apples.map((a) => (a.kind === "option" ? `${a.label}. ${a.text}.` : "")).join(" "));
-  }
-  if (!apples.some((a) => a.kind === "option")) lastChoiceShown = "";
-  document.getElementById("room-hint")?.classList.toggle("hidden", !finished);
-
-  const status = document.getElementById("room-status");
-  if (status) {
-    status.dataset.headX = String(snake.body[0].x);
-    status.dataset.headY = String(snake.body[0].y);
-    status.dataset.direction = snake.direction;
-    status.dataset.step = String(stepIndex);
-    status.dataset.finished = String(finished);
-  }
-  const container = document.getElementById("room-apples");
-  container?.replaceChildren(
-    ...apples.map((apple) => {
-      const span = document.createElement("span");
-      span.dataset.x = String(apple.position.x);
-      span.dataset.y = String(apple.position.y);
-      span.dataset.kind = apple.kind;
-      if (apple.kind === "option") span.dataset.correct = String(apple.correct);
-      return span;
-    }),
-  );
+  updateRoomUi(snake, apples, finished, stepIndex);
 }
 
 function handleRoomEvent(event: RoomEvent, newStepIndex: number): void {
@@ -200,7 +123,7 @@ function bootstrap(): void {
   const enterRoom = (): void => {
     hideCards();
     if (game.scene.isActive("AnswerRoomScene")) game.scene.stop("AnswerRoomScene");
-    lastChoiceShown = "";
+    resetRoomUi();
     const data: AnswerRoomSceneData = {
       steps,
       stepIndex,

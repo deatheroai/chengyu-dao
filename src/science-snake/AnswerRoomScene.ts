@@ -49,6 +49,8 @@ const SMOKE_COLOR = 0x8a8a8a;
 const WORD_APPLE_COLOR = 0xe0463a;
 const OPTION_APPLE_COLOR = 0x2f7fd6;
 const LEAF_COLOR = 0x3c8a4c;
+/** Phaser's own default is Courier; match the page's font instead. */
+const LABEL_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
 const STEM_COLOR = 0x6b4424;
 
 const KEY_TO_DIRECTION: Record<string, Direction> = {
@@ -70,6 +72,12 @@ export interface AnswerRoomSceneData {
   onEvent: (event: RoomEvent, stepIndex: number) => void;
   onCountdown: (value: number | null) => void;
   onState: (snake: SnakeState, apples: RoomApple[], finished: boolean) => void;
+  /**
+   * When the room runs inside a bigger canvas (the main game's), its
+   * size: the camera zooms the room up to fit and centres it, so it
+   * fills the same space the main board did.
+   */
+  fit?: { width: number; height: number };
 }
 
 export class AnswerRoomScene extends Phaser.Scene {
@@ -106,6 +114,16 @@ export class AnswerRoomScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(BG_COLOR);
+    const fit = this.data_.fit;
+    if (fit) {
+      const roomWidth = ROOM_WIDTH * ROOM_CELL_SIZE;
+      const roomHeight = ROOM_HEIGHT * ROOM_CELL_SIZE;
+      const zoom = Math.min(fit.width / roomWidth, fit.height / roomHeight);
+      this.cameras.main.setZoom(zoom);
+      // Top-aligned rather than centred: any spare height goes below the
+      // room, where the main page's joystick floats over the board.
+      this.cameras.main.centerOn(roomWidth / 2, roomHeight / 2 + (fit.height / zoom - roomHeight) / 2);
+    }
     this.gfx = this.add.graphics();
     this.snake = createRoomSnake();
     this.running = false;
@@ -252,7 +270,7 @@ export class AnswerRoomScene extends Phaser.Scene {
     if (apple.kind === "option") {
       this.appleLabels.push(
         this.add
-          .text(x, y + 4, apple.label, { fontSize: "20px", color: "#ffffff", fontStyle: "bold", stroke: "#153e75", strokeThickness: 3 })
+          .text(x, y + 4, apple.label, { fontFamily: LABEL_FONT, fontSize: "20px", color: "#ffffff", fontStyle: "bold", stroke: "#153e75", strokeThickness: 3 })
           .setOrigin(0.5)
           .setDepth(3),
       );
@@ -260,6 +278,7 @@ export class AnswerRoomScene extends Phaser.Scene {
     }
     const label = this.add
       .text(0, 0, apple.text, {
+        fontFamily: LABEL_FONT,
         fontSize: "17px",
         color: "#2c3d24",
         fontStyle: "bold",

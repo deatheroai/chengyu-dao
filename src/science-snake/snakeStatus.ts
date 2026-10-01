@@ -59,3 +59,36 @@ export function syncBoardItems(items: BoardItem[]): void {
     container.lastElementChild?.remove();
   }
 }
+
+/**
+ * The question flow's test hook (redesign, BACKLOG.md): which question is
+ * open, how many parts are showing, where the numbered apples and the
+ * ANSWER door are, and how many questions have been answered — same
+ * hidden-element pattern as the two above.
+ */
+export function updateQuestionFlowStatus(
+  question: { id: string; revealed: number; apples: { part: number; position: { x: number; y: number } }[]; door: { x: number; y: number }[] | null } | null,
+  questionsCorrect: number,
+): void {
+  const el = document.getElementById("question-flow");
+  if (!el) return;
+  el.dataset.questionId = question?.id ?? "";
+  el.dataset.revealed = String(question?.revealed ?? 0);
+  el.dataset.questionsCorrect = String(questionsCorrect);
+  el.replaceChildren(
+    ...(question?.apples ?? []).map((apple) => {
+      const span = document.createElement("span");
+      span.dataset.part = String(apple.part);
+      span.dataset.x = String(apple.position.x);
+      span.dataset.y = String(apple.position.y);
+      return span;
+    }),
+    ...(question?.door ?? []).map((cell) => {
+      const span = document.createElement("span");
+      span.dataset.door = "true";
+      span.dataset.x = String(cell.x);
+      span.dataset.y = String(cell.y);
+      return span;
+    }),
+  );
+}

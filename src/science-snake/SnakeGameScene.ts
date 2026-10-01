@@ -27,7 +27,17 @@ import { isSuffocating } from "./suffocation";
 import { createRng } from "./seededRandom";
 import { scienceQuestionsById, scienceQuestions } from "./scienceQuestions";
 import { askQuestion } from "./QuestionOverlay";
-import { updateSnakeStatus, syncBoardItems } from "./snakeStatus";
+import { updateSnakeStatus, syncBoardItems, updateQuestionFlowStatus } from "./snakeStatus";
+import {
+  placeQuestionApples,
+  placeAnswerDoor,
+  isNextPart,
+  isOnCells,
+  QUESTION_TICK_MS,
+  QUESTION_PART_COUNT,
+  ANSWER_DOOR_WORD,
+  type QuestionApple,
+} from "./questionFlow";
 
 /**
  * The playable Phaser scene (BACKLOG.md's "Phaser scene + DOM question
@@ -52,10 +62,41 @@ export interface RunStats {
   questionsCorrect: number;
 }
 
+/**
+ * The redesign's question flow (BACKLOG.md's "Redesign: question
+ * apples, ANSWER door + answer room"), switched on by passing these
+ * hooks — without them the scene keeps the old typed-answer overlay.
+ * The page owns everything off the board: the question text, read
+ * aloud, and the answer room itself.
+ */
+export interface QuestionFlowHooks {
+  onQuestionStart: (questionId: string) => void;
+  /** `revealed` is how many of the three parts are now showing (1-3). */
+  onPartRevealed: (questionId: string, revealed: number) => void;
+  onDoorOpen: (questionId: string) => void;
+  /** The board is frozen until the page calls `returnFromRoom`. */
+  onEnterRoom: (questionId: string) => void;
+}
+
 export interface SnakeGameSceneData {
   onWin: (stats: RunStats) => void;
   onLose: (reason: LoseReason, stats: RunStats) => void;
+  questionFlow?: QuestionFlowHooks;
 }
+
+interface ActiveQuestion {
+  id: string;
+  revealed: number;
+  apples: QuestionApple[];
+  door: Position[] | null;
+  /** False right after coming back out of the room through the door, until the head has left the door's cells — otherwise it would walk straight back in. */
+  doorArmed: boolean;
+}
+
+const QUESTION_APPLE_COLOR = 0x7b4fd6;
+const DOOR_COLOR = 0x2f7fd6;
+/** Phaser's own default is Courier; match the page's font instead. */
+const LABEL_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
 
 const SNAKE_COLOR = 0x3c8a4c;
 const SNAKE_HEAD_COLOR = 0x2c6b39;
@@ -127,6 +168,9 @@ export class SnakeGameScene extends Phaser.Scene {
   private onWin!: (stats: RunStats) => void;
   private onLose!: (reason: LoseReason, stats: RunStats) => void;
   private keydownHandler?: (e: KeyboardEvent) => void;
+  private flow?: QuestionFlowHooks;
+  private activeQuestion: ActiveQuestion | null = null;
+  private questionLabels: Phaser.GameObjects.Text[] = [];
 
   constructor() {
     super("SnakeGameScene");
@@ -135,6 +179,7 @@ export class SnakeGameScene extends Phaser.Scene {
   init(data: SnakeGameSceneData): void {
     this.onWin = data.onWin;
     this.onLose = data.onLose;
+    this.flow = data.questionFlow;
   }
 
   create(): void {
@@ -147,13 +192,15 @@ export class SnakeGameScene extends Phaser.Scene {
     this.items = [];
     this.paused = false;
     this.ended = false;
+    this.activeQuestion = null;
+    this.questionLabels = [];
 
     for (let i = 0; i < INITIAL_APPLE_COUNT; i++) this.spawnReplacementApple();
     this.spawnReplacementScienceItemIfNeeded();
     this.wireInput();
     this.render();
 
-    this.tickEvent = this.time.addEvent({ delay: TICK_MS, loop: true, callback: () => this.tick() });
+    this.scheduleTick();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
   }
 
@@ -192,13 +239,33 @@ export class SnakeGameScene extends Phaser.Scene {
     this.snake = changeDirection(this.snake, direction);
   }
 
+  /**
+   * One step at a time, each scheduling the next, so the pace can change
+   * between steps — slower while a question is open. The next step is
+   * scheduled before this one runs, so anything that ends the run during
+   * it (finishWin/finishLose) cancels it as before.
+   */
+  private scheduleTick(): void {
+    this.tickEvent = this.time.delayedCall(this.activeQuestion ? QUESTION_TICK_MS : TICK_MS, () => {
+      if (this.ended) return;
+      this.scheduleTick();
+      this.tick();
+    });
+  }
+
   private teardown(): void {
     this.tickEvent?.remove();
     if (this.keydownHandler) this.input.keyboard?.off("keydown", this.keydownHandler);
   }
 
   private occupiedCells(): Position[] {
-    return [...this.snake.body, ...this.items.map((item) => item.position)];
+    const question = this.activeQuestion;
+    return [
+      ...this.snake.body,
+      ...this.items.map((item) => item.position),
+      ...(question ? question.apples.map((a) => a.position) : []),
+      ...(question?.door ?? []),
+    ];
   }
 
   private activeQuestionIds(): string[] {
@@ -244,6 +311,7 @@ export class SnakeGameScene extends Phaser.Scene {
     }
     this.snake = result.snake;
     this.handleHeadPosition();
+    if (this.activeQuestion) this.tryOpenDoor(this.activeQuestion);
     // handleHeadPosition can itself end the run (checkOutcome ->
     // finishLose/finishWin), which for suffocation specifically already
     // drew the death frame (playSuffocationDeath) — an unconditional
@@ -266,9 +334,13 @@ export class SnakeGameScene extends Phaser.Scene {
 
   private handleHeadPosition(): void {
     const head = this.snake.body[0];
+    if (this.flow && this.activeQuestion && this.handleQuestionFlow(head, this.activeQuestion)) return;
     const index = this.items.findIndex((item) => item.position.x === head.x && item.position.y === head.y);
     if (index === -1) return;
     const item = this.items[index];
+    // While a question is open, other science items wait their turn —
+    // the snake passes over them.
+    if (item.type === "science" && this.flow && this.activeQuestion) return;
     this.items.splice(index, 1);
 
     if (item.type === "apple") {
@@ -281,12 +353,86 @@ export class SnakeGameScene extends Phaser.Scene {
       this.stats.poisonApplesEaten += 1;
       this.spawnReplacementApple();
       this.spawnReplacementScienceItemIfNeeded();
+    } else if (this.flow) {
+      this.startQuestion(item.questionId!);
+      return;
     } else {
       this.askScienceQuestion(item.questionId!);
       return; // paused inside askScienceQuestion; checkOutcome runs once it resolves
     }
 
     this.checkOutcome();
+  }
+
+  /** The redesign's flow: ①②③ appear and the board slows down (scheduleTick picks the slower pace up from the next step). */
+  private startQuestion(questionId: string): void {
+    const apples = placeQuestionApples(this.occupiedCells(), this.snake.body[0], this.rng);
+    this.activeQuestion = { id: questionId, revealed: 0, apples, door: null, doorArmed: true };
+    this.flow?.onQuestionStart(questionId);
+  }
+
+  /** True when the head's cell belonged to the question (a numbered apple or the door), so nothing else is eaten there. */
+  private handleQuestionFlow(head: Position, question: ActiveQuestion): boolean {
+    if (question.door) {
+      const onDoor = isOnCells(question.door, head);
+      if (onDoor && question.doorArmed) {
+        this.paused = true;
+        this.flow?.onEnterRoom(question.id);
+        return true;
+      }
+      if (!onDoor) question.doorArmed = true;
+      if (onDoor) return true;
+    }
+    const index = question.apples.findIndex((a) => a.position.x === head.x && a.position.y === head.y);
+    if (index === -1) return false;
+    // Out of order: nothing happens — reading is never punished.
+    if (!isNextPart(question.revealed, question.apples[index].part)) return true;
+    question.apples.splice(index, 1);
+    question.revealed += 1;
+    this.flow?.onPartRevealed(question.id, question.revealed);
+    if (question.revealed === QUESTION_PART_COUNT) this.tryOpenDoor(question);
+    return true;
+  }
+
+  /** Called again each step until it succeeds, in case the board is too crowded for the door right now. */
+  private tryOpenDoor(question: ActiveQuestion): void {
+    if (question.door || question.revealed < QUESTION_PART_COUNT) return;
+    question.door = placeAnswerDoor(this.occupiedCells(), this.snake.body[0], this.rng);
+    if (question.door) this.flow?.onDoorOpen(question.id);
+  }
+
+  /**
+   * The page calls this once the answer room is done with. "correct": the
+   * sentence was built and the snake climbed out — the usual correct-
+   * answer growth and score, and the question (door and all) is cleared.
+   * "not-yet": back to the board with the question still open (a wrong
+   * blue apple, or going back to reread) — the door stays for another go.
+   * Either way the board restarts after a 3-2-1.
+   */
+  returnFromRoom(outcome: "correct" | "not-yet", onCountdown: (value: number | null) => void): void {
+    const question = this.activeQuestion;
+    if (outcome === "correct" && question) {
+      this.snake = applyCorrectAnswerEaten(this.snake);
+      this.stats.questionsCorrect += 1;
+      this.activeQuestion = null;
+      this.spawnReplacementScienceItemIfNeeded();
+    } else if (question) {
+      question.doorArmed = false;
+    }
+    this.render();
+    const count = (value: number): void => {
+      onCountdown(value);
+      this.time.delayedCall(700, () => {
+        if (value > 1) {
+          count(value - 1);
+          return;
+        }
+        onCountdown(null);
+        this.paused = false;
+        this.checkOutcome();
+      });
+    };
+    count(3);
   }
 
   private askScienceQuestion(questionId: string): void {
@@ -381,9 +527,51 @@ export class SnakeGameScene extends Phaser.Scene {
 
   private render(): void {
     this.renderGridAndItems();
+    this.renderQuestionFlow();
     this.renderSnakeBody(this.gfx);
     updateSnakeStatus(this.snake);
     syncBoardItems(this.items);
+    if (this.flow) updateQuestionFlowStatus(this.activeQuestion, this.stats.questionsCorrect);
+  }
+
+  /**
+   * The numbered question apples (the next one bright, the others faded
+   * so the order is obvious) and the A-N-S-W-E-R door, one letter per
+   * cell. Labels are rebuilt each render — there are never more than
+   * nine of them.
+   */
+  private renderQuestionFlow(): void {
+    for (const label of this.questionLabels) label.destroy();
+    this.questionLabels = [];
+    const question = this.activeQuestion;
+    if (!question) return;
+    for (const apple of question.apples) {
+      const isNext = apple.part === question.revealed + 1;
+      const cx = apple.position.x * CELL_SIZE + CELL_SIZE / 2;
+      const cy = apple.position.y * CELL_SIZE + CELL_SIZE / 2;
+      this.gfx.fillStyle(QUESTION_APPLE_COLOR, isNext ? 1 : 0.4);
+      this.gfx.fillCircle(cx, cy, CELL_SIZE / 2 - 1);
+      this.questionLabels.push(
+        this.add
+          .text(cx, cy, String(apple.part), { fontFamily: LABEL_FONT, fontSize: `${CELL_SIZE - 10}px`, color: "#ffffff", fontStyle: "bold" })
+          .setOrigin(0.5)
+          .setAlpha(isNext ? 1 : 0.6),
+      );
+    }
+    question.door?.forEach((cell, i) => {
+      this.gfx.fillStyle(DOOR_COLOR, 1);
+      this.gfx.fillRoundedRect(cell.x * CELL_SIZE + 1, cell.y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2, 5);
+      this.questionLabels.push(
+        this.add
+          .text(cell.x * CELL_SIZE + CELL_SIZE / 2, cell.y * CELL_SIZE + CELL_SIZE / 2, ANSWER_DOOR_WORD[i], {
+            fontFamily: LABEL_FONT,
+            fontSize: `${CELL_SIZE - 10}px`,
+            color: "#ffffff",
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5),
+      );
+    });
   }
 
   private renderGridAndItems(): void {

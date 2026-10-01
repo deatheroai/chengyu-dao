@@ -3,6 +3,8 @@ import { SnakeGameScene, CELL_SIZE, type RunStats, type LoseReason } from "./Sna
 import { GRID_WIDTH, GRID_HEIGHT } from "./snakeGrid";
 import { wireJoystick } from "./joystickControl";
 import { preventDoubleTapZoom } from "./noZoom";
+import { createQuestionFlowPage } from "./questionFlowPage";
+import { unlockSpeech } from "./voice";
 import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode, syncAfterRun } from "./cloudSaveStatus";
 
@@ -72,12 +74,31 @@ function bootstrap(): void {
   game.scene.add("SnakeGameScene", SnakeGameScene, false);
   const snakeScene = (): SnakeGameScene | null => game.scene.getScene("SnakeGameScene") as SnakeGameScene | null;
 
+  // The redesign's question flow (question apples, ANSWER door, answer
+  // room) is opt-in with ?answer=room until it replaces the typed-answer
+  // overlay as the default (BACKLOG.md's redesign entry, step 4).
+  const questionFlow = new URLSearchParams(location.search).get("answer") === "room" ? createQuestionFlowPage(game, snakeScene) : null;
+
+  // The question panel comes and goes above the board; re-read the
+  // board's space whenever it does (same fix as answer-room.html).
+  const container = document.getElementById("game-container");
+  if (container) {
+    new ResizeObserver(() => {
+      game.scale.getParentBounds();
+      game.scale.refresh();
+    }).observe(container);
+  }
+
   const startGame = (): void => {
     hideCard("start-card");
     hideCard("win-card");
     hideCard("lose-card");
     if (game.scene.isActive("SnakeGameScene")) game.scene.stop("SnakeGameScene");
+    questionFlow?.reset();
+    // This tap unlocks speech on iOS for the rest of the visit.
+    if (questionFlow) unlockSpeech();
     game.scene.start("SnakeGameScene", {
+      questionFlow: questionFlow?.hooks,
       onWin: (stats: RunStats) => {
         // showWinCard records the run (and so updates the stored high
         // score) — showHighScore must read that *after*, not before, or
@@ -118,7 +139,14 @@ function bootstrap(): void {
   // #jump-btn uses.
   const joystick = document.getElementById("joystick");
   const knob = document.getElementById("joystick-knob");
-  if (joystick && knob) wireJoystick(joystick, knob, (direction) => snakeScene()?.requestDirection(direction));
+  if (joystick && knob) {
+    wireJoystick(
+      joystick,
+      knob,
+      (direction) => (questionFlow ? questionFlow.steer(direction) : snakeScene()?.requestDirection(direction)),
+      (held) => questionFlow?.setJoystickHeld(held),
+    );
+  }
 }
 
 preventDoubleTapZoom();
