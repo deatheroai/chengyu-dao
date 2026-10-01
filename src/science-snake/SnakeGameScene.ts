@@ -169,6 +169,8 @@ export class SnakeGameScene extends Phaser.Scene {
   private onLose!: (reason: LoseReason, stats: RunStats) => void;
   private keydownHandler?: (e: KeyboardEvent) => void;
   private flow?: QuestionFlowHooks;
+  /** The delay `tickEvent` loops at — scheduleTick only replaces the loop when this needs to change. */
+  private tickPace = 0;
   private activeQuestion: ActiveQuestion | null = null;
   private questionLabels: Phaser.GameObjects.Text[] = [];
 
@@ -194,6 +196,8 @@ export class SnakeGameScene extends Phaser.Scene {
     this.ended = false;
     this.activeQuestion = null;
     this.questionLabels = [];
+    this.tickEvent = undefined;
+    this.tickPace = 0;
 
     for (let i = 0; i < INITIAL_APPLE_COUNT; i++) this.spawnReplacementApple();
     this.spawnReplacementScienceItemIfNeeded();
@@ -240,17 +244,18 @@ export class SnakeGameScene extends Phaser.Scene {
   }
 
   /**
-   * One step at a time, each scheduling the next, so the pace can change
-   * between steps — slower while a question is open. The next step is
-   * scheduled before this one runs, so anything that ends the run during
-   * it (finishWin/finishLose) cancels it as before.
+   * A looping timer at the current pace, replaced only when the pace
+   * changes (slower while a question is open). Without a question open
+   * this is exactly the single looping TICK_MS timer the game always
+   * had, so the default game's timing is unchanged; a loop also carries
+   * any lateness over to the next step instead of letting it add up.
    */
   private scheduleTick(): void {
-    this.tickEvent = this.time.delayedCall(this.activeQuestion ? QUESTION_TICK_MS : TICK_MS, () => {
-      if (this.ended) return;
-      this.scheduleTick();
-      this.tick();
-    });
+    const pace = this.activeQuestion ? QUESTION_TICK_MS : TICK_MS;
+    if (this.tickEvent && this.tickPace === pace) return;
+    this.tickEvent?.remove();
+    this.tickPace = pace;
+    this.tickEvent = this.time.addEvent({ delay: pace, loop: true, callback: () => this.tick() });
   }
 
   private teardown(): void {
@@ -364,10 +369,11 @@ export class SnakeGameScene extends Phaser.Scene {
     this.checkOutcome();
   }
 
-  /** The redesign's flow: ①②③ appear and the board slows down (scheduleTick picks the slower pace up from the next step). */
+  /** The redesign's flow: ①②③ appear and the board slows down to QUESTION_TICK_MS. */
   private startQuestion(questionId: string): void {
     const apples = placeQuestionApples(this.occupiedCells(), this.snake.body[0], this.rng);
     this.activeQuestion = { id: questionId, revealed: 0, apples, door: null, doorArmed: true };
+    this.scheduleTick();
     this.flow?.onQuestionStart(questionId);
   }
 
@@ -415,6 +421,7 @@ export class SnakeGameScene extends Phaser.Scene {
       this.snake = applyCorrectAnswerEaten(this.snake);
       this.stats.questionsCorrect += 1;
       this.activeQuestion = null;
+      this.scheduleTick();
       this.spawnReplacementScienceItemIfNeeded();
     } else if (question) {
       question.doorArmed = false;
