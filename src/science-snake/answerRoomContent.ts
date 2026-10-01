@@ -219,4 +219,106 @@ export const answerRoomContent: Record<string, AnswerRoomQuestion> = {
     wrongPhrase: "the wooden door is transparent,",
     wrongReplaces: 2,
   },
+  // --- Batches 5-6 (drafted 2026-10-01 after those questions landed on
+  // main; pending review in chat, same batches-of-5 flow) ---
+  "bens-bathwater-argument": {
+    questionParts: [
+      "Ben has just been holding an ice pack, and his sister Zoe has just come in from playing in the hot sun.",
+      "They both dip a hand into the same basin of water. Ben says the water is hot, but Zoe says it is cold.",
+      "Explain why they disagree, and what they should use to find out how hot the water really is.",
+    ],
+    phrases: ["Their hands were at different temperatures,", "so", "touch is not reliable,", "and a thermometer measures it accurately."],
+    wrongPhrase: "touch is always right,",
+    wrongReplaces: 2,
+  },
+  "kavyas-mosquito-plates": {
+    questionParts: [
+      "Every week, Kavya's mum empties the water that collects in the plates under their flowerpots.",
+      "She says this stops mosquitoes from breeding at home.",
+      "Explain how emptying the water helps.",
+    ],
+    phrases: ["Mosquitoes lay eggs in still water,", "so", "emptying the water kills the larvae", "before they become adults."],
+    wrongPhrase: "Mosquitoes lay eggs in dry soil,",
+    wrongReplaces: 0,
+  },
+  "ethans-sweet-cracker": {
+    questionParts: [
+      "Ethan chews a plain, unsweetened cracker for a long time without swallowing it.",
+      "After a while he notices it starts to taste slightly sweet.",
+      "Explain what is happening to the cracker in his mouth.",
+    ],
+    phrases: ["The saliva in his mouth", "starts to digest the cracker,", "so", "the starch breaks down into sugar."],
+    wrongPhrase: "the starch turns into salt.",
+    wrongReplaces: 3,
+  },
+  "the-mushroom-log": {
+    questionParts: [
+      "In the school garden, mushrooms have started growing on an old fallen log.",
+      "Over the months, the log becomes soft and crumbly and slowly rots away.",
+      "Explain how the mushrooms get their food, and what they are doing to the log.",
+    ],
+    phrases: ["The mushrooms cannot make their own food,", "so", "they feed on the dead log", "and break down its wood."],
+    wrongPhrase: "The mushrooms make their own food,",
+    wrongReplaces: 0,
+  },
+  "aarons-fridge-seeds": {
+    questionParts: [
+      "Aaron puts bean seeds on damp cotton wool in two containers.",
+      "He keeps one container in a dark kitchen cupboard and the other in the fridge.",
+      "After five days, only the seeds in the cupboard have started to sprout. Explain why the seeds in the fridge did not sprout.",
+    ],
+    phrases: ["Seeds need warmth to germinate,", "but", "the fridge was too cold,", "so those seeds could not sprout."],
+    wrongPhrase: "the fridge was too dark,",
+    wrongReplaces: 2,
+  },
+  "weis-bat-argument": {
+    questionParts: [
+      "At the zoo's night safari, Wei's cousin points at a bat and says it must be a bird",
+      "because it has wings and can fly. Wei says a bat is actually a mammal.",
+      "Explain why Wei is right.",
+    ],
+    phrases: ["A bat has fur, not feathers,", "and", "it gives birth to live young,", "so it is a mammal."],
+    wrongPhrase: "it lays eggs in a nest,",
+    wrongReplaces: 2,
+  },
+  "the-fridge-door-note": {
+    questionParts: [
+      "Priya uses a magnet to stick a paper note onto the fridge door, and it stays up even with the paper in between.",
+      "When she tries to stick the same note onto her wooden bedroom door, the magnet falls straight off.",
+      "Explain both things she noticed.",
+    ],
+    phrases: ["The fridge door is made of steel,", "and", "the magnet's pull passes through paper,", "but wood is not magnetic."],
+    wrongPhrase: "The fridge door is made of plastic,",
+    wrongReplaces: 0,
+  },
+  "mias-syringe-squeeze": {
+    questionParts: [
+      "Mia has two plastic syringes with no needles, one filled with air and one filled with water.",
+      "She covers the tip of each with her finger and pushes the plunger.",
+      "She can push the air one in a little way, but the water one will not move at all. Explain why.",
+    ],
+    phrases: ["Air is a gas that can be compressed,", "but", "water is a liquid", "that cannot be compressed."],
+    wrongPhrase: "water is a gas",
+    wrongReplaces: 2,
+  },
+  "two-wet-shirts": {
+    questionParts: [
+      "After washing, Mum hangs one wet shirt outside on a sunny, windy balcony.",
+      "She forgets another identical wet shirt, folded up inside the washing bag in the bathroom.",
+      "That evening the balcony shirt is dry, but the folded one is still damp. Explain why the shirt outside dried so much faster.",
+    ],
+    phrases: ["The sun and wind outside", "made the water evaporate faster,", "but", "the folded shirt stayed damp."],
+    wrongPhrase: "made the water condense faster,",
+    wrongReplaces: 1,
+  },
+  "sitis-drawer-seeds": {
+    questionParts: [
+      "Siti finds a packet of dry seeds that has been in a drawer for a whole year.",
+      "Her friend says the seeds must be non-living because they do not move, eat or grow.",
+      "Explain why Siti's friend is wrong.",
+    ],
+    phrases: ["The seeds are living things,", "because", "they can germinate", "and grow into new plants."],
+    wrongPhrase: "The seeds are non-living things,",
+    wrongReplaces: 0,
+  },
 };
