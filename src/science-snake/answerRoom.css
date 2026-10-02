@@ -262,7 +262,7 @@ body:has(.answer-room-app) {
   to { transform: translateY(3px) scale(0.9, 1.1); }
 }
 
-/* --- The question panel on the main board (science-snake.html) --- */
+/* --- The question bar on the main board (science-snake.html) --- */
 
 #play-area #room-panel #read-question-btn {
   border: none;
@@ -272,18 +272,132 @@ body:has(.answer-room-app) {
   cursor: pointer;
 }
 
-#question-reading .question-parts p {
-  margin: 0.25rem 0;
-  font-size: 0.95rem;
+/* A fixed height for the whole game, whatever it's showing, so the
+   board below it never changes size. */
+body.question-flow #room-panel {
+  flex: 0 0 auto;
+  height: 8.6rem;
+  overflow: hidden;
+}
+
+/* The question so far, scrolling slowly across on repeat. The span's
+   left padding (100% of the bar) starts it just off the right edge;
+   questionFlowPage.ts sets the duration from the text's length so it
+   always moves at the same easy reading speed. */
+#question-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  margin-top: 0.6rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+#question-marquee-text {
+  display: inline-block;
+  padding-left: 100%;
+  animation: question-marquee var(--marquee-duration, 20s) linear infinite;
+}
+
+#question-marquee.static #question-marquee-text {
+  padding-left: 0;
+  animation: none;
+  white-space: normal;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+@keyframes question-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
 }
 
 #door-hint {
-  margin: 0.3rem 0 0.1rem;
+  margin: 0.3rem 0 0;
   font-weight: 700;
   color: #2f7fd6;
 }
 
-/* The countdown sits over the board, not the panel. */
+/* In the bar the sentence is one line that keeps the newest word in
+   view (answerRoomUi.ts scrolls it), and the A/B options are compact —
+   the "hold the joystick" tip moves into the bar's title. */
+body.question-flow #sentence-strip {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  margin: 0.3rem 0 0.1rem;
+}
+
+body.question-flow .word-chip {
+  flex: 0 0 auto;
+}
+
+body.question-flow #choice-box {
+  padding: 0.15rem 0.5rem;
+  margin: 0.15rem 0 0;
+}
+
+body.question-flow .choice-hold-hint {
+  display: none;
+}
+
+body.question-flow .choice-row {
+  font-size: 0.95rem;
+  margin: 0.05rem 0;
+  line-height: 1.25;
+}
+
+body.question-flow .choice-badge {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+/* The whole question in the middle of the board while the answer room
+   counts down. Doesn't take touches, so the joystick still aims. */
+#room-intro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.room-intro-card {
+  position: relative;
+  max-width: 24rem;
+  background: rgba(255, 252, 244, 0.97);
+  border: 3px solid #2f7fd6;
+  border-radius: 18px;
+  padding: 1rem 1.1rem 0.8rem;
+  box-shadow: 0 10px 28px rgba(44, 61, 36, 0.25);
+}
+
+.room-intro-label {
+  margin: 0 2.2rem 0.4rem 0;
+  font-weight: 700;
+  color: #2f7fd6;
+}
+
+.room-intro-count {
+  position: absolute;
+  top: -0.9rem;
+  right: -0.6rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: #2f7fd6;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(44, 61, 36, 0.3);
+}
+
+/* The countdown sits over the board, not the bar. */
 #play-area #countdown {
   top: auto;
   bottom: 0;
@@ -300,6 +414,23 @@ body.question-flow #dpad-bar {
   padding: 0.3rem 0 max(0.4rem, env(safe-area-inset-bottom));
 }
 
+/* …and the whole strip is the controller, with a bigger disc and
+   arrows (questionFlowPage passes it as the joystick's hit area), same
+   as answer-room.html: a tap on or past an arrow still steers. */
+body.question-flow #dpad-bar {
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 body.question-flow #joystick {
+  width: 9rem;
+  height: 9rem;
   background: rgba(44, 61, 36, 0.07);
+}
+
+body.question-flow .joystick-arrow {
+  font-size: 1.3rem;
+  color: rgba(44, 61, 36, 0.6);
 }

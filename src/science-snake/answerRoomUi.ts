@@ -36,6 +36,10 @@ export function renderSentence(steps: RoomStep[], stepIndex: number): void {
     return chip;
   });
   strip.replaceChildren(...chips);
+  // Where the sentence is one line that doesn't wrap (the main game's
+  // bar), keep the newest word in view.
+  const newest = chips[stepIndex - 1];
+  if (newest) strip.scrollLeft = Math.max(0, newest.offsetLeft + newest.offsetWidth - strip.clientWidth + 48);
 }
 
 /** The A/B box: only there while the two blue apples are on the board. */

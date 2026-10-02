@@ -20,19 +20,21 @@
            board gets the full height instead of sharing it with the
            controls. -->
       <div id="play-area">
-        <!-- The redesign's question panel (science-snake.html?answer=room
-             only, until it becomes the default — BACKLOG.md). Shows the
-             question as ①②③ are eaten, then the sentence being built
-             while the snake is in the answer room. Same ids as
-             answer-room.html, so answerRoomUi.ts drives both. -->
-        <div id="room-panel" class="hidden">
+        <!-- The redesign's question bar (science-snake.html?answer=room
+             only, until it becomes the default — BACKLOG.md). A slim bar
+             of fixed height, so the board never resizes: the question so
+             far scrolls across it ticker-style as ①②③ are eaten, then it
+             holds the sentence being built (and the A/B options) while
+             the snake is in the answer room. Same ids as answer-room.html
+             where they overlap, so answerRoomUi.ts drives both. -->
+        <div id="room-panel" class="hidden" data-mode="idle">
           <div class="room-panel-top">
-            <span class="room-title"><span data-question-icon></span> <span id="room-panel-title">Question</span></span>
+            <span class="room-title"><span data-question-icon>🔬</span> <span id="room-panel-title">Science Snake</span></span>
             <button id="read-question-btn" type="button" aria-label="Read the question again">🔊</button>
           </div>
           <div id="question-reading">
-            <div class="question-parts" data-question-parts></div>
-            <p id="door-hint" class="hidden">🚪 Head for the <b>ANSWER</b> door when you're ready!</p>
+            <div id="question-marquee"><span id="question-marquee-text"></span></div>
+            <p id="door-hint" class="hidden">🚪 Head for the <b>ANSWER</b> door!</p>
           </div>
           <div id="room-ui" class="hidden">
             <div id="sentence-strip" aria-label="Your sentence so far"></div>
@@ -40,7 +42,17 @@
             <p id="room-hint" class="hidden">🎉 Sentence done! Climb the ladder ↖ to get out.</p>
           </div>
         </div>
-        <div id="game-container"></div>
+        <div id="game-container">
+          <!-- Entering the answer room: the whole question in the middle of
+               the board, with a small countdown beside it. -->
+          <div id="room-intro" class="hidden" aria-live="polite">
+            <div class="room-intro-card">
+              <span id="room-intro-count" class="room-intro-count"></span>
+              <p class="room-intro-label">Read the question, then build the answer!</p>
+              <div class="question-parts" data-question-parts></div>
+            </div>
+          </div>
+        </div>
         <div id="countdown" aria-live="polite"></div>
         <div id="dpad-bar">
           <!-- One joystick disc instead of four buttons (2026-09-26, per

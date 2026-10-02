@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { steerBoardTo, stopBoardSteering } from "./helpers/questionFlow";
 import { steerRoomTo, stopRoomSteering } from "./helpers/answerRoom";
+import { answerRoomContent } from "../src/science-snake/answerRoomContent";
 
 /**
  * The redesign's question flow on the real game
@@ -21,17 +22,22 @@ async function openQuestionAndReachRoom(page: Page): Promise<string> {
   await steerBoardTo(page, "science");
   await expect(flow(page)).not.toHaveAttribute("data-question-id", "", { timeout: 60_000 });
   const questionId = (await flow(page).getAttribute("data-question-id"))!;
-  await expect(page.locator("#room-panel")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#room-panel")).toHaveAttribute("data-mode", "reading");
   await expect(flow(page).locator("span[data-part]")).toHaveCount(3);
 
   await steerBoardTo(page, "part");
   await expect(flow(page)).toHaveAttribute("data-revealed", "3", { timeout: 90_000 });
-  await expect(page.locator("#room-panel .question-parts p")).toHaveCount(3);
+  // The bar's ticker carries the whole question once all three parts are in.
+  await expect(page.locator("#question-marquee-text")).toContainText(answerRoomContent[questionId].questionParts[2]);
   await expect(flow(page).locator("span[data-door]")).toHaveCount(6, { timeout: 10_000 });
   await expect(page.locator("#door-hint")).toBeVisible();
 
   await steerBoardTo(page, "door");
-  await expect(page.locator("#room-panel-title")).toHaveText("Build the answer", { timeout: 60_000 });
+  await expect(page.locator("#room-panel")).toHaveAttribute("data-mode", "room", { timeout: 60_000 });
+  // The whole question sits in the middle of the board during the countdown.
+  await expect(page.locator("#room-intro")).toBeVisible();
+  await expect(page.locator("#room-intro .question-parts p")).toHaveCount(3);
+  await expect(page.locator("#room-intro")).toBeHidden({ timeout: 10_000 });
   await stopBoardSteering(page);
   return questionId;
 }
@@ -41,7 +47,7 @@ test("science item → ①②③ → ANSWER door → answer room → sentence bu
   await openQuestionAndReachRoom(page);
 
   await steerRoomTo(page, "right");
-  await expect(page.locator("#room-panel")).toHaveClass(/hidden/, { timeout: 120_000 });
+  await expect(page.locator("#room-panel")).toHaveAttribute("data-mode", "idle", { timeout: 120_000 });
   await stopRoomSteering(page);
   await expect(flow(page)).toHaveAttribute("data-questions-correct", "1");
   await expect(flow(page)).toHaveAttribute("data-question-id", "");
@@ -58,8 +64,23 @@ test("a wrong blue apple sends the snake back to the board with the question and
   await stopRoomSteering(page);
   await page.click("#wrong-choice-btn");
 
-  await expect(page.locator("#question-reading")).toBeVisible();
+  await expect(page.locator("#room-panel")).toHaveAttribute("data-mode", "reading");
+  await expect(page.locator("#door-hint")).toBeVisible();
   await expect(flow(page)).toHaveAttribute("data-question-id", questionId);
   await expect(flow(page)).toHaveAttribute("data-questions-correct", "0");
   await expect(flow(page).locator("span[data-door]")).toHaveCount(6);
+});
+
+test("the question bar keeps one height, so the board never changes size as the question comes and goes", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto("/science-snake.html?answer=room");
+  const height = () => page.locator("#game-container").evaluate((el) => Math.round(el.getBoundingClientRect().height));
+  const before = await height();
+  await page.click("#start-btn");
+  await steerBoardTo(page, "science");
+  await expect(flow(page)).not.toHaveAttribute("data-question-id", "", { timeout: 60_000 });
+  await steerBoardTo(page, "part");
+  await expect(flow(page)).toHaveAttribute("data-revealed", "3", { timeout: 90_000 });
+  await stopBoardSteering(page);
+  expect(await height()).toBe(before);
 });

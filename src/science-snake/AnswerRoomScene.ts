@@ -78,6 +78,8 @@ export interface AnswerRoomSceneData {
    * fills the same space the main board did.
    */
   fit?: { width: number; height: number };
+  /** How long each number of the 3-2-1 stays up; defaults to COUNTDOWN_STEP_MS. */
+  countdownStepMs?: number;
 }
 
 export class AnswerRoomScene extends Phaser.Scene {
@@ -158,7 +160,7 @@ export class AnswerRoomScene extends Phaser.Scene {
   /** 3-2-1 before moving, on every entry — the child gets to look at the board first. */
   private runCountdown(value: number): void {
     this.data_.onCountdown(value);
-    this.time.delayedCall(COUNTDOWN_STEP_MS, () => {
+    this.time.delayedCall(this.data_.countdownStepMs ?? COUNTDOWN_STEP_MS, () => {
       if (value > 1) {
         this.runCountdown(value - 1);
         return;

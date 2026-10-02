@@ -2058,6 +2058,20 @@ other mechanic in this repo.
         cell (the snake kept running into it); and the panel shows the
         whole question again during the room's 3-2-1, switching to the
         sentence strip as the snake starts moving.
+      - **Question bar (2026-10-02, per "after the question appeared the
+        board became really small... keep the slim bar but let the whole
+        question slowly repeat marquee style"):** with the flow on, a
+        fixed-height bar (8.6rem) is above the board from page load, so
+        the board never resizes. It shows the question so far as a slow
+        repeating ticker (45px/s), then the sentence strip (one line,
+        kept scrolled to the newest word) and compact A/B options in the
+        room, with "✋ Hold the joystick to move" as its title at the
+        choice. Entering the room, the whole question shows as a card in
+        the middle of the board with a small countdown badge (1s steps).
+        Room word pace slowed to 300ms ("the board seems so much
+        bigger"), and the main page's joystick gets the room's easier
+        controls in flow mode (whole strip under the board, dead zone
+        0.2, bigger disc).
       - **Next:** step 2 (golden apples + points), step 3 (wrong-choice
         punishment: doubled, muddy brown-grey), step 4 (make it the
         default, retire the overlay and its e2e).
