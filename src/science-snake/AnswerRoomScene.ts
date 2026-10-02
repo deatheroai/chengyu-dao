@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { Direction } from "./snakeGrid";
 import type { SnakeState } from "./snakeGrid";
+import { drawApple, APPLE_RED, APPLE_BLUE } from "./appleArt";
 import {
   createRoomSnake,
   spawnStep,
@@ -46,12 +47,8 @@ const SNAKE_HEAD_COLOR = 0x2c6b39;
 const BELLY_COLOR = 0xf3e9c9;
 const DEAD_EYE_COLOR = 0x2a2a2a;
 const SMOKE_COLOR = 0x8a8a8a;
-const WORD_APPLE_COLOR = 0xe0463a;
-const OPTION_APPLE_COLOR = 0x2f7fd6;
-const LEAF_COLOR = 0x3c8a4c;
 /** Phaser's own default is Courier; match the page's font instead. */
 const LABEL_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
-const STEM_COLOR = 0x6b4424;
 
 const KEY_TO_DIRECTION: Record<string, Direction> = {
   ArrowUp: "up",
@@ -368,34 +365,11 @@ export class AnswerRoomScene extends Phaser.Scene {
 
     for (const apple of this.apples) {
       const { x, y } = this.cellCenter(apple.position);
-      this.drawApple(g, x, y, apple.kind === "option" ? OPTION_APPLE_COLOR : WORD_APPLE_COLOR, apple.kind === "word");
+      drawApple(g, x, y, ROOM_CELL_SIZE, apple.kind === "option" ? APPLE_BLUE : APPLE_RED, apple.kind === "word");
     }
 
     this.renderSnake(g);
     this.data_.onState(this.snake, this.apples, this.finished);
-  }
-
-  /**
-   * An apple shape rather than a plain ball (per "apple looks like an
-   * orange... can it have apple shape? 🍎"): two overlapping lobes give
-   * the dip at the top, plus a brown stem, a leaf and a small shine.
-   */
-  private drawApple(g: Phaser.GameObjects.Graphics, cx: number, cy: number, color: number, shine: boolean): void {
-    const r = ROOM_CELL_SIZE / 2 - 2;
-    const bodyY = cy + r * 0.12;
-    g.fillStyle(color, 1);
-    g.fillCircle(cx - r * 0.36, bodyY, r * 0.74);
-    g.fillCircle(cx + r * 0.36, bodyY, r * 0.74);
-    g.fillEllipse(cx, bodyY + r * 0.24, r * 1.62, r * 1.4);
-    g.lineStyle(3, STEM_COLOR, 1);
-    g.lineBetween(cx, bodyY - r * 0.45, cx + r * 0.12, bodyY - r * 0.95);
-    g.fillStyle(LEAF_COLOR, 1);
-    g.fillEllipse(cx + r * 0.42, bodyY - r * 0.82, r * 0.62, r * 0.3);
-    // The shine is skipped on blue choice apples, where the A/B letter sits.
-    if (shine) {
-      g.fillStyle(0xffffff, 0.45);
-      g.fillEllipse(cx - r * 0.45, bodyY - r * 0.15, r * 0.26, r * 0.4);
-    }
   }
 
   private renderSnake(g: Phaser.GameObjects.Graphics): void {

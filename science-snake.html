@@ -22,8 +22,8 @@
       <div id="play-area">
         <!-- The redesign's question bar (science-snake.html?answer=room
              only, until it becomes the default — BACKLOG.md). A slim bar
-             of fixed height, so the board never resizes: the question so
-             far scrolls across it ticker-style as ①②③ are eaten, then it
+             of fixed height, so the board never resizes: the question
+             builds up in it phrase by phrase as the snake eats them, then it
              holds the sentence being built (and the A/B options) while
              the snake is in the answer room. Same ids as answer-room.html
              where they overlap, so answerRoomUi.ts drives both. -->
@@ -33,7 +33,7 @@
             <button id="read-question-btn" type="button" aria-label="Read the question again">🔊</button>
           </div>
           <div id="question-reading">
-            <div id="question-marquee"><span id="question-marquee-text"></span></div>
+            <div id="question-built" aria-live="polite"></div>
             <p id="door-hint" class="hidden">🚪 Head for the <b>ANSWER</b> door!</p>
           </div>
           <div id="room-ui" class="hidden">

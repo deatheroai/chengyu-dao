@@ -2072,6 +2072,19 @@ other mechanic in this repo.
         bigger"), and the main page's joystick gets the room's easier
         controls in flow mode (whole strip under the board, dead zone
         0.2, bigger disc).
+      - **Question phrases replace ①②③ (2026-10-02, per "the player is
+        just chasing after numbers and not reading the question"):** the
+        question now appears one 4-6 word phrase at a time on its own
+        labelled apple, near the snake, like the answer room's words, and
+        builds up in the bar (newest phrase highlighted, a faint dot per
+        phrase to come; each read aloud as it's eaten). Phrases come from
+        `questionFlow.ts`'s `splitIntoPhrases` — the prompt's own words,
+        cut at commas, joining words and prepositions, never across a
+        full stop (~8 per question; tested to join back exactly for all
+        30). The ticker is gone. Main board pace while a question is open
+        unchanged (~260ms). All apples on both boards now share one drawn
+        shape (`appleArt.ts`) — the main board used the 🍎 emoji, the
+        room a drawn apple (emoji can't be blue).
       - **Next:** step 2 (golden apples + points), step 3 (wrong-choice
         punishment: doubled, muddy brown-grey), step 4 (make it the
         default, retire the overlay and its e2e).

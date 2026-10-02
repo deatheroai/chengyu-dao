@@ -28,15 +28,14 @@ import { createRng } from "./seededRandom";
 import { scienceQuestionsById, scienceQuestions } from "./scienceQuestions";
 import { askQuestion } from "./QuestionOverlay";
 import { updateSnakeStatus, syncBoardItems, updateQuestionFlowStatus } from "./snakeStatus";
+import { drawApple, APPLE_RED, APPLE_POISON } from "./appleArt";
 import {
-  placeQuestionApples,
+  placePhraseApple,
+  splitIntoPhrases,
   placeAnswerDoor,
-  isNextPart,
   isOnCells,
   QUESTION_TICK_MS,
-  QUESTION_PART_COUNT,
   ANSWER_DOOR_WORD,
-  type QuestionApple,
 } from "./questionFlow";
 
 /**
@@ -71,8 +70,8 @@ export interface RunStats {
  */
 export interface QuestionFlowHooks {
   onQuestionStart: (questionId: string) => void;
-  /** `revealed` is how many of the three parts are now showing (1-3). */
-  onPartRevealed: (questionId: string, revealed: number) => void;
+  /** A question phrase was eaten; `eaten` of `phrases` are now in. */
+  onPhraseEaten: (questionId: string, eaten: number, phrases: string[]) => void;
   onDoorOpen: (questionId: string) => void;
   /** The board is frozen until the page calls `returnFromRoom`. */
   onEnterRoom: (questionId: string) => void;
@@ -86,14 +85,17 @@ export interface SnakeGameSceneData {
 
 interface ActiveQuestion {
   id: string;
-  revealed: number;
-  apples: QuestionApple[];
+  /** The question cut into 4-6 word phrases (questionFlow.ts's splitIntoPhrases), eaten in order. */
+  phrases: string[];
+  /** How many phrases have been eaten. */
+  eaten: number;
+  /** Where the next phrase is waiting — only ever one on the board. */
+  apple: Position | null;
   door: Position[] | null;
   /** False right after coming back out of the room through the door, until the head has left the door's cells — otherwise it would walk straight back in. */
   doorArmed: boolean;
 }
 
-const QUESTION_APPLE_COLOR = 0x7b4fd6;
 const DOOR_COLOR = 0x2f7fd6;
 /** Phaser's own default is Courier; match the page's font instead. */
 const LABEL_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -268,7 +270,7 @@ export class SnakeGameScene extends Phaser.Scene {
     return [
       ...this.snake.body,
       ...this.items.map((item) => item.position),
-      ...(question ? question.apples.map((a) => a.position) : []),
+      ...(question?.apple ? [question.apple] : []),
       ...(question?.door ?? []),
     ];
   }
@@ -369,15 +371,16 @@ export class SnakeGameScene extends Phaser.Scene {
     this.checkOutcome();
   }
 
-  /** The redesign's flow: ①②③ appear and the board slows down to QUESTION_TICK_MS. */
+  /** The redesign's flow: the question's first phrase appears and the board slows down to QUESTION_TICK_MS. */
   private startQuestion(questionId: string): void {
-    const apples = placeQuestionApples(this.occupiedCells(), this.snake.body[0], this.rng);
-    this.activeQuestion = { id: questionId, revealed: 0, apples, door: null, doorArmed: true };
+    const phrases = splitIntoPhrases(scienceQuestionsById[questionId]?.prompt ?? "");
+    this.activeQuestion = { id: questionId, phrases, eaten: 0, apple: null, door: null, doorArmed: true };
+    this.activeQuestion.apple = placePhraseApple(this.occupiedCells(), this.snake.body[0], this.rng);
     this.scheduleTick();
     this.flow?.onQuestionStart(questionId);
   }
 
-  /** True when the head's cell belonged to the question (a numbered apple or the door), so nothing else is eaten there. */
+  /** True when the head's cell belonged to the question (the phrase apple or the door), so nothing else is eaten there. */
   private handleQuestionFlow(head: Position, question: ActiveQuestion): boolean {
     if (question.door) {
       const onDoor = isOnCells(question.door, head);
@@ -389,20 +392,25 @@ export class SnakeGameScene extends Phaser.Scene {
       if (!onDoor) question.doorArmed = true;
       if (onDoor) return true;
     }
-    const index = question.apples.findIndex((a) => a.position.x === head.x && a.position.y === head.y);
-    if (index === -1) return false;
-    // Out of order: nothing happens — reading is never punished.
-    if (!isNextPart(question.revealed, question.apples[index].part)) return true;
-    question.apples.splice(index, 1);
-    question.revealed += 1;
-    this.flow?.onPartRevealed(question.id, question.revealed);
-    if (question.revealed === QUESTION_PART_COUNT) this.tryOpenDoor(question);
+    if (!question.apple || question.apple.x !== head.x || question.apple.y !== head.y) return false;
+    question.eaten += 1;
+    question.apple = null;
+    this.flow?.onPhraseEaten(question.id, question.eaten, question.phrases);
+    if (question.eaten < question.phrases.length) {
+      question.apple = placePhraseApple(this.occupiedCells(), head, this.rng);
+    } else {
+      this.tryOpenDoor(question);
+    }
     return true;
   }
 
-  /** Called again each step until it succeeds, in case the board is too crowded for the door right now. */
+  /** Called again each step until it succeeds, in case the board is too crowded for the door (or the next phrase) right now. */
   private tryOpenDoor(question: ActiveQuestion): void {
-    if (question.door || question.revealed < QUESTION_PART_COUNT) return;
+    if (question.eaten < question.phrases.length) {
+      if (!question.apple) question.apple = placePhraseApple(this.occupiedCells(), this.snake.body[0], this.rng);
+      return;
+    }
+    if (question.door) return;
     question.door = placeAnswerDoor(this.occupiedCells(), this.snake.body[0], this.rng);
     if (question.door) this.flow?.onDoorOpen(question.id);
   }
@@ -542,28 +550,36 @@ export class SnakeGameScene extends Phaser.Scene {
   }
 
   /**
-   * The numbered question apples (the next one bright, the others faded
-   * so the order is obvious) and the A-N-S-W-E-R door, one letter per
-   * cell. Labels are rebuilt each render — there are never more than
-   * nine of them.
+   * The question's next phrase — an apple with its words in a bubble
+   * just above it (below it on the top row), kept inside the board,
+   * same as the answer room's words — and the A-N-S-W-E-R door, one
+   * letter per cell. Labels are rebuilt each render; there are never
+   * more than seven of them.
    */
   private renderQuestionFlow(): void {
     for (const label of this.questionLabels) label.destroy();
     this.questionLabels = [];
     const question = this.activeQuestion;
     if (!question) return;
-    for (const apple of question.apples) {
-      const isNext = apple.part === question.revealed + 1;
-      const cx = apple.position.x * CELL_SIZE + CELL_SIZE / 2;
-      const cy = apple.position.y * CELL_SIZE + CELL_SIZE / 2;
-      this.gfx.fillStyle(QUESTION_APPLE_COLOR, isNext ? 1 : 0.4);
-      this.gfx.fillCircle(cx, cy, CELL_SIZE / 2 - 1);
-      this.questionLabels.push(
-        this.add
-          .text(cx, cy, String(apple.part), { fontFamily: LABEL_FONT, fontSize: `${CELL_SIZE - 10}px`, color: "#ffffff", fontStyle: "bold" })
-          .setOrigin(0.5)
-          .setAlpha(isNext ? 1 : 0.6),
-      );
+    if (question.apple) {
+      const cx = question.apple.x * CELL_SIZE + CELL_SIZE / 2;
+      const cy = question.apple.y * CELL_SIZE + CELL_SIZE / 2;
+      drawApple(this.gfx, cx, cy, CELL_SIZE, APPLE_RED);
+      const label = this.add
+        .text(0, 0, question.phrases[question.eaten] ?? "", {
+          fontFamily: LABEL_FONT,
+          fontSize: "15px",
+          color: "#2c3d24",
+          fontStyle: "bold",
+          backgroundColor: "#ffffff",
+          padding: { x: 5, y: 2 },
+        })
+        .setOrigin(0.5)
+        .setDepth(3);
+      const labelY = question.apple.y > 0 ? cy - CELL_SIZE * 0.95 : cy + CELL_SIZE * 0.95;
+      const half = label.width / 2;
+      label.setPosition(Math.min(Math.max(cx, half + 2), GRID_WIDTH * CELL_SIZE - half - 2), labelY);
+      this.questionLabels.push(label);
     }
     question.door?.forEach((cell, i) => {
       this.gfx.fillStyle(DOOR_COLOR, 1);
@@ -667,12 +683,22 @@ export class SnakeGameScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Apples and poison apples are drawn with the same apple shape the
+   * answer room uses (appleArt.ts); science items keep their topic emoji.
+   */
   private renderItems(): void {
     const seen = new Set<string>();
     for (const item of this.items) {
+      const cx = item.position.x * CELL_SIZE + CELL_SIZE / 2;
+      const cy = item.position.y * CELL_SIZE + CELL_SIZE / 2;
+      if (item.type === "apple" || item.type === "poison-apple") {
+        drawApple(this.gfx, cx, cy, CELL_SIZE, item.type === "apple" ? APPLE_RED : APPLE_POISON);
+        continue;
+      }
       const key = `${item.position.x},${item.position.y}`;
       seen.add(key);
-      const label = item.type === "poison-apple" ? "🟣" : item.type === "apple" ? "🍎" : (item.questionId && scienceQuestionsById[item.questionId]?.icon) || "❓";
+      const label = (item.questionId && scienceQuestionsById[item.questionId]?.icon) || "❓";
       let text = this.itemTexts.get(key);
       if (!text) {
         text = this.add.text(0, 0, label, { fontSize: `${CELL_SIZE - 6}px` }).setOrigin(0.5);

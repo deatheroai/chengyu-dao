@@ -11,10 +11,10 @@ import { GRID_WIDTH, GRID_HEIGHT } from "../../src/science-snake/snakeGrid";
  * key for its first step. Falls back to any move that doesn't hit the
  * body when no path exists.
  *
- * "science": the nearest science item. "part": the next numbered apple.
- * "door": the ANSWER door.
+ * "science": the nearest science item. "phrase": the question's next
+ * phrase apple (there's only ever one). "door": the ANSWER door.
  */
-export type BoardTarget = "science" | "part" | "door";
+export type BoardTarget = "science" | "phrase" | "door";
 
 export async function steerBoardTo(page: Page, target: BoardTarget): Promise<void> {
   await page.evaluate(
@@ -40,23 +40,21 @@ export async function steerBoardTo(page: Page, target: BoardTarget): Promise<voi
           y: Number(s.dataset.y),
           type: s.dataset.type,
         }));
-        const revealed = Number(flow.dataset.revealed ?? "0");
-        const parts = [...flow.querySelectorAll<HTMLElement>("span[data-part]")].map((s) => ({
+        const phrases = [...flow.querySelectorAll<HTMLElement>("span[data-phrase]")].map((s) => ({
           x: Number(s.dataset.x),
           y: Number(s.dataset.y),
-          part: Number(s.dataset.part),
         }));
         const door = [...flow.querySelectorAll<HTMLElement>("span[data-door]")].map((s) => ({ x: Number(s.dataset.x), y: Number(s.dataset.y) }));
 
         const goals = new Set<string>();
         if (target === "science") for (const i of items) if (i.type === "science") goals.add(k(i.x, i.y));
-        if (target === "part") for (const p of parts) if (p.part === revealed + 1) goals.add(k(p.x, p.y));
+        if (target === "phrase") for (const p of phrases) goals.add(k(p.x, p.y));
         if (target === "door") for (const d of door) goals.add(k(d.x, d.y));
 
         const blocked = new Set<string>();
         for (const s of body.slice(0, -1)) blocked.add(k(s.x, s.y));
         for (const i of items) if (i.type === "poison-apple" || (i.type === "science" && target !== "science")) blocked.add(k(i.x, i.y));
-        for (const p of parts) blocked.add(k(p.x, p.y));
+        for (const p of phrases) blocked.add(k(p.x, p.y));
         for (const d of door) blocked.add(k(d.x, d.y));
         for (const g of goals) blocked.delete(g);
 

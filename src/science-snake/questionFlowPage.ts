@@ -13,8 +13,9 @@ import { speak, chime } from "./voice";
 /**
  * The page side of the redesign's question flow on the real game
  * (science-snake.html?answer=room, until it becomes the default —
- * BACKLOG.md): the slim question bar above the board (the question so
- * far scrolling across it, read aloud part by part as ①②③ are eaten),
+ * BACKLOG.md): the slim question bar above the board (the question
+ * building up in it phrase by phrase as the snake eats them, each
+ * phrase read aloud),
  * and the answer room run in the same canvas while the main board waits
  * frozen underneath.
  */
@@ -44,9 +45,6 @@ export interface QuestionFlowPage {
   reset: () => void;
 }
 
-/** The ticker's speed in CSS pixels per second — slow enough to read along with. */
-const MARQUEE_PX_PER_SECOND = 45;
-
 export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => SnakeGameScene | null): QuestionFlowPage {
   game.scene.add(ROOM_SCENE_KEY, AnswerRoomScene, false);
   const roomScene = (): AnswerRoomScene | null => game.scene.getScene(ROOM_SCENE_KEY) as AnswerRoomScene | null;
@@ -57,10 +55,11 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
   };
   const panel = document.getElementById("room-panel");
   const title = document.getElementById("room-panel-title");
-  const marquee = document.getElementById("question-marquee");
-  const marqueeText = document.getElementById("question-marquee-text");
+  const built = document.getElementById("question-built");
 
   let questionId = "";
+  /** The question in the phrases the snake eats (from the scene). */
+  let phrases: string[] = [];
   let steps: RoomStep[] = [];
   /** How much of the sentence is eaten — kept across a trip to reread; back to 0 after a wrong choice. */
   let stepIndex = 0;
@@ -72,22 +71,40 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
     if (title) title.textContent = text;
   };
 
+  /** A plain instruction in the bar's text area. */
+  const setHint = (text: string): void => {
+    if (!built) return;
+    built.classList.add("instruction");
+    built.textContent = text;
+  };
+
   /**
-   * The bar's text line. `scroll` runs it as a slow repeating ticker,
-   * timed from the text's own width so it always moves at the same
-   * speed; otherwise it sits still (short instructions).
+   * The question as built so far: every phrase eaten, the newest one
+   * highlighted, then a faint dot per phrase still to come — kept
+   * scrolled so the newest line shows.
    */
-  const setMarquee = (text: string, scroll: boolean): void => {
-    if (!marquee || !marqueeText) return;
-    marqueeText.textContent = text;
-    marquee.classList.toggle("static", !scroll);
-    if (!scroll) return;
-    // Restart from the right edge each time the text changes.
-    marqueeText.style.animation = "none";
-    void marqueeText.offsetWidth;
-    marqueeText.style.animation = "";
-    const seconds = Math.max(8, marqueeText.scrollWidth / MARQUEE_PX_PER_SECOND);
-    marqueeText.style.setProperty("--marquee-duration", `${seconds}s`);
+  const renderBuilt = (eaten: number, phrases: string[]): void => {
+    if (!built) return;
+    built.classList.remove("instruction");
+    const spans = phrases.slice(0, eaten).map((phrase, i) => {
+      const span = document.createElement("span");
+      span.className = i === eaten - 1 ? "newest" : "done";
+      span.textContent = phrase;
+      return span;
+    });
+    const parts: (Node | string)[] = [];
+    spans.forEach((span, i) => {
+      if (i > 0) parts.push(" ");
+      parts.push(span);
+    });
+    if (eaten < phrases.length) {
+      const dots = document.createElement("span");
+      dots.className = "upcoming";
+      dots.textContent = ` ${"•".repeat(phrases.length - eaten)}`;
+      parts.push(dots);
+    }
+    built.replaceChildren(...parts);
+    built.scrollTop = built.scrollHeight;
   };
 
   const showMode = (mode: "idle" | "reading" | "room"): void => {
@@ -100,17 +117,16 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
     showMode("idle");
     setTitle("Science Snake");
     for (const el of document.querySelectorAll("[data-question-icon]")) el.textContent = "🔬";
-    setMarquee("Eat a science item 🔬 to get a question!", false);
+    setHint("Eat a science item 🔬 to get a question!");
     show("door-hint", false);
   };
 
-  /** The bar in reading mode: the question parts eaten so far, scrolling (and the door hint once all three are in). */
-  const showReading = (revealed: number, doorOpen: boolean): void => {
+  /** The bar in reading mode: the question built so far (and the door hint once it's all in). */
+  const showReading = (eaten: number, doorOpen: boolean): void => {
     showMode("reading");
     setTitle("Question");
-    const parts = content()?.questionParts ?? [];
-    if (revealed === 0) setMarquee("Eat the numbered apples ① ② ③ to read the question.", false);
-    else setMarquee(parts.slice(0, revealed).join("   "), true);
+    if (eaten === 0) setHint("Eat the word apples to build the question!");
+    else renderBuilt(eaten, phrases);
     show("door-hint", doorOpen);
   };
 
@@ -142,7 +158,7 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
       questionId = "";
       showIdle();
     } else {
-      showReading(content()?.questionParts.length ?? 0, true);
+      showReading(phrases.length, true);
     }
     snakeScene()?.returnFromRoom(outcome, setCountdown);
   };
@@ -210,14 +226,16 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
       steps = content() ? buildSteps(content()) : [];
       stepIndex = 0;
       for (const el of document.querySelectorAll("[data-question-icon]")) el.textContent = scienceQuestionsById[id]?.icon ?? "❓";
+      phrases = [];
       showReading(0, false);
-      speak("Eat the numbered apples to read the question.");
+      speak("Eat the word apples to build the question.");
     },
-    onPartRevealed: (id, revealed) => {
+    onPhraseEaten: (id, eaten, questionPhrases) => {
       if (id !== questionId) return;
-      showReading(revealed, false);
+      phrases = questionPhrases;
+      showReading(eaten, false);
       chime();
-      speak(content()?.questionParts[revealed - 1] ?? "");
+      speak(questionPhrases[eaten - 1] ?? "");
     },
     onDoorOpen: () => show("door-hint", true),
     onEnterRoom: () => enterRoom(),

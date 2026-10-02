@@ -6,7 +6,7 @@ import { answerRoomContent } from "../src/science-snake/answerRoomContent";
 /**
  * The redesign's question flow on the real game
  * (science-snake.html?answer=room — opt-in until it replaces the typed
- * overlay): eat a science item → ①②③ appear and reveal the question →
+ * overlay): eat a science item → eat the question phrase by phrase →
  * the ANSWER door → the answer room in the same canvas → back to the
  * board. Real ticks and rules throughout; steering by
  * helpers/questionFlow.ts on the board and helpers/answerRoom.ts in the
@@ -23,13 +23,14 @@ async function openQuestionAndReachRoom(page: Page): Promise<string> {
   await expect(flow(page)).not.toHaveAttribute("data-question-id", "", { timeout: 60_000 });
   const questionId = (await flow(page).getAttribute("data-question-id"))!;
   await expect(page.locator("#room-panel")).toHaveAttribute("data-mode", "reading");
-  await expect(flow(page).locator("span[data-part]")).toHaveCount(3);
+  // One phrase apple at a time.
+  await expect(flow(page).locator("span[data-phrase]")).toHaveCount(1);
 
-  await steerBoardTo(page, "part");
-  await expect(flow(page)).toHaveAttribute("data-revealed", "3", { timeout: 90_000 });
-  // The bar's ticker carries the whole question once all three parts are in.
-  await expect(page.locator("#question-marquee-text")).toContainText(answerRoomContent[questionId].questionParts[2]);
-  await expect(flow(page).locator("span[data-door]")).toHaveCount(6, { timeout: 10_000 });
+  await steerBoardTo(page, "phrase");
+  await expect(flow(page).locator("span[data-door]")).toHaveCount(6, { timeout: 150_000 });
+  await expect(flow(page)).toHaveAttribute("data-eaten", (await flow(page).getAttribute("data-phrases"))!);
+  // The bar has built the whole question, phrase by phrase.
+  await expect(page.locator("#question-built")).toContainText(answerRoomContent[questionId].questionParts[2]);
   await expect(page.locator("#door-hint")).toBeVisible();
 
   await steerBoardTo(page, "door");
@@ -42,7 +43,7 @@ async function openQuestionAndReachRoom(page: Page): Promise<string> {
   return questionId;
 }
 
-test("science item → ①②③ → ANSWER door → answer room → sentence built → back on the board, one question answered", async ({ page }) => {
+test("science item → question phrases → ANSWER door → answer room → sentence built → back on the board, one question answered", async ({ page }) => {
   test.setTimeout(240_000);
   await openQuestionAndReachRoom(page);
 
@@ -72,15 +73,15 @@ test("a wrong blue apple sends the snake back to the board with the question and
 });
 
 test("the question bar keeps one height, so the board never changes size as the question comes and goes", async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   await page.goto("/science-snake.html?answer=room");
   const height = () => page.locator("#game-container").evaluate((el) => Math.round(el.getBoundingClientRect().height));
   const before = await height();
   await page.click("#start-btn");
   await steerBoardTo(page, "science");
   await expect(flow(page)).not.toHaveAttribute("data-question-id", "", { timeout: 60_000 });
-  await steerBoardTo(page, "part");
-  await expect(flow(page)).toHaveAttribute("data-revealed", "3", { timeout: 90_000 });
+  await steerBoardTo(page, "phrase");
+  await expect(flow(page).locator("span[data-door]")).toHaveCount(6, { timeout: 150_000 });
   await stopBoardSteering(page);
   expect(await height()).toBe(before);
 });

@@ -280,36 +280,36 @@ body.question-flow #room-panel {
   overflow: hidden;
 }
 
-/* The question so far, scrolling slowly across on repeat. The span's
-   left padding (100% of the bar) starts it just off the right edge;
-   questionFlowPage.ts sets the duration from the text's length so it
-   always moves at the same easy reading speed. */
-#question-marquee {
+/* The question as built so far: the phrases eaten, the newest one
+   highlighted, then a faint dot per phrase still to come. Kept scrolled
+   to the newest line (questionFlowPage.ts). */
+#question-built {
+  max-height: 4.4rem;
   overflow: hidden;
-  white-space: nowrap;
-  margin-top: 0.6rem;
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.6;
+  margin-top: 0.4rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
 }
 
-#question-marquee-text {
-  display: inline-block;
-  padding-left: 100%;
-  animation: question-marquee var(--marquee-duration, 20s) linear infinite;
+#question-built .done {
+  color: #2c3d24;
 }
 
-#question-marquee.static #question-marquee-text {
-  padding-left: 0;
-  animation: none;
-  white-space: normal;
+#question-built .newest {
+  font-weight: 700;
+  background: #fff3b0;
+  border-radius: 4px;
+  padding: 0 0.15rem;
+}
+
+#question-built .upcoming {
+  color: #cdbf9f;
+  letter-spacing: 0.15em;
+}
+
+#question-built.instruction {
   font-size: 1rem;
   font-weight: 500;
-}
-
-@keyframes question-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
 }
 
 #door-hint {
