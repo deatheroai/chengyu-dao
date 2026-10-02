@@ -289,3 +289,17 @@ body:has(.answer-room-app) {
   bottom: 0;
   height: 70%;
 }
+
+/* With the question flow on, the joystick sits in its own row under the
+   board instead of floating over its bottom edge — the question panel
+   above already takes height, and the board's bottom rows were ending
+   up under the joystick. */
+body.question-flow #dpad-bar {
+  position: static;
+  flex: 0 0 auto;
+  padding: 0.3rem 0 max(0.4rem, env(safe-area-inset-bottom));
+}
+
+body.question-flow #joystick {
+  background: rgba(44, 61, 36, 0.07);
+}

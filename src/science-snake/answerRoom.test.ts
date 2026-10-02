@@ -188,11 +188,9 @@ describe("resolveHead", () => {
     expect(resolveHead({ x: 2, y: 2 }, choice, false)).toEqual({ kind: "chose-wrong", text: "it cooled down" });
   });
 
-  it("the QUESTION door is the 2×2 bottom-right corner, until the sentence is finished", () => {
-    expect(QUESTION_DOOR_CELLS).toHaveLength(4);
+  it("the QUESTION door is the single bottom-right corner cell, until the sentence is finished", () => {
+    expect(QUESTION_DOOR_CELLS).toEqual([{ x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 1 }]);
     for (const cell of QUESTION_DOOR_CELLS) {
-      expect(cell.x).toBeGreaterThanOrEqual(ROOM_WIDTH - 2);
-      expect(cell.y).toBeGreaterThanOrEqual(ROOM_HEIGHT - 2);
       expect(resolveHead(cell, word, false)).toEqual({ kind: "question-door" });
       expect(resolveHead(cell, [], true)).toEqual({ kind: "none" });
     }

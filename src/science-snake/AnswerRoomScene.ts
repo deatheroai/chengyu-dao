@@ -120,9 +120,9 @@ export class AnswerRoomScene extends Phaser.Scene {
       const roomHeight = ROOM_HEIGHT * ROOM_CELL_SIZE;
       const zoom = Math.min(fit.width / roomWidth, fit.height / roomHeight);
       this.cameras.main.setZoom(zoom);
-      // Top-aligned rather than centred: any spare height goes below the
-      // room, where the main page's joystick floats over the board.
-      this.cameras.main.centerOn(roomWidth / 2, roomHeight / 2 + (fit.height / zoom - roomHeight) / 2);
+      // Centred — with the question flow on, the main page's joystick has
+      // its own row under the board rather than floating over it.
+      this.cameras.main.centerOn(roomWidth / 2, roomHeight / 2);
     }
     this.gfx = this.add.graphics();
     this.snake = createRoomSnake();
@@ -309,29 +309,31 @@ export class AnswerRoomScene extends Phaser.Scene {
     const { x, y, w, h } = this.doorRect();
     this.doorLabels.push(
       this.add
-        .text(x + w / 2, y + h * 0.6, "Q", { fontSize: `${Math.round(h * 0.4)}px`, color: "#fff4d6", fontStyle: "bold" })
+        .text(x + w / 2, y + h * 0.62, "Q", { fontFamily: LABEL_FONT, fontSize: `${Math.round(h * 0.42)}px`, color: "#fff4d6", fontStyle: "bold" })
         .setOrigin(0.5)
         .setDepth(2),
-      this.add.text(x + 12, y + 12, "↩", { fontSize: "18px", color: "#ffffff", fontStyle: "bold" }).setOrigin(0.5).setDepth(3),
+      this.add
+        .text(x + w * 0.18, y + h * 0.18, "↩", { fontFamily: LABEL_FONT, fontSize: `${Math.round(w * 0.26)}px`, color: "#ffffff", fontStyle: "bold" })
+        .setOrigin(0.5)
+        .setDepth(3),
     );
   }
 
-  /** An arched wooden door in its frame, with panels and a knob. */
+  /** An arched wooden door in its frame, with a panel and a knob — sized to however many cells the door covers. */
   private renderDoor(g: Phaser.GameObjects.Graphics): void {
     const { x, y, w, h } = this.doorRect();
-    const pad = 5;
+    const pad = Math.max(3, w * 0.12);
     const arch = w / 2 - pad;
     g.fillStyle(DOOR_FRAME_COLOR, 1);
-    g.fillRoundedRect(x + pad - 3, y + pad - 3, w - 2 * pad + 6, h - pad + 3, { tl: arch + 3, tr: arch + 3, bl: 0, br: 0 });
+    g.fillRoundedRect(x + pad - 2, y + pad - 2, w - 2 * pad + 4, h - pad + 2, { tl: arch + 2, tr: arch + 2, bl: 0, br: 0 });
     g.fillStyle(DOOR_WOOD_COLOR, 1);
     g.fillRoundedRect(x + pad, y + pad, w - 2 * pad, h - pad, { tl: arch, tr: arch, bl: 0, br: 0 });
     g.fillStyle(DOOR_PANEL_COLOR, 1);
-    g.fillRoundedRect(x + w * 0.24, y + h * 0.36, w * 0.52, h * 0.24, 4);
-    g.fillRoundedRect(x + w * 0.24, y + h * 0.66, w * 0.52, h * 0.24, 4);
+    g.fillRoundedRect(x + w * 0.3, y + h * 0.42, w * 0.4, h * 0.42, 3);
     g.fillStyle(DOOR_KNOB_COLOR, 1);
-    g.fillCircle(x + w * 0.82, y + h * 0.63, 4);
+    g.fillCircle(x + w * 0.76, y + h * 0.66, Math.max(2, w * 0.05));
     g.fillStyle(DOOR_BADGE_COLOR, 1);
-    g.fillCircle(x + 12, y + 12, 12);
+    g.fillCircle(x + w * 0.18, y + h * 0.18, w * 0.18);
   }
 
   /** The exit: a little wooden ladder up the top-left corner, on a pulsing glow so it's easy to spot. */

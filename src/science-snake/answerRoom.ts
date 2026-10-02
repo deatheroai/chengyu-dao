@@ -42,17 +42,14 @@ export function paceFor(step: RoomStep | undefined): { holdToMove: boolean; tick
 export const ROOM_SNAKE_LENGTH = 3;
 
 /**
- * The QUESTION door: a 2×2 wooden door in the bottom-right corner,
- * drawn with a big "Q" and a ↩ back arrow (AnswerRoomScene.ts). Running
- * into any of its cells goes back to reread. It disappears once the
- * sentence is finished, when the ladder takes over.
+ * The QUESTION door: one cell in the bottom-right corner, drawn as a
+ * small wooden door with a "Q" and a ↩ badge (AnswerRoomScene.ts).
+ * Running into it asks whether to go back and reread. It was 2×2 until
+ * a playtest found the snake kept running into it by accident ("make
+ * the door a lot smaller"). It disappears once the sentence is
+ * finished, when the ladder takes over.
  */
-export const QUESTION_DOOR_CELLS: Position[] = [
-  { x: ROOM_WIDTH - 2, y: ROOM_HEIGHT - 2 },
-  { x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 2 },
-  { x: ROOM_WIDTH - 2, y: ROOM_HEIGHT - 1 },
-  { x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 1 },
-];
+export const QUESTION_DOOR_CELLS: Position[] = [{ x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 1 }];
 
 /** The exit ladder, top-left corner, one cell wide and two tall — only there once every word is eaten. */
 export const LADDER_CELLS: Position[] = [

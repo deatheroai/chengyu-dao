@@ -88,6 +88,8 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
       show("room-panel", false);
       questionId = "";
     } else {
+      renderParts(content()?.questionParts.length ?? 0);
+      show("door-hint", true);
       showReading();
     }
     snakeScene()?.returnFromRoom(outcome, setCountdown);
@@ -111,13 +113,23 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
     }
   };
 
-  const enterRoom = (): void => {
-    inRoom = true;
-    hideCard("door-confirm-card");
+  /** The panel in building mode: the sentence strip, the A/B box and the ladder hint. */
+  const showBuilding = (): void => {
     show("question-reading", false);
     show("room-ui", true);
     const title = document.getElementById("room-panel-title");
     if (title) title.textContent = "Build the answer";
+  };
+
+  const enterRoom = (): void => {
+    inRoom = true;
+    hideCard("door-confirm-card");
+    // The whole question stays up during the 3-2-1 (per "show the
+    // question again during the countdown when we enter the answer
+    // room"), then gives way to the sentence strip as the snake moves.
+    renderParts(content()?.questionParts.length ?? 0);
+    show("door-hint", false);
+    showReading();
     resetRoomUi();
     renderSentence(steps, stepIndex);
     const data: AnswerRoomSceneData = {
@@ -125,7 +137,10 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
       stepIndex,
       rng,
       onEvent: handleRoomEvent,
-      onCountdown: setCountdown,
+      onCountdown: (value) => {
+        setCountdown(value);
+        if (value === null) showBuilding();
+      },
       onState: (snake, apples, finished) => updateRoomUi(snake, apples, finished, stepIndex),
       fit: { width: GRID_WIDTH * CELL_SIZE, height: GRID_HEIGHT * CELL_SIZE },
     };

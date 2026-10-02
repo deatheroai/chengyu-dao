@@ -78,6 +78,10 @@ function bootstrap(): void {
   // room) is opt-in with ?answer=room until it replaces the typed-answer
   // overlay as the default (BACKLOG.md's redesign entry, step 4).
   const questionFlow = new URLSearchParams(location.search).get("answer") === "room" ? createQuestionFlowPage(game, snakeScene) : null;
+  // Its question panel takes height above the board, so the joystick
+  // moves out from over the board into its own row below it
+  // (answerRoom.css's body.question-flow rules).
+  if (questionFlow) document.body.classList.add("question-flow");
 
   // The question panel comes and goes above the board; re-read the
   // board's space whenever it does (same fix as answer-room.html).

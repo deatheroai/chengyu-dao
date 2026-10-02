@@ -2051,6 +2051,13 @@ other mechanic in this repo.
         Tests: `questionFlow.test.ts`,
         `e2e/science-snake-question-flow.spec.ts` (full right path, and
         wrong choice → back with the door still there).
+      - **Step 1 playtest fixes (2026-10-02):** with the question flow
+        on, the joystick has its own row under the board (it was
+        floating over the board's bottom rows now the panel takes
+        height); the answer room's Q door shrank from 2×2 to one corner
+        cell (the snake kept running into it); and the panel shows the
+        whole question again during the room's 3-2-1, switching to the
+        sentence strip as the snake starts moving.
       - **Next:** step 2 (golden apples + points), step 3 (wrong-choice
         punishment: doubled, muddy brown-grey), step 4 (make it the
         default, retire the overlay and its e2e).
