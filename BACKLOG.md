@@ -2085,9 +2085,35 @@ other mechanic in this repo.
         unchanged (~260ms). All apples on both boards now share one drawn
         shape (`appleArt.ts`) — the main board used the 🍎 emoji, the
         room a drawn apple (emoji can't be blue).
-      - **Next:** step 2 (golden apples + points), step 3 (wrong-choice
-        punishment: doubled, muddy brown-grey), step 4 (make it the
-        default, retire the overlay and its e2e).
+      - **Apple fine-tune (2026-10-02, per "the apple in the answer room
+        is missing a dent at the bottom, it is looking more like a heart
+        shape"):** `appleArt.ts` draws a computed outline with a dip at
+        the top and the bottom, a darker edge in the apple's own colour
+        and a pointed leaf on the stem; three shape presets were compared
+        on a test sheet and "classic" chosen. Adds `APPLE_GOLD` (gold rim,
+        stronger shine, two sparkles) for the golden apple.
+      - **Step 2 built (2026-10-03): golden apples + points.** When the
+        ANSWER door opens, two golden apples sit two rows above and below
+        its middle letter (`questionFlow.ts`'s `goldenAppleCells`), each
+        with a soft pulsing glow and a bobbing "+150 ⭐"; a small "+30"
+        sits at the door's end, and the bar's door hint reads "ANSWER +30
+        · golden +150". Eating one (+5, `goldenAttempts`) freezes the
+        board and opens `#golden-card`: the whole question (🔊 to hear
+        it), a box for the whole answer, graded by `answerGrading.ts`'s
+        `gradeAnswer`. One try per question — both golden apples go
+        either way (also on "Not now"). Right → +150 (`goldenCorrect`,
+        counted apart from `questionsCorrect`), the usual correct-answer
+        growth, question cleared, and the snake turns shimmering gold
+        with sparkles until the next science item, dancing (a wave down
+        its body) through the 3-2-1. Wrong → the question's `hint` as a
+        clue, back to the board with the ANSWER door still there. Score
+        (`scienceSnakeScore.ts`): the two new counts are optional in
+        `RunStats`, so saved records and cloud saves from before still
+        load. Tests: unit (`goldenAppleCells`, score) and two e2e (right
+        and wrong golden answers).
+      - **Next:** step 3 (wrong-choice punishment: doubled, muddy
+        brown-grey), step 4 (make it the default, retire the overlay and
+        its e2e).
       - **Content review pending:** room sentences for question batches
         5-6 (drafted 2026-10-01 in `answerRoomContent.ts`).
       - **Answer-room prototype built (2026-09-30), waiting on a phone

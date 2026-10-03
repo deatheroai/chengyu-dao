@@ -434,3 +434,68 @@ body.question-flow .joystick-arrow {
   font-size: 1.3rem;
   color: rgba(44, 61, 36, 0.6);
 }
+
+/* --- The golden apple's typing challenge (#golden-card) --- */
+
+/* Top-aligned and scrollable, so the box stays above a phone's keyboard. */
+#golden-card {
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+.golden-card {
+  border: 3px solid #f5c518;
+  box-shadow: 0 0 0 4px rgba(245, 197, 24, 0.25), 0 12px 30px rgba(44, 61, 36, 0.25);
+  max-width: 480px;
+  padding: 1.25rem 1.1rem;
+}
+
+.golden-card h1 {
+  color: #9a6b00;
+}
+
+.golden-intro {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.golden-question {
+  text-align: left;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  background: #fff8dc;
+  border-radius: 12px;
+  padding: 0.6rem 0.75rem;
+  margin: 0;
+}
+
+.card .golden-read-btn {
+  margin: 0;
+  padding: 0.1rem 0.4rem;
+  font-size: 1rem;
+  background: none;
+  color: inherit;
+}
+
+#golden-input {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem;
+  border-radius: 12px;
+  border: 2px solid #f5c518;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+.card #golden-submit-btn,
+.card #golden-continue-btn {
+  background: #e0a800;
+}
+
+.golden-hint {
+  background: #fff8dc;
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  font-style: italic;
+  text-align: left;
+}

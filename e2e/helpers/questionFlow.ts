@@ -13,8 +13,9 @@ import { GRID_WIDTH, GRID_HEIGHT } from "../../src/science-snake/snakeGrid";
  *
  * "science": the nearest science item. "phrase": the question's next
  * phrase apple (there's only ever one). "door": the ANSWER door.
+ * "golden": either golden apple (avoided for every other target).
  */
-export type BoardTarget = "science" | "phrase" | "door";
+export type BoardTarget = "science" | "phrase" | "door" | "golden";
 
 export async function steerBoardTo(page: Page, target: BoardTarget): Promise<void> {
   await page.evaluate(
@@ -45,17 +46,20 @@ export async function steerBoardTo(page: Page, target: BoardTarget): Promise<voi
           y: Number(s.dataset.y),
         }));
         const door = [...flow.querySelectorAll<HTMLElement>("span[data-door]")].map((s) => ({ x: Number(s.dataset.x), y: Number(s.dataset.y) }));
+        const golden = [...flow.querySelectorAll<HTMLElement>("span[data-golden]")].map((s) => ({ x: Number(s.dataset.x), y: Number(s.dataset.y) }));
 
         const goals = new Set<string>();
         if (target === "science") for (const i of items) if (i.type === "science") goals.add(k(i.x, i.y));
         if (target === "phrase") for (const p of phrases) goals.add(k(p.x, p.y));
         if (target === "door") for (const d of door) goals.add(k(d.x, d.y));
+        if (target === "golden") for (const g of golden) goals.add(k(g.x, g.y));
 
         const blocked = new Set<string>();
         for (const s of body.slice(0, -1)) blocked.add(k(s.x, s.y));
         for (const i of items) if (i.type === "poison-apple" || (i.type === "science" && target !== "science")) blocked.add(k(i.x, i.y));
         for (const p of phrases) blocked.add(k(p.x, p.y));
         for (const d of door) blocked.add(k(d.x, d.y));
+        for (const g of golden) blocked.add(k(g.x, g.y));
         for (const g of goals) blocked.delete(g);
 
         const press = (d: Dir): void => {

@@ -3,6 +3,7 @@ import {
   splitIntoPhrases,
   placePhraseApple,
   placeAnswerDoor,
+  goldenAppleCells,
   boardDistance,
   isOnCells,
   QUESTION_TICK_MS,
@@ -65,6 +66,22 @@ describe("placePhraseApple", () => {
       expect(isOnCells(occupied, cell)).toBe(false);
       expect(boardDistance(cell, head)).toBeGreaterThanOrEqual(PHRASE_SPAWN_MIN_DISTANCE);
       expect(boardDistance(cell, head)).toBeLessThanOrEqual(PHRASE_SPAWN_MAX_DISTANCE);
+    }
+  });
+});
+
+describe("goldenAppleCells", () => {
+  it("are two rows above and below the door's middle letter, on free cells", () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const occupied = [...snake.body, { x: 3, y: 5 }];
+      const door = placeAnswerDoor(occupied, head, createRng(seed))!;
+      const [above, below] = goldenAppleCells(door);
+      expect(above).toEqual({ x: door[3].x, y: door[0].y - 2 });
+      expect(below).toEqual({ x: door[3].x, y: door[0].y + 2 });
+      for (const cell of [above, below]) {
+        expect(isOnCells(occupied, cell)).toBe(false);
+        expect(cell.y).toBeGreaterThanOrEqual(0);
+      }
     }
   });
 });

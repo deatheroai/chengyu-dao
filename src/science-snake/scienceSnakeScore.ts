@@ -11,15 +11,34 @@ const LAST_RUN_KEY = "science-snake-last-run";
 
 export const APPLE_POINTS = 5;
 export const CORRECT_ANSWER_POINTS = 30;
+/** The golden apples (BACKLOG.md's redesign, step 2): eating one is worth an apple's points just for trying... */
+export const GOLDEN_ATTEMPT_POINTS = 5;
+/** ...and typing the whole answer correctly is worth five times the answer room's 30. */
+export const GOLDEN_CORRECT_POINTS = 150;
 
 export interface RunStats {
   applesEaten: number;
+  /** Answered through the answer room (or, in the old flow, the typed overlay). */
   questionsCorrect: number;
+  /** Golden apples eaten. Optional so records saved before golden apples existed still load. */
+  goldenAttempts?: number;
+  /** Questions answered by typing the whole answer after a golden apple — counted here, not in `questionsCorrect`. */
+  goldenCorrect?: number;
 }
 
-/** `score = apples*5 + questionsCorrect*30`, per your spec. Poison apples award 0 points and are never counted here (tracked separately as poisonApplesEaten — see itemSpawner.ts/BoardItem). */
+/**
+ * `score = apples*5 + questionsCorrect*30 + goldenAttempts*5 +
+ * goldenCorrect*150`. Poison apples award 0 points and are never counted
+ * here (tracked separately as poisonApplesEaten — see
+ * itemSpawner.ts/BoardItem).
+ */
 export function calculateScore(stats: RunStats): number {
-  return stats.applesEaten * APPLE_POINTS + stats.questionsCorrect * CORRECT_ANSWER_POINTS;
+  return (
+    stats.applesEaten * APPLE_POINTS +
+    stats.questionsCorrect * CORRECT_ANSWER_POINTS +
+    (stats.goldenAttempts ?? 0) * GOLDEN_ATTEMPT_POINTS +
+    (stats.goldenCorrect ?? 0) * GOLDEN_CORRECT_POINTS
+  );
 }
 
 export interface ScoreRecord extends RunStats {

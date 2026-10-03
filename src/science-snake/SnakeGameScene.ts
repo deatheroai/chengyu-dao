@@ -28,11 +28,12 @@ import { createRng } from "./seededRandom";
 import { scienceQuestionsById, scienceQuestions } from "./scienceQuestions";
 import { askQuestion } from "./QuestionOverlay";
 import { updateSnakeStatus, syncBoardItems, updateQuestionFlowStatus } from "./snakeStatus";
-import { drawApple, APPLE_RED, APPLE_POISON } from "./appleArt";
+import { drawApple, APPLE_RED, APPLE_POISON, APPLE_GOLD } from "./appleArt";
 import {
   placePhraseApple,
   splitIntoPhrases,
   placeAnswerDoor,
+  goldenAppleCells,
   isOnCells,
   QUESTION_TICK_MS,
   ANSWER_DOOR_WORD,
@@ -58,7 +59,12 @@ export type LoseReason = "self-collision" | "suffocation";
 export interface RunStats {
   applesEaten: number;
   poisonApplesEaten: number;
+  /** Answered through the answer room (or the old typed overlay). */
   questionsCorrect: number;
+  /** Golden apples eaten (5 points each, just for trying). */
+  goldenAttempts: number;
+  /** Questions answered by typing the whole answer after a golden apple (150 points each). */
+  goldenCorrect: number;
 }
 
 /**
@@ -75,6 +81,8 @@ export interface QuestionFlowHooks {
   onDoorOpen: (questionId: string) => void;
   /** The board is frozen until the page calls `returnFromRoom`. */
   onEnterRoom: (questionId: string) => void;
+  /** A golden apple was eaten: the board is frozen until the page calls `returnFromGolden`. */
+  onGoldenApple: (questionId: string) => void;
 }
 
 export interface SnakeGameSceneData {
@@ -94,9 +102,18 @@ interface ActiveQuestion {
   door: Position[] | null;
   /** False right after coming back out of the room through the door, until the head has left the door's cells — otherwise it would walk straight back in. */
   doorArmed: boolean;
+  /** The two golden apples above and below the door — null before the door opens, and for good once one has been eaten (one try per question). */
+  golden: Position[] | null;
+  goldenTried: boolean;
 }
 
 const DOOR_COLOR = 0x2f7fd6;
+const GOLDEN_GLOW = 0xffe27a;
+/** After a golden answer the snake shimmers in these (until the next science item), and dances through the 3-2-1. */
+const GOLDEN_SHIMMER = [0xf5c518, 0xffd84d, 0xffeb99, 0xe6a800];
+const SPARKLE_COLOR = 0xfffbe0;
+const DANCE_FRAME_MS = 50;
+const COUNTDOWN_STEP_MS = 700;
 /** Phaser's own default is Courier; match the page's font instead. */
 const LABEL_FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
 
@@ -160,7 +177,7 @@ const KEY_TO_DIRECTION: Record<string, Direction> = {
 export class SnakeGameScene extends Phaser.Scene {
   private snake!: SnakeState;
   private items: BoardItem[] = [];
-  private stats: RunStats = { applesEaten: 0, poisonApplesEaten: 0, questionsCorrect: 0 };
+  private stats: RunStats = { applesEaten: 0, poisonApplesEaten: 0, questionsCorrect: 0, goldenAttempts: 0, goldenCorrect: 0 };
   private rng: () => number = createRng(1);
   private tickEvent?: Phaser.Time.TimerEvent;
   private paused = false;
@@ -175,6 +192,10 @@ export class SnakeGameScene extends Phaser.Scene {
   private tickPace = 0;
   private activeQuestion: ActiveQuestion | null = null;
   private questionLabels: Phaser.GameObjects.Text[] = [];
+  /** The golden shimmer after a golden answer, until the next science item is eaten. */
+  private shimmering = false;
+  /** True while the snake dances through the 3-2-1 after a golden answer. */
+  private dancing = false;
 
   constructor() {
     super("SnakeGameScene");
@@ -192,7 +213,9 @@ export class SnakeGameScene extends Phaser.Scene {
     this.gfx = this.add.graphics();
     this.itemTexts = new Map();
     this.snake = createInitialSnake({ x: Math.floor(GRID_WIDTH / 2), y: Math.floor(GRID_HEIGHT / 2) }, "right", 3);
-    this.stats = { applesEaten: 0, poisonApplesEaten: 0, questionsCorrect: 0 };
+    this.stats = { applesEaten: 0, poisonApplesEaten: 0, questionsCorrect: 0, goldenAttempts: 0, goldenCorrect: 0 };
+    this.shimmering = false;
+    this.dancing = false;
     this.items = [];
     this.paused = false;
     this.ended = false;
@@ -272,6 +295,7 @@ export class SnakeGameScene extends Phaser.Scene {
       ...this.items.map((item) => item.position),
       ...(question?.apple ? [question.apple] : []),
       ...(question?.door ?? []),
+      ...(question?.golden ?? []),
     ];
   }
 
@@ -374,14 +398,24 @@ export class SnakeGameScene extends Phaser.Scene {
   /** The redesign's flow: the question's first phrase appears and the board slows down to QUESTION_TICK_MS. */
   private startQuestion(questionId: string): void {
     const phrases = splitIntoPhrases(scienceQuestionsById[questionId]?.prompt ?? "");
-    this.activeQuestion = { id: questionId, phrases, eaten: 0, apple: null, door: null, doorArmed: true };
+    this.shimmering = false;
+    this.activeQuestion = { id: questionId, phrases, eaten: 0, apple: null, door: null, doorArmed: true, golden: null, goldenTried: false };
     this.activeQuestion.apple = placePhraseApple(this.occupiedCells(), this.snake.body[0], this.rng);
     this.scheduleTick();
     this.flow?.onQuestionStart(questionId);
   }
 
-  /** True when the head's cell belonged to the question (the phrase apple or the door), so nothing else is eaten there. */
+  /** True when the head's cell belonged to the question (the phrase apple, a golden apple or the door), so nothing else is eaten there. */
   private handleQuestionFlow(head: Position, question: ActiveQuestion): boolean {
+    if (question.golden && isOnCells(question.golden, head)) {
+      // One try per question: both golden apples go, whatever the answer.
+      question.golden = null;
+      question.goldenTried = true;
+      this.stats.goldenAttempts += 1;
+      this.paused = true;
+      this.flow?.onGoldenApple(question.id);
+      return true;
+    }
     if (question.door) {
       const onDoor = isOnCells(question.door, head);
       if (onDoor && question.doorArmed) {
@@ -412,7 +446,9 @@ export class SnakeGameScene extends Phaser.Scene {
     }
     if (question.door) return;
     question.door = placeAnswerDoor(this.occupiedCells(), this.snake.body[0], this.rng);
-    if (question.door) this.flow?.onDoorOpen(question.id);
+    if (!question.door) return;
+    if (!question.goldenTried) question.golden = goldenAppleCells(question.door);
+    this.flow?.onDoorOpen(question.id);
   }
 
   /**
@@ -435,14 +471,47 @@ export class SnakeGameScene extends Phaser.Scene {
       question.doorArmed = false;
     }
     this.render();
+    this.resumeAfterCountdown(onCountdown);
+  }
+
+  /**
+   * The page calls this once the golden apple's typing challenge is
+   * done. "correct": the whole answer was typed — the usual correct-
+   * answer growth, 150 points, the question (door and all) cleared, and
+   * the snake turns golden and dances through the 3-2-1. "not-yet": a
+   * wrong answer or "not now" — the golden apples are already gone, the
+   * ANSWER door stays as the easier way.
+   */
+  returnFromGolden(outcome: "correct" | "not-yet", onCountdown: (value: number | null) => void): void {
+    if (outcome === "correct" && this.activeQuestion) {
+      this.snake = applyCorrectAnswerEaten(this.snake);
+      this.stats.goldenCorrect += 1;
+      this.activeQuestion = null;
+      this.shimmering = true;
+      this.dancing = true;
+      this.scheduleTick();
+      this.spawnReplacementScienceItemIfNeeded();
+    }
+    this.render();
+    const dance = this.dancing ? this.time.addEvent({ delay: DANCE_FRAME_MS, loop: true, callback: () => this.render() }) : null;
+    this.resumeAfterCountdown(onCountdown, () => {
+      dance?.remove();
+      this.dancing = false;
+      this.render();
+    });
+  }
+
+  /** 3-2-1, then the board moves again. */
+  private resumeAfterCountdown(onCountdown: (value: number | null) => void, onDone?: () => void): void {
     const count = (value: number): void => {
       onCountdown(value);
-      this.time.delayedCall(700, () => {
+      this.time.delayedCall(COUNTDOWN_STEP_MS, () => {
         if (value > 1) {
           count(value - 1);
           return;
         }
         onCountdown(null);
+        onDone?.();
         this.paused = false;
         this.checkOutcome();
       });
@@ -546,7 +615,7 @@ export class SnakeGameScene extends Phaser.Scene {
     this.renderSnakeBody(this.gfx);
     updateSnakeStatus(this.snake);
     syncBoardItems(this.items);
-    if (this.flow) updateQuestionFlowStatus(this.activeQuestion, this.stats.questionsCorrect);
+    if (this.flow) updateQuestionFlowStatus(this.activeQuestion, this.stats);
   }
 
   /**
@@ -581,6 +650,25 @@ export class SnakeGameScene extends Phaser.Scene {
       label.setPosition(Math.min(Math.max(cx, half + 2), GRID_WIDTH * CELL_SIZE - half - 2), labelY);
       this.questionLabels.push(label);
     }
+    for (const cell of question.golden ?? []) {
+      const cx = cell.x * CELL_SIZE + CELL_SIZE / 2;
+      const cy = cell.y * CELL_SIZE + CELL_SIZE / 2;
+      const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 250);
+      this.gfx.fillStyle(GOLDEN_GLOW, 0.25 + 0.2 * pulse);
+      this.gfx.fillCircle(cx, cy, CELL_SIZE * (0.62 + 0.08 * pulse));
+      drawApple(this.gfx, cx, cy, CELL_SIZE, APPLE_GOLD);
+      // "+150 ⭐" beside it, bobbing — worth far more than the door's +30.
+      const label = this.pointsLabel("+150 ⭐", "#ffd23f", "#7a5200", 14);
+      const side = cell.x + 2 < GRID_WIDTH ? 1 : -1;
+      label.setPosition(cx + side * (CELL_SIZE * 0.55 + label.width / 2), cy + Math.sin(this.time.now / 200) * 3);
+    }
+    if (question.door) {
+      const last = question.door[question.door.length - 1];
+      const first = question.door[0];
+      const label = this.pointsLabel("+30", "#1d4f8a", "#ffffff", 13);
+      const x = last.x + 1 < GRID_WIDTH ? (last.x + 1) * CELL_SIZE + label.width / 2 + 2 : first.x * CELL_SIZE - label.width / 2 - 2;
+      label.setPosition(x, last.y * CELL_SIZE + CELL_SIZE / 2);
+    }
     question.door?.forEach((cell, i) => {
       this.gfx.fillStyle(DOOR_COLOR, 1);
       this.gfx.fillRoundedRect(cell.x * CELL_SIZE + 1, cell.y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2, 5);
@@ -595,6 +683,16 @@ export class SnakeGameScene extends Phaser.Scene {
           .setOrigin(0.5),
       );
     });
+  }
+
+  /** A points badge drawn over the board (rebuilt with the question's other labels each render). */
+  private pointsLabel(text: string, color: string, stroke: string, size: number): Phaser.GameObjects.Text {
+    const label = this.add
+      .text(0, 0, text, { fontFamily: LABEL_FONT, fontSize: `${size}px`, color, fontStyle: "bold", stroke, strokeThickness: 3 })
+      .setOrigin(0.5)
+      .setDepth(3);
+    this.questionLabels.push(label);
+    return label;
   }
 
   private renderGridAndItems(): void {
@@ -630,10 +728,14 @@ export class SnakeGameScene extends Phaser.Scene {
       let wobble = 0;
       if (isDead) {
         color = BELLY_COLOR;
+      } else if (this.shimmering) {
+        color = GOLDEN_SHIMMER[(i + Math.floor(this.time.now / 120)) % GOLDEN_SHIMMER.length];
       } else if (this.snake.isPoisoned) {
         color = POISONED_COLORS[(i + Math.floor(this.time.now / 150)) % POISONED_COLORS.length];
         wobble = Math.sin(this.time.now / 120 + i) * 2;
       }
+      // The golden dance: a wave running down the body.
+      if (this.dancing && !isDead) wobble = Math.sin(this.time.now / 70 - i * 0.9) * 5;
 
       const cellX = segment.x * CELL_SIZE;
       const cellY = segment.y * CELL_SIZE;
@@ -647,7 +749,16 @@ export class SnakeGameScene extends Phaser.Scene {
       target.fillStyle(color, 1);
       target.fillRoundedRect(cellX + offset + wobble, cellY + offset - wobble, size, size, isHead ? 8 : 6);
 
-      if (isTaper && !isDead && !this.snake.isPoisoned) {
+      if (this.shimmering && !isDead && (i + Math.floor(this.time.now / 200)) % 4 === 0) {
+        const sx = cellX + CELL_SIZE / 2 + wobble;
+        const sy = cellY + CELL_SIZE / 2 - wobble;
+        const arm = CELL_SIZE * 0.22;
+        target.lineStyle(2, SPARKLE_COLOR, 1);
+        target.lineBetween(sx - arm, sy, sx + arm, sy);
+        target.lineBetween(sx, sy - arm, sx, sy + arm);
+      }
+
+      if (isTaper && !isDead && !this.snake.isPoisoned && !this.shimmering) {
         // A couple of thin ring stripes across the tapering tail,
         // evoking a real snake's banded tail — per your "tail a little
         // like rings" feedback. Skipped while poisoned (the cycling

@@ -4,6 +4,7 @@ import { GRID_WIDTH, GRID_HEIGHT } from "./snakeGrid";
 import { AnswerRoomScene, type AnswerRoomSceneData } from "./AnswerRoomScene";
 import { CELL_SIZE, type QuestionFlowHooks, type SnakeGameScene } from "./SnakeGameScene";
 import { buildSteps, type RoomEvent, type RoomStep } from "./answerRoom";
+import { gradeAnswer } from "./answerGrading";
 import { answerRoomContent } from "./answerRoomContent";
 import { renderSentence, updateRoomUi, resetRoomUi } from "./answerRoomUi";
 import { scienceQuestionsById } from "./scienceQuestions";
@@ -64,6 +65,8 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
   /** How much of the sentence is eaten — kept across a trip to reread; back to 0 after a wrong choice. */
   let stepIndex = 0;
   let inRoom = false;
+  /** The golden apples go for good once one is eaten — the door hint stops mentioning them. */
+  let goldenTried = false;
 
   const content = () => answerRoomContent[questionId];
 
@@ -128,6 +131,7 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
     if (eaten === 0) setHint("Eat the word apples to build the question!");
     else renderBuilt(eaten, phrases);
     show("door-hint", doorOpen);
+    show("door-hint-golden", !goldenTried);
   };
 
   /** The whole question in the middle of the board, with a small countdown badge — shown while the room counts down. */
@@ -220,11 +224,72 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
   });
   document.getElementById("read-question-btn")?.addEventListener("click", () => speak(content()?.questionParts.join(" ") ?? ""));
 
+  /**
+   * The golden apple: the whole question, a box to type the whole answer
+   * in, graded by the same lenient answerGrading.ts the old overlay used
+   * (keywords + a real sentence, so the child's own wording passes). One
+   * try — right: +150 and a golden, dancing snake; wrong: the question's
+   * clue, and the ANSWER door is still there. No peeking at the answer.
+   */
+  const goldenInput = document.getElementById("golden-input") as HTMLTextAreaElement | null;
+  let goldenOutcome: "correct" | "not-yet" = "not-yet";
+  const showGolden = (): void => {
+    const question = scienceQuestionsById[questionId];
+    const questionEl = document.getElementById("golden-question");
+    if (questionEl) questionEl.textContent = question?.prompt ?? "";
+    if (goldenInput) goldenInput.value = "";
+    document.getElementById("golden-title")!.textContent = "⭐ Golden apple!";
+    show("golden-ask", true);
+    show("golden-result", false);
+    goldenOutcome = "not-yet";
+    goldenTried = true;
+    showCard("golden-card");
+    chime();
+    speak("Golden apple! Type the whole answer for 150 points.");
+    goldenInput?.focus();
+  };
+  const closeGolden = (): void => {
+    hideCard("golden-card");
+    goldenInput?.blur();
+    if (goldenOutcome === "correct") {
+      questionId = "";
+      showIdle();
+    } else {
+      showReading(phrases.length, true);
+    }
+    snakeScene()?.returnFromGolden(goldenOutcome, setCountdown);
+  };
+  document.getElementById("golden-submit-btn")?.addEventListener("click", () => {
+    const question = scienceQuestionsById[questionId];
+    if (!question) return;
+    const correct = gradeAnswer(goldenInput?.value ?? "", question) === "correct";
+    goldenOutcome = correct ? "correct" : "not-yet";
+    document.getElementById("golden-title")!.textContent = correct ? "✨ Golden answer!" : "Not quite!";
+    const resultText = document.getElementById("golden-result-text");
+    if (resultText) {
+      resultText.textContent = correct
+        ? "+150 ⭐ — watch your snake dance!"
+        : "Here's a clue. The golden apples are gone for this question, but the ANSWER door is still there (+30).";
+    }
+    const hint = document.getElementById("golden-hint");
+    if (hint) hint.textContent = correct ? "" : `💡 ${question.hint}`;
+    show("golden-hint", !correct);
+    show("golden-ask", false);
+    show("golden-result", true);
+    goldenInput?.blur();
+    chime(!correct);
+    speak(correct ? "Golden answer! 150 points!" : "Not quite. Here's a clue.");
+  });
+  document.getElementById("golden-skip-btn")?.addEventListener("click", closeGolden);
+  document.getElementById("golden-continue-btn")?.addEventListener("click", closeGolden);
+  document.getElementById("golden-read-btn")?.addEventListener("click", () => speak(scienceQuestionsById[questionId]?.prompt ?? ""));
+
   const hooks: QuestionFlowHooks = {
     onQuestionStart: (id) => {
       questionId = id;
       steps = content() ? buildSteps(content()) : [];
       stepIndex = 0;
+      goldenTried = false;
       for (const el of document.querySelectorAll("[data-question-icon]")) el.textContent = scienceQuestionsById[id]?.icon ?? "❓";
       phrases = [];
       showReading(0, false);
@@ -237,8 +302,12 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
       chime();
       speak(questionPhrases[eaten - 1] ?? "");
     },
-    onDoorOpen: () => show("door-hint", true),
+    onDoorOpen: () => {
+      show("door-hint", true);
+      show("door-hint-golden", !goldenTried);
+    },
     onEnterRoom: () => enterRoom(),
+    onGoldenApple: () => showGolden(),
   };
 
   return {
@@ -257,6 +326,7 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
       setCountdown(null);
       hideCard("door-confirm-card");
       hideCard("wrong-choice-card");
+      hideCard("golden-card");
     },
   };
 }

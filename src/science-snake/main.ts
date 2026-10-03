@@ -5,7 +5,7 @@ import { wireJoystick } from "./joystickControl";
 import { preventDoubleTapZoom } from "./noZoom";
 import { createQuestionFlowPage } from "./questionFlowPage";
 import { unlockSpeech } from "./voice";
-import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS } from "./scienceSnakeScore";
+import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS, GOLDEN_ATTEMPT_POINTS, GOLDEN_CORRECT_POINTS } from "./scienceSnakeScore";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode, syncAfterRun } from "./cloudSaveStatus";
 
 function showCard(id: string): void {
@@ -26,7 +26,10 @@ function showWinCard(stats: RunStats): void {
   const outcome = recordRun(stats);
   const el = document.getElementById("win-stats");
   if (el) {
-    el.textContent = `🍎 ${stats.applesEaten} apples × ${APPLE_POINTS} + 🔬 ${stats.questionsCorrect} correct × ${CORRECT_ANSWER_POINTS} = ${outcome.score} points`;
+    const golden = stats.goldenAttempts
+      ? ` + ⭐ ${stats.goldenAttempts} golden × ${GOLDEN_ATTEMPT_POINTS} + ✨ ${stats.goldenCorrect} golden answers × ${GOLDEN_CORRECT_POINTS}`
+      : "";
+    el.textContent = `🍎 ${stats.applesEaten} apples × ${APPLE_POINTS} + 🔬 ${stats.questionsCorrect} correct × ${CORRECT_ANSWER_POINTS}${golden} = ${outcome.score} points`;
   }
   const comparisonEl = document.getElementById("win-comparison");
   if (comparisonEl) comparisonEl.textContent = describeRunOutcome(outcome);
@@ -47,7 +50,8 @@ function showLoseCard(reason: LoseReason, stats: RunStats): void {
   const messageEl = document.getElementById("lose-message");
   if (messageEl) messageEl.textContent = LOSE_MESSAGES[reason];
   const statsEl = document.getElementById("lose-stats");
-  if (statsEl) statsEl.textContent = `🍎 ${stats.applesEaten} apples · 🔬 ${stats.questionsCorrect} correct answers · ${outcome.score} points`;
+  const golden = stats.goldenCorrect ? ` · ✨ ${stats.goldenCorrect} golden answers` : "";
+  if (statsEl) statsEl.textContent = `🍎 ${stats.applesEaten} apples · 🔬 ${stats.questionsCorrect} correct answers${golden} · ${outcome.score} points`;
   const comparisonEl = document.getElementById("lose-comparison");
   if (comparisonEl) comparisonEl.textContent = describeRunOutcome(outcome);
   showCard("lose-card");

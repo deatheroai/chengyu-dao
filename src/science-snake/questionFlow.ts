@@ -142,6 +142,19 @@ export function placeAnswerDoor(occupied: Position[], head: Position, rng: () =>
   return spots[Math.floor(rng() * spots.length)];
 }
 
+/**
+ * The two golden apples: two rows above and two below the door's middle
+ * letter, with a one-cell gap so a child heading for the door doesn't
+ * bite one by accident. `placeAnswerDoor` keeps both cells free.
+ */
+export function goldenAppleCells(door: Position[]): Position[] {
+  const mid = door[Math.floor(door.length / 2)];
+  return [
+    { x: mid.x, y: mid.y - 2 },
+    { x: mid.x, y: mid.y + 2 },
+  ];
+}
+
 export function isOnCells(cells: Position[], p: Position): boolean {
   return cells.some((c) => c.x === p.x && c.y === p.y);
 }

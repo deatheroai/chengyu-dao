@@ -34,7 +34,7 @@
           </div>
           <div id="question-reading">
             <div id="question-built" aria-live="polite"></div>
-            <p id="door-hint" class="hidden">🚪 Head for the <b>ANSWER</b> door!</p>
+            <p id="door-hint" class="hidden">🚪 <b>ANSWER</b> +30<span id="door-hint-golden"> · ⭐ golden +150</span></p>
           </div>
           <div id="room-ui" class="hidden">
             <div id="sentence-strip" aria-label="Your sentence so far"></div>
@@ -140,6 +140,27 @@
           <h1>😵 Wrong choice!</h1>
           <p>That option doesn't fit the science. Back to the board — reread the question, then go through the <b>ANSWER</b> door to practise the sentence again from the first word.</p>
           <button id="wrong-choice-btn" type="button">Back to the board ➜</button>
+        </div>
+      </div>
+
+      <!-- The golden apple's typing challenge (BACKLOG.md's redesign,
+           step 2): the whole answer, typed, for +150. One try per
+           question; the ANSWER door stays as the easier way. -->
+      <div id="golden-card" class="card-layer">
+        <div class="card golden-card">
+          <h1 id="golden-title">⭐ Golden apple!</h1>
+          <div id="golden-ask">
+            <p class="golden-intro">Type the whole answer in your own words for <b>+150 ⭐</b>. One try!</p>
+            <p class="golden-question"><button id="golden-read-btn" type="button" class="golden-read-btn" aria-label="Read the question">🔊</button> <span id="golden-question"></span></p>
+            <textarea id="golden-input" rows="4" placeholder="Type your answer in a full sentence…"></textarea>
+            <button id="golden-submit-btn" type="button">Check ✨</button>
+            <button id="golden-skip-btn" type="button" class="secondary-btn">Not now</button>
+          </div>
+          <div id="golden-result" class="hidden" aria-live="polite">
+            <p id="golden-result-text"></p>
+            <p id="golden-hint" class="golden-hint hidden"></p>
+            <button id="golden-continue-btn" type="button">Back to the board ➜</button>
+          </div>
         </div>
       </div>
 
