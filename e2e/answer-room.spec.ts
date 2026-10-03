@@ -53,12 +53,13 @@ test("the wrong blue apple kills the snake, and the sentence is practised again 
 test("the QUESTION door goes back to reread, keeping the words eaten so far", async ({ page }) => {
   await enter(page, "start-btn");
   await steerRoomTo(page, "right");
-  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(2, { timeout: 60_000 });
+  // The Q door is only there at the A/B choice.
+  await expect(page.locator("#room-status")).toHaveAttribute("data-door-open", "false");
+  await expect(page.locator("#room-status")).toHaveAttribute("data-door-open", "true", { timeout: 60_000 });
   await steerRoomTo(page, "door");
   // It asks first, so an accidental bump doesn't lose the child's place.
   await expect(page.locator("#door-confirm-card")).toHaveClass(/visible/, { timeout: 60_000 });
-  // The snake can eat one more word before the door steering takes
-  // over, so compare against what's actually eaten at the door.
+  // Every word before the choice is eaten by then.
   const eatenAtDoor = await page.locator("#sentence-strip .word-chip:not(.upcoming)").count();
   expect(eatenAtDoor).toBeGreaterThanOrEqual(2);
   await page.click("#door-reread-btn");
@@ -143,10 +144,11 @@ test("holding the on-screen joystick at the A/B choice moves the snake; lifting 
 test("bumping into the Q door by accident: Keep building goes straight back in, words kept", async ({ page }) => {
   await enter(page, "start-btn");
   await steerRoomTo(page, "right");
-  await expect(page.locator("#sentence-strip .word-chip:not(.upcoming)")).toHaveCount(2, { timeout: 60_000 });
+  // The Q door is only there at the A/B choice.
+  await expect(page.locator("#room-status")).toHaveAttribute("data-door-open", "false");
+  await expect(page.locator("#room-status")).toHaveAttribute("data-door-open", "true", { timeout: 60_000 });
   await steerRoomTo(page, "door");
   await expect(page.locator("#door-confirm-card")).toHaveClass(/visible/, { timeout: 60_000 });
-  // Same as above: compare against what's actually eaten at the door.
   const eatenAtDoor = await page.locator("#sentence-strip .word-chip:not(.upcoming)").count();
   expect(eatenAtDoor).toBeGreaterThanOrEqual(2);
   await enter(page, "door-stay-btn");

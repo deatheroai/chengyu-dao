@@ -9,6 +9,7 @@ import {
   roomChangeDirection,
   queueTurn,
   resolveHead,
+  isQuestionDoorOpen,
   QUESTION_DOOR_CELLS,
   LADDER_CELLS,
   ROOM_WIDTH,
@@ -129,7 +130,6 @@ export class AnswerRoomScene extends Phaser.Scene {
     this.dead = false;
     this.appleLabels = [];
     this.doorLabels = [];
-    this.drawDoorLettering();
     this.spawnCurrentStep();
     this.joystickHeld = false;
     this.keysHeld = new Set();
@@ -196,6 +196,7 @@ export class AnswerRoomScene extends Phaser.Scene {
     this.appleLabels = [];
     this.apples = this.finished ? [] : spawnStep(this.data_.steps[this.stepIndex], this.snake, this.data_.rng);
     for (const apple of this.apples) this.drawAppleLabel(apple);
+    this.syncDoorLettering();
   }
 
   private tick(): void {
@@ -214,8 +215,6 @@ export class AnswerRoomScene extends Phaser.Scene {
     if (event.kind === "ate-word" || event.kind === "chose-right") {
       this.stepIndex += 1;
       this.spawnCurrentStep();
-      // Last word eaten: the QUESTION door goes, the ladder takes over.
-      if (this.finished) for (const label of this.doorLabels) label.destroy();
     } else if (event.kind !== "none") {
       this.running = false;
       this.tickEvent?.remove();
@@ -302,9 +301,15 @@ export class AnswerRoomScene extends Phaser.Scene {
     return { x, y, w: (Math.max(...xs) + 1) * ROOM_CELL_SIZE - x, h: (Math.max(...ys) + 1) * ROOM_CELL_SIZE - y };
   }
 
-  /** The door's lettering: a big "Q" on the wood and a ↩ badge — "back to the question". */
-  private drawDoorLettering(): void {
-    if (this.finished) return;
+  /** The door's lettering: a big "Q" on the wood and a ↩ badge — "back to the question". Only while the door is there (the A/B choice). */
+  private syncDoorLettering(): void {
+    const open = isQuestionDoorOpen(this.apples);
+    if (!open) {
+      for (const label of this.doorLabels) label.destroy();
+      this.doorLabels = [];
+      return;
+    }
+    if (this.doorLabels.length) return;
     const { x, y, w, h } = this.doorRect();
     this.doorLabels.push(
       this.add
@@ -361,7 +366,7 @@ export class AnswerRoomScene extends Phaser.Scene {
     for (let y = 0; y <= ROOM_HEIGHT; y++) g.lineBetween(0, y * ROOM_CELL_SIZE, ROOM_WIDTH * ROOM_CELL_SIZE, y * ROOM_CELL_SIZE);
 
     if (this.finished) this.renderLadder(g);
-    else this.renderDoor(g);
+    else if (isQuestionDoorOpen(this.apples)) this.renderDoor(g);
 
     for (const apple of this.apples) {
       const { x, y } = this.cellCenter(apple.position);

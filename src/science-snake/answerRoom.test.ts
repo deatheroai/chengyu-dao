@@ -6,6 +6,7 @@ import {
   roomStep,
   roomChangeDirection,
   resolveHead,
+  isQuestionDoorOpen,
   wrapDistance,
   isJoiningPhrase,
   QUESTION_DOOR_CELLS,
@@ -188,10 +189,13 @@ describe("resolveHead", () => {
     expect(resolveHead({ x: 2, y: 2 }, choice, false)).toEqual({ kind: "chose-wrong", text: "it cooled down" });
   });
 
-  it("the QUESTION door is the single bottom-right corner cell, until the sentence is finished", () => {
+  it("the QUESTION door is the single bottom-right corner cell, there only at the A/B choice", () => {
     expect(QUESTION_DOOR_CELLS).toEqual([{ x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 1 }]);
+    expect(isQuestionDoorOpen(choice)).toBe(true);
+    expect(isQuestionDoorOpen(word)).toBe(false);
     for (const cell of QUESTION_DOOR_CELLS) {
-      expect(resolveHead(cell, word, false)).toEqual({ kind: "question-door" });
+      expect(resolveHead(cell, choice, false)).toEqual({ kind: "question-door" });
+      expect(resolveHead(cell, word, false)).toEqual({ kind: "none" });
       expect(resolveHead(cell, [], true)).toEqual({ kind: "none" });
     }
   });

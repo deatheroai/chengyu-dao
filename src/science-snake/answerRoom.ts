@@ -48,10 +48,17 @@ export const ROOM_SNAKE_LENGTH = 3;
  * small wooden door with a "Q" and a ↩ badge (AnswerRoomScene.ts).
  * Running into it asks whether to go back and reread. It was 2×2 until
  * a playtest found the snake kept running into it by accident ("make
- * the door a lot smaller"). It disappears once the sentence is
- * finished, when the ladder takes over.
+ * the door a lot smaller"), and it's only there at the A/B choice — the
+ * moment the child might want to reread — per "the snake keeps
+ * unnecessarily bumping into the question door when eating the apples
+ * with words" (`isQuestionDoorOpen`).
  */
 export const QUESTION_DOOR_CELLS: Position[] = [{ x: ROOM_WIDTH - 1, y: ROOM_HEIGHT - 1 }];
+
+/** The QUESTION door is only there while the two blue A/B apples are. */
+export function isQuestionDoorOpen(apples: RoomApple[]): boolean {
+  return apples.some((a) => a.kind === "option");
+}
 
 /** The exit ladder, top-left corner, one cell wide and two tall — only there once every word is eaten. */
 export const LADDER_CELLS: Position[] = [
@@ -252,11 +259,12 @@ export type RoomEvent =
 
 /**
  * What the head's cell means. `finished` is true once every step is
- * eaten: the door is gone by then and only the ladder counts.
+ * eaten: only the ladder counts by then. The QUESTION door only counts
+ * at the A/B choice.
  */
 export function resolveHead(head: Position, apples: RoomApple[], finished: boolean): RoomEvent {
   if (finished) return LADDER_CELLS.some((c) => sameCell(c, head)) ? { kind: "exited" } : { kind: "none" };
-  if (QUESTION_DOOR_CELLS.some((c) => sameCell(c, head))) return { kind: "question-door" };
+  if (isQuestionDoorOpen(apples) && QUESTION_DOOR_CELLS.some((c) => sameCell(c, head))) return { kind: "question-door" };
   const apple = apples.find((a) => sameCell(a.position, head));
   if (!apple) return { kind: "none" };
   if (apple.kind === "word") return { kind: "ate-word", text: apple.text };

@@ -2126,6 +2126,12 @@ other mechanic in this repo.
         the countdown into the answer room is 1.2s a step (was 1s, per
         "very slightly longer countdown"). Reading the A/B options aloud
         during it was dropped ("it delays the fun").
+      - **Q door only at the choice (2026-10-03, per "the snake keeps
+        unnecessarily bumping into the question door when eating the
+        apples with words"):** the answer room's QUESTION door is drawn
+        and counts only while the two blue A/B apples are on the board
+        (`answerRoom.ts`'s `isQuestionDoorOpen`) — the moment a reread
+        helps. `#room-status` has `data-door-open` for the e2e.
       - **Next:** step 4 (make it the default, retire the overlay and
         its e2e).
       - **Content review pending:** room sentences for question batches

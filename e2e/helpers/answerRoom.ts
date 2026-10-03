@@ -31,6 +31,8 @@ export async function steerRoomTo(page: Page, target: RoomTarget): Promise<void>
         const hy = Number(status.dataset.headY);
         const dir = status.dataset.direction as Dir;
         const finished = status.dataset.finished === "true";
+        // The QUESTION door is only there at the A/B choice.
+        const doorOpen = status.dataset.doorOpen === "true";
         const apples = [...document.querySelectorAll<HTMLElement>("#room-apples span")].map((s) => ({
           x: Number(s.dataset.x),
           y: Number(s.dataset.y),
@@ -39,13 +41,13 @@ export async function steerRoomTo(page: Page, target: RoomTarget): Promise<void>
         }));
         const at = (cells: { x: number; y: number }[], x: number, y: number): boolean => cells.some((c) => c.x === x && c.y === y);
         const isGoal = (x: number, y: number): boolean => {
-          if (target === "door") return !finished && at(door, x, y);
+          if (target === "door") return doorOpen && at(door, x, y);
           if (finished) return at(ladder, x, y);
           const wantCorrect = target !== "wrong";
           return apples.some((a) => a.x === x && a.y === y && (a.kind === "word" || a.correct === wantCorrect));
         };
         const isBlocked = (x: number, y: number): boolean =>
-          !isGoal(x, y) && (at(apples, x, y) || (!finished && at(door, x, y)) || (finished && at(ladder, x, y)));
+          !isGoal(x, y) && (at(apples, x, y) || (doorOpen && at(door, x, y)) || (finished && at(ladder, x, y)));
 
         const seen = new Set([`${hx},${hy}`]);
         const queue: { x: number; y: number; first: Dir }[] = [];

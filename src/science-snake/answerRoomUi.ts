@@ -91,6 +91,7 @@ export function updateRoomUi(snake: SnakeState, apples: RoomApple[], finished: b
     status.dataset.direction = snake.direction;
     status.dataset.step = String(stepIndex);
     status.dataset.finished = String(finished);
+    status.dataset.doorOpen = String(apples.some((a) => a.kind === "option"));
   }
   document.getElementById("room-apples")?.replaceChildren(
     ...apples.map((apple) => {
