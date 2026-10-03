@@ -1943,6 +1943,264 @@ other mechanic in this repo.
       the old gaps were, and a real touch-event slide on mobile);
       `e2e/helpers/scienceSnake.ts` now steers through the joystick too.
 
+- [ ] `todo` — **Redesign: question apples, ANSWER door + answer room,
+      golden typing challenge (design settled by conversation
+      2026-09-29/30, see `DECISIONS.md`).** Problem, from playtesting: the
+      child disliked the game stopping to read a long scenario and then
+      type a 20-35 word answer on a phone. Goals kept: the full authored
+      scenario questions (meaningful — don't shorten them), and the child
+      still frames a complete sentence. Typing is optional, rewarded, not
+      required. Mobile-first. Nothing below is built yet.
+      - **Main board: reading the question.** Eating a science item
+        spawns numbered apples ①②③ and slows the tick (~180ms → ~260ms).
+        Each one eaten reveals the next third of the question in a panel
+        above the board (parts accumulate) and reads it aloud via
+        `speechSynthesis` (free, offline; the start-game tap satisfies
+        iOS's first-gesture rule; needs a mute toggle; tapping the panel
+        replays it). Eating a number out of order just bounces — reading
+        is never punished. No time limit.
+      - **ANSWER door.** After ③, a row of six letter cells spelling
+        A N S W E R appears on the main board; running into it takes the
+        snake into the answer room. It stays until used, so the child can
+        circle and reread as many times as they like.
+      - **Golden apples** sit one row above and one row below the door
+        (one-cell gap so a child heading for the door doesn't bite one by
+        accident) — the "hard way". Eating one pauses the game and opens
+        a typing box: the child writes the full answer from having read
+        the question. Graded by the existing lenient `answerGrading.ts`
+        (keywords + sentence shape), so their own wording passes.
+        Correct → question done, +150, and the snake sparkles with a
+        golden shimmer (until the next science item). Wrong → no penalty,
+        both golden apples vanish for this question, the existing `hint`
+        shows, and the ANSWER door remains as the easier route.
+      - **Showing golden is worth more:** a big, sparkling "+150 ⭐" label
+        bobs over the golden apples; a smaller "+30" sits on the ANSWER
+        door.
+      - **Answer room.** A separate small board (8×10) holding only
+        answer apples; the main
+        board freezes meanwhile. Short, non-growing answer snake (length
+        3, edges wrap). Each apple shows only a symbol (★ ▲ ● ◆ ♥…, each
+        with its own colour, shapes kept for colour-blind play, distinct
+        from ①②③ and the poison apple). The panel shows the sentence
+        slots and a key mapping each symbol to its phrase, **listed mixed
+        up** — the child works out the order. Next empty slot glows, the
+        joining-word slot is pre-coloured (because/so/and/but always one
+        colour). One grammatical but scientifically wrong phrase per
+        question (♥ "it got colder").
+      - **Wrong apple in the room** (out of order, or the wrong science
+        phrase) → thrown back to the main board, snake length doubles
+        (like the poison apple, but *without* its permanent 4× apple
+        growth) and it turns muddy dark brown/grey and gooey — ugly on
+        purpose — until that question is answered correctly. Placed
+        phrases are **kept**: the punishment is on the snake, not the
+        sentence. The ANSWER door and golden apples are still there.
+      - **QUESTION door** → back to the main board to reread, no
+        penalty, placed phrases kept. Drawn as a real door (per "have the
+        question door look really like a door... bottom right corner...
+        the alphabet Q... with an arrow"): a 2×2 arched wooden door in
+        the bottom-right corner with a big "Q", a knob and a blue ↩ badge.
+        Apples never spawn next to it, so going for one can't carry the
+        child through the door by accident.
+      - **Correct sentence** → read aloud, +30, back to the main board.
+        Every return to the frozen main board starts with a 3-2-1
+        countdown.
+      - **Points** (`scienceSnakeScore.ts` today: apple 5, correct 30):
+        normal apple 5 · each question apple ①②③ 5 · eating a golden
+        apple (the attempt) 5 · correct sentence in the answer room 30 ·
+        correct typed golden answer 150 · thrown out 0 (plus the growth).
+      - **Voice timing:** each question part read when revealed, the
+        finished sentence once at the end; a chime (not speech) per
+        placed phrase. Easy to revisit after a playtest.
+      - **Content (done 2026-09-30, `answerRoomContent.ts`, all 20
+        approved in chat):** per "too many pieces... limit the number of
+        chunks to five", every question has **5 apples in all**: a short
+        "room sentence" in 4 pieces (10-19 words, not the 17-61 word
+        `modelAnswer`, which stays as the golden-apple typing target)
+        plus 1 wrong piece. Each room sentence still grades correct
+        against its question's own keywords. Per "use 'it cooled down'
+        as a grammatically right replacement for 'it warmed up'", every
+        wrong piece drops into one named slot (`wrongReplaces`) with the
+        same shape as the correct piece there: a straight opposite
+        (evaporated/condensed, expanded/contracted), or the question's
+        own misconception where it fits (light from Zara's eyes,
+        Grandpa's stomach, gills). Mei's shadow uses "the sun is higher
+        in the sky" (opposite) over "smaller" (the brother's belief). The
+        question `prompt`s are only cut in three, not rewritten. The
+        finished sentence read aloud is the short one the child built.
+      - **Replaces** the current typed two-try flow (`QuestionOverlay.ts`,
+        `chunkWords.ts` reveal); the typing box survives only as the
+        golden-apple challenge.
+      - **First thing to prototype:** the answer room on a phone — board
+        size, symbol legibility, how the key + slots fit above it.
+      - **Step 1 built (2026-10-01), opt-in with
+        `science-snake.html?answer=room`** — the default game keeps the
+        typed overlay until step 4. Eating a science item opens the
+        question panel above the board and places ①②③ (next one bright,
+        the rest faded; `questionFlow.ts`), and the board slows to
+        `QUESTION_TICK_MS` (~260ms). Each one eaten in order reveals and
+        reads aloud its part; out of order does nothing. After ③ an
+        A-N-S-W-E-R door appears (six free cells in a row, away from the
+        head, rows two above/below its middle kept clear for step 2's
+        golden apples). Going in freezes the board and runs the answer
+        room in the same canvas (`questionFlowPage.ts`, room zoomed to
+        fit, top-aligned); climbing out = the usual correct-answer growth
+        + score, question cleared. A wrong blue apple or "Reread" goes
+        back to the board with the question and door still there (the
+        door re-arms once the head has left it). 3-2-1 on every return.
+        Room panel code shared with answer-room.html (`answerRoomUi.ts`).
+        Tests: `questionFlow.test.ts`,
+        `e2e/science-snake-question-flow.spec.ts` (full right path, and
+        wrong choice → back with the door still there).
+      - **Step 1 playtest fixes (2026-10-02):** with the question flow
+        on, the joystick has its own row under the board (it was
+        floating over the board's bottom rows now the panel takes
+        height); the answer room's Q door shrank from 2×2 to one corner
+        cell (the snake kept running into it); and the panel shows the
+        whole question again during the room's 3-2-1, switching to the
+        sentence strip as the snake starts moving.
+      - **Question bar (2026-10-02, per "after the question appeared the
+        board became really small... keep the slim bar but let the whole
+        question slowly repeat marquee style"):** with the flow on, a
+        fixed-height bar (8.6rem) is above the board from page load, so
+        the board never resizes. It shows the question so far as a slow
+        repeating ticker (45px/s), then the sentence strip (one line,
+        kept scrolled to the newest word) and compact A/B options in the
+        room, with "✋ Hold the joystick to move" as its title at the
+        choice. Entering the room, the whole question shows as a card in
+        the middle of the board with a small countdown badge (1s steps).
+        Room word pace slowed to 300ms ("the board seems so much
+        bigger"), and the main page's joystick gets the room's easier
+        controls in flow mode (whole strip under the board, dead zone
+        0.2, bigger disc).
+      - **Question phrases replace ①②③ (2026-10-02, per "the player is
+        just chasing after numbers and not reading the question"):** the
+        question now appears one 4-6 word phrase at a time on its own
+        labelled apple, near the snake, like the answer room's words, and
+        builds up in the bar (newest phrase highlighted, a faint dot per
+        phrase to come; each read aloud as it's eaten). Phrases come from
+        `questionFlow.ts`'s `splitIntoPhrases` — the prompt's own words,
+        cut at commas, joining words and prepositions, never across a
+        full stop (~8 per question; tested to join back exactly for all
+        30). The ticker is gone. Main board pace while a question is open
+        unchanged (~260ms). All apples on both boards now share one drawn
+        shape (`appleArt.ts`) — the main board used the 🍎 emoji, the
+        room a drawn apple (emoji can't be blue).
+      - **Apple fine-tune (2026-10-02, per "the apple in the answer room
+        is missing a dent at the bottom, it is looking more like a heart
+        shape"):** `appleArt.ts` draws a computed outline with a dip at
+        the top and the bottom, a darker edge in the apple's own colour
+        and a pointed leaf on the stem; three shape presets were compared
+        on a test sheet and "classic" chosen. Adds `APPLE_GOLD` (gold rim,
+        stronger shine, two sparkles) for the golden apple.
+      - **Step 2 built (2026-10-03): golden apples + points.** When the
+        ANSWER door opens, two golden apples sit two rows above and below
+        its middle letter (`questionFlow.ts`'s `goldenAppleCells`), each
+        with a soft pulsing glow and a bobbing "+150 ⭐"; a small "+30"
+        sits at the door's end, and the bar's door hint reads "ANSWER +30
+        · golden +150". Eating one (+5, `goldenAttempts`) freezes the
+        board and opens `#golden-card`: the whole question (🔊 to hear
+        it), a box for the whole answer, graded by `answerGrading.ts`'s
+        `gradeAnswer`. One try per question — both golden apples go
+        either way (also on "Not now"). Right → +150 (`goldenCorrect`,
+        counted apart from `questionsCorrect`), the usual correct-answer
+        growth, question cleared, and the snake turns shimmering gold
+        with sparkles until the next science item, dancing (a wave down
+        its body) through the 3-2-1. Wrong → the question's `hint` as a
+        clue, back to the board with the ANSWER door still there. Score
+        (`scienceSnakeScore.ts`): the two new counts are optional in
+        `RunStats`, so saved records and cloud saves from before still
+        load. Tests: unit (`goldenAppleCells`, score) and two e2e (right
+        and wrong golden answers).
+      - **Step 3 built (2026-10-03): wrong-choice punishment.** A wrong
+        blue apple sends the snake back to the board doubled
+        (`snakeGrid.ts`'s `applyWrongChoice` — owed growth equal to its
+        length, like a poison apple but without `isPoisoned`'s permanent
+        4x apples) and muddy: dark brown/grey segments with a slow gooey
+        wobble and drips, until that question is answered (room or
+        golden). Only the first wrong choice per question doubles it, so
+        repeated mistakes can't blow the snake up to the whole board. The
+        wrong-choice card says so. `returnFromRoom` now takes "correct" |
+        "reread" | "wrong".
+      - **Also (2026-10-03):** the question's phrase apple has a pulsing
+        pink-red halo and ring, so it stands out from ordinary apples;
+        the countdown into the answer room is 1.2s a step (was 1s, per
+        "very slightly longer countdown"). Reading the A/B options aloud
+        during it was dropped ("it delays the fun").
+      - **Q door only at the choice (2026-10-03, per "the snake keeps
+        unnecessarily bumping into the question door when eating the
+        apples with words"):** the answer room's QUESTION door is drawn
+        and counts only while the two blue A/B apples are on the board
+        (`answerRoom.ts`'s `isQuestionDoorOpen`) — the moment a reread
+        helps. `#room-status` has `data-door-open` for the e2e.
+      - **Next:** step 4 (make it the default, retire the overlay and
+        its e2e).
+      - **Content review pending:** room sentences for question batches
+        5-6 (drafted 2026-10-01 in `answerRoomContent.ts`).
+      - **Answer-room prototype built (2026-09-30), waiting on a phone
+        playtest.** Standalone page `/answer-room.html` (not linked from
+        the game), one question (the melting ice): `answerRoom.ts` (pure
+        rules: mixed-up key with orange joining symbol, apple placement
+        that never touches, fixed-length wrapping room snake, in-order /
+        out-of-order / wrong-phrase / QUESTION-door resolution),
+        `answerRoomContent.ts` (question split in three + answer phrases,
+        tested to join back into the existing `prompt`/`modelAnswer`),
+        `AnswerRoomScene.ts`, `answerRoomMain.ts`, `answerRoom.css`,
+        `voice.ts` (speech + chime). 3-2-1 countdown on every entry, next
+        slot glows, the right apple pulses after 5s without progress.
+        **Reworked 2026-09-30 after playtest** ("attention every where at
+        the top and then on the board and then trying to control a snake,
+        absolutely overwhelmed and not fun"): the symbol key and
+        work-out-the-order puzzle are gone. The snake now eats the room
+        sentence **one word at a time** — only the next word is on the
+        board, its text in a bubble on the apple, spawned 3-5 steps from
+        the head — and the sentence builds at the top as it goes. At the
+        science choice, **two blue apples A and B** appear, with what
+        each means in a box above the board (read aloud; which letter is
+        right is shuffled). Wrong one → the snake dies (belly-up, X eyes,
+        smoke) and the sentence is **practised again from the first
+        word**. After the last word the QUESTION door disappears and a
+        **ladder in the top-left corner** glows for the snake to climb
+        out. Room speed halved (300ms → 600ms per step). Content
+        unchanged: the choice piece is `wrongReplaces`, every other
+        piece is split into words (ice = 8 eats, the longest 15).
+        **Pace follow-up** (per "at the option phase let the snake move
+        by holding the button but resume 80% speed when collecting the
+        worded apples"): at the A/B choice the snake only moves while the
+        joystick or an arrow key is held (600ms a step, with a "✋ Hold
+        the joystick to move" line in the A/B box); word apples and the
+        climb to the ladder run on their own at 225ms — 80% of the main
+        board's 180ms speed (first read as 80% of the room's own speed,
+        375ms, then corrected: "it was too slow so we need it faster").
+        Controls tuned (per "I missed turning the snake many times and
+        invoking the return to question page"): the whole strip under
+        the board is the joystick's touch area (a tap on or past an arrow
+        steers, by where it is relative to the disc's centre), the disc
+        and arrows are bigger, the dead zone smaller (0.2 vs 0.3); a
+        backwards tap turns the room snake round instead of being
+        ignored; up to 2 quick taps are queued, one per step; and the Q
+        door now asks "Back to the question?" (Reread / Keep building)
+        instead of leaving at once. The main board's joystick is unchanged.
+        Tapping to steer zoomed an iPhone in with no way back out (the
+        viewport meta blocks pinch): fixed for both Science Snake pages
+        with `touch-action: manipulation` on the page (style.css) plus
+        `noZoom.ts`, which cancels a quick second tap's zoom everywhere
+        except buttons, links and text fields.
+        Apples are drawn apple-shaped (two lobes, stem, leaf, shine) per
+        "apple looks like an orange". The board also now refits properly when the
+        A/B box appears (it used to keep its first size and cover option
+        B). Earlier the same day: all 20 questions loaded (random first
+        question, `?q=` to pick, "Next question ➜" on the finished card);
+        the wrong apple is tied to its slot — when the hint pulses, both
+        apples competing for that slot pulse, and the wrong one leaves
+        the board once its slot is filled. Before that: the QUESTION door moved from a lettered
+        top row to the 2×2 wooden "↩ Q" door in the bottom-right corner,
+        which let the room shrink from 10×12 to 8×10 (bigger squares on
+        a phone).
+        Cards stand in for the main board (thrown out, QUESTION door,
+        finished). Tests: `answerRoom.test.ts` (13) and
+        `e2e/answer-room.spec.ts` (in-order win, wrong phrase keeps
+        progress, QUESTION door), mobile + desktop.
+
 ## Platform / infra
 
 - [x] `done` — Live Vercel deployment (2026-08-25). `vercel.json`

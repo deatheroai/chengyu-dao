@@ -23,6 +23,23 @@ None open right now.
 
 ## Resolved
 
+- **2026-09-29/30 — Science Snake: question apples, ANSWER door +
+  answer room, golden typing challenge instead of typing every answer.**
+  Raised because the child found the long question and full typed answer
+  too disruptive on a phone. Resolved in conversation: framing a
+  complete sentence is the goal, typing isn't required; the full
+  authored questions stay (revealed in three parts by eating ①②③ on the
+  main board, read aloud); an A-N-S-W-E-R door on the main board leads
+  to a small answer room where the child eats symbol apples, matched to
+  phrases in a mixed-up key, in sentence order; a wrong apple throws the
+  snake back out doubled in length and ugly muddy brown/grey (sentence
+  progress kept); a QUESTION door returns to reread without penalty.
+  Golden apples above/below the ANSWER door offer typing the full answer
+  for 150 points (vs 30 via the room, 5 just for trying) and a golden
+  shimmer. Voice timing and how long the ugly/golden looks last were
+  left to the session's judgement. Supersedes the same conversation's
+  earlier versions. Full design in `BACKLOG.md`'s Science Snake section.
+
 - **2026-09-28 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. No open PRs. `BACKLOG.md`'s
   only `todo` item is the standing example-sentence-review track, and

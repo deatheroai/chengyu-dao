@@ -20,6 +20,8 @@ export default defineConfig({
         index: resolve(rootDir, "index.html"),
         idiomDoor: resolve(rootDir, "idiom-door.html"),
         scienceSnake: resolve(rootDir, "science-snake.html"),
+        // Prototype page for the Science Snake answer room — see BACKLOG.md.
+        answerRoom: resolve(rootDir, "answer-room.html"),
       },
     },
   },

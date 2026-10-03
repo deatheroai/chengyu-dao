@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#fdf8ec" />
+    <meta name="robots" content="noindex" />
+    <title>Science Snake — Answer room prototype</title>
+    <link rel="stylesheet" href="/src/science-snake/style.css" />
+    <link rel="stylesheet" href="/src/science-snake/answerRoom.css" />
+  </head>
+  <body>
+    <!-- Prototype of the answer room only (BACKLOG.md's Science Snake
+         redesign entry), every question one at a time, for trying on a
+         phone before it goes into the real game. The main board isn't here: the cards below stand in
+         for "back on the main board". -->
+    <div id="app" class="answer-room-app">
+      <div id="room-layout">
+        <div id="room-panel">
+          <div class="room-panel-top">
+            <span class="room-title"><span data-question-icon></span> Build the answer</span>
+            <span class="room-points">+30</span>
+            <button id="mute-btn" type="button" aria-label="Sound on">🔊</button>
+          </div>
+          <div id="sentence-strip" aria-label="Your sentence so far"></div>
+          <div id="choice-box" class="hidden" aria-live="polite"></div>
+          <p id="room-hint" class="hidden">🎉 Sentence done! Climb the ladder ↖ to get out.</p>
+        </div>
+        <div id="room-board">
+          <div id="game-container"></div>
+          <div id="countdown" aria-live="polite"></div>
+        </div>
+        <div id="room-controls">
+          <div id="joystick" role="group" aria-label="Steer: slide or tap toward a direction">
+            <span class="joystick-arrow joystick-arrow-up" aria-hidden="true">▲</span>
+            <span class="joystick-arrow joystick-arrow-down" aria-hidden="true">▼</span>
+            <span class="joystick-arrow joystick-arrow-left" aria-hidden="true">◀</span>
+            <span class="joystick-arrow joystick-arrow-right" aria-hidden="true">▶</span>
+            <div id="joystick-knob" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="start-card" class="card-layer visible">
+        <div class="card">
+          <h1><span data-question-icon></span> Answer room</h1>
+          <p class="room-card-note">Prototype: just the answer room, one question at a time.</p>
+          <div class="question-parts" data-question-parts></div>
+          <p>Eat the words one by one to build the answer. When two <b style="color:#2f7fd6">blue apples</b> appear, pick <b>A</b> or <b>B</b> — the one that's right.</p>
+          <p class="controls-hint">Wrong choice and the snake dies, so you practise the sentence again. The <b>↩ Q</b> door in the bottom corner takes you back to reread the question.</p>
+          <button id="start-btn" type="button">Go in ➜</button>
+        </div>
+      </div>
+
+      <div id="question-card" class="card-layer">
+        <div class="card">
+          <h1>❓ The question</h1>
+          <div class="question-parts" data-question-parts></div>
+          <button id="read-question-btn" type="button" class="secondary-btn">🔊 Read it to me</button>
+          <button id="back-in-btn" type="button">Back to the answer room ➜</button>
+        </div>
+      </div>
+
+      <div id="door-confirm-card" class="card-layer">
+        <div class="card">
+          <h1>↩ Back to the question?</h1>
+          <p>You walked into the <b>Q</b> door. Do you want to go back and reread the question? The words you've eaten are kept.</p>
+          <button id="door-reread-btn" type="button">Reread the question</button>
+          <button id="door-stay-btn" type="button" class="secondary-btn">Keep building ➜</button>
+        </div>
+      </div>
+
+      <div id="thrown-out-card" class="card-layer">
+        <div class="card">
+          <h1>😵 Wrong choice!</h1>
+          <div class="ugly-snake" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <p>That option doesn't fit the science. Let's practise the sentence again from the first word.</p>
+          <p class="room-card-note">In the real game you'd go back to the question board with a snake twice as long, muddy brown and gooey.</p>
+          <button id="retry-btn" type="button">Practise again ➜</button>
+        </div>
+      </div>
+
+      <div id="complete-card" class="card-layer">
+        <div class="card">
+          <h1>🎉 Great answer!</h1>
+          <p id="complete-sentence" class="complete-sentence"></p>
+          <p class="complete-points">+30 points</p>
+          <button id="hear-again-btn" type="button" class="secondary-btn">🔊 Hear it again</button>
+          <button id="next-question-btn" type="button">Next question ➜</button>
+          <button id="play-again-btn" type="button" class="secondary-btn">Play this one again</button>
+        </div>
+      </div>
+
+      <!-- Test-only hooks, same pattern as science-snake.html's
+           #snake-status/#board-items. -->
+      <div id="room-status" data-head-x="0" data-head-y="0" data-direction="right" data-placed="0" style="display: none" aria-hidden="true"></div>
+      <div id="room-apples" style="display: none" aria-hidden="true"></div>
+    </div>
+    <script type="module" src="/src/science-snake/answerRoomMain.ts"></script>
+  </body>
+</html>

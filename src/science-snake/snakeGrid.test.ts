@@ -7,6 +7,7 @@ import {
   applyAppleEaten,
   applyCorrectAnswerEaten,
   applyPoisonAppleEaten,
+  applyWrongChoice,
   step,
   hasWon,
   GRID_WIDTH,
@@ -198,6 +199,22 @@ describe("applyCorrectAnswerEaten", () => {
 
     const poisoned: SnakeState = { ...snake, isPoisoned: true };
     expect(applyCorrectAnswerEaten(poisoned).owedGrowth).toBe(CORRECT_ANSWER_GROWTH);
+  });
+});
+
+describe("applyWrongChoice", () => {
+  it("doubles the snake like a poison apple, but doesn't poison it", () => {
+    const snake = createInitialSnake({ x: 5, y: 5 }, "right", 10);
+    const muddy = applyWrongChoice(snake);
+    expect(muddy.owedGrowth).toBe(10);
+    expect(muddy.isPoisoned).toBe(false);
+    expect(applyAppleEaten(muddy).owedGrowth).toBe(10 + APPLE_GROWTH);
+  });
+
+  it("clamps owed growth to the grid", () => {
+    const nearlyFull = createInitialSnake({ x: 5, y: 5 }, "right", TOTAL_CELLS - 5);
+    const muddy = applyWrongChoice(nearlyFull);
+    expect(muddy.body.length + muddy.owedGrowth).toBeLessThanOrEqual(TOTAL_CELLS);
   });
 });
 

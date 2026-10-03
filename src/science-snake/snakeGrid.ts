@@ -161,6 +161,17 @@ export function applyPoisonAppleEaten(state: SnakeState): SnakeState {
   return { ...doubled, isPoisoned: true };
 }
 
+/**
+ * A wrong blue apple in the answer room (BACKLOG.md's redesign, step 3):
+ * the snake doubles, the same owed-growth way as a poison apple, but
+ * without `isPoisoned` and its permanent 4x apple growth. The muddy look
+ * that goes with it is the scene's, and lasts until the question is
+ * answered.
+ */
+export function applyWrongChoice(state: SnakeState): SnakeState {
+  return addOwedGrowth(state, state.body.length);
+}
+
 export type MoveResult = { outcome: "moved"; snake: SnakeState } | { outcome: "self-collision" };
 
 /**

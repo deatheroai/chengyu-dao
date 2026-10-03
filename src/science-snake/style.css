@@ -11,6 +11,10 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  /* Taps are taps, never a double-tap zoom — the viewport meta blocks
+     pinching, so a zoom-in on a phone had no way back out (found on an
+     iPhone in the answer room). noZoom.ts is the backstop. */
+  touch-action: manipulation;
 }
 
 #app {
