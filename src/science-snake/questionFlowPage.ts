@@ -22,8 +22,8 @@ import { speak, chime } from "./voice";
  */
 
 const ROOM_SCENE_KEY = "AnswerRoomScene";
-/** Entering the answer room the countdown runs a little slower than usual — the whole question is up in the middle to reread. */
-const ROOM_INTRO_STEP_MS = 1000;
+/** Entering the answer room the countdown runs slower than usual — the whole question is up in the middle to reread (1.2s a step; was 1s, per "very slightly longer countdown"). */
+const ROOM_INTRO_STEP_MS = 1200;
 
 function show(id: string, visible: boolean): void {
   document.getElementById(id)?.classList.toggle("hidden", !visible);
@@ -154,7 +154,7 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
     );
   };
 
-  const leaveRoom = (outcome: "correct" | "not-yet"): void => {
+  const leaveRoom = (outcome: "correct" | "reread" | "wrong"): void => {
     inRoom = false;
     game.scene.stop(ROOM_SCENE_KEY);
     showIntro(null);
@@ -215,12 +215,12 @@ export function createQuestionFlowPage(game: Phaser.Game, snakeScene: () => Snak
 
   document.getElementById("door-reread-btn")?.addEventListener("click", () => {
     hideCard("door-confirm-card");
-    leaveRoom("not-yet");
+    leaveRoom("reread");
   });
   document.getElementById("door-stay-btn")?.addEventListener("click", enterRoom);
   document.getElementById("wrong-choice-btn")?.addEventListener("click", () => {
     hideCard("wrong-choice-card");
-    leaveRoom("not-yet");
+    leaveRoom("wrong");
   });
   document.getElementById("read-question-btn")?.addEventListener("click", () => speak(content()?.questionParts.join(" ") ?? ""));
 

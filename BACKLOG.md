@@ -2111,8 +2111,22 @@ other mechanic in this repo.
         `RunStats`, so saved records and cloud saves from before still
         load. Tests: unit (`goldenAppleCells`, score) and two e2e (right
         and wrong golden answers).
-      - **Next:** step 3 (wrong-choice punishment: doubled, muddy
-        brown-grey), step 4 (make it the default, retire the overlay and
+      - **Step 3 built (2026-10-03): wrong-choice punishment.** A wrong
+        blue apple sends the snake back to the board doubled
+        (`snakeGrid.ts`'s `applyWrongChoice` — owed growth equal to its
+        length, like a poison apple but without `isPoisoned`'s permanent
+        4x apples) and muddy: dark brown/grey segments with a slow gooey
+        wobble and drips, until that question is answered (room or
+        golden). Only the first wrong choice per question doubles it, so
+        repeated mistakes can't blow the snake up to the whole board. The
+        wrong-choice card says so. `returnFromRoom` now takes "correct" |
+        "reread" | "wrong".
+      - **Also (2026-10-03):** the question's phrase apple has a pulsing
+        pink-red halo and ring, so it stands out from ordinary apples;
+        the countdown into the answer room is 1.2s a step (was 1s, per
+        "very slightly longer countdown"). Reading the A/B options aloud
+        during it was dropped ("it delays the fun").
+      - **Next:** step 4 (make it the default, retire the overlay and
         its e2e).
       - **Content review pending:** room sentences for question batches
         5-6 (drafted 2026-10-01 in `answerRoomContent.ts`).

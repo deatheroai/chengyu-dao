@@ -64,9 +64,10 @@ test("science item → question phrases → ANSWER door → answer room → sent
   await expect(page.locator("#countdown")).toHaveText("", { timeout: 5_000 });
 });
 
-test("a wrong blue apple sends the snake back to the board with the question and door still there", async ({ page }) => {
+test("a wrong blue apple sends the snake back to the board, doubled and muddy, with the question and door still there", async ({ page }) => {
   test.setTimeout(240_000);
   const questionId = await openQuestionAndReachRoom(page);
+  const lengthBefore = Number(await page.locator("#snake-status").getAttribute("data-length"));
 
   await steerRoomTo(page, "wrong");
   await expect(page.locator("#wrong-choice-card")).toHaveClass(/visible/, { timeout: 120_000 });
@@ -78,6 +79,11 @@ test("a wrong blue apple sends the snake back to the board with the question and
   await expect(flow(page)).toHaveAttribute("data-question-id", questionId);
   await expect(flow(page)).toHaveAttribute("data-questions-correct", "0");
   await expect(flow(page).locator("span[data-door]")).toHaveCount(6);
+  // The punishment: muddy until the question is answered, and twice as long once the owed growth has played out.
+  await expect(flow(page)).toHaveAttribute("data-muddy", "true");
+  await expect
+    .poll(async () => Number(await page.locator("#snake-status").getAttribute("data-length")), { timeout: 30_000 })
+    .toBeGreaterThanOrEqual(lengthBefore * 2);
 });
 
 test("the question bar keeps one height, so the board never changes size as the question comes and goes", async ({ page }) => {

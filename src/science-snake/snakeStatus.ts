@@ -75,6 +75,7 @@ export function updateQuestionFlowStatus(
     apple: { x: number; y: number } | null;
     door: { x: number; y: number }[] | null;
     golden: { x: number; y: number }[] | null;
+    muddy: boolean;
   } | null,
   stats: { questionsCorrect: number; goldenCorrect: number },
 ): void {
@@ -85,6 +86,7 @@ export function updateQuestionFlowStatus(
   el.dataset.phrases = String(question?.phrases.length ?? 0);
   el.dataset.questionsCorrect = String(stats.questionsCorrect);
   el.dataset.goldenCorrect = String(stats.goldenCorrect);
+  el.dataset.muddy = String(question?.muddy ?? false);
   const cellSpan = (attribute: string, value: string, cell: { x: number; y: number }): HTMLSpanElement => {
     const span = document.createElement("span");
     span.setAttribute(attribute, value);

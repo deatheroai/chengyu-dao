@@ -6,6 +6,7 @@ import {
   applyAppleEaten,
   applyCorrectAnswerEaten,
   applyPoisonAppleEaten,
+  applyWrongChoice,
   hasWon,
   GRID_WIDTH,
   GRID_HEIGHT,
@@ -105,6 +106,8 @@ interface ActiveQuestion {
   /** The two golden apples above and below the door — null before the door opens, and for good once one has been eaten (one try per question). */
   golden: Position[] | null;
   goldenTried: boolean;
+  /** Set by a wrong blue apple in the answer room: the snake has doubled and stays muddy until this question is answered. Only the first wrong choice per question doubles it. */
+  muddy: boolean;
 }
 
 const DOOR_COLOR = 0x2f7fd6;
@@ -112,6 +115,12 @@ const GOLDEN_GLOW = 0xffe27a;
 /** After a golden answer the snake shimmers in these (until the next science item), and dances through the 3-2-1. */
 const GOLDEN_SHIMMER = [0xf5c518, 0xffd84d, 0xffeb99, 0xe6a800];
 const SPARKLE_COLOR = 0xfffbe0;
+/** After a wrong blue apple: muddy dark brown and grey, ugly on purpose, with a slow gooey wobble and drips. */
+const MUDDY_COLORS = [0x4a3b2a, 0x5c4a36, 0x55524c, 0x3e3328, 0x6b5a45];
+const MUD_DRIP_COLOR = 0x3a2e22;
+/** The question's phrase apple pulses with a soft halo, so it stands out from ordinary apples. */
+const PHRASE_GLOW = 0xff9a8a;
+const PHRASE_GLOW_RING = 0xff5a46;
 const DANCE_FRAME_MS = 50;
 const COUNTDOWN_STEP_MS = 700;
 /** Phaser's own default is Courier; match the page's font instead. */
@@ -399,7 +408,7 @@ export class SnakeGameScene extends Phaser.Scene {
   private startQuestion(questionId: string): void {
     const phrases = splitIntoPhrases(scienceQuestionsById[questionId]?.prompt ?? "");
     this.shimmering = false;
-    this.activeQuestion = { id: questionId, phrases, eaten: 0, apple: null, door: null, doorArmed: true, golden: null, goldenTried: false };
+    this.activeQuestion = { id: questionId, phrases, eaten: 0, apple: null, door: null, doorArmed: true, golden: null, goldenTried: false, muddy: false };
     this.activeQuestion.apple = placePhraseApple(this.occupiedCells(), this.snake.body[0], this.rng);
     this.scheduleTick();
     this.flow?.onQuestionStart(questionId);
@@ -457,11 +466,18 @@ export class SnakeGameScene extends Phaser.Scene {
    * answer growth and score, and the question (door and all) is cleared.
    * "not-yet": back to the board with the question still open (a wrong
    * blue apple, or going back to reread) — the door stays for another go.
-   * Either way the board restarts after a 3-2-1.
+   * "wrong": a wrong blue apple also doubles the snake and turns it muddy
+   * until this question is answered. Either way the board restarts after
+   * a 3-2-1.
    */
-  returnFromRoom(outcome: "correct" | "not-yet", onCountdown: (value: number | null) => void): void {
+  returnFromRoom(outcome: "correct" | "reread" | "wrong", onCountdown: (value: number | null) => void): void {
     const question = this.activeQuestion;
-    if (outcome === "correct" && question) {
+    if (outcome === "wrong" && question) {
+      // Step 3's punishment: doubled and muddy (once per question).
+      if (!question.muddy) this.snake = applyWrongChoice(this.snake);
+      question.muddy = true;
+      question.doorArmed = false;
+    } else if (outcome === "correct" && question) {
       this.snake = applyCorrectAnswerEaten(this.snake);
       this.stats.questionsCorrect += 1;
       this.activeQuestion = null;
@@ -633,6 +649,11 @@ export class SnakeGameScene extends Phaser.Scene {
     if (question.apple) {
       const cx = question.apple.x * CELL_SIZE + CELL_SIZE / 2;
       const cy = question.apple.y * CELL_SIZE + CELL_SIZE / 2;
+      const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 250);
+      this.gfx.fillStyle(PHRASE_GLOW, 0.4 + 0.3 * pulse);
+      this.gfx.fillCircle(cx, cy, CELL_SIZE * (0.62 + 0.12 * pulse));
+      this.gfx.lineStyle(2, PHRASE_GLOW_RING, 0.6 + 0.4 * pulse);
+      this.gfx.strokeCircle(cx, cy, CELL_SIZE * (0.66 + 0.12 * pulse));
       drawApple(this.gfx, cx, cy, CELL_SIZE, APPLE_RED);
       const label = this.add
         .text(0, 0, question.phrases[question.eaten] ?? "", {
@@ -730,6 +751,9 @@ export class SnakeGameScene extends Phaser.Scene {
         color = BELLY_COLOR;
       } else if (this.shimmering) {
         color = GOLDEN_SHIMMER[(i + Math.floor(this.time.now / 120)) % GOLDEN_SHIMMER.length];
+      } else if (this.activeQuestion?.muddy) {
+        color = MUDDY_COLORS[(i * 3 + Math.floor(this.time.now / 400)) % MUDDY_COLORS.length];
+        wobble = Math.sin(this.time.now / 300 + i * 0.7) * 2.5;
       } else if (this.snake.isPoisoned) {
         color = POISONED_COLORS[(i + Math.floor(this.time.now / 150)) % POISONED_COLORS.length];
         wobble = Math.sin(this.time.now / 120 + i) * 2;
@@ -758,7 +782,15 @@ export class SnakeGameScene extends Phaser.Scene {
         target.lineBetween(sx, sy - arm, sx, sy + arm);
       }
 
-      if (isTaper && !isDead && !this.snake.isPoisoned && !this.shimmering) {
+      if (this.activeQuestion?.muddy && !isDead && (i + Math.floor(this.time.now / 600)) % 3 === 0) {
+        // A gooey drip hanging off the segment.
+        const dripLength = CELL_SIZE * (0.15 + 0.15 * (0.5 + 0.5 * Math.sin(this.time.now / 250 + i)));
+        target.fillStyle(MUD_DRIP_COLOR, 1);
+        target.fillRect(cellX + CELL_SIZE / 2 - 2 + wobble, cellY + offset + size - wobble - 1, 4, dripLength);
+        target.fillCircle(cellX + CELL_SIZE / 2 + wobble, cellY + offset + size - wobble + dripLength, 3);
+      }
+
+      if (isTaper && !isDead && !this.snake.isPoisoned && !this.shimmering && !this.activeQuestion?.muddy) {
         // A couple of thin ring stripes across the tapering tail,
         // evoking a real snake's banded tail — per your "tail a little
         // like rings" feedback. Skipped while poisoned (the cycling
