@@ -11,6 +11,10 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  /* Taps are taps, never a double-tap zoom — the viewport meta blocks
+     pinching, so a zoom-in on a phone had no way back out (found on an
+     iPhone in the answer room). noZoom.ts is the backstop. */
+  touch-action: manipulation;
 }
 
 #app {
@@ -283,32 +287,6 @@ body {
 .dpad-down {
   grid-column: 2;
   grid-row: 3;
-}
-
-#question-overlay .card {
-  max-width: 480px;
-}
-
-.question-icon {
-  font-size: 2.5rem;
-}
-
-#question-input {
-  width: 100%;
-  margin-top: 0.75rem;
-  padding: 0.6rem;
-  border-radius: 12px;
-  border: 1px solid #b7c9ab;
-  font-family: inherit;
-  font-size: 1rem;
-  resize: vertical;
-}
-
-.hint {
-  background: #eef7e6;
-  border-radius: 12px;
-  padding: 0.6rem 0.8rem;
-  font-style: italic;
 }
 
 .hidden {

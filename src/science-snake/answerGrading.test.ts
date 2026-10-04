@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { satisfiesRequiredKeywords, isMalformed, gradeAnswer, resolveAttempt } from "./answerGrading";
+import { satisfiesRequiredKeywords, isMalformed, gradeAnswer } from "./answerGrading";
 
 const SAMPLE_QUESTION = {
   minWords: 6,
@@ -79,27 +79,5 @@ describe("gradeAnswer", () => {
 
   it("malformed takes priority over incorrect", () => {
     expect(gradeAnswer("magnets iron steel", SAMPLE_QUESTION)).toBe("malformed");
-  });
-});
-
-describe("resolveAttempt", () => {
-  it("resolves to correct on try 1 regardless of try number semantics", () => {
-    expect(resolveAttempt(SAMPLE_QUESTION, "it can grow bigger and reproduce", 1)).toEqual({ outcome: "correct" });
-  });
-
-  it("resolves to correct on try 2 too", () => {
-    expect(resolveAttempt(SAMPLE_QUESTION, "it can grow bigger and reproduce", 2)).toEqual({ outcome: "correct" });
-  });
-
-  it("resolves to retry when try 1 is wrong (incorrect verdict)", () => {
-    expect(resolveAttempt(SAMPLE_QUESTION, "it can grow a lot bigger", 1)).toEqual({ outcome: "retry", verdict: "incorrect" });
-  });
-
-  it("resolves to retry when try 1 is wrong (malformed verdict)", () => {
-    expect(resolveAttempt(SAMPLE_QUESTION, "grow", 1)).toEqual({ outcome: "retry", verdict: "malformed" });
-  });
-
-  it("resolves to reveal when try 2 is wrong", () => {
-    expect(resolveAttempt(SAMPLE_QUESTION, "it can grow a lot bigger", 2)).toEqual({ outcome: "reveal", verdict: "incorrect" });
   });
 });

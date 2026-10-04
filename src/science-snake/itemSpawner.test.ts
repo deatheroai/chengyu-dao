@@ -7,7 +7,6 @@ import {
   pickNextQuestionId,
   spawnApple,
   spawnScienceItem,
-  spawnIndigestionItems,
   POISON_APPLE_CHANCE,
   SCIENCE_TO_APPLE_RATIO,
 } from "./itemSpawner";
@@ -125,26 +124,5 @@ describe("spawnScienceItem", () => {
   it("places a science item carrying the given questionId", () => {
     const item = spawnScienceItem([], "q1", createRng(3));
     expect(item).toEqual({ position: item!.position, type: "science", questionId: "q1" });
-  });
-});
-
-describe("spawnIndigestionItems", () => {
-  it("spawns the requested number of science items, each at a distinct free cell", () => {
-    const items = spawnIndigestionItems([], ["q1", "q2", "q3"], createRng(9));
-    expect(items).toHaveLength(3);
-    expect(items.every((item) => item.type === "science")).toBe(true);
-    const positions = items.map((item) => `${item.position.x},${item.position.y}`);
-    expect(new Set(positions).size).toBe(3);
-  });
-
-  it("stops early rather than throwing when the board can't fit them all", () => {
-    const almostFull: Position[] = [];
-    for (let y = 0; y < GRID_HEIGHT; y++) {
-      for (let x = 0; x < GRID_WIDTH; x++) {
-        if (almostFull.length < TOTAL_CELLS - 1) almostFull.push({ x, y });
-      }
-    }
-    const items = spawnIndigestionItems(almostFull, ["q1", "q2", "q3"], createRng(9));
-    expect(items).toHaveLength(1);
   });
 });

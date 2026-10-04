@@ -59,3 +59,44 @@ export function syncBoardItems(items: BoardItem[]): void {
     container.lastElementChild?.remove();
   }
 }
+
+/**
+ * The question flow's test hook (redesign, BACKLOG.md): which question is
+ * open, how many of its phrases have been eaten (and how many there
+ * are), where the next phrase apple, the ANSWER door and the golden
+ * apples are, and how many questions have been answered each way — same
+ * hidden-element pattern as the two above.
+ */
+export function updateQuestionFlowStatus(
+  question: {
+    id: string;
+    eaten: number;
+    phrases: string[];
+    apple: { x: number; y: number } | null;
+    door: { x: number; y: number }[] | null;
+    golden: { x: number; y: number }[] | null;
+    muddy: boolean;
+  } | null,
+  stats: { questionsCorrect: number; goldenCorrect: number },
+): void {
+  const el = document.getElementById("question-flow");
+  if (!el) return;
+  el.dataset.questionId = question?.id ?? "";
+  el.dataset.eaten = String(question?.eaten ?? 0);
+  el.dataset.phrases = String(question?.phrases.length ?? 0);
+  el.dataset.questionsCorrect = String(stats.questionsCorrect);
+  el.dataset.goldenCorrect = String(stats.goldenCorrect);
+  el.dataset.muddy = String(question?.muddy ?? false);
+  const cellSpan = (attribute: string, value: string, cell: { x: number; y: number }): HTMLSpanElement => {
+    const span = document.createElement("span");
+    span.setAttribute(attribute, value);
+    span.dataset.x = String(cell.x);
+    span.dataset.y = String(cell.y);
+    return span;
+  };
+  el.replaceChildren(
+    ...(question?.apple ? [question.apple] : []).map((apple) => cellSpan("data-phrase", "next", apple)),
+    ...(question?.door ?? []).map((cell) => cellSpan("data-door", "true", cell)),
+    ...(question?.golden ?? []).map((cell) => cellSpan("data-golden", "true", cell)),
+  );
+}

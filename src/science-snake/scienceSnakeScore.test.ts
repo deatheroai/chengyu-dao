@@ -10,6 +10,8 @@ import {
   mergeScoresFromCloud,
   APPLE_POINTS,
   CORRECT_ANSWER_POINTS,
+  GOLDEN_ATTEMPT_POINTS,
+  GOLDEN_CORRECT_POINTS,
   type RunOutcome,
   type ScoreRecord,
 } from "./scienceSnakeScore";
@@ -21,6 +23,13 @@ beforeEach(() => {
 describe("calculateScore", () => {
   it("is apples*5 + questionsCorrect*30", () => {
     expect(calculateScore({ applesEaten: 10, questionsCorrect: 4 })).toBe(10 * APPLE_POINTS + 4 * CORRECT_ANSWER_POINTS);
+  });
+
+  it("adds 5 per golden apple eaten and 150 per golden answer typed correctly", () => {
+    expect(GOLDEN_CORRECT_POINTS).toBe(5 * CORRECT_ANSWER_POINTS);
+    expect(calculateScore({ applesEaten: 2, questionsCorrect: 1, goldenAttempts: 3, goldenCorrect: 1 })).toBe(
+      2 * APPLE_POINTS + CORRECT_ANSWER_POINTS + 3 * GOLDEN_ATTEMPT_POINTS + GOLDEN_CORRECT_POINTS,
+    );
   });
 
   it("is 0 for a run with nothing eaten", () => {

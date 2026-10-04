@@ -1,0 +1,501 @@
+/* Answer room prototype (answer-room.html). Loaded after style.css, so
+   it reuses the cards and joystick and only adds the room's own layout:
+   panel on top, board in the middle, joystick in its own row below —
+   the room's board is small, so the joystick doesn't float over it. */
+
+body:has(.answer-room-app) {
+  background: #fdf8ec;
+}
+
+#room-layout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+
+#room-panel {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.75rem 0.4rem;
+  background: #fffaf0;
+  border-bottom: 1px solid #eee4cc;
+}
+
+.room-panel-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.room-title {
+  font-weight: 700;
+  flex: 1;
+}
+
+.room-points {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #3c8a4c;
+  background: rgba(60, 138, 76, 0.12);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+}
+
+#mute-btn {
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+}
+
+/* The sentence being built, one chip per eaten word, then a faint dot
+   per word still to come. */
+#sentence-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.4rem 0 0.2rem;
+  min-height: 1.9rem;
+  align-items: center;
+}
+
+.word-chip {
+  padding: 0.15rem 0.4rem;
+  border-radius: 7px;
+  background: #eaf6e4;
+  border: 2px solid #3c8a4c;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.word-chip.joining {
+  border-color: #f08a1c;
+  background: rgba(240, 138, 28, 0.2);
+}
+
+.word-chip.chosen {
+  border-color: #2f7fd6;
+  background: rgba(47, 127, 214, 0.15);
+}
+
+.word-chip.just-eaten {
+  animation: slot-pop 0.3s ease-out;
+}
+
+.word-chip.upcoming {
+  border: none;
+  background: none;
+  color: #cdbf9f;
+  padding: 0 0.1rem;
+}
+
+@keyframes slot-pop {
+  from { transform: scale(1.3); }
+  to { transform: scale(1); }
+}
+
+/* The A/B box — only while the two blue apples are on the board. */
+#choice-box {
+  margin: 0.3rem 0 0.1rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(47, 127, 214, 0.1);
+  border: 2px solid #2f7fd6;
+}
+
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.2rem 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.choice-badge {
+  flex: 0 0 auto;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: #2f7fd6;
+  color: #fff;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.choice-hold-hint {
+  margin: 0 0 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2f7fd6;
+}
+
+#room-hint {
+  margin: 0.3rem 0 0.1rem;
+  font-weight: 700;
+  color: #9a6331;
+}
+
+#room-board {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#room-board #game-container {
+  position: absolute;
+  inset: 0.25rem 0.5rem;
+  /* Belt and braces: even a board that hasn't refitted yet can't spill
+     over the panel above or the joystick below. */
+  overflow: hidden;
+}
+
+#countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  font-weight: 800;
+  color: rgba(44, 61, 36, 0.75);
+  pointer-events: none;
+  text-shadow: 0 3px 0 #fff;
+}
+
+/* The whole strip under the board is the controller (answerRoomMain.ts
+   passes it as the joystick's hit area): a touch anywhere in it steers
+   by where it is relative to the disc's centre. */
+#room-controls {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 0.3rem 0 max(0.4rem, env(safe-area-inset-bottom));
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#room-controls #joystick {
+  width: 9rem;
+  height: 9rem;
+  background: rgba(44, 61, 36, 0.07);
+}
+
+#room-controls .joystick-arrow {
+  font-size: 1.3rem;
+  color: rgba(44, 61, 36, 0.6);
+}
+
+.question-parts p {
+  text-align: left;
+  margin: 0.4rem 0;
+  line-height: 1.4;
+}
+
+.question-parts .part-number {
+  display: inline-flex;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: #3c8a4c;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.35rem;
+}
+
+.card .secondary-btn {
+  background: none;
+  color: #3c8a4c;
+  border: 2px solid rgba(60, 138, 76, 0.45);
+  display: block;
+  margin: 0.75rem auto 0;
+}
+
+.room-card-note {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.complete-sentence {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.complete-points {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #3c8a4c;
+}
+
+/* A preview of the muddy, gooey punishment look. */
+.ugly-snake {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin: 0.5rem 0;
+}
+
+.ugly-snake span {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 45%;
+  background: radial-gradient(circle at 30% 30%, #8a7a6a, #4a3526 70%);
+  animation: goo 0.9s ease-in-out infinite alternate;
+}
+
+.ugly-snake span:nth-child(odd) {
+  background: radial-gradient(circle at 30% 30%, #9a9a90, #5a4a3c 70%);
+  animation-delay: 0.2s;
+}
+
+@keyframes goo {
+  from { transform: translateY(-2px) scale(1, 0.9); }
+  to { transform: translateY(3px) scale(0.9, 1.1); }
+}
+
+/* --- The question bar on the main board (science-snake.html) --- */
+
+#play-area #room-panel #read-question-btn {
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+}
+
+/* A fixed height for the whole game, whatever it's showing, so the
+   board below it never changes size. */
+body.question-flow #room-panel {
+  flex: 0 0 auto;
+  height: 8.6rem;
+  overflow: hidden;
+}
+
+/* The question as built so far: the phrases eaten, the newest one
+   highlighted, then a faint dot per phrase still to come. Kept scrolled
+   to the newest line (questionFlowPage.ts). */
+#question-built {
+  max-height: 4.4rem;
+  overflow: hidden;
+  margin-top: 0.4rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+#question-built .done {
+  color: #2c3d24;
+}
+
+#question-built .newest {
+  font-weight: 700;
+  background: #fff3b0;
+  border-radius: 4px;
+  padding: 0 0.15rem;
+}
+
+#question-built .upcoming {
+  color: #cdbf9f;
+  letter-spacing: 0.15em;
+}
+
+#question-built.instruction {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+#door-hint {
+  margin: 0.3rem 0 0;
+  font-weight: 700;
+  color: #2f7fd6;
+}
+
+/* In the bar the sentence is one line that keeps the newest word in
+   view (answerRoomUi.ts scrolls it), and the A/B options are compact —
+   the "hold the joystick" tip moves into the bar's title. */
+body.question-flow #sentence-strip {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  margin: 0.3rem 0 0.1rem;
+}
+
+body.question-flow .word-chip {
+  flex: 0 0 auto;
+}
+
+body.question-flow #choice-box {
+  padding: 0.15rem 0.5rem;
+  margin: 0.15rem 0 0;
+}
+
+body.question-flow .choice-hold-hint {
+  display: none;
+}
+
+body.question-flow .choice-row {
+  font-size: 0.95rem;
+  margin: 0.05rem 0;
+  line-height: 1.25;
+}
+
+body.question-flow .choice-badge {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+/* The whole question in the middle of the board while the answer room
+   counts down. Doesn't take touches, so the joystick still aims. */
+#room-intro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.room-intro-card {
+  position: relative;
+  max-width: 24rem;
+  background: rgba(255, 252, 244, 0.97);
+  border: 3px solid #2f7fd6;
+  border-radius: 18px;
+  padding: 1rem 1.1rem 0.8rem;
+  box-shadow: 0 10px 28px rgba(44, 61, 36, 0.25);
+}
+
+.room-intro-label {
+  margin: 0 2.2rem 0.4rem 0;
+  font-weight: 700;
+  color: #2f7fd6;
+}
+
+.room-intro-count {
+  position: absolute;
+  top: -0.9rem;
+  right: -0.6rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: #2f7fd6;
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(44, 61, 36, 0.3);
+}
+
+/* The countdown sits over the board, not the bar. */
+#play-area #countdown {
+  top: auto;
+  bottom: 0;
+  height: 70%;
+}
+
+/* With the question flow on, the joystick sits in its own row under the
+   board instead of floating over its bottom edge — the question panel
+   above already takes height, and the board's bottom rows were ending
+   up under the joystick. */
+body.question-flow #dpad-bar {
+  position: static;
+  flex: 0 0 auto;
+  padding: 0.3rem 0 max(0.4rem, env(safe-area-inset-bottom));
+}
+
+/* …and the whole strip is the controller, with a bigger disc and
+   arrows (questionFlowPage passes it as the joystick's hit area), same
+   as answer-room.html: a tap on or past an arrow still steers. */
+body.question-flow #dpad-bar {
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.question-flow #joystick {
+  width: 9rem;
+  height: 9rem;
+  background: rgba(44, 61, 36, 0.07);
+}
+
+body.question-flow .joystick-arrow {
+  font-size: 1.3rem;
+  color: rgba(44, 61, 36, 0.6);
+}
+
+/* --- The golden apple's typing challenge (#golden-card) --- */
+
+/* Top-aligned and scrollable, so the box stays above a phone's keyboard. */
+#golden-card {
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+.golden-card {
+  border: 3px solid #f5c518;
+  box-shadow: 0 0 0 4px rgba(245, 197, 24, 0.25), 0 12px 30px rgba(44, 61, 36, 0.25);
+  max-width: 480px;
+  padding: 1.25rem 1.1rem;
+}
+
+.golden-card h1 {
+  color: #9a6b00;
+}
+
+.golden-intro {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.golden-question {
+  text-align: left;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  background: #fff8dc;
+  border-radius: 12px;
+  padding: 0.6rem 0.75rem;
+  margin: 0;
+}
+
+.card .golden-read-btn {
+  margin: 0;
+  padding: 0.1rem 0.4rem;
+  font-size: 1rem;
+  background: none;
+  color: inherit;
+}
+
+#golden-input {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem;
+  border-radius: 12px;
+  border: 2px solid #f5c518;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+.card #golden-submit-btn,
+.card #golden-continue-btn {
+  background: #e0a800;
+}
+
+.golden-hint {
+  background: #fff8dc;
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  font-style: italic;
+  text-align: left;
+}

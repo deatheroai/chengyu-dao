@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { sweepFullBoardUntilWin, driveToSuffocation, chaseNearestScienceItem, waitForLoseReason } from "./helpers/scienceSnake";
+import { sweepFullBoardUntilWin } from "./helpers/scienceSnake";
 
 /**
  * Science Snake (BACKLOG.md's "E2E test suite" entry, the last open item
@@ -82,74 +82,4 @@ test("a full winning playthrough fills the board", async ({ page }, testInfo) =>
   await page.click("#win-play-again-btn");
   await expect(page.locator("#win-card")).not.toHaveClass(/visible/);
   await expect(page.locator("#start-card")).not.toHaveClass(/visible/);
-});
-
-test("repeated wrong answers pile up unresolved questions until the board suffocates", async ({ page }, testInfo) => {
-  // Same "logic/DOM, not mobile touch-input, doesn't need doubling"
-  // reasoning as the win playthrough above.
-  testInfo.skip(testInfo.project.name === "mobile", "logic-only test, desktop covers it");
-
-  // From the same simulation: suffocation was reached within 50 real
-  // seconds of game time across 400 rng seeds, 0 self-collisions. Real
-  // isolated runs measured live took 6.1-6.8 minutes, but — same
-  // contention finding as the win test above — racing another slow e2e
-  // test in this sandbox pushed two consecutive attempts past 11 minutes
-  // without finishing. 20 minutes covers that with real headroom; CI's
-  // own retries:1 gives a second, likely less-contended attempt too.
-  test.setTimeout(20 * 60 * 1000);
-  await startGame(page);
-
-  await driveToSuffocation(page, 19 * 60 * 1000);
-
-  await waitForLoseReason(page, "unanswered questions piled up");
-  const stats = await page.locator("#lose-stats").textContent();
-  expect(stats).toMatch(/correct answers/);
-});
-
-test("the reveal overlay's Continue is gated behind stepping through every chunk, not present from the start", async ({ page }) => {
-  test.setTimeout(60000);
-  await startGame(page);
-
-  await chaseNearestScienceItem(page);
-  await expect(page.locator("#question-overlay")).toHaveClass(/visible/);
-
-  const continueBtn = page.locator("#question-reveal-continue-btn");
-  const nextBtn = page.locator("#question-reveal-next-btn");
-  const revealText = page.locator("#question-reveal-text");
-
-  // Wrong once: hint appears, no reveal yet.
-  await page.fill("#question-input", "I am not sure about this one and would rather just guess something here.");
-  await page.click("#question-submit-btn");
-  await expect(page.locator("#question-hint")).not.toHaveClass(/hidden/);
-  await expect(page.locator("#question-reveal")).toHaveClass(/hidden/);
-
-  // Wrong twice: reveal section opens with its first chunk already
-  // shown (not blank) — Continue must be hidden immediately, before any
-  // "Next" tap.
-  await page.fill("#question-input", "I am not sure about this one and would rather just guess something here.");
-  await page.click("#question-submit-btn");
-  await expect(page.locator("#question-reveal")).not.toHaveClass(/hidden/);
-  await expect(continueBtn).toHaveClass(/hidden/);
-  const firstChunkText = await revealText.textContent();
-  expect(firstChunkText?.trim().length).toBeGreaterThan(0);
-
-  // Step through every remaining chunk. Continue must stay hidden until
-  // the very last one — the actual point of this mechanic, not
-  // incidental UI (per BACKLOG.md's "enforce reading instead of skipping
-  // away").
-  let steps = 0;
-  while (await nextBtn.isVisible()) {
-    await expect(continueBtn).toHaveClass(/hidden/);
-    const before = await revealText.textContent();
-    await nextBtn.click();
-    await expect(revealText).not.toHaveText(before ?? "");
-    steps++;
-    if (steps > 20) throw new Error("reveal never finished — isFullyRevealed likely stuck");
-  }
-  expect(steps).toBeGreaterThan(0);
-
-  // Only now, once every chunk has been shown, does Continue appear.
-  await expect(continueBtn).not.toHaveClass(/hidden/);
-  await continueBtn.click();
-  await expect(page.locator("#question-overlay")).not.toHaveClass(/visible/);
 });
