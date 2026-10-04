@@ -26,9 +26,6 @@ export const POISON_APPLE_CHANCE = 0.1;
 /** Target steady-state ratio of science items to apples on the board at once — "~1 science item per 3-4 apples on board" per BACKLOG.md. */
 export const SCIENCE_TO_APPLE_RATIO = 1 / 3.5;
 
-/** How many replacement science items a wrong-twice ("indigestion") spawns instead of just clearing the one — starting number, tune after playtest, same as every constant in this project. */
-export const INDIGESTION_SPAWN_COUNT = 3;
-
 function positionKey(position: Position): string {
   return `${position.x},${position.y}`;
 }
@@ -57,8 +54,7 @@ export function pickRandomFreeCell(occupied: Position[], rng: () => number): Pos
  * near `SCIENCE_TO_APPLE_RATIO`. Deliberately a direct ratio check
  * rather than a probabilistic roll — this is normal steady-state
  * spawning (apple eaten → spawn a replacement, correct answer → spawn a
- * replacement), not the indigestion pile-on below, which bypasses this
- * entirely by design.
+ * replacement).
  */
 export function pickNextItemType(applesOnBoard: number, scienceItemsOnBoard: number): "apple" | "science" {
   if (applesOnBoard === 0) return "apple";
@@ -86,24 +82,4 @@ export function pickNextQuestionId(availableIds: string[], activeIds: string[], 
   const pool = notActive.length > 0 ? notActive : availableIds;
   if (pool.length === 0) return null;
   return pool[Math.floor(rng() * pool.length)];
-}
-
-/**
- * The "indigestion" pile-on (BACKLOG.md: "spawns several replacement
- * science items instead of just clearing the one, so repeated misses
- * snowball risk"). Bypasses `pickNextItemType`'s ratio entirely — this
- * is the deliberate risk spike, not steady-state spawning. Places as
- * many of `questionIds` as the board has free cells for, stopping early
- * (rather than throwing) if the board fills up mid-spawn.
- */
-export function spawnIndigestionItems(occupied: Position[], questionIds: string[], rng: () => number): BoardItem[] {
-  const items: BoardItem[] = [];
-  let currentOccupied = occupied;
-  for (const questionId of questionIds) {
-    const cell = pickRandomFreeCell(currentOccupied, rng);
-    if (!cell) break;
-    items.push({ position: cell, type: "science", questionId });
-    currentOccupied = [...currentOccupied, cell];
-  }
-  return items;
 }

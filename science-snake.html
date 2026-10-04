@@ -20,8 +20,7 @@
            board gets the full height instead of sharing it with the
            controls. -->
       <div id="play-area">
-        <!-- The redesign's question bar (science-snake.html?answer=room
-             only, until it becomes the default — BACKLOG.md). A slim bar
+        <!-- The question bar (BACKLOG.md's redesign entry). A slim bar
              of fixed height, so the board never resizes: the question
              builds up in it phrase by phrase as the snake eats them, then it
              holds the sentence being built (and the A/B options) while
@@ -76,8 +75,8 @@
       <div id="start-card" class="card-layer">
         <div class="card">
           <h1>🐍 Science Snake</h1>
-          <p>Eat apples 🍎 to grow. Eat a science item to answer a P4 Science question — get it right (in up to two tries) to grow even more!</p>
-          <p>Watch out for purple poison apples 🟣, and don't let unanswered questions pile up on the board.</p>
+          <p>Eat apples 🍎 to grow. Eat a science item 🔬 to get a P4 Science question: eat its word apples to build the question, then go through the <b>ANSWER</b> door to build the answer (+30) — or eat a ⭐ golden apple and type it yourself (+150)!</p>
+          <p>Watch out for purple poison apples 🟣.</p>
           <p class="controls-hint">Reaching an edge wraps you around to the other side.</p>
           <p class="controls-hint">Slide or tap the joystick to steer (or use the arrow keys / WASD).</p>
           <button id="start-btn">Start</button>
@@ -161,23 +160,6 @@
             <p id="golden-result-text"></p>
             <p id="golden-hint" class="golden-hint hidden"></p>
             <button id="golden-continue-btn" type="button">Back to the board ➜</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="question-overlay" class="card-layer">
-        <div class="card">
-          <div id="question-icon" class="question-icon"></div>
-          <p id="question-prompt"></p>
-          <div id="question-ask-form">
-            <p id="question-hint" class="hint hidden"></p>
-            <textarea id="question-input" rows="3" placeholder="Type your answer in a full sentence…"></textarea>
-            <button id="question-submit-btn">Submit</button>
-          </div>
-          <div id="question-reveal" class="hidden">
-            <p id="question-reveal-text"></p>
-            <button id="question-reveal-next-btn">Next →</button>
-            <button id="question-reveal-continue-btn" class="hidden">Continue</button>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { GRID_WIDTH, GRID_HEIGHT } from "../../src/science-snake/snakeGrid";
 
 /**
  * Steers the main board for the redesign's question flow
- * (science-snake.html?answer=room). Same in-page approach as the other
+ * (science-snake.html). Same in-page approach as the other
  * helpers: after each tick (#snake-status changes) it finds the shortest
  * safe path on the wrapping board — never through the snake's own body,
  * poison apples, or anything that isn't the target (other numbered

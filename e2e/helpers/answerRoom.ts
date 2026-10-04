@@ -3,7 +3,7 @@ import { ROOM_WIDTH, ROOM_HEIGHT, QUESTION_DOOR_CELLS, LADDER_CELLS } from "../.
 
 /**
  * Steers the answer room for real (answer-room.html, and the room inside
- * science-snake.html?answer=room — both have #room-status/#room-apples).
+ * science-snake.html — both have #room-status/#room-apples).
  * Runs inside the page: after each tick it finds the shortest path on
  * the wrapping board to the chosen target that doesn't pass over any
  * other apple, the QUESTION door or the ladder, and presses the arrow

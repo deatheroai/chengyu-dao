@@ -12,9 +12,8 @@ import { createRng } from "./seededRandom";
 import { speak, chime } from "./voice";
 
 /**
- * The page side of the redesign's question flow on the real game
- * (science-snake.html?answer=room, until it becomes the default —
- * BACKLOG.md): the slim question bar above the board (the question
+ * The page side of the question flow on the real game
+ * (science-snake.html — BACKLOG.md's redesign entry): the slim question bar above the board (the question
  * building up in it phrase by phrase as the snake eats them, each
  * phrase read aloud),
  * and the answer room run in the same canvas while the main board waits

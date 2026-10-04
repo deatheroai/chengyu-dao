@@ -18,7 +18,7 @@ export const GOLDEN_CORRECT_POINTS = 150;
 
 export interface RunStats {
   applesEaten: number;
-  /** Answered through the answer room (or, in the old flow, the typed overlay). */
+  /** Answered through the answer room. */
   questionsCorrect: number;
   /** Golden apples eaten. Optional so records saved before golden apples existed still load. */
   goldenAttempts?: number;

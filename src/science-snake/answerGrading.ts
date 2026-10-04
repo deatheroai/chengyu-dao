@@ -78,26 +78,3 @@ export function gradeAnswer(answer: string, question: Pick<ScienceQuestion, "min
   if (satisfiesRequiredKeywords(answer, question.requiredKeywords)) return "correct";
   return "incorrect";
 }
-
-/**
- * The two-try flow itself (BACKLOG.md: "ASK → [wrong: HINT+ASK try 2] →
- * [wrong: REVEAL]"). `retry` tells the overlay to show the question's
- * `hint` and accept a second attempt; `reveal` tells it to move into
- * chunkWords.ts's word-chunk reveal. Neither branch loses points/growth
- * on its own — that consequence lives in the snake/scoring modules that
- * react to the final outcome, not here.
- */
-export type AttemptResult =
-  | { outcome: "correct" }
-  | { outcome: "retry"; verdict: "malformed" | "incorrect" }
-  | { outcome: "reveal"; verdict: "malformed" | "incorrect" };
-
-export function resolveAttempt(
-  question: Pick<ScienceQuestion, "minWords" | "requiredKeywords">,
-  answer: string,
-  tryNumber: 1 | 2,
-): AttemptResult {
-  const verdict = gradeAnswer(answer, question);
-  if (verdict === "correct") return { outcome: "correct" };
-  return tryNumber === 1 ? { outcome: "retry", verdict } : { outcome: "reveal", verdict };
-}

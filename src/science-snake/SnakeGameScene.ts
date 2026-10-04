@@ -18,16 +18,13 @@ import {
 import {
   spawnApple,
   spawnScienceItem,
-  spawnIndigestionItems,
   pickNextItemType,
   pickNextQuestionId,
-  INDIGESTION_SPAWN_COUNT,
   type BoardItem,
 } from "./itemSpawner";
 import { isSuffocating } from "./suffocation";
 import { createRng } from "./seededRandom";
 import { scienceQuestionsById, scienceQuestions } from "./scienceQuestions";
-import { askQuestion } from "./QuestionOverlay";
 import { updateSnakeStatus, syncBoardItems, updateQuestionFlowStatus } from "./snakeStatus";
 import { drawApple, APPLE_RED, APPLE_POISON, APPLE_GOLD } from "./appleArt";
 import {
@@ -60,7 +57,7 @@ export type LoseReason = "self-collision" | "suffocation";
 export interface RunStats {
   applesEaten: number;
   poisonApplesEaten: number;
-  /** Answered through the answer room (or the old typed overlay). */
+  /** Answered through the answer room. */
   questionsCorrect: number;
   /** Golden apples eaten (5 points each, just for trying). */
   goldenAttempts: number;
@@ -69,11 +66,10 @@ export interface RunStats {
 }
 
 /**
- * The redesign's question flow (BACKLOG.md's "Redesign: question
- * apples, ANSWER door + answer room"), switched on by passing these
- * hooks — without them the scene keeps the old typed-answer overlay.
- * The page owns everything off the board: the question text, read
- * aloud, and the answer room itself.
+ * The question flow (BACKLOG.md's "Redesign: question apples, ANSWER
+ * door + answer room"). The page owns everything off the board: the
+ * question text, read aloud, the golden apple's typing card, and the
+ * answer room itself.
  */
 export interface QuestionFlowHooks {
   onQuestionStart: (questionId: string) => void;
@@ -89,7 +85,7 @@ export interface QuestionFlowHooks {
 export interface SnakeGameSceneData {
   onWin: (stats: RunStats) => void;
   onLose: (reason: LoseReason, stats: RunStats) => void;
-  questionFlow?: QuestionFlowHooks;
+  questionFlow: QuestionFlowHooks;
 }
 
 interface ActiveQuestion {
@@ -196,7 +192,7 @@ export class SnakeGameScene extends Phaser.Scene {
   private onWin!: (stats: RunStats) => void;
   private onLose!: (reason: LoseReason, stats: RunStats) => void;
   private keydownHandler?: (e: KeyboardEvent) => void;
-  private flow?: QuestionFlowHooks;
+  private flow!: QuestionFlowHooks;
   /** The delay `tickEvent` loops at — scheduleTick only replaces the loop when this needs to change. */
   private tickPace = 0;
   private activeQuestion: ActiveQuestion | null = null;
@@ -260,7 +256,8 @@ export class SnakeGameScene extends Phaser.Scene {
    * "after every correct answer, the game ends with 'the snake ran into
    * itself'"): Phaser's own keyboard manager listens on the whole
    * window, not scoped to canvas focus, so every keystroke typed into
-   * `#question-input` that happened to match a WASD/arrow key (which is
+   * the old typed-answer box (today the golden apple's `#golden-input`)
+   * that happened to match a WASD/arrow key (which is
    * essentially *every* real sentence answer — "a", "s", "d" are common
    * letters, and the malformed-answer check requires a real sentence)
    * was silently changing `this.snake.direction` while the question
@@ -331,17 +328,6 @@ export class SnakeGameScene extends Phaser.Scene {
     if (item) this.items.push(item);
   }
 
-  private spawnIndigestionPileOn(): void {
-    const allIds = scienceQuestions.map((q) => q.id);
-    const reserved: string[] = [];
-    for (let i = 0; i < INDIGESTION_SPAWN_COUNT; i++) {
-      const id = pickNextQuestionId(allIds, [...this.activeQuestionIds(), ...reserved], this.rng);
-      if (id) reserved.push(id);
-    }
-    const spawned = spawnIndigestionItems(this.occupiedCells(), reserved, this.rng);
-    this.items.push(...spawned);
-  }
-
   private tick(): void {
     if (this.paused || this.ended) return;
     const result = step(this.snake);
@@ -374,13 +360,13 @@ export class SnakeGameScene extends Phaser.Scene {
 
   private handleHeadPosition(): void {
     const head = this.snake.body[0];
-    if (this.flow && this.activeQuestion && this.handleQuestionFlow(head, this.activeQuestion)) return;
+    if (this.activeQuestion && this.handleQuestionFlow(head, this.activeQuestion)) return;
     const index = this.items.findIndex((item) => item.position.x === head.x && item.position.y === head.y);
     if (index === -1) return;
     const item = this.items[index];
     // While a question is open, other science items wait their turn —
     // the snake passes over them.
-    if (item.type === "science" && this.flow && this.activeQuestion) return;
+    if (item.type === "science" && this.activeQuestion) return;
     this.items.splice(index, 1);
 
     if (item.type === "apple") {
@@ -393,12 +379,9 @@ export class SnakeGameScene extends Phaser.Scene {
       this.stats.poisonApplesEaten += 1;
       this.spawnReplacementApple();
       this.spawnReplacementScienceItemIfNeeded();
-    } else if (this.flow) {
+    } else {
       this.startQuestion(item.questionId!);
       return;
-    } else {
-      this.askScienceQuestion(item.questionId!);
-      return; // paused inside askScienceQuestion; checkOutcome runs once it resolves
     }
 
     this.checkOutcome();
@@ -411,7 +394,7 @@ export class SnakeGameScene extends Phaser.Scene {
     this.activeQuestion = { id: questionId, phrases, eaten: 0, apple: null, door: null, doorArmed: true, golden: null, goldenTried: false, muddy: false };
     this.activeQuestion.apple = placePhraseApple(this.occupiedCells(), this.snake.body[0], this.rng);
     this.scheduleTick();
-    this.flow?.onQuestionStart(questionId);
+    this.flow.onQuestionStart(questionId);
   }
 
   /** True when the head's cell belonged to the question (the phrase apple, a golden apple or the door), so nothing else is eaten there. */
@@ -422,14 +405,14 @@ export class SnakeGameScene extends Phaser.Scene {
       question.goldenTried = true;
       this.stats.goldenAttempts += 1;
       this.paused = true;
-      this.flow?.onGoldenApple(question.id);
+      this.flow.onGoldenApple(question.id);
       return true;
     }
     if (question.door) {
       const onDoor = isOnCells(question.door, head);
       if (onDoor && question.doorArmed) {
         this.paused = true;
-        this.flow?.onEnterRoom(question.id);
+        this.flow.onEnterRoom(question.id);
         return true;
       }
       if (!onDoor) question.doorArmed = true;
@@ -438,7 +421,7 @@ export class SnakeGameScene extends Phaser.Scene {
     if (!question.apple || question.apple.x !== head.x || question.apple.y !== head.y) return false;
     question.eaten += 1;
     question.apple = null;
-    this.flow?.onPhraseEaten(question.id, question.eaten, question.phrases);
+    this.flow.onPhraseEaten(question.id, question.eaten, question.phrases);
     if (question.eaten < question.phrases.length) {
       question.apple = placePhraseApple(this.occupiedCells(), head, this.rng);
     } else {
@@ -457,7 +440,7 @@ export class SnakeGameScene extends Phaser.Scene {
     question.door = placeAnswerDoor(this.occupiedCells(), this.snake.body[0], this.rng);
     if (!question.door) return;
     if (!question.goldenTried) question.golden = goldenAppleCells(question.door);
-    this.flow?.onDoorOpen(question.id);
+    this.flow.onDoorOpen(question.id);
   }
 
   /**
@@ -533,23 +516,6 @@ export class SnakeGameScene extends Phaser.Scene {
       });
     };
     count(3);
-  }
-
-  private askScienceQuestion(questionId: string): void {
-    const question = scienceQuestionsById[questionId];
-    this.paused = true;
-    askQuestion(question, (outcome) => {
-      this.paused = false;
-      if (outcome === "correct") {
-        this.snake = applyCorrectAnswerEaten(this.snake);
-        this.stats.questionsCorrect += 1;
-        this.spawnReplacementScienceItemIfNeeded();
-      } else {
-        this.spawnIndigestionPileOn();
-      }
-      this.render();
-      this.checkOutcome();
-    });
   }
 
   private checkOutcome(): void {
@@ -631,7 +597,7 @@ export class SnakeGameScene extends Phaser.Scene {
     this.renderSnakeBody(this.gfx);
     updateSnakeStatus(this.snake);
     syncBoardItems(this.items);
-    if (this.flow) updateQuestionFlowStatus(this.activeQuestion, this.stats);
+    updateQuestionFlowStatus(this.activeQuestion, this.stats);
   }
 
   /**

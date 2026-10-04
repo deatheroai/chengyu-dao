@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { GRID_WIDTH, GRID_HEIGHT, type Direction, type Position } from "../../src/science-snake/snakeGrid";
 import { scienceQuestions } from "../../src/science-snake/scienceQuestions";
+import { steerRoomTo, stopRoomSteering } from "./answerRoom";
 
 /**
  * Drives `science-snake.html` deterministically for e2e coverage
@@ -16,86 +17,9 @@ import { scienceQuestions } from "../../src/science-snake/scienceQuestions";
  * tick before the next — see those for why: steering from the test
  * process missed turns on busy CI runners. Taps are dispatched straight
  * at #joystick rather than via page.click(), whose actionability checks
- * hung while the question overlay (above the joystick in z-index)
- * intercepted pointer events.
+ * hung while a card (above the joystick in z-index) intercepted pointer
+ * events.
  */
-
-async function isQuestionOverlayVisible(page: Page): Promise<boolean> {
-  return page.locator("#question-overlay").evaluate((el) => el.classList.contains("visible"));
-}
-
-async function isCardVisible(page: Page, id: string): Promise<boolean> {
-  return page
-    .locator(`#${id}`)
-    .evaluate((el) => el.classList.contains("visible"))
-    .catch(() => false);
-}
-
-/** Submits `text` as the current question's answer and waits for the ask form's Submit to register (hint appearing, or the overlay closing on a correct answer). */
-async function submitAnswer(page: Page, text: string): Promise<void> {
-  await page.fill("#question-input", text);
-  await page.click("#question-submit-btn");
-}
-
-/**
- * Answers whatever question is currently showing correctly, using that
- * question's own real `modelAnswer` (matched off the displayed prompt
- * text — the 10 authored prompts are each a distinct scenario, not
- * interchangeable boilerplate) — a real, content-integrity-tested
- * correct answer, not a cheat string.
- */
-export async function answerCurrentQuestionCorrectly(page: Page): Promise<void> {
-  await expect(page.locator("#question-overlay")).toHaveClass(/visible/);
-  const promptText = await page.locator("#question-prompt").textContent();
-  const question = scienceQuestions.find((q) => q.prompt === promptText);
-  if (!question) throw new Error(`no scienceQuestions entry matches prompt: ${promptText}`);
-  await submitAnswer(page, question.modelAnswer);
-  // Deliberately not asserting the overlay closes here — same reasoning
-  // as answerCurrentQuestionWrongTwiceAndContinue below: resuming can
-  // immediately land the head on a *different* already-active science
-  // item, reopening the overlay for a fresh question before this ever
-  // observes a "closed" moment. Found live on a real CI run (the win
-  // sweep passes through many items in a row), not guessed. The caller's
-  // own next isQuestionOverlayVisible check handles either case.
-}
-
-/** A validly-formed sentence that satisfies no question's requiredKeywords — deliberately wrong, not malformed (must still clear the minWords/sentence-shape check to reach the keyword grading at all). */
-const DELIBERATELY_WRONG_ANSWER = "I am not sure about this one and would rather just guess something here.";
-
-/**
- * Answers wrong on both tries and steps all the way through the
- * word-chunk reveal before tapping Continue — the same real flow a
- * stuck child would go through, exercising the two-try/hint/reveal
- * machinery (answerGrading.ts/chunkWords.ts) for real rather than
- * jumping straight to the "indigestion" outcome.
- */
-export async function answerCurrentQuestionWrongTwiceAndContinue(page: Page): Promise<void> {
-  await expect(page.locator("#question-overlay")).toHaveClass(/visible/);
-  await submitAnswer(page, DELIBERATELY_WRONG_ANSWER);
-  await expect(page.locator("#question-hint")).not.toHaveClass(/hidden/);
-
-  await submitAnswer(page, DELIBERATELY_WRONG_ANSWER);
-  await expect(page.locator("#question-reveal")).not.toHaveClass(/hidden/);
-
-  const nextBtn = page.locator("#question-reveal-next-btn");
-  const continueBtn = page.locator("#question-reveal-continue-btn");
-  // Step through every chunk — Continue only appears once nextBtn itself
-  // hides (chunkWords.ts's isFullyRevealed), the actual point of this
-  // mechanic per BACKLOG.md, not incidental UI.
-  while (await nextBtn.isVisible()) {
-    await expect(continueBtn).toHaveClass(/hidden/);
-    await nextBtn.click();
-  }
-  await expect(continueBtn).not.toHaveClass(/hidden/);
-  await continueBtn.click();
-  // Deliberately not asserting the overlay closes here: resuming can
-  // immediately land the head on a *different* already-active science
-  // item (a real, valid game event on a crowded board, not a bug),
-  // reopening the overlay for a fresh question before this ever observes
-  // a "closed" moment — found live in the suffocation drive below, which
-  // calls this dozens of times as the board fills up. Whichever happens,
-  // the caller's own next isQuestionOverlayVisible check handles it.
-}
 
 // ---------------------------------------------------------------------
 // Full-board winning sweep: a fixed "boustrophedon with a reserved
@@ -160,19 +84,42 @@ function buildFullBoardCycle(width: number, height: number): Waypoint[] {
   return cycle;
 }
 
-/** Single round-trip per poll (win-card, overlay, head position all at once) rather than several sequential ones — cuts real per-poll latency enough to reliably catch each waypoint's one-tick dwell window. */
-async function readSweepStatus(
-  page: Page,
-): Promise<{ winVisible: boolean; loseMessage: string | null; overlayVisible: boolean; head: Position; length: number }> {
+/** Single round-trip per poll (win/lose cards, the golden card, the answer room, head position all at once) rather than several sequential ones. */
+async function readSweepStatus(page: Page): Promise<{
+  winVisible: boolean;
+  loseMessage: string | null;
+  goldenVisible: boolean;
+  inRoom: boolean;
+  head: Position;
+  length: number;
+}> {
   return page.evaluate(() => {
     const winVisible = document.getElementById("win-card")?.classList.contains("visible") ?? false;
     const loseVisible = document.getElementById("lose-card")?.classList.contains("visible") ?? false;
     const loseMessage = loseVisible ? (document.getElementById("lose-message")?.textContent ?? "") : null;
-    const overlayVisible = document.getElementById("question-overlay")?.classList.contains("visible") ?? false;
+    const goldenVisible = document.getElementById("golden-card")?.classList.contains("visible") ?? false;
+    const inRoom = document.getElementById("room-panel")?.dataset.mode === "room";
     const status = document.getElementById("snake-status");
     const head = { x: Number(status?.getAttribute("data-head-x")), y: Number(status?.getAttribute("data-head-y")) };
-    return { winVisible, loseMessage, overlayVisible, head, length: Number(status?.getAttribute("data-length")) };
+    return { winVisible, loseMessage, goldenVisible, inRoom, head, length: Number(status?.getAttribute("data-length")) };
   });
+}
+
+/** A golden apple was eaten: type the question's own real `modelAnswer` (matched off the displayed prompt) — a content-tested correct answer, not a cheat string. */
+async function answerGoldenCorrectly(page: Page): Promise<void> {
+  const promptText = await page.locator("#golden-question").textContent();
+  const question = scienceQuestions.find((q) => q.prompt === promptText);
+  if (!question) throw new Error(`no scienceQuestions entry matches prompt: ${promptText}`);
+  await page.fill("#golden-input", question.modelAnswer);
+  await page.click("#golden-submit-btn");
+  await page.click("#golden-continue-btn");
+}
+
+/** The snake went through the ANSWER door: build the sentence (the right blue apple) and climb out, back to the board. */
+async function buildAnswerInRoom(page: Page): Promise<void> {
+  await steerRoomTo(page, "right");
+  await expect(page.locator("#room-panel")).not.toHaveAttribute("data-mode", "room", { timeout: 180_000 });
+  await stopRoomSteering(page);
 }
 
 /**
@@ -187,9 +134,11 @@ async function readSweepStatus(
  * at 160 / 238 for the rest of a 90-minute budget, on this branch and on
  * main's own docs-only PR #64). Reacting in the page can't miss a tick.
  *
- * A turn due while the question overlay is open is held until it closes:
- * the scene ignores direction changes while paused (SnakeGameScene's
- * requestDirection), and the head hasn't moved in the meantime.
+ * A turn due while the board is paused — the golden apple's card open,
+ * the snake in the answer room, or the 3-2-1 after either — is held
+ * until the board moves again: the scene ignores direction changes while
+ * paused (SnakeGameScene's requestDirection), and the head hasn't moved
+ * in the meantime.
  */
 async function installInPageSweepSteering(page: Page, cycle: Waypoint[]): Promise<void> {
   await page.evaluate(
@@ -198,7 +147,11 @@ async function installInPageSweepSteering(page: Page, cycle: Waypoint[]): Promis
       type Wp = { x: number; y: number; direction: Dir; approach: Dir };
       const status = document.getElementById("snake-status")!;
       const joystick = document.getElementById("joystick")!;
-      const overlay = document.getElementById("question-overlay")!;
+      const golden = document.getElementById("golden-card")!;
+      const panel = document.getElementById("room-panel")!;
+      const countdown = document.getElementById("countdown")!;
+      const boardPaused = (): boolean =>
+        golden.classList.contains("visible") || panel.dataset.mode === "room" || (countdown.textContent ?? "").trim() !== "";
       const offset: Record<Dir, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
       // The opening, from the live head in this same synchronous step, so
       // the snake can't have moved on since it was read (see the doc on
@@ -241,7 +194,7 @@ async function installInPageSweepSteering(page: Page, cycle: Waypoint[]): Promis
       };
 
       const check = (): void => {
-        if (overlay.classList.contains("visible")) return;
+        if (boardPaused()) return;
         const x = Number(status.getAttribute("data-head-x"));
         const y = Number(status.getAttribute("data-head-y"));
         if (!reachedOrPassed(x, y, queue[0])) return;
@@ -251,7 +204,9 @@ async function installInPageSweepSteering(page: Page, cycle: Waypoint[]): Promis
       };
 
       new MutationObserver(check).observe(status, { attributes: true, attributeFilter: ["data-head-x", "data-head-y"] });
-      new MutationObserver(check).observe(overlay, { attributes: true, attributeFilter: ["class"] });
+      new MutationObserver(check).observe(golden, { attributes: true, attributeFilter: ["class"] });
+      new MutationObserver(check).observe(panel, { attributes: true, attributeFilter: ["data-mode"] });
+      new MutationObserver(check).observe(countdown, { childList: true, characterData: true, subtree: true });
       check();
     },
     { cycle },
@@ -261,8 +216,10 @@ async function installInPageSweepSteering(page: Page, cycle: Waypoint[]): Promis
 /**
  * Steers along `buildFullBoardCycle`'s cycle (looping it as many times as
  * it takes — the steering itself runs in the page, see
- * installInPageSweepSteering), answering every science item correctly,
- * until the win card appears. Fails straight away if the game is lost.
+ * installInPageSweepSteering), eating each question's phrases as it
+ * crosses them, answering in the answer room or typing a golden answer
+ * whenever it runs into the door or a golden apple, until the win card
+ * appears. Fails straight away if the game is lost.
  */
 export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000): Promise<void> {
   // Wait for the snake's first real move, so the scene is running and the
@@ -278,7 +235,7 @@ export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000)
   // instead of a single opaque timeout at the very end.
   let lastLogAt = 0;
   while (Date.now() < deadline) {
-    const { winVisible, loseMessage, overlayVisible, head, length } = await readSweepStatus(page);
+    const { winVisible, loseMessage, goldenVisible, inRoom, head, length } = await readSweepStatus(page);
     if (Date.now() - lastLogAt > 60000) {
       lastLogAt = Date.now();
       console.log(`[sweepFullBoardUntilWin] length=${length} elapsedMs=${Date.now() - (deadline - maxMs)}`);
@@ -290,217 +247,15 @@ export async function sweepFullBoardUntilWin(page: Page, maxMs = 10 * 60 * 1000)
     if (loseMessage !== null) {
       throw new Error(`sweepFullBoardUntilWin: the game was lost at length ${length}, head (${head.x},${head.y}): "${loseMessage}"`);
     }
-    if (overlayVisible) {
-      await answerCurrentQuestionCorrectly(page);
+    if (goldenVisible) {
+      await answerGoldenCorrectly(page);
+      continue;
+    }
+    if (inRoom) {
+      await buildAnswerInRoom(page);
       continue;
     }
     await page.waitForTimeout(200);
   }
   throw new Error("sweepFullBoardUntilWin timed out");
-}
-
-// ---------------------------------------------------------------------
-// Suffocation drive: chases straight at whichever science item is
-// currently nearest and deliberately answers it wrong, piling up
-// indigestion items until the board crosses SUFFOCATION_THRESHOLD_RATIO.
-// A direct chase (not the safe full-board cycle above) is what makes
-// this fast enough to run in a test — wrong answers give 0 growth, so
-// the body barely grows at all — but a raw "move toward target" picker
-// turned out to have two real collision risks, found empirically by
-// simulating this exact strategy against the real game logic before
-// trusting it in a slow, expensive Playwright run:
-// 1. changeDirection silently ignores a direct 180-degree reversal
-//    request, desyncing a naive picker's model of the snake's own
-//    direction from reality.
-// 2. Even reversal-aware, a short body can coil around and box the head
-//    into a dead-end a couple of moves later (all 4 neighbors
-//    self-occupied) — fixed with a capped flood-fill "how much open
-//    space does this leave me" check, the standard "don't corner
-//    yourself" heuristic real Snake bots use.
-// Verified against the real snakeGrid.ts/itemSpawner.ts/suffocation.ts
-// logic across 400 rng seeds: 0 self-collisions, suffocation reached
-// within 50 simulated seconds every time.
-// ---------------------------------------------------------------------
-
-/**
- * Installs the chase inside the page (idempotent), for the same reason
- * the win sweep's steering lives there (installInPageSweepSteering): it
- * reacts to every tick's fresh state before the next tick. The test
- * process used to read the board, decide, then press — and if a tick
- * landed in between, the direction was chosen for where the head *had
- * been*, which could steer it straight into its own body (CI: this test
- * flaky with "the snake ran into itself" under load). Each tick it picks
- * the nearest science item and a direction toward it that's
- * reversal-aware and confinement-aware (see this section's doc above),
- * then taps the joystick. It does nothing while a question is open.
- */
-async function installInPageChaser(page: Page): Promise<void> {
-  await page.evaluate(
-    ({ width, height }) => {
-      const w = window as unknown as { __scienceSnakeChaser?: boolean };
-      if (w.__scienceSnakeChaser) return;
-      w.__scienceSnakeChaser = true;
-
-      type Dir = "up" | "down" | "left" | "right";
-      type Pos = { x: number; y: number };
-      const status = document.getElementById("snake-status")!;
-      const boardItems = document.getElementById("board-items")!;
-      const joystick = document.getElementById("joystick")!;
-      const overlay = document.getElementById("question-overlay")!;
-      const ALL: Dir[] = ["up", "down", "left", "right"];
-      const DELTA: Record<Dir, Pos> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
-      const OPPOSITE: Record<Dir, Dir> = { up: "down", down: "up", left: "right", right: "left" };
-      const wrap = (n: number, size: number): number => ((n % size) + size) % size;
-      const step = (p: Pos, d: Dir): Pos => ({ x: wrap(p.x + DELTA[d].x, width), y: wrap(p.y + DELTA[d].y, height) });
-      const key = (p: Pos): string => `${p.x},${p.y}`;
-
-      const freeSpaceFrom = (start: Pos, blocked: Set<string>, limit: number): number => {
-        if (blocked.has(key(start))) return 0;
-        const visited = new Set([key(start)]);
-        const queue = [start];
-        let count = 0;
-        while (queue.length > 0 && count < limit) {
-          const p = queue.shift()!;
-          count++;
-          for (const d of ALL) {
-            const n = step(p, d);
-            if (visited.has(key(n)) || blocked.has(key(n))) continue;
-            visited.add(key(n));
-            queue.push(n);
-          }
-        }
-        return count;
-      };
-
-      const directionToward = (head: Pos, target: Pos, moved: Dir, body: Pos[]): Dir => {
-        const desiredX: Dir | null = head.x === target.x ? null : target.x > head.x ? "right" : "left";
-        const desiredY: Dir | null = head.y === target.y ? null : target.y > head.y ? "down" : "up";
-        const ordered = [desiredX, desiredY, ...ALL].filter((d): d is Dir => d !== null);
-        const bodySet = new Set(body.map(key));
-        const safetyMargin = body.length + 5;
-        // The tail is about to vacate its cell (unless growing), so it
-        // isn't counted as blocked for the lookahead — same nuance the
-        // game's own step() accounts for.
-        const blockedForFloodFill = new Set(bodySet);
-        blockedForFloodFill.delete(key(body[body.length - 1]));
-        let best: Dir | null = null;
-        let bestFree = -1;
-        const seen = new Set<Dir>();
-        for (const candidate of ordered) {
-          if (seen.has(candidate) || candidate === OPPOSITE[moved]) continue;
-          seen.add(candidate);
-          const next = step(head, candidate);
-          if (bodySet.has(key(next))) continue;
-          const free = freeSpaceFrom(next, blockedForFloodFill, safetyMargin);
-          if (free >= safetyMargin) return candidate;
-          if (free > bestFree) {
-            bestFree = free;
-            best = candidate;
-          }
-        }
-        return best ?? moved;
-      };
-
-      // The way the head last actually moved (neck to head, unwrapped
-      // across an edge) — what the game checks reversals against.
-      const lastMoved = (body: Pos[], fallback: Dir): Dir => {
-        if (body.length < 2) return fallback;
-        let dx = body[0].x - body[1].x;
-        let dy = body[0].y - body[1].y;
-        if (Math.abs(dx) > 1) dx = -Math.sign(dx);
-        if (Math.abs(dy) > 1) dy = -Math.sign(dy);
-        return dx === 1 ? "right" : dx === -1 ? "left" : dy === 1 ? "down" : dy === -1 ? "up" : fallback;
-      };
-
-      const press = (direction: Dir): void => {
-        const rect = joystick.getBoundingClientRect();
-        const clientX = rect.left + rect.width / 2 + DELTA[direction].x * rect.width * 0.35;
-        const clientY = rect.top + rect.height / 2 + DELTA[direction].y * rect.height * 0.35;
-        const init = { pointerId: 1, clientX, clientY, bubbles: true, cancelable: true };
-        joystick.dispatchEvent(new PointerEvent("pointerdown", init));
-        joystick.dispatchEvent(new PointerEvent("pointerup", init));
-      };
-
-      const tick = (): void => {
-        if (overlay.classList.contains("visible")) return;
-        const body = JSON.parse(status.getAttribute("data-body") ?? "[]") as Pos[];
-        if (body.length === 0) return;
-        const head = body[0];
-        const science = Array.from(boardItems.children)
-          .filter((el) => el.getAttribute("data-type") === "science")
-          .map((el) => ({ x: Number(el.getAttribute("data-x")), y: Number(el.getAttribute("data-y")) }));
-        if (science.length === 0) return;
-        const dist = (p: Pos): number => Math.abs(p.x - head.x) + Math.abs(p.y - head.y);
-        const nearest = science.reduce((a, b) => (dist(b) < dist(a) ? b : a));
-        const moved = lastMoved(body, status.getAttribute("data-direction") as Dir);
-        press(directionToward(head, nearest, moved, body));
-      };
-
-      new MutationObserver(tick).observe(status, { attributes: true, attributeFilter: ["data-head-x", "data-head-y"] });
-      new MutationObserver(tick).observe(overlay, { attributes: true, attributeFilter: ["class"] });
-      tick();
-    },
-    { width: GRID_WIDTH, height: GRID_HEIGHT },
-  );
-}
-
-/** Thrown by chaseNearestScienceItem when the game already ended mid-chase — carries the real lose-card message so a caller expecting suffocation specifically can tell that apart from a genuine bug (e.g. a self-collision). */
-export class GameEndedError extends Error {
-  constructor(public reason: string) {
-    super(`game already ended (${reason})`);
-  }
-}
-
-/**
- * Steers straight at whichever active science item is currently
- * nearest, until the question overlay opens for it (or a different one
- * crossed along the way — either is fine, this doesn't care which
- * specific item it ends up eating). Returns once the overlay is visible;
- * answering it is the caller's own choice.
- */
-export async function chaseNearestScienceItem(page: Page, maxMs = 60000): Promise<void> {
-  await installInPageChaser(page);
-  const deadline = Date.now() + maxMs;
-  while (Date.now() < deadline) {
-    if (await isQuestionOverlayVisible(page)) return;
-    // Bail out fast on a self-collision instead of waiting out this
-    // function's own timeout — found live as a real multi-minute hang.
-    if (await isCardVisible(page, "lose-card")) {
-      const reason = (await page.locator("#lose-message").textContent()) ?? "";
-      throw new GameEndedError(reason);
-    }
-    await page.waitForTimeout(100);
-  }
-  throw new Error("chaseNearestScienceItem timed out");
-}
-
-/**
- * Repeats chaseNearestScienceItem + answering wrong twice until the game
- * ends. Doesn't itself check *which* lose reason that was — a
- * GameEndedError (the game ending mid-chase, the common case) or the
- * lose-card simply being up already both just mean "done, go look" —
- * the caller's own assertion (e.g. waitForLoseReason) is what actually
- * confirms it was suffocation specifically, not some other bug like a
- * self-collision, and fails loudly with a clear message if it wasn't.
- */
-export async function driveToSuffocation(page: Page, maxMs = 10 * 60 * 1000): Promise<void> {
-  const deadline = Date.now() + maxMs;
-  while (Date.now() < deadline) {
-    if (await isCardVisible(page, "lose-card")) return;
-    try {
-      await chaseNearestScienceItem(page, maxMs);
-    } catch (e) {
-      if (e instanceof GameEndedError) return;
-      throw e;
-    }
-    if (await isCardVisible(page, "lose-card")) return;
-    await answerCurrentQuestionWrongTwiceAndContinue(page);
-  }
-  throw new Error("driveToSuffocation timed out");
-}
-
-export async function waitForLoseReason(page: Page, reason: string): Promise<void> {
-  await expect(page.locator("#lose-card")).toHaveClass(/visible/);
-  const text = await page.locator("#lose-message").textContent();
-  expect(text).toContain(reason);
 }

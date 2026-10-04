@@ -6,8 +6,7 @@ import { scienceQuestionsById } from "../src/science-snake/scienceQuestions";
 
 /**
  * The redesign's question flow on the real game
- * (science-snake.html?answer=room — opt-in until it replaces the typed
- * overlay): eat a science item → eat the question phrase by phrase →
+ * (science-snake.html): eat a science item → eat the question phrase by phrase →
  * the ANSWER door → the answer room in the same canvas → back to the
  * board. Real ticks and rules throughout; steering by
  * helpers/questionFlow.ts on the board and helpers/answerRoom.ts in the
@@ -18,7 +17,7 @@ const flow = (page: Page) => page.locator("#question-flow");
 
 /** Eats a science item and every phrase of its question, up to the ANSWER door (and golden apples) appearing. */
 async function openQuestionToDoor(page: Page): Promise<string> {
-  await page.goto("/science-snake.html?answer=room");
+  await page.goto("/science-snake.html");
   await page.click("#start-btn");
 
   await steerBoardTo(page, "science");
@@ -88,7 +87,7 @@ test("a wrong blue apple sends the snake back to the board, doubled and muddy, w
 
 test("the question bar keeps one height, so the board never changes size as the question comes and goes", async ({ page }) => {
   test.setTimeout(240_000);
-  await page.goto("/science-snake.html?answer=room");
+  await page.goto("/science-snake.html");
   const height = () => page.locator("#game-container").evaluate((el) => Math.round(el.getBoundingClientRect().height));
   const before = await height();
   await page.click("#start-btn");

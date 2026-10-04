@@ -1943,7 +1943,7 @@ other mechanic in this repo.
       the old gaps were, and a real touch-event slide on mobile);
       `e2e/helpers/scienceSnake.ts` now steers through the joystick too.
 
-- [ ] `todo` — **Redesign: question apples, ANSWER door + answer room,
+- [x] `done` — **Redesign: question apples, ANSWER door + answer room,
       golden typing challenge (design settled by conversation
       2026-09-29/30, see `DECISIONS.md`).** Problem, from playtesting: the
       child disliked the game stopping to read a long scenario and then
@@ -2132,8 +2132,26 @@ other mechanic in this repo.
         and counts only while the two blue A/B apples are on the board
         (`answerRoom.ts`'s `isQuestionDoorOpen`) — the moment a reread
         helps. `#room-status` has `data-door-open` for the e2e.
-      - **Next:** step 4 (make it the default, retire the overlay and
-        its e2e).
+      - **Step 4 done (2026-10-04): the question flow is the game.**
+        `science-snake.html` runs it with no flag (`?answer=room` is
+        simply ignored now). Retired with the typed overlay:
+        `QuestionOverlay.ts`, `chunkWords.ts` (the word-chunk reveal),
+        `answerGrading.ts`'s two-try `resolveAttempt` (the golden apple
+        uses `gradeAnswer` directly), and the "indigestion" pile-on
+        (`spawnIndigestionItems`, `INDIGESTION_SPAWN_COUNT`) that a
+        wrong-twice answer used to cause. The start card explains the new
+        flow. E2E: the overlay-only tests (wrong answers until the board
+        suffocates, the reveal's Continue gate) are gone; the full-board
+        win playthrough now eats question phrases as it sweeps, builds
+        the answer in the room or types the golden answer whenever it
+        runs into the door or a golden apple, and holds its turns through
+        every pause and 3-2-1. Note: with no pile-on, science items only
+        spawn at the steady ratio, so suffocation (`suffocation.ts`) can
+        no longer realistically happen — the snake running into itself
+        is the only real way to lose. Kept as-is; revisit if a new
+        "too many open questions" pressure is wanted.
+      - **Answer-room prototype page** (`answer-room.html`) still works
+        standalone for trying one question's room on its own.
       - **Content review pending:** room sentences for question batches
         5-6 (drafted 2026-10-01 in `answerRoomContent.ts`).
       - **Answer-room prototype built (2026-09-30), waiting on a phone

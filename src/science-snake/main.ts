@@ -78,19 +78,15 @@ function bootstrap(): void {
   game.scene.add("SnakeGameScene", SnakeGameScene, false);
   const snakeScene = (): SnakeGameScene | null => game.scene.getScene("SnakeGameScene") as SnakeGameScene | null;
 
-  // The redesign's question flow (question apples, ANSWER door, answer
-  // room) is opt-in with ?answer=room until it replaces the typed-answer
-  // overlay as the default (BACKLOG.md's redesign entry, step 4).
-  const questionFlow = new URLSearchParams(location.search).get("answer") === "room" ? createQuestionFlowPage(game, snakeScene) : null;
-  // Its question panel takes height above the board, so the joystick
-  // moves out from over the board into its own row below it
-  // (answerRoom.css's body.question-flow rules).
-  if (questionFlow) {
-    document.body.classList.add("question-flow");
-    // The bar is there from the start (behind the start card), so the
-    // board is sized once and never changes.
-    questionFlow.reset();
-  }
+  // The question flow (question phrase apples, the ANSWER door and
+  // golden apples, the answer room — BACKLOG.md's redesign entry). Its
+  // question bar takes height above the board, so the joystick sits in
+  // its own row below it (answerRoom.css's body.question-flow rules).
+  const questionFlow = createQuestionFlowPage(game, snakeScene);
+  document.body.classList.add("question-flow");
+  // The bar is there from the start (behind the start card), so the
+  // board is sized once and never changes.
+  questionFlow.reset();
 
   // The question panel comes and goes above the board; re-read the
   // board's space whenever it does (same fix as answer-room.html).
@@ -107,11 +103,11 @@ function bootstrap(): void {
     hideCard("win-card");
     hideCard("lose-card");
     if (game.scene.isActive("SnakeGameScene")) game.scene.stop("SnakeGameScene");
-    questionFlow?.reset();
+    questionFlow.reset();
     // This tap unlocks speech on iOS for the rest of the visit.
-    if (questionFlow) unlockSpeech();
+    unlockSpeech();
     game.scene.start("SnakeGameScene", {
-      questionFlow: questionFlow?.hooks,
+      questionFlow: questionFlow.hooks,
       onWin: (stats: RunStats) => {
         // showWinCard records the run (and so updates the stored high
         // score) — showHighScore must read that *after*, not before, or
@@ -156,12 +152,12 @@ function bootstrap(): void {
     wireJoystick(
       joystick,
       knob,
-      (direction) => (questionFlow ? questionFlow.steer(direction) : snakeScene()?.requestDirection(direction)),
-      (held) => questionFlow?.setJoystickHeld(held),
-      // With the question flow on, the whole strip under the board takes
-      // touches with a smaller dead zone (same as the answer room's own
-      // page) — per "the joystick less reactive".
-      questionFlow ? { hitArea: document.getElementById("dpad-bar") ?? undefined, deadZoneRatio: 0.2 } : {},
+      (direction) => questionFlow.steer(direction),
+      (held) => questionFlow.setJoystickHeld(held),
+      // The whole strip under the board takes touches, with a smaller
+      // dead zone (same as the answer room's own page) — per "the
+      // joystick less reactive".
+      { hitArea: document.getElementById("dpad-bar") ?? undefined, deadZoneRatio: 0.2 },
     );
   }
 }

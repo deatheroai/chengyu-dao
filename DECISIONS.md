@@ -39,6 +39,12 @@ None open right now.
   shimmer. Voice timing and how long the ugly/golden looks last were
   left to the session's judgement. Supersedes the same conversation's
   earlier versions. Full design in `BACKLOG.md`'s Science Snake section.
+  As built (2026-10-01 to 10-04, refined by playtests): the question is
+  eaten phrase by phrase on labelled apples instead of ①②③; the room is
+  eaten word by word with one blue A/B science choice (hold to move),
+  a wrong choice kills the snake and the sentence is practised again
+  from the first word; a ladder exits; the Q door shows only at the A/B
+  choice. Now the default game; the typed two-try overlay is retired.
 
 - **2026-09-28 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. No open PRs. `BACKLOG.md`'s
