@@ -37,6 +37,6 @@ describe("syncAfterRun", () => {
     const refreshed = new Promise<void>((resolve) => syncAfterRun(resolve));
     await refreshed;
     const run = { applesEaten: 3, questionsCorrect: 0, score: 15, achievedAt: 1000 };
-    expect(posted).toEqual([{ code: "234567AB", game: "science-snake", data: { highScore: run, lastRun: run } }]);
+    expect(posted).toMatchObject([{ code: "234567AB", game: "science-snake", data: { highScore: run, lastRun: run, recentRuns: [run] } }]);
   });
 });

@@ -56,7 +56,7 @@ test("opening the panel shows an 8-character code and saves under Science Snake'
   const code = await page.locator("[data-cloud-code]").textContent();
   expect(code).toMatch(CODE_PATTERN);
   await expect(page.locator("[data-cloud-status]")).toHaveText("Saved to the cloud ✓");
-  expect(server.posts).toEqual([{ code, game: "science-snake", data: { highScore: null, lastRun: null } }]);
+  expect(server.posts).toEqual([{ code, game: "science-snake", data: { highScore: null, lastRun: null, recentRuns: [] } }]);
 });
 
 test("closing the panel returns to the start card, and reopening shows the same code", async ({ page }) => {

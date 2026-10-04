@@ -8,6 +8,9 @@ import {
   clearHighScore,
   exportScoresForCloud,
   mergeScoresFromCloud,
+  loadRecentRuns,
+  buildRunBoard,
+  RECENT_RUNS_COUNT,
   APPLE_POINTS,
   CORRECT_ANSWER_POINTS,
   GOLDEN_ATTEMPT_POINTS,
@@ -146,13 +149,13 @@ function record(score: number, achievedAt: number): ScoreRecord {
 
 describe("exportScoresForCloud", () => {
   it("is both-null before any run is recorded", () => {
-    expect(exportScoresForCloud()).toEqual({ highScore: null, lastRun: null });
+    expect(exportScoresForCloud()).toEqual({ highScore: null, lastRun: null, recentRuns: [] });
   });
 
   it("holds the stored high score and last run", () => {
     recordRun({ applesEaten: 10, questionsCorrect: 0 }, 1000);
     recordRun({ applesEaten: 2, questionsCorrect: 0 }, 2000);
-    expect(exportScoresForCloud()).toEqual({ highScore: record(50, 1000), lastRun: record(10, 2000) });
+    expect(exportScoresForCloud()).toEqual({ highScore: record(50, 1000), lastRun: record(10, 2000), recentRuns: [record(10, 2000), record(50, 1000)] });
   });
 });
 
@@ -192,5 +195,43 @@ describe("mergeScoresFromCloud", () => {
     }
     expect(loadHighScore()).toEqual(record(50, 1000));
     expect(loadLastRun()).toEqual(record(50, 1000));
+  });
+});
+
+describe("recent runs", () => {
+  it("keeps the last four runs, newest first", () => {
+    for (let i = 1; i <= 6; i++) recordRun({ applesEaten: i, questionsCorrect: 0 }, i * 1000);
+    const runs = loadRecentRuns();
+    expect(runs).toHaveLength(RECENT_RUNS_COUNT);
+    expect(runs.map((r) => r.achievedAt)).toEqual([6000, 5000, 4000, 3000]);
+  });
+
+  it("starts from the stored last run on a device that had one before the list existed", () => {
+    localStorage.setItem("science-snake-last-run", JSON.stringify(record(30, 1000)));
+    expect(loadRecentRuns()).toEqual([record(30, 1000)]);
+    recordRun({ applesEaten: 1, questionsCorrect: 0 }, 2000);
+    expect(loadRecentRuns().map((r) => r.achievedAt)).toEqual([2000, 1000]);
+  });
+
+  it("merges another device's runs in by time, counting the same run once", () => {
+    recordRun({ applesEaten: 1, questionsCorrect: 0 }, 1000);
+    recordRun({ applesEaten: 3, questionsCorrect: 0 }, 3000);
+    expect(mergeScoresFromCloud({ highScore: null, lastRun: record(20, 4000), recentRuns: [record(20, 4000), record(10, 2000), record(5, 1000)] })).toBe(true);
+    expect(loadRecentRuns().map((r) => r.achievedAt)).toEqual([4000, 3000, 2000, 1000]);
+  });
+
+  it("rejects a save whose recent runs aren't records", () => {
+    expect(mergeScoresFromCloud({ highScore: null, lastRun: null, recentRuns: [{ score: "x" }] })).toBe(false);
+  });
+});
+
+describe("buildRunBoard", () => {
+  it("shows correct answers (room + golden), apples and golden apples eaten, and what went up since the run before", () => {
+    const rows = buildRunBoard([
+      { applesEaten: 12, questionsCorrect: 2, goldenAttempts: 1, goldenCorrect: 1, score: 300, achievedAt: 3000 },
+      { applesEaten: 12, questionsCorrect: 1, score: 90, achievedAt: 2000 },
+    ]);
+    expect(rows[0]).toMatchObject({ score: 300, correct: 3, apples: 12, golden: 1, up: { score: true, correct: true, apples: false, golden: true } });
+    expect(rows[1]).toMatchObject({ correct: 1, golden: 0, up: { score: false, correct: false, apples: false, golden: false } });
   });
 });

@@ -8,6 +8,10 @@
 
 const HIGH_SCORE_KEY = "science-snake-high-score";
 const LAST_RUN_KEY = "science-snake-last-run";
+const RECENT_RUNS_KEY = "science-snake-recent-runs";
+
+/** How many runs the runs board shows (per "a board showing the last four runs"). */
+export const RECENT_RUNS_COUNT = 4;
 
 export const APPLE_POINTS = 5;
 export const CORRECT_ANSWER_POINTS = 30;
@@ -67,6 +71,25 @@ export function loadLastRun(): ScoreRecord | null {
   return loadRecord(LAST_RUN_KEY);
 }
 
+/** Newest first, at most RECENT_RUNS_COUNT. Before this list existed only the last run was kept, so that seeds it. */
+export function loadRecentRuns(): ScoreRecord[] {
+  const raw = localStorage.getItem(RECENT_RUNS_KEY);
+  if (raw) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter(isScoreRecord).slice(0, RECENT_RUNS_COUNT);
+    } catch {
+      // Fall through to the last run.
+    }
+  }
+  const last = loadLastRun();
+  return last ? [last] : [];
+}
+
+function saveRecentRuns(runs: ScoreRecord[]): void {
+  localStorage.setItem(RECENT_RUNS_KEY, JSON.stringify(runs.slice(0, RECENT_RUNS_COUNT)));
+}
+
 export interface RunOutcome {
   score: number;
   /** The score of the run before this one (null on a player's very first completed run ever). */
@@ -91,6 +114,7 @@ export function recordRun(stats: RunStats, achievedAt: number = Date.now()): Run
   const isNewHighScore = !existingHighScore || score > existingHighScore.score;
 
   const record: ScoreRecord = { ...stats, score, achievedAt };
+  saveRecentRuns([record, ...loadRecentRuns()]);
   localStorage.setItem(LAST_RUN_KEY, JSON.stringify(record));
   if (isNewHighScore) {
     localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(record));
@@ -123,15 +147,17 @@ export function describeRunOutcome(outcome: RunOutcome): string {
   return `Same as your last run (best: ${outcome.highScore})`;
 }
 
-/** What a Science Snake cloud save holds: just the two records this
- * module already keeps locally. */
+/** What a Science Snake cloud save holds: the records this module
+ * keeps locally. `recentRuns` is optional, so saves made before the runs
+ * board existed are still valid. */
 export interface ScienceSnakeCloudSave {
   highScore: ScoreRecord | null;
   lastRun: ScoreRecord | null;
+  recentRuns?: ScoreRecord[];
 }
 
 export function exportScoresForCloud(): ScienceSnakeCloudSave {
-  return { highScore: loadHighScore(), lastRun: loadLastRun() };
+  return { highScore: loadHighScore(), lastRun: loadLastRun(), recentRuns: loadRecentRuns() };
 }
 
 function isScoreRecord(value: unknown): value is ScoreRecord {
@@ -153,7 +179,8 @@ function isScoreRecordOrNull(value: unknown): value is ScoreRecord | null {
 export function isScienceSnakeCloudSave(remote: unknown): remote is ScienceSnakeCloudSave {
   if (!remote || typeof remote !== "object") return false;
   const save = remote as Record<string, unknown>;
-  return "highScore" in save && "lastRun" in save && isScoreRecordOrNull(save.highScore) && isScoreRecordOrNull(save.lastRun);
+  const recentRunsOk = save.recentRuns === undefined || (Array.isArray(save.recentRuns) && save.recentRuns.every(isScoreRecord));
+  return "highScore" in save && "lastRun" in save && isScoreRecordOrNull(save.highScore) && isScoreRecordOrNull(save.lastRun) && recentRunsOk;
 }
 
 /**
@@ -175,10 +202,59 @@ export function mergeScoresFromCloud(remote: unknown): boolean {
   if (remote.lastRun && (!localLast || remote.lastRun.achievedAt > localLast.achievedAt)) {
     localStorage.setItem(LAST_RUN_KEY, JSON.stringify(remote.lastRun));
   }
+  // The runs board: both devices' runs together, newest first, the same
+  // run (same time and score) counted once.
+  const seen = new Set<string>();
+  const merged = [...loadRecentRuns(), ...(remote.recentRuns ?? []), ...(remote.lastRun ? [remote.lastRun] : [])]
+    .sort((a, b) => b.achievedAt - a.achievedAt)
+    .filter((run) => {
+      const id = `${run.achievedAt}:${run.score}`;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  saveRecentRuns(merged);
   return true;
 }
 
 export function clearHighScore(): void {
   localStorage.removeItem(HIGH_SCORE_KEY);
   localStorage.removeItem(LAST_RUN_KEY);
+  localStorage.removeItem(RECENT_RUNS_KEY);
+}
+
+/** One row of the runs board: a run's four numbers, and which of them beat the run before it. */
+export interface RunBoardRow {
+  achievedAt: number;
+  score: number;
+  /** Every question answered right: in the answer room or by typing a golden answer. */
+  correct: number;
+  apples: number;
+  /** Golden apples eaten. */
+  golden: number;
+  /** Which numbers went up since the run before this one (all false for the oldest run shown). */
+  up: { score: boolean; correct: boolean; apples: boolean; golden: boolean };
+}
+
+/** The runs board's rows, newest first (per "a board showing the last four runs and the questions answered correctly, apples eaten and golden apples eaten... to encourage the child to keep improving"). */
+export function buildRunBoard(runs: ScoreRecord[]): RunBoardRow[] {
+  const numbers = runs.map((run) => ({
+    achievedAt: run.achievedAt,
+    score: run.score,
+    correct: run.questionsCorrect + (run.goldenCorrect ?? 0),
+    apples: run.applesEaten,
+    golden: run.goldenAttempts ?? 0,
+  }));
+  return numbers.map((row, i) => {
+    const before = numbers[i + 1];
+    return {
+      ...row,
+      up: {
+        score: !!before && row.score > before.score,
+        correct: !!before && row.correct > before.correct,
+        apples: !!before && row.apples > before.apples,
+        golden: !!before && row.golden > before.golden,
+      },
+    };
+  });
 }

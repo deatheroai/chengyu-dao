@@ -59,14 +59,14 @@ describe("syncScoresWithCloud", () => {
     // un-namespaced version (see the last describe block below).
     expect(requests).toEqual(["GET science-snake", "GET idiom-door", "POST science-snake"]);
     const run = { applesEaten: 10, questionsCorrect: 1, score: 80, achievedAt: 1000 };
-    expect(store.get(`science-snake:${VALID_CODE}`)).toEqual({ highScore: run, lastRun: run });
+    expect(store.get(`science-snake:${VALID_CODE}`)).toMatchObject({ highScore: run, lastRun: run, recentRuns: [run] });
   });
 
   it("merges before pushing, so a lower local high score can't overwrite a higher cloud one", async () => {
     const { store } = stubServer({ [`science-snake:${VALID_CODE}`]: { highScore: record(120, 500), lastRun: record(120, 500) } });
     recordRun({ applesEaten: 16, questionsCorrect: 0 }, 1000); // 80
     await syncScoresWithCloud(VALID_CODE);
-    expect(store.get(`science-snake:${VALID_CODE}`)).toEqual({ highScore: record(120, 500), lastRun: record(80, 1000) });
+    expect(store.get(`science-snake:${VALID_CODE}`)).toMatchObject({ highScore: record(120, 500), lastRun: record(80, 1000) });
     expect(loadHighScore()).toEqual(record(120, 500));
   });
 
@@ -106,7 +106,7 @@ describe("restoreScoresFromCloud", () => {
     expect(loadHighScore()).toEqual(record(150, 500));
     expect(loadLastRun()).toEqual(record(40, 2000));
     expect(getScienceSnakeCloudCode()).toBe(VALID_CODE);
-    expect(store.get(`science-snake:${VALID_CODE}`)).toEqual({ highScore: record(150, 500), lastRun: record(40, 2000) });
+    expect(store.get(`science-snake:${VALID_CODE}`)).toMatchObject({ highScore: record(150, 500), lastRun: record(40, 2000) });
   });
 
   it("rejects a malformed code without any network call", async () => {
@@ -134,7 +134,7 @@ describe("saves made by the earlier, un-namespaced version (PR #63)", () => {
     const { store } = stubServer({ [`idiom-door:${VALID_CODE}`]: legacy });
     expect(await syncScoresWithCloud(VALID_CODE)).toEqual({ ok: true });
     expect(loadHighScore()).toEqual(record(200, 500));
-    expect(store.get(`science-snake:${VALID_CODE}`)).toEqual(legacy);
+    expect(store.get(`science-snake:${VALID_CODE}`)).toEqual({ ...legacy, recentRuns: [record(200, 500)] });
     expect(store.get(`idiom-door:${VALID_CODE}`)).toEqual(legacy);
   });
 

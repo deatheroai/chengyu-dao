@@ -97,6 +97,9 @@ body {
   padding: 1.75rem 1.5rem;
   max-width: 380px;
   width: 100%;
+  /* Scrolls rather than spilling off a short phone screen (the runs board makes the start/win/lose cards taller). */
+  max-height: 100%;
+  overflow-y: auto;
   text-align: center;
   box-shadow: 0 12px 30px rgba(44, 61, 36, 0.25);
 }
@@ -207,6 +210,65 @@ body {
 .score-comparison {
   font-weight: 600;
   font-size: 0.95rem;
+}
+
+/* The runs board (runBoard.ts): the last four runs, newest first. */
+.run-board {
+  margin-top: 0.75rem;
+}
+
+.run-board table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-board th,
+.run-board td {
+  padding: 0.3rem 0.2rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.run-board tr:first-child th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.run-board tr + tr {
+  border-top: 1px solid rgba(44, 61, 36, 0.12);
+}
+
+.run-board tr th:first-child {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
+.run-board tr.latest {
+  background: #eef7e6;
+  font-weight: 700;
+}
+
+.run-board tr.latest th:first-child {
+  opacity: 1;
+}
+
+.run-board td.up {
+  color: #2c7a3c;
+}
+
+.run-board .up-arrow {
+  font-size: 0.7rem;
+}
+
+.run-board-tip {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
 }
 
 /* The joystick disc (joystickControl.ts) — one big round target
