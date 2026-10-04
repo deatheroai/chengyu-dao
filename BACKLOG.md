@@ -2152,6 +2152,20 @@ other mechanic in this repo.
         "too many open questions" pressure is wanted.
       - **Answer-room prototype page** (`answer-room.html`) still works
         standalone for trying one question's room on its own.
+- [x] `done` — **Science Snake runs board (2026-10-04, per "a board
+      showing the last four runs and the questions answered correctly,
+      apples eaten and golden apples eaten categories to encourage child
+      to keep improving").** The start, win and game-over cards show the
+      last four runs, newest first (`runBoard.ts`), with points, questions
+      answered right (answer room + golden answers), apples eaten and
+      golden apples eaten, and a green ▲ on each number that beat the run
+      before it. `scienceSnakeScore.ts` keeps the list
+      (`science-snake-recent-runs`, seeded from the old single last run)
+      and syncs it in the cloud save as an optional `recentRuns` (both
+      devices' runs merged by time); older saves still load. The high
+      score in the corner moved left of the question bar's 🔊 button,
+      which it used to cover. Tests: unit (`loadRecentRuns`, merge,
+      `buildRunBoard`) and `e2e/science-snake-run-board.spec.ts`.
       - **Content review pending:** room sentences for question batches
         5-6 (drafted 2026-10-01 in `answerRoomContent.ts`).
       - **Answer-room prototype built (2026-09-30), waiting on a phone

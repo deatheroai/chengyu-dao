@@ -6,6 +6,7 @@ import { preventDoubleTapZoom } from "./noZoom";
 import { createQuestionFlowPage } from "./questionFlowPage";
 import { unlockSpeech } from "./voice";
 import { recordRun, describeRunOutcome, loadHighScore, APPLE_POINTS, CORRECT_ANSWER_POINTS, GOLDEN_ATTEMPT_POINTS, GOLDEN_CORRECT_POINTS } from "./scienceSnakeScore";
+import { renderRunBoards } from "./runBoard";
 import { showCloudSaveCard, hideCloudSaveCard, handleCopyCode, handleRestoreFromCode, syncAfterRun } from "./cloudSaveStatus";
 
 function showCard(id: string): void {
@@ -16,10 +17,12 @@ function hideCard(id: string): void {
   document.getElementById(id)?.classList.remove("visible");
 }
 
+/** The high score in the corner and the runs board on the cards — both read from the stored records, so both refresh together. */
 function showHighScore(): void {
   const record = loadHighScore();
   const el = document.getElementById("high-score-display");
   if (el) el.textContent = record ? `🏆 High score: ${record.score}` : "";
+  renderRunBoards();
 }
 
 function showWinCard(stats: RunStats): void {

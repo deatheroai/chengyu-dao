@@ -499,3 +499,9 @@ body.question-flow .joystick-arrow {
   font-style: italic;
   text-align: left;
 }
+
+/* The high score sits left of the question bar's 🔊 button rather than on top of it. */
+body.question-flow #high-score-display {
+  right: 3.75rem;
+  top: 0.6rem;
+}
