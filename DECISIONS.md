@@ -23,6 +23,16 @@ None open right now.
 
 ## Resolved
 
+- **2026-10-04 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. Three open PRs from interactive
+  sessions (#68, #70 Science Snake e2e suites; #71 a draft answer-room
+  PR) were left alone — not this cycle's to land. `BACKLOG.md`'s only
+  `todo` item (example-sentence review) is current, and Science Snake's
+  "Content bank" item still needs a human review round before batch 7 is
+  authored (2026-09-16 decision). The three `blocked` "Later" items stay
+  deferred. `main` (`2646ed1`) typechecks and passes the unit suite
+  (511 tests). No `src/` changes.
+
 - **2026-09-29/30 — Science Snake: question apples, ANSWER door +
   answer room, golden typing challenge instead of typing every answer.**
   Raised because the child found the long question and full typed answer
