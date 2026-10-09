@@ -23,6 +23,14 @@ None open right now.
 
 ## Resolved
 
+- **2026-10-09 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. `BACKLOG.md`'s only `todo`
+  item (example-sentence review) is still current — no new idioms since
+  the 2026-09-19 full read-through. Science Snake's "Content bank" still
+  needs a human review round before batch 7 is authored (2026-09-16
+  decision). The three `blocked` "Later" items stay deferred. `main`
+  (`9314f08`) is the latest merge (PR #73). No `src/` changes.
+
 - **2026-10-04 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. Three open PRs from interactive
   sessions (#68, #70 Science Snake e2e suites; #71 a draft answer-room
