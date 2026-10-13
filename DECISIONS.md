@@ -23,6 +23,18 @@ None open right now.
 
 ## Resolved
 
+- **2026-10-13 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. `BACKLOG.md`'s only `todo` item
+  is the standing example-sentence-review track (current), Science Snake's
+  "Content bank" item still waits on a human review round before batch 7
+  is authored, and the three `blocked` "Later" items stay deferred. `main`
+  (`9314f08`) typechecks, passes the unit suite (677 tests) and builds. No
+  `src/` changes. **E2E gate was red, so this PR is deliberately not
+  auto-merged:** `idiom-door.spec.ts:512` ("running out of HP warns first,
+  then immediately restarts...", desktop project) failed on the full run
+  (121 passed, 1 failed, 2 skipped). This change is docs-only, so it's
+  the same chain-catch/timing-flake class documented in `BACKLOG.md`'s
+  2026-09-11 entry, not caused by this diff; needs a look.
 - **2026-10-04 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. Three open PRs from interactive
   sessions (#68, #70 Science Snake e2e suites; #71 a draft answer-room
