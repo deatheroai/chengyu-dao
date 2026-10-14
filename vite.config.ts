@@ -19,10 +19,6 @@ export default defineConfig({
       input: {
         index: resolve(rootDir, "index.html"),
         idiomDoor: resolve(rootDir, "idiom-door.html"),
-        // Science Snake moved to deatheroai/science-snake (2026-10-07); these
-        // two pages are kept only as redirects for old links.
-        scienceSnake: resolve(rootDir, "science-snake.html"),
-        answerRoom: resolve(rootDir, "answer-room.html"),
       },
     },
   },

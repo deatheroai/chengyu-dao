@@ -1343,11 +1343,12 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 Science Snake now lives in its own repo,
 [`deatheroai/science-snake`](https://github.com/deatheroai/science-snake),
 live at `https://science-snake.vercel.app/`. Its backlog moved there with
-it (along with its git history). This repo keeps only
-`science-snake.html` / `answer-room.html` as redirects for old links,
-plus the shared cloud-save endpoint's `science-snake` namespace (the two
-Vercel projects share one Upstash database). Nothing here to build — the
-daily cycle should not pick up Science Snake work in this repo.
+it (along with its git history). It's removed from this repo entirely —
+no pages, code, tests, or cloud-save namespace (`api/cloud-save.ts` now
+rejects `game=science-snake` as unknown; its saves stay in the shared
+Upstash database, served by the new repo's own endpoint). Nothing here
+to build — the daily cycle should not pick up Science Snake work in this
+repo.
 
 ## Platform / infra
 

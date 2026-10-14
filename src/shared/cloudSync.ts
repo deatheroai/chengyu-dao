@@ -1,8 +1,5 @@
-import { generateCloudSaveCode, isValidCloudSaveCode, DEFAULT_CLOUD_SAVE_GAME, type CloudSaveGame } from "./cloudSaveValidation";
+import { generateCloudSaveCode, isValidCloudSaveCode } from "./cloudSaveValidation";
 
-/** idiom-door's key, and the default for every code helper below.
- * Another game passes its own key so its code is its own — see
- * science-snake/cloudSaveStatus.ts. */
 const CLOUD_CODE_STORAGE_KEY = "idiom-cloud-code";
 const API_PATH = "/api/cloud-save";
 
@@ -10,23 +7,23 @@ const API_PATH = "/api/cloud-save";
  * has never been turned on here. Storing the code itself locally (not
  * just "cloud save is on") is what makes restoring on a *second* device
  * possible — that device pastes this same code in. */
-export function getLocalCloudCode(storageKey: string = CLOUD_CODE_STORAGE_KEY): string | null {
-  const stored = localStorage.getItem(storageKey);
+export function getLocalCloudCode(): string | null {
+  const stored = localStorage.getItem(CLOUD_CODE_STORAGE_KEY);
   return isValidCloudSaveCode(stored) ? stored : null;
 }
 
-function setLocalCloudCode(code: string, storageKey: string): void {
-  localStorage.setItem(storageKey, code);
+function setLocalCloudCode(code: string): void {
+  localStorage.setItem(CLOUD_CODE_STORAGE_KEY, code);
 }
 
 /** Returns this device's existing cloud-save code, or mints and
  * remembers a fresh one on first use. Idempotent — safe to call every
  * time the cloud-save panel opens. */
-export function ensureLocalCloudCode(rng: () => number = Math.random, storageKey: string = CLOUD_CODE_STORAGE_KEY): string {
-  const existing = getLocalCloudCode(storageKey);
+export function ensureLocalCloudCode(rng: () => number = Math.random): string {
+  const existing = getLocalCloudCode();
   if (existing) return existing;
   const code = generateCloudSaveCode(rng);
-  setLocalCloudCode(code, storageKey);
+  setLocalCloudCode(code);
   return code;
 }
 
@@ -72,13 +69,11 @@ function describeThrownError(err: unknown): string {
  * error) comes back as a typed result instead, since this always runs
  * best-effort alongside the local save that already succeeded; a cloud
  * hiccup must never look like *the game* failed to save. */
-export async function pushToCloud(code: string, data: unknown, game: CloudSaveGame = DEFAULT_CLOUD_SAVE_GAME): Promise<CloudSyncResult> {
+export async function pushToCloud(code: string, data: unknown): Promise<CloudSyncResult> {
   if (!isValidCloudSaveCode(code)) return { ok: false, reason: "invalid-code" };
   try {
-    // The default game is left out of the request entirely (the server
-    // treats a missing game as idiom-door), so idiom-door's requests are
-    // exactly what they were before per-game saves existed.
-    const body = game === DEFAULT_CLOUD_SAVE_GAME ? { code, data } : { code, data, game };
+    // No `game` field: the server treats a missing game as idiom-door.
+    const body = { code, data };
     const response = await fetch(API_PATH, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -94,11 +89,10 @@ export async function pushToCloud(code: string, data: unknown, game: CloudSaveGa
 
 /** Fetches whatever's stored under `code`. Same never-throws contract
  * as pushToCloud. */
-export async function pullFromCloud(code: string, game: CloudSaveGame = DEFAULT_CLOUD_SAVE_GAME): Promise<CloudLoadResult> {
+export async function pullFromCloud(code: string): Promise<CloudLoadResult> {
   if (!isValidCloudSaveCode(code)) return { ok: false, reason: "invalid-code" };
   try {
-    const gameParam = game === DEFAULT_CLOUD_SAVE_GAME ? "" : `&game=${encodeURIComponent(game)}`;
-    const response = await fetch(`${API_PATH}?code=${encodeURIComponent(code)}${gameParam}`);
+    const response = await fetch(`${API_PATH}?code=${encodeURIComponent(code)}`);
     if (response.status === 501) return { ok: false, reason: "not-configured" };
     if (response.status === 404) return { ok: false, reason: "not-found" };
     if (!response.ok) return { ok: false, reason: "network", detail: await describeFailedResponse(response) };
@@ -112,6 +106,6 @@ export async function pullFromCloud(code: string, game: CloudSaveGame = DEFAULT_
 /** A restored/typed code always becomes this device's own going-forward
  * sync code too — so playing more afterward keeps updating the same
  * save rather than silently drifting from it. */
-export function adoptCloudCode(code: string, storageKey: string = CLOUD_CODE_STORAGE_KEY): void {
-  if (isValidCloudSaveCode(code)) setLocalCloudCode(code, storageKey);
+export function adoptCloudCode(code: string): void {
+  if (isValidCloudSaveCode(code)) setLocalCloudCode(code);
 }

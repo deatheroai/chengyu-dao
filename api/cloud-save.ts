@@ -42,7 +42,6 @@ import {
 // was stored.
 const REDIS_KEY_PREFIXES: Record<CloudSaveGame, string> = {
   "idiom-door": "chengyu-dao:cloud-save:",
-  "science-snake": "chengyu-dao:science-snake:cloud-save:",
 };
 
 /** A missing game means idiom-door (older clients never send one); a
