@@ -23,6 +23,15 @@ None open right now.
 
 ## Resolved
 
+- **2026-10-14 — Science Snake moved to its own repo.** Your call
+  (2026-10-07): the idiom game and the science games are different
+  subjects and shared almost nothing. Code, tests and history now live in
+  `deatheroai/science-snake` (live at `science-snake.vercel.app`, sharing
+  this project's Upstash database so existing cloud codes keep working).
+  Removed from this repo; `science-snake.html` and `answer-room.html`
+  now redirect there. `api/cloud-save.ts` keeps its `science-snake`
+  namespace unchanged — harmless, and removing it would only churn tests.
+
 - **2026-10-14 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. Same state as 2026-10-11:
   `BACKLOG.md`'s only `todo` item (example-sentence review) is current
