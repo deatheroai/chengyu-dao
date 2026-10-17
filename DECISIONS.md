@@ -23,6 +23,14 @@ None open right now.
 
 ## Resolved
 
+- **2026-10-17 — Daily cycle check-in: nothing unblocked, no code
+  changes.** Pending Decisions was empty. No commits to `main` since the
+  2026-10-11 check-in, so the state is unchanged: `BACKLOG.md`'s only
+  `todo` item (example-sentence review) is a standing track with nothing
+  new to review, Science Snake's "Content bank" item still waits on a
+  human review round before the next batch (2026-09-16 decision), and the
+  three `blocked` "Later" items stay deferred.
+
 - **2026-10-11 — Daily cycle check-in: nothing unblocked, no code
   changes.** Pending Decisions was empty. Same state as 2026-10-08:
   `BACKLOG.md`'s only `todo` item (example-sentence review) is current,
