@@ -36,15 +36,15 @@ export function generateCloudSaveCode(rng: () => number = Math.random): string {
 }
 
 /**
- * Which game a save belongs to. Each game's saves live under their own
- * server-side key, so the same code can never let one game's push
- * overwrite another game's save (Science Snake and idiom-door share an
- * origin, so without this a restored idiom-door code would get Science
- * Snake's scores pushed straight over its idiom history).
+ * Which game a save belongs to. Only idiom-door now: Science Snake moved
+ * to its own repo (deatheroai/science-snake, 2026-10-14) with its own
+ * copy of the endpoint, so a request naming it is rejected here as an
+ * unknown game rather than read from or written to idiom-door's key.
  * "idiom-door" is the default for a request that names no game, which
- * keeps every save written before this existed at its original key.
+ * keeps every save written before per-game saves existed at its
+ * original key.
  */
-export const CLOUD_SAVE_GAMES = ["idiom-door", "science-snake"] as const;
+export const CLOUD_SAVE_GAMES = ["idiom-door"] as const;
 export type CloudSaveGame = (typeof CLOUD_SAVE_GAMES)[number];
 export const DEFAULT_CLOUD_SAVE_GAME: CloudSaveGame = "idiom-door";
 
