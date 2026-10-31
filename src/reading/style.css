@@ -1,0 +1,382 @@
+:root {
+  --bg: #fff6e9;
+  --card: #ffffff;
+  --ink: #2b2b2b;
+  --muted: #7a6a58;
+  --accent: #e8743b;
+  --accent-soft: #fde3d2;
+  --grid: #e7a7a0;
+  --line: #eadfce;
+  --good: #3a9a5b;
+  --shaky: #d79a1e;
+  --bad: #c9503f;
+  --kai: "KaiTi", "STKaiti", "Kaiti SC", "Kaiti TC", "BiauKai", "Noto Serif SC", serif;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+}
+
+.app-header h1 {
+  margin: 4px 0 12px;
+  font-size: 1.5rem;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* ---- step tabs ---- */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 4px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.step[aria-selected="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.step-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 0.85em;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- cards ---- */
+.story-card,
+.pad-card,
+.summary-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(120, 80, 30, 0.08);
+}
+
+/* ---- story ---- */
+.story-title {
+  margin: 0 0 8px;
+  text-align: center;
+  font-family: var(--kai);
+  font-size: 1.6rem;
+}
+
+.story-text {
+  margin: 0;
+  font-family: var(--kai);
+  font-size: 1.45rem;
+  line-height: 2.4;
+  text-indent: 2em;
+  text-align: justify;
+}
+
+.target-word {
+  background: var(--accent-soft);
+  border-radius: 6px;
+  padding: 0 2px;
+}
+
+.target-char {
+  color: var(--accent);
+  font-weight: 700;
+  ruby-position: over;
+}
+
+.target-char rt {
+  font-family: system-ui, sans-serif;
+  font-size: 0.55em;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.story-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.new-chars h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.new-chars small {
+  font-weight: 400;
+}
+
+/* ---- small 田字格 boxes ---- */
+.char-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mini-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+  padding: 4px 0 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.mini-pinyin {
+  font-size: 0.85rem;
+  color: var(--muted);
+  height: 1.2em;
+}
+
+.mini-char {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  font-family: var(--kai);
+  font-size: 2.2rem;
+  border: 2px solid var(--grid);
+  background:
+    linear-gradient(to right, transparent calc(50% - 0.5px), var(--grid) calc(50% - 0.5px), var(--grid) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(to bottom, transparent calc(50% - 0.5px), var(--grid) calc(50% - 0.5px), var(--grid) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    #fff;
+}
+
+.mini-box[aria-selected="true"] .mini-char {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.mini-badge {
+  height: 1.2em;
+  font-size: 0.85rem;
+  color: var(--shaky);
+}
+
+.mini-box:disabled {
+  cursor: default;
+}
+
+.result-correct .mini-badge {
+  color: var(--good);
+}
+
+.result-shaky .mini-badge {
+  color: var(--shaky);
+}
+
+.result-revealed .mini-badge {
+  color: var(--bad);
+}
+
+/* ---- big writing pad ---- */
+.pad-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pad-info {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pad-pinyin {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.pad-word {
+  color: var(--muted);
+}
+
+/* 田字格 with a 米字 guide: solid border, dashed centre cross, faint diagonals. */
+.tianzige {
+  width: 280px;
+  height: 280px;
+  border: 3px solid var(--grid);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg stroke='%23e7a7a0' stroke-width='0.6' stroke-dasharray='3 2' fill='none'%3E%3Cline x1='50' y1='0' x2='50' y2='100'/%3E%3Cline x1='0' y1='50' x2='100' y2='50'/%3E%3Cline x1='0' y1='0' x2='100' y2='100' stroke-opacity='0.45'/%3E%3Cline x1='100' y1='0' x2='0' y2='100' stroke-opacity='0.45'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  touch-action: none;
+  user-select: none;
+}
+
+.feedback {
+  min-height: 1.5em;
+  margin: 0;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.pad-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ---- buttons ---- */
+.btn {
+  padding: 10px 16px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  background: var(--accent-soft);
+}
+
+.btn-next {
+  align-self: center;
+  padding: 12px 28px;
+}
+
+/* ---- memory test ---- */
+.test-progress {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.test-prompt {
+  margin: 0;
+  font-family: var(--kai);
+  font-size: 1.4rem;
+  line-height: 2.2;
+  text-align: center;
+}
+
+.blank {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: bottom;
+  margin: 0 3px;
+  line-height: 1.2;
+}
+
+.blank-py {
+  font-family: system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.blank-box {
+  width: 1.5em;
+  height: 1.5em;
+  border: 2px dashed var(--accent);
+  border-radius: 6px;
+  background: var(--accent-soft);
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.summary-card h2 {
+  margin: 0;
+}
+
+.summary-legend {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 420px) {
+  .story-text {
+    font-size: 1.25rem;
+  }
+  .step {
+    font-size: 0.95rem;
+  }
+  .char-row {
+    gap: 4px;
+  }
+  .mini-box {
+    width: 52px;
+  }
+  .mini-char {
+    width: 48px;
+    height: 48px;
+    font-size: 1.9rem;
+  }
+}

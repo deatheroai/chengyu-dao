@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#fff6e9" />
+    <meta name="description" content="读一读，写一写：read a short story, practise its new characters, then write them from memory." />
+    <title>读一读 · 写一写</title>
+    <link rel="stylesheet" href="/src/reading/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <h1>读一读 · 写一写</h1>
+        <nav class="steps" role="tablist" aria-label="Steps">
+          <button class="step" role="tab" data-step="read" aria-selected="true"><span class="step-num">1</span>读故事</button>
+          <button class="step" role="tab" data-step="practise" aria-selected="false"><span class="step-num">2</span>练字</button>
+          <button class="step" role="tab" data-step="test" aria-selected="false"><span class="step-num">3</span>默写</button>
+        </nav>
+      </header>
+
+      <!-- Step 1: read the story -->
+      <section class="panel" id="panel-read" data-panel="read">
+        <article class="story-card">
+          <h2 class="story-title" id="story-title"></h2>
+          <p class="story-text" id="story-text"></p>
+          <div class="story-actions">
+            <button class="btn btn-ghost" id="read-aloud" type="button">🔊 朗读</button>
+          </div>
+        </article>
+        <div class="new-chars">
+          <h3>今天要学的生字 <small>(点一下去练习)</small></h3>
+          <div class="char-row" id="read-char-row"></div>
+        </div>
+        <button class="btn btn-primary btn-next" type="button" data-goto="practise">下一步：练字 →</button>
+      </section>
+
+      <!-- Step 2: practise each character -->
+      <section class="panel" id="panel-practise" data-panel="practise" hidden>
+        <div class="char-row" id="practise-char-row" role="listbox" aria-label="Characters"></div>
+        <div class="pad-card">
+          <div class="pad-info">
+            <span class="pad-pinyin" id="practise-pinyin"></span>
+            <span class="pad-word" id="practise-word"></span>
+          </div>
+          <div class="tianzige" id="practise-pad"></div>
+          <p class="feedback" id="practise-feedback" aria-live="polite"></p>
+          <div class="pad-actions">
+            <button class="btn" type="button" id="btn-animate">👀 看笔顺</button>
+            <button class="btn" type="button" id="btn-trace">✏️ 描一描</button>
+            <button class="btn" type="button" id="btn-free">✍️ 自己写</button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-next" type="button" data-goto="test">准备好了：默写 →</button>
+      </section>
+
+      <!-- Step 3: write from memory -->
+      <section class="panel" id="panel-test" data-panel="test" hidden>
+        <div id="test-run">
+          <p class="test-progress" id="test-progress"></p>
+          <div class="pad-card">
+            <p class="test-prompt" id="test-prompt"></p>
+            <div class="tianzige" id="test-pad"></div>
+            <p class="feedback" id="test-feedback" aria-live="polite"></p>
+            <div class="pad-actions">
+              <button class="btn" type="button" id="btn-test-retry">↺ 重写</button>
+              <button class="btn" type="button" id="btn-test-reveal">🙈 看答案</button>
+              <button class="btn btn-primary" type="button" id="btn-test-next" hidden>下一个 →</button>
+            </div>
+          </div>
+        </div>
+        <div id="test-summary" class="summary-card" hidden>
+          <h2 id="summary-title"></h2>
+          <div class="char-row" id="summary-row"></div>
+          <p class="summary-legend">✓ 写对了 · △ 有点难 · ✗ 看了答案</p>
+          <div class="pad-actions">
+            <button class="btn" type="button" id="btn-review" hidden>练习没写好的字</button>
+            <button class="btn btn-primary" type="button" id="btn-test-again">再默写一次</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/reading/main.ts"></script>
+  </body>
+</html>

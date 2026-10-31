@@ -33,6 +33,20 @@ npm run test        # unit tests (vitest)
 npm run test:e2e    # end-to-end tests (playwright)
 ```
 
+## Story writing practice (`story-writer.html`)
+
+A separate, simple page for reading and writing practice (Primary 4
+level): read a short story, practise its new characters in 田字格 boxes
+(watch the stroke order, trace, then write alone), then a 默写 test
+where she writes each character from memory into a blank in its
+sentence from the story.
+
+To change the story, edit `src/reading/stories.ts` (the text plus each
+target character's pinyin, word and meaning), then run
+`npm run gen:story-strokes` to bundle the new characters' stroke data.
+`src/reading/stories.test.ts` catches a target missing from the text or
+missing stroke data.
+
 ## Project structure
 
 `index.html` (the site root) is a static redirect to `idiom-door.html`, the
