@@ -188,10 +188,7 @@ body {
   font-family: var(--kai);
   font-size: 2.2rem;
   border: 2px solid var(--grid);
-  background:
-    linear-gradient(to right, transparent calc(50% - 0.5px), var(--grid) calc(50% - 0.5px), var(--grid) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-    linear-gradient(to bottom, transparent calc(50% - 0.5px), var(--grid) calc(50% - 0.5px), var(--grid) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-    #fff;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cg stroke='%23e7a7a0' stroke-width='1.5' stroke-dasharray='5 4' fill='none'%3E%3Cline x1='50' y1='0' x2='50' y2='100'/%3E%3Cline x1='0' y1='50' x2='100' y2='50'/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 
 .mini-box[aria-selected="true"] .mini-char {

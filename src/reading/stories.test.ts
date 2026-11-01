@@ -3,6 +3,7 @@ import { stories, getStory, currentStoryId } from "./stories";
 import { storyStrokeData } from "./storyStrokeData";
 import { segmentStory, blankSentence } from "./storyText";
 import { gradeAttempt, summarize, shuffled } from "./memoryTest";
+import { relativeClipRef } from "./clipRefs";
 
 describe("story content", () => {
   it("current story exists", () => {
@@ -69,5 +70,15 @@ describe("memory test grading", () => {
   it("shuffles without losing items", () => {
     const out = shuffled([1, 2, 3, 4, 5], () => 0);
     expect(out.sort()).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe("relativeClipRef", () => {
+  it("rewrites hanzi-writer's absolute clip references to same-document ones", () => {
+    expect(relativeClipRef('url("https://x.vercel.app/story-writer.html?_vercel_share=abc#mask-12")')).toBe("url(#mask-12)");
+    expect(relativeClipRef('url("http://localhost:5199/story-writer.html#mask-3")')).toBe("url(#mask-3)");
+  });
+  it("leaves already-relative references alone", () => {
+    expect(relativeClipRef("url(#mask-3)")).toBeNull();
   });
 });

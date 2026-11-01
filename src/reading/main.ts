@@ -3,6 +3,7 @@ import { getStory, type TargetCharacter } from "./stories";
 import { segmentStory, blankSentence } from "./storyText";
 import { gradeAttempt, summarize, shuffled, type TestResult } from "./memoryTest";
 import { storyStrokeData } from "./storyStrokeData";
+import { keepClipRefsRelative } from "./clipRefs";
 
 type Step = "read" | "practise" | "test";
 
@@ -17,6 +18,7 @@ function padSize(): number {
 }
 
 function createWriter(el: HTMLElement, char: string, showOutline: boolean) {
+  keepClipRefsRelative(el);
   const size = padSize();
   const padding = Math.round(size * 0.08);
   el.style.width = el.style.height = `${size}px`;
