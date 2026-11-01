@@ -72,3 +72,18 @@ test("memory test: write every character, then see the score", async ({ page }) 
   await page.click("#btn-review");
   await expect(page.locator("#panel-practise")).toBeVisible();
 });
+
+test("switching characters draws each one in a fresh pad", async ({ page }) => {
+  await page.goto("/story-writer.html");
+  await page.click('[data-step="practise"]');
+  await page.click("#btn-trace");
+  await writePerfectly(page, "#practise-pad");
+  for (const t of story.targets.slice(1, 3)) {
+    await page.click(`#practise-char-row .mini-box[data-char="${t.char}"]`);
+    await expect(page.locator("#practise-pad")).toHaveAttribute("data-char", t.char);
+    await expect(page.locator("#practise-pad svg")).toHaveCount(1);
+  }
+  const refs = await page.$$eval("#practise-pad [clip-path]", (els) => els.map((e) => e.getAttribute("clip-path")!));
+  expect(refs.length).toBeGreaterThan(0);
+  expect(refs.every((r) => r.startsWith("url(#"))).toBe(true);
+});

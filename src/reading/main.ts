@@ -17,8 +17,18 @@ function padSize(): number {
   return Math.max(200, Math.min(300, window.innerWidth - 80));
 }
 
+/**
+ * Always builds a fresh writer (and a fresh <svg>) rather than reusing
+ * one via setCharacter(): Safari doesn't repaint the stroke clip paths
+ * hanzi-writer swaps in on setCharacter(), leaving the new character's
+ * outline drawn as thick unclipped blobs.
+ */
 function createWriter(el: HTMLElement, char: string, showOutline: boolean) {
-  keepClipRefsRelative(el);
+  el.replaceChildren();
+  if (!el.dataset.clipFix) {
+    el.dataset.clipFix = "1";
+    keepClipRefsRelative(el);
+  }
   const size = padSize();
   const padding = Math.round(size * 0.08);
   el.style.width = el.style.height = `${size}px`;
@@ -170,17 +180,18 @@ const practise = (() => {
     refreshBoxes();
   }
 
-  async function select(i: number): Promise<void> {
+  let entered = false;
+
+  function select(i: number): void {
     index = i;
     const t = story.targets[i];
     $("practise-pinyin").textContent = t.pinyin;
     $("practise-word").textContent = `${t.word} · ${t.meaning}`;
     refreshBoxes();
-    if (!writer) return; // enter() will create it
+    if (!entered) return; // enter() will draw it
     run++;
-    writer.cancelQuiz();
-    await writer.setCharacter(t.char);
-    $("practise-pad").dataset.char = t.char;
+    writer?.cancelQuiz();
+    writer = createWriter($("practise-pad"), t.char, true);
     animate();
   }
 
@@ -238,8 +249,8 @@ const practise = (() => {
 
   return {
     enter(): void {
-      if (!writer) writer = createWriter($("practise-pad"), story.targets[index].char, true);
-      void select(index);
+      entered = true;
+      select(index);
     },
     leave(): void {
       run++;
@@ -273,10 +284,10 @@ const test = (() => {
     finished = false;
     $("test-run").hidden = false;
     $("test-summary").hidden = true;
-    void show();
+    show();
   }
 
-  async function show(): Promise<void> {
+  function show(): void {
     const t = order[pos];
     $("test-progress").textContent = `第 ${pos + 1} / ${order.length} 个字`;
     const { before, after } = blankSentence(story, t);
@@ -295,10 +306,8 @@ const test = (() => {
     nextBtn.hidden = true;
     retryBtn.hidden = revealBtn.hidden = false;
     feedback.textContent = "想一想，把空格里的字写出来。";
-    if (!writer) writer = createWriter($("test-pad"), t.char, false);
-    else await writer.setCharacter(t.char);
-    $("test-pad").dataset.char = t.char;
-    writer.hideOutline({ duration: 0 });
+    writer?.cancelQuiz();
+    writer = createWriter($("test-pad"), t.char, false);
     startQuiz();
   }
 
@@ -348,7 +357,7 @@ const test = (() => {
   nextBtn.addEventListener("click", () => {
     if (pos + 1 < order.length) {
       pos++;
-      void show();
+      show();
     } else {
       showSummary();
     }
