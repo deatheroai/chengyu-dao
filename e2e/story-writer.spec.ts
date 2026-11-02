@@ -37,7 +37,7 @@ test("reading view highlights every target word", async ({ page }) => {
   await expect(page.locator("#read-char-row .mini-box")).toHaveCount(story.targets.length);
 });
 
-test("tapping a new character opens it in practice, and writing it alone earns two stars", async ({ page }) => {
+test("tapping a new character opens it in practice; flawless writing earns three stars and a saved best time", async ({ page }) => {
   await page.goto("/story-writer.html");
   const t = story.targets[2];
   await page.click(`#read-char-row .mini-box[data-char="${t.char}"]`);
@@ -45,9 +45,26 @@ test("tapping a new character opens it in practice, and writing it alone earns t
   await expect(page.locator("#practise-pad")).toHaveAttribute("data-char", t.char);
   await expect(page.locator("#practise-pad svg")).toBeVisible();
   await page.click("#btn-free");
+  await expect(page.locator("#practise-timer")).toBeVisible();
   await writePerfectly(page, "#practise-pad");
-  await expect(page.locator("#practise-feedback")).toContainText("太棒了");
-  await expect(page.locator(`#practise-char-row .mini-box[data-char="${t.char}"] .mini-badge`)).toHaveText("★★");
+  await expect(page.locator("#practise-feedback")).toContainText("完美");
+  const badge = page.locator(`#practise-char-row .mini-box[data-char="${t.char}"] .mini-badge`);
+  await expect(badge).toHaveText("★★★");
+  await expect(page.locator("#practise-best")).toContainText("最快");
+
+  // Progress survives a reload on the same device.
+  await page.reload();
+  await page.click('[data-step="practise"]');
+  await expect(badge).toHaveText("★★★");
+  await page.click(`#practise-char-row .mini-box[data-char="${t.char}"]`);
+  await expect(page.locator("#practise-best")).toContainText("最快");
+
+  // The parent can clear it.
+  await page.click('[data-step="read"]');
+  page.once("dialog", (d) => d.accept());
+  await page.click("#btn-reset");
+  await page.click('[data-step="practise"]');
+  await expect(badge).toHaveText("☆☆☆");
 });
 
 test("memory test: write every character, then see the score", async ({ page }) => {
@@ -68,6 +85,7 @@ test("memory test: write every character, then see the score", async ({ page }) 
   }
   await expect(page.locator("#test-summary")).toBeVisible();
   await expect(page.locator("#summary-title")).toContainText(`${story.targets.length - 1} / ${story.targets.length}`);
+  await expect(page.locator("#summary-best")).toContainText(`${story.targets.length - 1} / ${story.targets.length}`);
   await expect(page.locator("#btn-review")).toBeVisible();
   await page.click("#btn-review");
   await expect(page.locator("#panel-practise")).toBeVisible();

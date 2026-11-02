@@ -377,3 +377,40 @@ body {
     font-size: 1.9rem;
   }
 }
+
+/* ---- stars, timer, progress ---- */
+.mini-badge .star {
+  color: #d9cbb6;
+  font-size: 0.8rem;
+}
+
+.mini-badge .star.on {
+  color: #e9a925;
+}
+
+.timer {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.best-time,
+.summary-best {
+  margin: 0;
+  min-height: 1.2em;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.link-btn {
+  align-self: center;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
