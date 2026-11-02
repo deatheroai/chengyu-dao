@@ -49,8 +49,9 @@ missing stroke data.
 
 Practice earns up to three stars per character: ★ for tracing, ★★ for
 writing it alone with at most one wrong stroke, ★★★ for writing it alone
-with none. Writing alone is timed, and each flawless attempt can set a
-fastest time. Stars, fastest times and the best 默写 score are saved in
+with none within its target time (1.5 s per stroke, rounded up —
+`SECONDS_PER_STROKE` in `src/reading/progress.ts`). Writing alone is
+timed, and each flawless attempt can set a fastest time. Stars, fastest times and the best 默写 score are saved in
 the browser's `localStorage` on that device only (`src/reading/progress.ts`),
 and the "清除练习记录" link on the reading step clears them.
 

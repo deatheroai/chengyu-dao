@@ -8,7 +8,7 @@ const story = getStory();
  * stroke along its bundled medians — the same character-space → screen
  * transform hanzi-writer's Positioner uses (see
  * e2e/helpers/writingStage.ts for the derivation). */
-async function writePerfectly(page: Page, padSelector: string): Promise<void> {
+async function writePerfectly(page: Page, padSelector: string, pauseBeforeLastStrokeMs = 0): Promise<void> {
   const pad = page.locator(padSelector);
   const char = await pad.getAttribute("data-char");
   const size = Number(await pad.getAttribute("data-size"));
@@ -21,7 +21,8 @@ async function writePerfectly(page: Page, padSelector: string): Promise<void> {
     x: box.x + padding + ix * scale,
     y: box.y + size - (padding + 124 * scale) - iy * scale,
   });
-  for (const median of data.medians) {
+  for (const [i, median] of data.medians.entries()) {
+    if (i === data.medians.length - 1 && pauseBeforeLastStrokeMs) await page.waitForTimeout(pauseBeforeLastStrokeMs);
     const pts = median.map(toScreen);
     await page.mouse.move(pts[0].x, pts[0].y);
     await page.mouse.down();
@@ -104,4 +105,18 @@ test("switching characters draws each one in a fresh pad", async ({ page }) => {
   const refs = await page.$$eval("#practise-pad [clip-path]", (els) => els.map((e) => e.getAttribute("clip-path")!));
   expect(refs.length).toBeGreaterThan(0);
   expect(refs.every((r) => r.startsWith("url(#"))).toBe(true);
+});
+
+test("a flawless but too-slow attempt earns two stars and still sets a fastest time", async ({ page }) => {
+  test.setTimeout(60000);
+  await page.goto("/story-writer.html");
+  // 附 has 7 strokes, so its three-star target is 11 seconds.
+  const t = story.targets.find((x) => x.char === "附")!;
+  await page.click(`#read-char-row .mini-box[data-char="${t.char}"]`);
+  await page.click("#btn-free");
+  await expect(page.locator("#practise-timer")).toContainText("/ 11 秒");
+  await writePerfectly(page, "#practise-pad", 11500);
+  await expect(page.locator("#practise-feedback")).toContainText("再快一点");
+  await expect(page.locator(`#practise-char-row .mini-box[data-char="${t.char}"] .mini-badge`)).toHaveText("★★☆");
+  await expect(page.locator("#practise-best")).toContainText("最快");
 });

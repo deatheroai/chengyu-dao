@@ -7,6 +7,7 @@ import { keepClipRefsRelative } from "./clipRefs";
 import {
   loadProgress, saveProgress, clearProgress, deviceStore, emptyProgress,
   recordStars, recordTime, recordTest, starsForTrace, starsForFreeWriting, formatSeconds,
+  formatTarget, targetMsFor,
   type Stars,
 } from "./progress";
 
@@ -206,6 +207,17 @@ const practise = (() => {
     refreshBoxes();
   }
 
+  function currentTargetMs(): number {
+    return targetMsFor(storyStrokeData[story.targets[index].char].strokes.length);
+  }
+
+  /** "⏱ 6.2 秒 / 12 秒", turning muted once she's past the target. */
+  function showTime(ms: number): void {
+    const target = currentTargetMs();
+    timerEl.textContent = `⏱ ${formatSeconds(ms)} / ${formatTarget(target)}`;
+    timerEl.classList.toggle("over", ms > target);
+  }
+
   function stopTimer(): number | null {
     timing = false;
     window.clearInterval(tick);
@@ -220,7 +232,7 @@ const practise = (() => {
       if (!timing || startedAt !== null) return;
       startedAt = performance.now();
       tick = window.setInterval(() => {
-        if (startedAt !== null) timerEl.textContent = `⏱ ${formatSeconds(performance.now() - startedAt)}`;
+        if (startedAt !== null) showTime(performance.now() - startedAt);
       }, 100);
     },
     { capture: true },
@@ -268,8 +280,10 @@ const practise = (() => {
     stopTimer();
     timing = !withOutline;
     timerEl.hidden = withOutline;
-    timerEl.textContent = `⏱ ${formatSeconds(0)}`;
-    feedback.textContent = withOutline ? "沿着灰色的字描。" : "不看提示，自己写一写。";
+    showTime(0);
+    feedback.textContent = withOutline
+      ? "沿着灰色的字描。"
+      : `不看提示，自己写一写。${formatTarget(currentTargetMs())}内一笔不错，就能拿 3 颗星！`;
     void writer.quiz({
       showHintAfterMisses: withOutline ? 2 : 3,
       onMistake: () => {
@@ -287,17 +301,20 @@ const practise = (() => {
         }
         writer!.showOutline();
         const ms = stopTimer();
-        const earned = starsForFreeWriting(totalMistakes);
+        const target = currentTargetMs();
+        const earned = starsForFreeWriting(totalMistakes, ms, target);
         const char = story.targets[index].char;
-        // Only a flawless attempt counts towards her fastest time.
-        const newBest = earned === 3 && ms !== null && recordTime(progress, char, ms);
+        // Any flawless attempt counts towards her fastest time.
+        const newBest = totalMistakes === 0 && ms !== null && recordTime(progress, char, ms);
         if (newBest) persist();
         award(earned);
-        if (ms !== null) timerEl.textContent = `⏱ ${formatSeconds(ms)}`;
+        if (ms !== null) showTime(ms);
         if (earned === 3) {
-          feedback.textContent = newBest ? "完美！一笔都没错，还是新纪录！🎉" : "完美！一笔都没错！⭐⭐⭐";
+          feedback.textContent = newBest ? "完美！又快又对，还是新纪录！🎉" : "完美！又快又对！⭐⭐⭐";
+        } else if (totalMistakes === 0) {
+          feedback.textContent = `一笔都没错！再快一点，${formatTarget(target)}内写完就能拿 3 颗星。`;
         } else if (earned === 2) {
-          feedback.textContent = "太棒了！只错了 1 笔。一笔不错就能拿 3 颗星！";
+          feedback.textContent = `太棒了！只错了 1 笔。${formatTarget(target)}内一笔不错就能拿 3 颗星！`;
         } else {
           feedback.textContent = `写完了，错了 ${totalMistakes} 笔。再写一次吧！`;
         }

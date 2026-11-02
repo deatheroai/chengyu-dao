@@ -2,17 +2,28 @@ import type { TestResult } from "./memoryTest";
 
 /**
  * Practice stars for one character:
- * 1 = traced it, 2 = wrote it alone with at most one wrong stroke,
- * 3 = wrote it alone with no wrong strokes at all.
+ * 1 = traced it,
+ * 2 = wrote it alone with at most one wrong stroke,
+ * 3 = wrote it alone with no wrong strokes, within its target time.
  */
 export type Stars = 0 | 1 | 2 | 3;
+
+/** Seconds allowed per stroke for the three-star target. A starting
+ * guess for a Primary 4 child writing with a finger; tune after use. */
+export const SECONDS_PER_STROKE = 1.5;
+
+/** Three-star time limit for a character, in whole seconds. */
+export function targetMsFor(strokeCount: number): number {
+  return Math.ceil(strokeCount * SECONDS_PER_STROKE) * 1000;
+}
 
 export function starsForTrace(): Stars {
   return 1;
 }
 
-export function starsForFreeWriting(totalMistakes: number): Stars {
-  if (totalMistakes === 0) return 3;
+/** `ms` null means the attempt wasn't timed; it isn't held against her. */
+export function starsForFreeWriting(totalMistakes: number, ms: number | null, targetMs: number): Stars {
+  if (totalMistakes === 0 && (ms === null || ms <= targetMs)) return 3;
   if (totalMistakes <= 1) return 2;
   return 1;
 }
@@ -51,6 +62,11 @@ export function recordTest(p: StoryProgress, results: { char: string; result: Te
   for (const r of results) p.lastTest[r.char] = r.result;
   const correct = results.filter((r) => r.result === "correct").length;
   p.bestTestScore = Math.max(p.bestTestScore, correct);
+}
+
+/** Whole seconds, for the target: "12 秒". */
+export function formatTarget(ms: number): string {
+  return `${Math.round(ms / 1000)} 秒`;
 }
 
 /** "8.3 秒" — one decimal place, enough to see improvement. */

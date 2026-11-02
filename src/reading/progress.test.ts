@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  starsForFreeWriting, recordStars, recordTime, recordTest, emptyProgress,
+  starsForFreeWriting, targetMsFor, recordStars, recordTime, recordTest, emptyProgress,
   loadProgress, saveProgress, clearProgress, formatSeconds,
 } from "./progress";
 
@@ -15,10 +15,20 @@ function memoryStore() {
 }
 
 describe("stars", () => {
-  it("gives 3 stars only for flawless free writing", () => {
-    expect(starsForFreeWriting(0)).toBe(3);
-    expect(starsForFreeWriting(1)).toBe(2);
-    expect(starsForFreeWriting(4)).toBe(1);
+  it("gives 3 stars only for flawless free writing within the target time", () => {
+    expect(starsForFreeWriting(0, 9000, 12000)).toBe(3);
+    expect(starsForFreeWriting(0, 12000, 12000)).toBe(3);
+    expect(starsForFreeWriting(0, 12001, 12000)).toBe(2);
+    expect(starsForFreeWriting(1, 5000, 12000)).toBe(2);
+    expect(starsForFreeWriting(4, 5000, 12000)).toBe(1);
+  });
+  it("doesn't hold an untimed attempt against her", () => {
+    expect(starsForFreeWriting(0, null, 12000)).toBe(3);
+  });
+  it("allows 1.5 seconds per stroke, rounded up to whole seconds", () => {
+    expect(targetMsFor(8)).toBe(12000);
+    expect(targetMsFor(7)).toBe(11000);
+    expect(targetMsFor(11)).toBe(17000);
   });
   it("keeps the best stars ever earned", () => {
     const p = emptyProgress();

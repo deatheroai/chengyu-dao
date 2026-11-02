@@ -396,6 +396,10 @@ body {
   color: var(--accent);
 }
 
+.timer.over {
+  color: var(--muted);
+}
+
 .best-time,
 .summary-best {
   margin: 0;
