@@ -4,10 +4,19 @@ import { segmentStory, blankSentence } from "./storyText";
 import { gradeAttempt, summarize, shuffled, type TestResult } from "./memoryTest";
 import { storyStrokeData } from "./storyStrokeData";
 import { keepClipRefsRelative } from "./clipRefs";
+import {
+  loadProgress, saveProgress, clearProgress, deviceStore, emptyProgress,
+  recordStars, recordTime, recordTest, starsForTrace, starsForFreeWriting, formatSeconds,
+  formatTarget, targetMsFor,
+  type Stars,
+} from "./progress";
 
 type Step = "read" | "practise" | "test";
 
 const story = getStory();
+const store = deviceStore();
+let progress = loadProgress(story.id, store);
+const persist = () => saveProgress(story.id, progress, store);
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // ---------- shared writer setup ----------
@@ -55,6 +64,18 @@ function createWriter(el: HTMLElement, char: string, showOutline: boolean) {
       else onError(new Error(`No stroke data bundled for "${c}" — run npm run gen:story-strokes`));
     },
   });
+}
+
+/** ★★☆ — filled stars earned out of three, so the next one is visible as a goal. */
+function renderStars(el: Element, n: Stars): void {
+  el.replaceChildren();
+  for (let i = 1; i <= 3; i++) {
+    const star = document.createElement("span");
+    star.className = i <= n ? "star on" : "star";
+    star.textContent = i <= n ? "★" : "☆";
+    el.append(star);
+  }
+  el.setAttribute("aria-label", `${n} / 3 星`);
 }
 
 function miniBox(target: TargetCharacter, badge = ""): HTMLButtonElement {
@@ -155,7 +176,13 @@ const practise = (() => {
   let index = 0;
   let writer: ReturnType<typeof HanziWriter.create> | null = null;
   let run = 0; // bumps on every action, so stale callbacks are ignored
-  const stars = new Map<string, number>(); // 1 = traced, 2 = written alone
+  // Free-writing timer: starts at her first touch on the pad, stops when
+  // the character is complete.
+  let timing = false;
+  let startedAt: number | null = null;
+  let tick = 0;
+  const timerEl = $("practise-timer");
+  const bestEl = $("practise-best");
   const row = $("practise-char-row");
   const feedback = $("practise-feedback");
   const boxes = story.targets.map((t, i) => {
@@ -169,16 +196,47 @@ const practise = (() => {
   function refreshBoxes(): void {
     boxes.forEach((box, i) => {
       box.setAttribute("aria-selected", String(i === index));
-      const n = stars.get(story.targets[i].char) ?? 0;
-      box.querySelector(".mini-badge")!.textContent = "★".repeat(n);
+      renderStars(box.querySelector(".mini-badge")!, progress.stars[story.targets[i].char] ?? 0);
     });
+    const best = progress.bestMs[story.targets[index].char];
+    bestEl.textContent = best ? `⏱ 最快 ${formatSeconds(best)}` : "";
   }
 
-  function award(n: number): void {
-    const c = story.targets[index].char;
-    stars.set(c, Math.max(stars.get(c) ?? 0, n));
+  function award(n: Stars): void {
+    if (recordStars(progress, story.targets[index].char, n)) persist();
     refreshBoxes();
   }
+
+  function currentTargetMs(): number {
+    return targetMsFor(storyStrokeData[story.targets[index].char].strokes.length);
+  }
+
+  /** "⏱ 6.2 秒 / 12 秒", turning muted once she's past the target. */
+  function showTime(ms: number): void {
+    const target = currentTargetMs();
+    timerEl.textContent = `⏱ ${formatSeconds(ms)} / ${formatTarget(target)}`;
+    timerEl.classList.toggle("over", ms > target);
+  }
+
+  function stopTimer(): number | null {
+    timing = false;
+    window.clearInterval(tick);
+    const ms = startedAt === null ? null : performance.now() - startedAt;
+    startedAt = null;
+    return ms;
+  }
+
+  $("practise-pad").addEventListener(
+    "pointerdown",
+    () => {
+      if (!timing || startedAt !== null) return;
+      startedAt = performance.now();
+      tick = window.setInterval(() => {
+        if (startedAt !== null) showTime(performance.now() - startedAt);
+      }, 100);
+    },
+    { capture: true },
+  );
 
   let entered = false;
 
@@ -190,6 +248,8 @@ const practise = (() => {
     refreshBoxes();
     if (!entered) return; // enter() will draw it
     run++;
+    stopTimer();
+    timerEl.hidden = true;
     writer?.cancelQuiz();
     writer = createWriter($("practise-pad"), t.char, true);
     animate();
@@ -198,6 +258,8 @@ const practise = (() => {
   function animate(): void {
     if (!writer) return;
     const my = ++run;
+    stopTimer();
+    timerEl.hidden = true;
     writer.cancelQuiz();
     writer.showOutline();
     feedback.textContent = "看清楚笔顺哦。";
@@ -215,7 +277,13 @@ const practise = (() => {
     writer.cancelQuiz();
     if (withOutline) writer.showOutline();
     else writer.hideOutline();
-    feedback.textContent = withOutline ? "沿着灰色的字描。" : "不看提示，自己写一写。";
+    stopTimer();
+    timing = !withOutline;
+    timerEl.hidden = withOutline;
+    showTime(0);
+    feedback.textContent = withOutline
+      ? "沿着灰色的字描。"
+      : `不看提示，自己写一写。${formatTarget(currentTargetMs())}内一笔不错，就能拿 3 颗星！`;
     void writer.quiz({
       showHintAfterMisses: withOutline ? 2 : 3,
       onMistake: () => {
@@ -227,17 +295,28 @@ const practise = (() => {
       onComplete: ({ totalMistakes }) => {
         if (my !== run) return;
         if (withOutline) {
-          award(1);
+          award(starsForTrace());
           feedback.textContent = totalMistakes === 0 ? "描得真好！试试自己写？" : "描完了！再描一次，或试试自己写。";
+          return;
+        }
+        writer!.showOutline();
+        const ms = stopTimer();
+        const target = currentTargetMs();
+        const earned = starsForFreeWriting(totalMistakes, ms, target);
+        const char = story.targets[index].char;
+        // Any flawless attempt counts towards her fastest time.
+        const newBest = totalMistakes === 0 && ms !== null && recordTime(progress, char, ms);
+        if (newBest) persist();
+        award(earned);
+        if (ms !== null) showTime(ms);
+        if (earned === 3) {
+          feedback.textContent = newBest ? "完美！又快又对，还是新纪录！🎉" : "完美！又快又对！⭐⭐⭐";
+        } else if (totalMistakes === 0) {
+          feedback.textContent = `一笔都没错！再快一点，${formatTarget(target)}内写完就能拿 3 颗星。`;
+        } else if (earned === 2) {
+          feedback.textContent = `太棒了！只错了 1 笔。${formatTarget(target)}内一笔不错就能拿 3 颗星！`;
         } else {
-          writer!.showOutline();
-          if (totalMistakes <= 1) {
-            award(2);
-            feedback.textContent = "太棒了！你记住这个字了。";
-          } else {
-            award(1);
-            feedback.textContent = `写完了，错了 ${totalMistakes} 笔。再写一次吧！`;
-          }
+          feedback.textContent = `写完了，错了 ${totalMistakes} 笔。再写一次吧！`;
         }
       },
     });
@@ -254,8 +333,10 @@ const practise = (() => {
     },
     leave(): void {
       run++;
+      stopTimer();
       writer?.cancelQuiz();
     },
+    refresh: refreshBoxes,
     focusOn(chars: string[]): void {
       const i = story.targets.findIndex((t) => chars.includes(t.char));
       if (i >= 0) index = i;
@@ -366,10 +447,17 @@ const test = (() => {
   function showSummary(): void {
     finished = true;
     const s = summarize(results);
+    const previousBest = progress.bestTestScore;
+    recordTest(progress, results);
+    persist();
     $("test-run").hidden = true;
     $("test-summary").hidden = false;
     $("summary-title").textContent =
       s.correct === s.total ? `全对！${s.correct} / ${s.total} 🎉` : `写对了 ${s.correct} / ${s.total} 个字`;
+    $("summary-best").textContent =
+      s.correct > previousBest && previousBest > 0
+        ? `新纪录！以前最好是 ${previousBest} 个。`
+        : `最好成绩：${progress.bestTestScore} / ${s.total}`;
     const row = $("summary-row");
     row.replaceChildren();
     const mark: Record<TestResult, string> = { correct: "✓", shaky: "△", revealed: "✗" };
@@ -401,6 +489,13 @@ const test = (() => {
     },
   };
 })();
+
+$("btn-reset").addEventListener("click", () => {
+  if (!window.confirm("要清除这个故事的星星、最快时间和默写成绩吗？")) return;
+  clearProgress(story.id, store);
+  progress = emptyProgress();
+  practise.refresh();
+});
 
 renderStory();
 goTo("read");

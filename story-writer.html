@@ -34,6 +34,7 @@
           <div class="char-row" id="read-char-row"></div>
         </div>
         <button class="btn btn-primary btn-next" type="button" data-goto="practise">下一步：练字 →</button>
+        <button class="link-btn" type="button" id="btn-reset">清除练习记录</button>
       </section>
 
       <!-- Step 2: practise each character -->
@@ -45,7 +46,9 @@
             <span class="pad-word" id="practise-word"></span>
           </div>
           <div class="tianzige" id="practise-pad"></div>
+          <p class="timer" id="practise-timer" hidden></p>
           <p class="feedback" id="practise-feedback" aria-live="polite"></p>
+          <p class="best-time" id="practise-best"></p>
           <div class="pad-actions">
             <button class="btn" type="button" id="btn-animate">👀 看笔顺</button>
             <button class="btn" type="button" id="btn-trace">✏️ 描一描</button>
@@ -72,6 +75,7 @@
         </div>
         <div id="test-summary" class="summary-card" hidden>
           <h2 id="summary-title"></h2>
+          <p class="summary-best" id="summary-best"></p>
           <div class="char-row" id="summary-row"></div>
           <p class="summary-legend">✓ 写对了 · △ 有点难 · ✗ 看了答案</p>
           <div class="pad-actions">
