@@ -46,9 +46,25 @@ export const stories: Story[] = [
       { char: "极", pinyin: "jí", word: "极了", meaning: "extremely" },
     ],
   },
+  {
+    id: "growing-sunflower",
+    title: "种向日葵",
+    text:
+      "春天到了，老师给每个同学发了一颗向日葵的种子。我把种子埋进花盆里，每天都给它浇水。" +
+      "过了一个星期，泥土里冒出了一棵小芽。我仔细观察它，还把它的变化记录在本子上。" +
+      "到了夏天，向日葵长得比我还高，金黄色的花朵朝着太阳微笑。",
+    targets: [
+      { char: "埋", pinyin: "mái", word: "埋进", meaning: "to bury in" },
+      { char: "浇", pinyin: "jiāo", word: "浇水", meaning: "to water" },
+      { char: "冒", pinyin: "mào", word: "冒出", meaning: "to pop up, sprout" },
+      { char: "察", pinyin: "chá", word: "观察", meaning: "to observe" },
+      { char: "录", pinyin: "lù", word: "记录", meaning: "to record" },
+      { char: "朝", pinyin: "cháo", word: "朝着", meaning: "facing, towards" },
+    ],
+  },
 ];
 
-export const currentStoryId = "rainy-day-umbrella";
+export const currentStoryId = "growing-sunflower";
 
 export function getStory(id: string = currentStoryId): Story {
   const story = stories.find((s) => s.id === id);
