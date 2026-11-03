@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { getStory } from "../src/reading/stories";
 import { storyStrokeData } from "../src/reading/storyStrokeData";
+import { targetMsFor } from "../src/reading/progress";
 
 const story = getStory();
 
@@ -110,12 +111,16 @@ test("switching characters draws each one in a fresh pad", async ({ page }) => {
 test("a flawless but too-slow attempt earns two stars and still sets a fastest time", async ({ page }) => {
   test.setTimeout(60000);
   await page.goto("/story-writer.html");
-  // 附 has 7 strokes, so its three-star target is 11 seconds.
-  const t = story.targets.find((x) => x.char === "附")!;
+  // The current story's target with the fewest strokes, so the wait
+  // past its three-star target time stays short.
+  const t = [...story.targets].sort(
+    (a, b) => storyStrokeData[a.char].strokes.length - storyStrokeData[b.char].strokes.length,
+  )[0];
+  const targetSec = targetMsFor(storyStrokeData[t.char].strokes.length) / 1000;
   await page.click(`#read-char-row .mini-box[data-char="${t.char}"]`);
   await page.click("#btn-free");
-  await expect(page.locator("#practise-timer")).toContainText("/ 11 秒");
-  await writePerfectly(page, "#practise-pad", 11500);
+  await expect(page.locator("#practise-timer")).toContainText(`/ ${targetSec} 秒`);
+  await writePerfectly(page, "#practise-pad", targetSec * 1000 + 500);
   await expect(page.locator("#practise-feedback")).toContainText("再快一点");
   await expect(page.locator(`#practise-char-row .mini-box[data-char="${t.char}"] .mini-badge`)).toHaveText("★★☆");
   await expect(page.locator("#practise-best")).toContainText("最快");
