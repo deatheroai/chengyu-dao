@@ -120,6 +120,13 @@ document.querySelectorAll<HTMLElement>("[data-goto]").forEach((b) =>
 
 function renderStory(): void {
   $("story-title").textContent = story.title;
+  if (story.photo) {
+    const img = $<HTMLImageElement>("story-photo-img");
+    img.src = story.photo.src;
+    img.alt = story.photo.alt;
+    $("story-photo-credit").textContent = story.photo.credit;
+    $("story-photo").hidden = false;
+  }
   const textEl = $("story-text");
   textEl.replaceChildren();
   for (const seg of segmentStory(story)) {

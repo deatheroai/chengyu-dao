@@ -107,6 +107,29 @@ body {
   font-size: 1.6rem;
 }
 
+.story-photo {
+  margin: 0 0 14px;
+}
+
+.story-photo[hidden] {
+  display: none;
+}
+
+.story-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.story-photo figcaption {
+  margin-top: 4px;
+  text-align: right;
+  font-size: 0.7rem;
+  color: #9a8b78;
+}
+
 .story-text {
   margin: 0;
   font-family: var(--kai);

@@ -27,6 +27,18 @@ export interface Story {
   /** The paragraph, as plain text with Chinese punctuation. */
   text: string;
   targets: TargetCharacter[];
+  /** Optional photo shown under the title. */
+  photo?: StoryPhoto;
+}
+
+export interface StoryPhoto {
+  /** Path under public/, e.g. "stories/x.jpg" (no leading slash, so it
+   * works on preview URLs too). */
+  src: string;
+  /** Describes the photo, for screen readers. */
+  alt: string;
+  /** Who took it and its licence, shown in small print. */
+  credit: string;
 }
 
 export const stories: Story[] = [
@@ -77,6 +89,11 @@ export const stories: Story[] = [
       { char: "排", pinyin: "pái", word: "一排", meaning: "a row of" },
       { char: "暖", pinyin: "nuǎn", word: "温暖", meaning: "warm" },
     ],
+    photo: {
+      src: "stories/deepavali-rangoli.jpg",
+      alt: "地上用彩色米粉画成的花朵图案，四周点着小油灯",
+      credit: "照片：RashmiGhorpade，Wikimedia Commons（CC0）",
+    },
   },
 ];
 
