@@ -27,6 +27,18 @@ export interface Story {
   /** The paragraph, as plain text with Chinese punctuation. */
   text: string;
   targets: TargetCharacter[];
+  /** Optional photo shown under the title. */
+  photo?: StoryPhoto;
+}
+
+export interface StoryPhoto {
+  /** Path under public/, e.g. "stories/x.jpg" (no leading slash, so it
+   * works on preview URLs too). */
+  src: string;
+  /** Describes the photo, for screen readers. */
+  alt: string;
+  /** Who took it and its licence, shown in small print. */
+  credit: string;
 }
 
 export const stories: Story[] = [
@@ -62,9 +74,30 @@ export const stories: Story[] = [
       { char: "朝", pinyin: "cháo", word: "朝着", meaning: "facing, towards" },
     ],
   },
+  {
+    id: "deepavali-lights",
+    title: "屠妖节",
+    text:
+      "屠妖节那天，我的印度朋友莉娜邀请我到她家做客。一进门，我就看见地上有一幅美丽的图案，原来是用彩色的米粉画成的。" +
+      "莉娜的妈妈端出一盘香甜的点心，请我们品尝。天黑了，她们在门口点亮了一排小油灯，整条街都闪闪发光。" +
+      "我觉得这个节日真温暖！",
+    targets: [
+      { char: "邀", pinyin: "yāo", word: "邀请", meaning: "to invite" },
+      { char: "案", pinyin: "àn", word: "图案", meaning: "pattern, design" },
+      { char: "端", pinyin: "duān", word: "端出", meaning: "to carry out (a dish)" },
+      { char: "尝", pinyin: "cháng", word: "品尝", meaning: "to taste" },
+      { char: "排", pinyin: "pái", word: "一排", meaning: "a row of" },
+      { char: "暖", pinyin: "nuǎn", word: "温暖", meaning: "warm" },
+    ],
+    photo: {
+      src: "stories/deepavali-rangoli.jpg",
+      alt: "地上用彩色米粉画成的花朵图案，四周点着小油灯",
+      credit: "照片：RashmiGhorpade，Wikimedia Commons（CC0）",
+    },
+  },
 ];
 
-export const currentStoryId = "growing-sunflower";
+export const currentStoryId = "deepavali-lights";
 
 export function getStory(id: string = currentStoryId): Story {
   const story = stories.find((s) => s.id === id);

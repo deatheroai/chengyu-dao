@@ -39,6 +39,20 @@ test("reading view highlights every target word", async ({ page }) => {
   await expect(page.locator("#read-char-row .mini-box")).toHaveCount(story.targets.length);
 });
 
+test("the story's photo, if it has one, loads under the title", async ({ page }) => {
+  await page.goto("/story-writer.html");
+  const fig = page.locator("#story-photo");
+  if (!story.photo) {
+    await expect(fig).toBeHidden();
+    return;
+  }
+  await expect(fig).toBeVisible();
+  await expect(page.locator("#story-photo-credit")).toHaveText(story.photo.credit);
+  await expect
+    .poll(() => page.locator("#story-photo-img").evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+    .toBeGreaterThan(0);
+});
+
 test("tapping a new character opens it in practice; flawless writing earns three stars and a saved best time", async ({ page }) => {
   await page.goto("/story-writer.html");
   const t = story.targets[2];
