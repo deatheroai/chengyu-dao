@@ -26,6 +26,7 @@
   "dependencies": {
     "@upstash/redis": "^1.38.3",
     "hanzi-writer": "^3.7.3",
-    "phaser": "^4.2.1"
+    "phaser": "^4.2.1",
+    "pinyin-pro": "^3.28.0"
   }
 }
