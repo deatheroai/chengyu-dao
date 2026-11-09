@@ -419,6 +419,9 @@ function finishStory(): void {
 let openStory: SavedStory | undefined;
 function openSaved(story: SavedStory): void {
   openStory = story;
+  const del = $("btn-delete-saved");
+  delete del.dataset.armed;
+  del.textContent = "删除";
   $("read-title").replaceChildren(ruby(`${getAdventure(story.adventureId)?.emoji ?? "📖"} ${story.title}`));
   $("read-flow").replaceChildren(...story.lines.map((l) => lineItem(l)));
   show("read");
@@ -463,8 +466,15 @@ function init(): void {
     renderHome();
   });
   $("btn-read-saved").addEventListener("click", () => openStory && speak(storyText(openStory.lines)));
-  $("btn-delete-saved").addEventListener("click", () => {
-    if (!openStory || !confirm("真的要删除这个故事吗？")) return;
+  // Two taps to delete (no confirm() dialog: some embedded viewers block it).
+  const delBtn = $("btn-delete-saved");
+  delBtn.addEventListener("click", () => {
+    if (!openStory) return;
+    if (delBtn.dataset.armed !== "1") {
+      delBtn.dataset.armed = "1";
+      delBtn.textContent = "再点一次，确认删除";
+      return;
+    }
     deleteStory(openStory.id);
     openStory = undefined;
     renderHome();

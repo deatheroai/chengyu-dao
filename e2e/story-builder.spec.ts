@@ -54,7 +54,9 @@ test("write a whole story with the partner, expanding each sentence", async ({ p
   await expect(page.locator(".library-item")).toHaveCount(1);
   await page.locator(".library-item").click();
   await expect(page.locator("#read-flow .line-child")).toHaveCount(adventure.beats.length);
-  page.once("dialog", (d) => d.accept());
+  await page.click("#btn-delete-saved");
+  await expect(page.locator("#btn-delete-saved")).toContainText("确认");
+  await expect(page.locator("#view-read")).toBeVisible();
   await page.click("#btn-delete-saved");
   await expect(page.locator("#library")).toBeHidden();
 });
