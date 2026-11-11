@@ -39,6 +39,17 @@ test("reading view highlights every target word", async ({ page }) => {
   await expect(page.locator("#read-char-row .mini-box")).toHaveCount(story.targets.length);
 });
 
+test("each highlighted word stays on one line on a phone-width screen", async ({ page }) => {
+  for (const width of [320, 360, 390, 414]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/story-writer.html");
+    const lineCounts = await page
+      .locator(".target-word")
+      .evaluateAll((els) => els.map((el) => new Set([...el.getClientRects()].map((r) => Math.round(r.top))).size));
+    expect(lineCounts, `at ${width}px wide`).toEqual(story.targets.map(() => 1));
+  }
+});
+
 test("the story's photo, if it has one, loads under the title", async ({ page }) => {
   await page.goto("/story-writer.html");
   const fig = page.locator("#story-photo");

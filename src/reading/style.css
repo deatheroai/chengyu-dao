@@ -140,6 +140,8 @@ body {
 }
 
 .target-word {
+  /* Keep each highlighted word on one line, so e.g. 新鲜 never splits. */
+  white-space: nowrap;
   background: var(--accent-soft);
   border-radius: 6px;
   padding: 0 2px;
