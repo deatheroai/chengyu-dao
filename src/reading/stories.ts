@@ -95,9 +95,25 @@ export const stories: Story[] = [
       credit: "照片：RashmiGhorpade，Wikimedia Commons（CC0）",
     },
   },
+  {
+    id: "year-end-holiday",
+    title: "年终假期",
+    text:
+      "考完试，盼望已久的年终假期终于到了！爸爸妈妈带我和弟弟去金马伦高原旅行。" +
+      "那里的空气很新鲜，山坡上种满了绿油油的茶树。我们还到草莓园去，摘下又大又红的草莓，装满了一个篮子。" +
+      "晚上，我把旅途中的趣事都写进了日记里。这真是一个难忘的假期！",
+    targets: [
+      { char: "盼", pinyin: "pàn", word: "盼望", meaning: "to look forward to" },
+      { char: "鲜", pinyin: "xiān", word: "新鲜", meaning: "fresh" },
+      { char: "摘", pinyin: "zhāi", word: "摘下", meaning: "to pick (fruit)" },
+      { char: "篮", pinyin: "lán", word: "篮子", meaning: "basket" },
+      { char: "趣", pinyin: "qù", word: "趣事", meaning: "funny or interesting happenings" },
+      { char: "忘", pinyin: "wàng", word: "难忘", meaning: "unforgettable" },
+    ],
+  },
 ];
 
-export const currentStoryId = "deepavali-lights";
+export const currentStoryId = "year-end-holiday";
 
 export function getStory(id: string = currentStoryId): Story {
   const story = stories.find((s) => s.id === id);
