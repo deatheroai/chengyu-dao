@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#eef6ff" />
+    <meta name="description" content="一起编故事：write a story together with 团团 the panda, then use the five senses to make each sentence richer." />
+    <title>一起编故事</title>
+    <link rel="stylesheet" href="/src/story-builder/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <button class="icon-btn" id="btn-home" type="button" aria-label="回到首页" style="visibility: hidden">←</button>
+        <h1>🐼 一起编故事</h1>
+        <button class="pill-toggle" id="btn-pinyin" type="button" aria-pressed="true">拼音</button>
+      </header>
+
+      <!-- Home: choose an adventure, or open a saved story -->
+      <section id="view-home" class="view">
+        <p class="intro">我是团团！我写一句，你写一句，我们一起编一个故事吧。<br />写好以后，用<b>五感放大镜</b>把句子变得更生动！</p>
+        <div class="adventure-grid" id="adventure-grid"></div>
+        <div class="library" id="library" hidden>
+          <h2>📚 我的故事书</h2>
+          <ul class="library-list" id="library-list"></ul>
+        </div>
+      </section>
+
+      <!-- Play: the story so far, plus the current turn -->
+      <section id="view-play" class="view" hidden>
+        <h2 class="play-title" id="play-title"></h2>
+        <ol class="story-flow" id="story-flow" aria-live="polite"></ol>
+
+        <!-- Turn, phase 1: write a sentence -->
+        <div class="turn-card" id="turn-write" hidden>
+          <p class="turn-label">✏️ 轮到你了 <span class="turn-count" id="turn-count"></span></p>
+          <p class="turn-prompt" id="write-prompt"></p>
+          <div class="chip-row" id="starter-row" aria-label="句子开头"></div>
+          <div class="input-wrap">
+            <textarea id="write-input" rows="2" placeholder="写一句话……" lang="zh-Hans" autocomplete="off"></textarea>
+            <button class="icon-btn mic" id="btn-mic-write" type="button" aria-label="说一说" hidden>🎤</button>
+          </div>
+          <p class="hint" id="write-hint" aria-live="polite"></p>
+          <button class="btn btn-primary" id="btn-write-done" type="button">写好了 →</button>
+        </div>
+
+        <!-- Turn, phase 2: the five-senses magnifying glass -->
+        <div class="turn-card expand-card" id="turn-expand" hidden>
+          <p class="turn-label">🔍 五感放大镜：让句子更生动！</p>
+          <p class="plain-line">你写的：<span id="expand-plain"></span></p>
+          <details class="example">
+            <summary>看看团团的例子</summary>
+            <p><span class="ex-plain" id="example-plain"></span> → <span class="ex-rich" id="example-rich"></span></p>
+          </details>
+          <div class="input-wrap">
+            <textarea id="expand-input" rows="3" lang="zh-Hans" autocomplete="off"></textarea>
+            <button class="icon-btn mic" id="btn-mic-expand" type="button" aria-label="说一说" hidden>🎤</button>
+          </div>
+          <div class="meter">
+            <span class="badges" id="sense-badges"></span>
+            <span class="growth" id="growth"></span>
+          </div>
+          <div class="sense-tabs" id="sense-tabs" role="tablist" aria-label="五感"></div>
+          <p class="sense-question" id="sense-question"></p>
+          <div class="chip-row word-chips" id="word-row"></div>
+          <p class="hint" id="expand-hint" aria-live="polite"></p>
+          <div class="actions">
+            <button class="btn" id="btn-expand-back" type="button">← 改一改</button>
+            <button class="btn btn-primary" id="btn-expand-done" type="button">放进故事里 ✓</button>
+          </div>
+        </div>
+
+        <!-- The end -->
+        <div class="turn-card end-card" id="turn-end" hidden>
+          <p class="end-title">🎉 故事写完了！</p>
+          <p class="end-stars" id="end-stars"></p>
+          <p class="end-senses" id="end-senses"></p>
+          <div class="actions">
+            <button class="btn" id="btn-read-all" type="button">🔊 读整个故事</button>
+            <button class="btn btn-primary" id="btn-again" type="button">再编一个</button>
+          </div>
+          <p class="hint">故事已经放进“我的故事书”里了。</p>
+        </div>
+      </section>
+
+      <!-- Read a saved story -->
+      <section id="view-read" class="view" hidden>
+        <h2 class="play-title" id="read-title"></h2>
+        <ol class="story-flow" id="read-flow"></ol>
+        <div class="actions">
+          <button class="btn" id="btn-read-saved" type="button">🔊 读整个故事</button>
+          <button class="btn btn-danger" id="btn-delete-saved" type="button">删除</button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/story-builder/main.ts"></script>
+  </body>
+</html>
