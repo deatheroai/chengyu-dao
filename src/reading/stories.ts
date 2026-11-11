@@ -110,6 +110,11 @@ export const stories: Story[] = [
       { char: "趣", pinyin: "qù", word: "趣事", meaning: "funny or interesting happenings" },
       { char: "忘", pinyin: "wàng", word: "难忘", meaning: "unforgettable" },
     ],
+    photo: {
+      src: "stories/strawberry-farm.jpg",
+      alt: "一家人在高原上的草莓园里摘草莓，孩子们提着小篮子，远处是一层层绿色的茶园",
+      credit: "图片来源：yatix.com",
+    },
   },
 ];
 
