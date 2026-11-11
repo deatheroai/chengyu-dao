@@ -55,6 +55,28 @@ timed, and each flawless attempt can set a fastest time. Stars, fastest times an
 the browser's `localStorage` on that device only (`src/reading/progress.ts`),
 and the "清除练习记录" link on the reading step clears them.
 
+## Story builder (`story-builder.html`)
+
+一起编故事: collaborative story writing for Mandarin practice. The child
+picks an adventure. 团团 the panda writes a line (with pinyin and read
+aloud) and asks a question, and the child writes the next sentence. They
+can type it, tap a sentence starter, or say it with 🎤 where the browser
+supports speech input. Before the sentence goes into the story, the
+**五感放大镜** step helps make it richer. Tabs for 👀看到 / 👂听到 /
+👃闻到 / ✋摸到 / 💭心情 / 🪄好句子 each ask a question and offer
+scene-specific word chips (sounds like 哗啦啦, patterns like 像……一样)
+to insert. A meter lights up each sense used and shows how much the
+sentence grew. Each turn earns ★ for a sentence, ★★ for one sense and ★★★
+for two or more. Finished stories go into 我的故事书 (`localStorage`,
+this device only).
+
+Content lives in `src/story-builder/adventures.ts` (each beat: partner
+line, question, starters, scene words, a plain → rich example) and
+`senses.ts` (general word banks). Pinyin comes from `pinyin-pro`, with
+context fixes for the particles 地/得 in `pinyin.ts`.
+`adventures.test.ts` checks every beat, including that each "rich"
+example really uses a sense.
+
 ## Project structure
 
 `index.html` (the site root) is a static redirect to `idiom-door.html`, the
@@ -68,6 +90,8 @@ api/              # Vercel serverless functions (cloud-save.ts)
 
 src/
   idioms/      # idiom content data + types
+  reading/     # story-writer.html: read, practise and 默写 characters
+  story-builder/ # story-builder.html: collaborative story writing
   idiom-door/  # match/door/balloon scenes, level content, session flow
   shared/      # shared helpers: ruby text (pinyin), player-position DOM
                # hook, application-check distractor builder, session
