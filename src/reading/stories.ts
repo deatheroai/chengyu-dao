@@ -116,9 +116,25 @@ export const stories: Story[] = [
       credit: "图片来源：yatix.com",
     },
   },
+  {
+    id: "goodbye-year-four",
+    title: "再见，四年级",
+    text:
+      "今天是这个学年的最后一天。我在收拾书包时，发现了一本小相册，里面贴满了这一年的照片。" +
+      "这是运动会上的接力赛跑，同学们在旁边大声为我加油；这是华文老师在课室里讲故事，她常常鼓励我们多看书。" +
+      "放学前，我和好朋友交换了小礼物，还约定明年要一起努力。再见了，四年级！",
+    targets: [
+      { char: "拾", pinyin: "shí", word: "收拾", meaning: "to tidy up, pack" },
+      { char: "册", pinyin: "cè", word: "相册", meaning: "photo album" },
+      { char: "赛", pinyin: "sài", word: "赛跑", meaning: "race (running)" },
+      { char: "鼓", pinyin: "gǔ", word: "鼓励", meaning: "to encourage" },
+      { char: "换", pinyin: "huàn", word: "交换", meaning: "to exchange" },
+      { char: "约", pinyin: "yuē", word: "约定", meaning: "to agree on, promise" },
+    ],
+  },
 ];
 
-export const currentStoryId = "year-end-holiday";
+export const currentStoryId = "goodbye-year-four";
 
 export function getStory(id: string = currentStoryId): Story {
   const story = stories.find((s) => s.id === id);
