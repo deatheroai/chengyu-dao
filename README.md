@@ -77,6 +77,12 @@ Without a key, or if a call fails, the page uses the pre-written stories
 in `src/story-builder/adventures.ts` and the child confirms missions
 themselves. The page/server contract is `src/story-builder/partnerApi.ts`.
 
+To check whether a deployment has the key, open `/api/story-partner` on it:
+`{"enabled":true}` means the AI partner is on. Vercel only passes
+environment variables to deployments built after they were saved, so
+redeploy after adding or changing the key (tick both Production and
+Preview so branch previews get it too).
+
 ## Project structure
 
 `index.html` (the site root) is a static redirect to `idiom-door.html`, the
