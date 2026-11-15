@@ -9,7 +9,7 @@ const story = (id: string, savedAt = 1): SavedStory => ({
   savedAt,
   lines: [
     { by: "partner", text: "星期六，小明来到了海边。" },
-    { by: "child", text: "蓝蓝的大海哗哗地响。", plain: "大海很大。", senses: ["see", "hear"] },
+    { by: "child", text: "蓝蓝的大海哗哗地响。", plain: "大海很大。", mission: "hear", missionDone: true },
   ],
 });
 

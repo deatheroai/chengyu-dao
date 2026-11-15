@@ -1,17 +1,13 @@
 import { renderRubyText } from "../shared/rubyText";
-import { ADVENTURES, getAdventure, type Adventure, type Beat } from "./adventures";
-import {
-  countHanzi,
-  finishSentence,
-  insertWord,
-  isUsableSentence,
-  sensesUsed,
-  turnStars,
-  wordsFor,
-} from "./expansion";
+import { ADVENTURES, getAdventure, type Adventure } from "./adventures";
+import { finishSentence, isUsableSentence, sensesUsed } from "./expansion";
+import { TURNS, charsToPractise, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
 import { deleteStory, loadLibrary, saveStory, storyText, type SavedStory, type StoryLine } from "./library";
+import type { NextBeat, TurnResponse } from "./partnerApi";
+import { partnerEnabled, requestStart, requestTurn } from "./partnerClient";
 import { charPinyin } from "./pinyin";
-import { SENSES, getSense, type SenseId } from "./senses";
+import { createPractice } from "./practice";
+import { SENSES, SENSE_IDS, getSense, type SenseId } from "./senses";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -36,7 +32,7 @@ function applyPinyin(): void {
   $("btn-pinyin").setAttribute("aria-pressed", String(showPinyin));
 }
 
-/** Authored text with pinyin over each character. */
+/** Text with pinyin over each character. */
 function ruby(text: string, cls = ""): HTMLElement {
   const span = document.createElement("span");
   if (cls) span.className = cls;
@@ -64,12 +60,7 @@ function speakButton(text: string): HTMLButtonElement {
   return b;
 }
 
-function stars(n: number): string {
-  return "★".repeat(n) + "☆".repeat(3 - n);
-}
-
-// Voice input (Chrome / Safari) so a child who can't type pinyin yet
-// can say the sentence instead. Hidden where it isn't supported.
+// Voice input (Chrome / Safari); hidden where unsupported.
 type Recognition = {
   lang: string;
   interimResults: boolean;
@@ -81,7 +72,7 @@ const RecognitionCtor: (new () => Recognition) | undefined =
   (window as unknown as Record<string, new () => Recognition>).SpeechRecognition ??
   (window as unknown as Record<string, new () => Recognition>).webkitSpeechRecognition;
 
-function wireMic(button: HTMLButtonElement, input: HTMLTextAreaElement, onChange: () => void): void {
+function wireMic(button: HTMLButtonElement, input: HTMLTextAreaElement): void {
   if (!RecognitionCtor) return;
   button.hidden = false;
   button.addEventListener("click", () => {
@@ -91,9 +82,8 @@ function wireMic(button: HTMLButtonElement, input: HTMLTextAreaElement, onChange
     button.classList.add("listening");
     rec.onresult = (e) => {
       const said = e.results[0]?.[0]?.transcript ?? "";
-      const r = insertWord(input.value, input.selectionStart, input.selectionEnd, said);
-      input.value = r.value;
-      onChange();
+      const at = input.selectionEnd ?? input.value.length;
+      input.value = input.value.slice(0, at) + said + input.value.slice(at);
     };
     rec.onend = () => button.classList.remove("listening");
     rec.start();
@@ -109,11 +99,12 @@ function show(view: View): void {
   window.scrollTo({ top: 0 });
 }
 
+let aiEnabled = false;
+
 // ---------- home ----------
 
 function renderHome(): void {
-  const grid = $("adventure-grid");
-  grid.replaceChildren(
+  $("adventure-grid").replaceChildren(
     ...ADVENTURES.map((a) => {
       const card = document.createElement("button");
       card.type = "button";
@@ -127,6 +118,8 @@ function renderHome(): void {
       return card;
     }),
   );
+  $("idea-card").hidden = !aiEnabled;
+  $("idea-hint").textContent = "";
 
   const library = loadLibrary();
   $("library").hidden = library.length === 0;
@@ -136,11 +129,10 @@ function renderHome(): void {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "library-item";
-      const emoji = getAdventure(s.adventureId)?.emoji ?? "📖";
-      const date = new Date(s.savedAt).toLocaleDateString("zh-CN", { month: "long", day: "numeric" });
+      const emoji = getAdventure(s.adventureId)?.emoji ?? "✏️";
       b.textContent = `${emoji} ${s.title}`;
       const small = document.createElement("small");
-      small.textContent = date;
+      small.textContent = new Date(s.savedAt).toLocaleDateString("zh-CN", { month: "long", day: "numeric" });
       b.append(small);
       b.addEventListener("click", () => openSaved(s));
       li.append(b);
@@ -152,32 +144,29 @@ function renderHome(): void {
 
 // ---------- play ----------
 
-const PRAISE: Record<SenseId, string> = {
-  see: "哇，我好像看到那个画面了！",
-  hear: "我好像听到声音了！",
-  smell: "嗯～我好像闻到了！",
-  touch: "我好像摸到了！",
-  feel: "我知道他的心情了！",
-  pattern: "这个句子写得真生动！",
-};
-
 interface Game {
-  adventure: Adventure;
-  beatIndex: number;
+  adventure?: Adventure;
+  title: string;
   lines: StoryLine[];
-  starTotal: number;
+  /** Child turns finished so far. */
+  done: number;
+  /** 团团's current beat: its question and hints. */
+  beat: NextBeat;
+  /** The child's sentence before this turn's mission. */
+  original: string;
+  mission?: SenseId;
+  /** The latest AI verdict this turn (used if the child skips). */
+  pending?: TurnResponse;
+  stars: number;
   storyId: string;
-  /** The child's sentence before expansion, for the current turn. */
-  plain: string;
-  sense: SenseId;
+  busy: boolean;
 }
 let game: Game | undefined;
+let wheelAngle = 0;
 
-function currentBeat(): Beat | undefined {
-  return game ? game.adventure.beats[game.beatIndex] : undefined;
-}
+const sentenceInput = () => $<HTMLTextAreaElement>("sentence");
 
-function lineItem(line: StoryLine, withSpeak = true): HTMLLIElement {
+function lineItem(line: StoryLine): HTMLLIElement {
   const li = document.createElement("li");
   li.className = `line line-${line.by}`;
   const who = document.createElement("span");
@@ -192,14 +181,21 @@ function lineItem(line: StoryLine, withSpeak = true): HTMLLIElement {
     text.className = "line-text";
     text.textContent = line.text;
     bubble.append(text);
-    if (line.senses) {
+    if (line.plain && line.plain !== line.text) {
+      const before = document.createElement("span");
+      before.className = "line-before";
+      before.textContent = `原来：${line.plain}`;
+      bubble.append(before);
+    }
+    if (line.mission) {
       const meta = document.createElement("span");
       meta.className = "line-meta";
-      meta.textContent = `${line.senses.map((s) => getSense(s).emoji).join("")} ${stars(turnStars(line.senses))}`;
+      const s = getSense(line.mission);
+      meta.textContent = line.missionDone ? `${s.emoji} ${s.mission} ⭐` : `${s.emoji} ${s.mission}`;
       bubble.append(meta);
     }
   }
-  if (withSpeak) bubble.append(speakButton(line.text));
+  bubble.append(speakButton(line.text));
   li.append(who, bubble);
   return li;
 }
@@ -217,199 +213,298 @@ function addLine(line: StoryLine, note?: string): void {
   $("story-flow").append(li);
 }
 
-function startAdventure(adventure: Adventure): void {
+function newGame(title: string, beat: NextBeat, adventure?: Adventure): void {
   game = {
     adventure,
-    beatIndex: 0,
+    title,
     lines: [],
-    starTotal: 0,
-    storyId: `${adventure.id}-${Date.now()}`,
-    plain: "",
-    sense: "see",
+    done: 0,
+    beat,
+    original: "",
+    stars: 0,
+    storyId: `${adventure?.id ?? "idea"}-${Date.now()}`,
+    busy: false,
   };
-  $("play-title").replaceChildren(ruby(`${adventure.emoji} ${adventure.title}`));
+  $("play-title").replaceChildren(adventure ? ruby(`${adventure.emoji} ${adventure.title}`) : ruby(`✏️ ${title}`));
   $("story-flow").replaceChildren();
   $("turn-end").hidden = true;
   show("play");
-  partnerTurn();
+  addLine({ by: "partner", text: beat.line });
+  speak(beat.line);
+  openTurn();
 }
 
-function partnerTurn(praise?: string): void {
-  const beat = currentBeat();
-  if (!game || !beat) return;
-  addLine({ by: "partner", text: beat.partner }, praise);
-  speak(beat.partner);
-  openWrite();
+function startAdventure(adventure: Adventure): void {
+  newGame(adventure.title, openingBeat(adventure), adventure);
 }
 
-function openWrite(): void {
-  const beat = currentBeat();
-  if (!game || !beat) return;
-  $("turn-expand").hidden = true;
-  $("turn-write").hidden = false;
-  $("turn-count").textContent = `${game.beatIndex + 1} / ${game.adventure.beats.length}`;
-  const prompt = $("write-prompt");
-  prompt.replaceChildren(ruby(beat.prompt), speakButton(beat.prompt));
-  const input = $<HTMLTextAreaElement>("write-input");
-  input.value = game.plain;
-  $("write-hint").textContent = "";
-  $("starter-row").replaceChildren(
-    ...beat.starters.map((s) => {
-      const chip = wordChip(s);
-      chip.addEventListener("click", () => {
-        if (!input.value.startsWith(s)) input.value = s + input.value;
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
-      });
-      return chip;
-    }),
-  );
-  $("turn-write").scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
-function wordChip(word: string): HTMLButtonElement {
-  const chip = document.createElement("button");
-  chip.type = "button";
-  chip.className = "chip";
-  chip.dataset.word = word;
-  chip.append(ruby(word));
-  return chip;
-}
-
-function finishWrite(): void {
-  if (!game) return;
-  const input = $<HTMLTextAreaElement>("write-input");
-  const text = input.value.trim();
-  if (!isUsableSentence(text)) {
-    $("write-hint").textContent = countHanzi(text) === 0 ? "先写一句话吧！可以点上面的词开头。" : "再多写几个字吧！";
+async function startIdea(idea: string): Promise<void> {
+  const hint = $("idea-hint");
+  if (!isUsableSentence(idea, 2)) {
+    hint.textContent = "先写一写你的想法吧！";
     return;
   }
-  game.plain = text;
-  openExpand();
+  hint.textContent = "🐼 团团在想故事的开头……";
+  $<HTMLButtonElement>("btn-idea").disabled = true;
+  const res = await requestStart(idea);
+  $<HTMLButtonElement>("btn-idea").disabled = false;
+  if (!res) {
+    hint.textContent = "团团现在想不出来，先选一个上面的故事吧！";
+    return;
+  }
+  $<HTMLInputElement>("idea-input").value = "";
+  newGame(idea, res.next);
 }
 
-function openExpand(): void {
-  const beat = currentBeat();
-  if (!game || !beat) return;
-  $("turn-write").hidden = true;
-  $("turn-expand").hidden = false;
-  $("expand-plain").textContent = game.plain;
-  $("example-plain").textContent = beat.example.plain;
-  $("example-rich").replaceChildren(ruby(beat.example.rich), speakButton(beat.example.rich));
-  const input = $<HTMLTextAreaElement>("expand-input");
-  input.value = game.plain;
-  $("expand-hint").textContent = "点一个词，放进你的句子里。也可以自己写！";
-  // Open on the first sense the scene has words for.
-  game.sense = (SENSES.find((s) => beat.words[s.id]?.length)?.id ?? "see") as SenseId;
-  renderSenseTabs();
-  updateMeter();
-  $("turn-expand").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function renderSenseTabs(): void {
-  const beat = currentBeat();
+/** Phase 1 of a turn: write a sentence. */
+function openTurn(): void {
   if (!game) return;
   const g = game;
-  const used = new Set(sensesUsed($<HTMLTextAreaElement>("expand-input").value, beat));
-  $("sense-tabs").replaceChildren(
-    ...SENSES.map((s) => {
-      const tab = document.createElement("button");
-      tab.type = "button";
-      tab.className = "sense-tab";
-      tab.dataset.sense = s.id;
-      tab.setAttribute("role", "tab");
-      tab.setAttribute("aria-selected", String(s.id === g.sense));
-      tab.classList.toggle("used", used.has(s.id));
-      tab.textContent = `${s.emoji} ${s.label}`;
-      tab.addEventListener("click", () => {
-        g.sense = s.id;
-        renderSenseTabs();
-      });
-      return tab;
-    }),
-  );
-  const sense = getSense(g.sense);
-  $("sense-question").replaceChildren(ruby(sense.question), speakButton(sense.question));
-  const input = $<HTMLTextAreaElement>("expand-input");
-  $("word-row").replaceChildren(
-    ...wordsFor(beat, g.sense).map((w) => {
-      const chip = wordChip(w);
-      chip.addEventListener("click", () => {
-        const r = insertWord(input.value, input.selectionStart, input.selectionEnd, w);
-        input.value = r.value;
-        input.focus();
-        input.setSelectionRange(r.selectionStart, r.selectionEnd);
-        speak(w);
-        updateMeter();
-      });
-      return chip;
-    }),
-  );
+  $("turn").hidden = false;
+  $("turn-count").textContent = `${g.done + 1} / ${TURNS}`;
+  $("turn-prompt").replaceChildren(ruby(g.beat.question), speakButton(g.beat.question));
+  const input = sentenceInput();
+  input.value = "";
+  input.readOnly = false;
+  $("turn-hint").textContent = "";
+  $("btn-written").hidden = false;
+  $("spin-area").hidden = true;
+  $("mission").hidden = true;
+  g.mission = undefined;
+  g.pending = undefined;
+  g.original = "";
+  $("turn").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function updateMeter(): void {
+/** Phase 2: the sentence is written; spin for a mission. */
+function finishWriting(): void {
   if (!game) return;
-  const beat = currentBeat();
-  const text = $<HTMLTextAreaElement>("expand-input").value;
-  const used = new Set(sensesUsed(text, beat));
-  $("sense-badges").replaceChildren(
-    ...SENSES.map((s) => {
-      const b = document.createElement("span");
-      b.className = "badge";
-      b.classList.toggle("on", used.has(s.id));
-      b.title = s.label;
-      b.textContent = s.emoji;
-      return b;
-    }),
-  );
-  const grew = countHanzi(text) - countHanzi(game.plain);
-  $("growth").textContent = grew > 0 ? `句子长了 ${grew} 个字！ ${stars(turnStars([...used]))}` : stars(turnStars([...used]));
-  for (const tab of document.querySelectorAll<HTMLElement>(".sense-tab")) {
-    tab.classList.toggle("used", used.has(tab.dataset.sense as SenseId));
-  }
-}
-
-function finishExpand(): void {
-  if (!game) return;
-  const beat = currentBeat();
-  const raw = $<HTMLTextAreaElement>("expand-input").value.trim();
-  if (!isUsableSentence(raw)) {
-    $("expand-hint").textContent = raw.includes("……") ? "把“……”换成你自己的词吧！" : "句子不见了，再写一写吧！";
+  const text = sentenceInput().value.trim();
+  if (!isUsableSentence(text)) {
+    $("turn-hint").textContent = text ? "再多写几个字吧！" : "先写一句话吧！";
     return;
   }
-  const text = finishSentence(raw);
-  const senses = sensesUsed(text, beat);
-  game.starTotal += turnStars(senses);
-  addLine({ by: "child", text, plain: finishSentence(game.plain), senses });
-  game.plain = "";
-  game.beatIndex += 1;
-  $("turn-expand").hidden = true;
+  game.original = text;
+  $("turn-hint").textContent = "";
+  $("btn-written").hidden = true;
+  renderWheel(sensesUsed(text, game.adventure?.beats[game.done]));
+  $("spin-area").hidden = false;
+  $<HTMLButtonElement>("btn-spin").disabled = false;
+  $("spin-area").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
 
-  const praise = senses.length ? PRAISE[senses[senses.length - 1]] : "好！我们接着写。";
-  if (game.beatIndex < game.adventure.beats.length) {
-    partnerTurn(praise);
+function renderWheel(used: SenseId[]): void {
+  const wheel = $("wheel");
+  wheel.replaceChildren(
+    ...SENSES.map((s, i) => {
+      const slot = document.createElement("span");
+      slot.className = "wheel-slot";
+      slot.dataset.sense = s.id;
+      slot.classList.toggle("used", used.includes(s.id));
+      slot.style.setProperty("--angle", `${i * (360 / SENSES.length)}deg`);
+      const emoji = document.createElement("span");
+      emoji.className = "wheel-emoji";
+      emoji.textContent = s.emoji;
+      const label = document.createElement("span");
+      label.className = "wheel-label";
+      label.textContent = s.label;
+      slot.append(emoji, label);
+      return slot;
+    }),
+  );
+  wheel.dataset.used = used.join(",");
+}
+
+function spin(): void {
+  if (!game || game.mission) return;
+  const used = ($("wheel").dataset.used ?? "").split(",").filter(Boolean) as SenseId[];
+  const mission = pickMission(used);
+  game.mission = mission;
+  $<HTMLButtonElement>("btn-spin").disabled = true;
+  wheelAngle = wheelRotation(wheelAngle, SENSE_IDS.indexOf(mission));
+  const wheel = $("wheel");
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  wheel.style.transitionDuration = reduced ? "0.2s" : "2.4s";
+  wheel.style.transform = `rotate(${wheelAngle}deg)`;
+  window.setTimeout(() => openMission(mission), reduced ? 250 : 2500);
+}
+
+/** Phase 3: the mission card. The child edits their own sentence. */
+function openMission(mission: SenseId): void {
+  if (!game) return;
+  const s = getSense(mission);
+  for (const slot of document.querySelectorAll<HTMLElement>(".wheel-slot")) {
+    slot.classList.toggle("picked", slot.dataset.sense === mission);
+  }
+  // The pick was shown on the wheel; now keep the sentence and the mission together.
+  $("spin-area").hidden = true;
+  $("mission").dataset.sense = mission;
+  $("mission-title").textContent = `${s.emoji} ${s.mission}`;
+  $("mission-question").replaceChildren(ruby(s.question), speakButton(s.question));
+  const hints = game.beat.hints[mission]?.length ? game.beat.hints[mission] : s.words.slice(0, 3);
+  $("hint-words").replaceChildren(
+    ...hints.map((w) => {
+      const span = document.createElement("span");
+      span.className = "hint-word";
+      span.append(ruby(w));
+      return span;
+    }),
+  );
+  $("hint-words").hidden = true;
+  $("btn-hint").hidden = hints.length === 0;
+  $("partner-note").hidden = true;
+  $("thinking").hidden = true;
+  $("mission").hidden = false;
+  speak(s.question);
+  $("mission").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  const input = sentenceInput();
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+
+function setBusy(busy: boolean): void {
+  if (!game) return;
+  game.busy = busy;
+  $("thinking").hidden = !busy;
+  $<HTMLButtonElement>("btn-done").disabled = busy;
+  $<HTMLButtonElement>("btn-skip").disabled = busy;
+  sentenceInput().readOnly = busy;
+}
+
+function turnRequest(sentence: string) {
+  const g = game!;
+  return {
+    story: g.lines.map((l) => ({ by: l.by, text: l.text })),
+    original: finishSentence(g.original),
+    sentence,
+    mission: g.mission!,
+    turnsLeft: TURNS - g.done - 1,
+  };
+}
+
+function partnerNote(text: string): void {
+  const note = $("partner-note");
+  note.textContent = `🐼 ${text}`;
+  note.hidden = false;
+}
+
+async function missionDone(): Promise<void> {
+  if (!game || !game.mission || game.busy) return;
+  const g = game;
+  const raw = sentenceInput().value.trim();
+  if (!isUsableSentence(raw)) {
+    partnerNote("句子不见了，再写一写吧！");
+    return;
+  }
+  const sentence = finishSentence(raw);
+  const sense = getSense(g.mission!);
+
+  if (!aiEnabled) {
+    if (raw === g.original) {
+      partnerNote(`先把${sense.label}的东西加进你的句子里吧！`);
+      return;
+    }
+    commit(sentence, true, "句子变得更生动了！", scriptedNext(g.adventure, g.done));
+    return;
+  }
+
+  setBusy(true);
+  const res = await requestTurn(turnRequest(sentence));
+  setBusy(false);
+  if (game !== g) return;
+  if (!res) {
+    // AI unavailable mid-story: trust the child and carry on with the script.
+    commit(sentence, raw !== g.original, "好！我们接着写。", scriptedNext(g.adventure, g.done));
+    return;
+  }
+  if (res.missionDone) {
+    commit(sentence, true, res.reaction, res.next);
   } else {
-    addLine({ by: "partner", text: game.adventure.ending }, praise);
-    finishStory();
+    g.pending = res;
+    partnerNote(res.hint || res.reaction || "再试一试？");
   }
 }
+
+async function skipMission(): Promise<void> {
+  if (!game || game.busy) return;
+  const g = game;
+  const raw = sentenceInput().value.trim();
+  const sentence = finishSentence(isUsableSentence(raw) ? raw : g.original);
+  if (g.pending) {
+    commit(sentence, false, g.pending.reaction, g.pending.next);
+    return;
+  }
+  if (aiEnabled && g.mission) {
+    setBusy(true);
+    const res = await requestTurn(turnRequest(sentence));
+    setBusy(false);
+    if (game !== g) return;
+    if (res) {
+      commit(sentence, res.missionDone, res.reaction, res.next);
+      return;
+    }
+  }
+  commit(sentence, false, "好！我们接着写。", scriptedNext(g.adventure, g.done));
+}
+
+function commit(sentence: string, done: boolean, reaction: string, next: NextBeat): void {
+  if (!game) return;
+  const g = game;
+  addLine({ by: "child", text: sentence, plain: finishSentence(g.original), mission: g.mission, missionDone: done });
+  if (done) g.stars += 1;
+  g.done += 1;
+  g.beat = next;
+  $("turn").hidden = true;
+  addLine({ by: "partner", text: next.line }, reaction);
+  speak(next.line);
+  if (g.done >= TURNS) finishStory();
+  else openTurn();
+}
+
+const practice = createPractice({
+  tabs: $("char-tabs"),
+  pad: $("practise-pad"),
+  feedback: $("practise-feedback"),
+  animate: $<HTMLButtonElement>("btn-animate"),
+  trace: $<HTMLButtonElement>("btn-trace"),
+  free: $<HTMLButtonElement>("btn-free"),
+});
+let picked: string[] = [];
 
 function finishStory(): void {
   if (!game) return;
   const g = game;
   saveStory({
     id: g.storyId,
-    adventureId: g.adventure.id,
-    title: g.adventure.title,
+    adventureId: g.adventure?.id ?? "idea",
+    title: g.title,
     savedAt: Date.now(),
     lines: g.lines,
   });
-  const max = g.adventure.beats.length * 3;
-  $("end-stars").textContent = `你得了 ${g.starTotal} / ${max} 颗星 ⭐`;
-  const used = new Set(g.lines.flatMap((l) => l.senses ?? []));
-  $("end-senses").textContent = used.size
-    ? `你用了：${SENSES.filter((s) => used.has(s.id)).map((s) => `${s.emoji}${s.label}`).join("、")}`
-    : "下次试试用五感放大镜，让句子更生动！";
+  $("end-stars").textContent = `你完成了 ${g.stars} / ${TURNS} 个任务 ${"⭐".repeat(g.stars)}`;
+
+  picked = [];
+  practice.stop();
+  $("practise-pad-wrap").hidden = true;
+  $<HTMLButtonElement>("btn-practise").disabled = true;
+  $("char-pick").replaceChildren(
+    ...charsToPractise(g.lines).map((c) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "char-chip";
+      b.textContent = c;
+      b.dataset.char = c;
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", () => {
+        const on = picked.includes(c);
+        if (!on && picked.length >= 3) return;
+        picked = on ? picked.filter((x) => x !== c) : [...picked, c];
+        b.setAttribute("aria-pressed", String(!on));
+        $<HTMLButtonElement>("btn-practise").disabled = picked.length === 0;
+      });
+      return b;
+    }),
+  );
   $("turn-end").hidden = false;
   $("turn-end").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -422,7 +517,7 @@ function openSaved(story: SavedStory): void {
   const del = $("btn-delete-saved");
   delete del.dataset.armed;
   del.textContent = "删除";
-  $("read-title").replaceChildren(ruby(`${getAdventure(story.adventureId)?.emoji ?? "📖"} ${story.title}`));
+  $("read-title").replaceChildren(ruby(`${getAdventure(story.adventureId)?.emoji ?? "✏️"} ${story.title}`));
   $("read-flow").replaceChildren(...story.lines.map((l) => lineItem(l)));
   show("read");
 }
@@ -441,30 +536,41 @@ function init(): void {
     applyPinyin();
   });
   $("btn-home").addEventListener("click", () => {
-    speechSynthesis?.cancel();
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+    practice.stop();
     game = undefined;
     renderHome();
   });
 
-  const writeInput = $<HTMLTextAreaElement>("write-input");
-  $("btn-write-done").addEventListener("click", finishWrite);
-  writeInput.addEventListener("input", () => ($("write-hint").textContent = ""));
-  wireMic($<HTMLButtonElement>("btn-mic-write"), writeInput, () => ($("write-hint").textContent = ""));
-
-  const expandInput = $<HTMLTextAreaElement>("expand-input");
-  expandInput.addEventListener("input", updateMeter);
-  wireMic($<HTMLButtonElement>("btn-mic-expand"), expandInput, updateMeter);
-  $("btn-expand-done").addEventListener("click", finishExpand);
-  $("btn-expand-back").addEventListener("click", () => {
-    if (game) game.plain = expandInput.value.trim() || game.plain;
-    openWrite();
+  $("idea-card").addEventListener("submit", (e) => {
+    e.preventDefault();
+    void startIdea($<HTMLInputElement>("idea-input").value.trim());
   });
+
+  const input = sentenceInput();
+  wireMic($<HTMLButtonElement>("btn-mic"), input);
+  input.addEventListener("input", () => ($("turn-hint").textContent = ""));
+  $("btn-written").addEventListener("click", finishWriting);
+  $("btn-spin").addEventListener("click", spin);
+  $("btn-hint").addEventListener("click", () => {
+    $("hint-words").hidden = !$("hint-words").hidden;
+  });
+  $("btn-done").addEventListener("click", () => void missionDone());
+  $("btn-skip").addEventListener("click", () => void skipMission());
 
   $("btn-read-all").addEventListener("click", () => game && speak(storyText(game.lines)));
   $("btn-again").addEventListener("click", () => {
+    practice.stop();
     game = undefined;
     renderHome();
   });
+  $("btn-practise").addEventListener("click", () => {
+    if (!picked.length) return;
+    $("practise-pad-wrap").hidden = false;
+    practice.start(picked);
+    $("practise-pad-wrap").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+
   $("btn-read-saved").addEventListener("click", () => openStory && speak(storyText(openStory.lines)));
   // Two taps to delete (no confirm() dialog: some embedded viewers block it).
   const delBtn = $("btn-delete-saved");
@@ -481,6 +587,11 @@ function init(): void {
   });
 
   renderHome();
+  void partnerEnabled().then((on) => {
+    aiEnabled = on;
+    document.body.dataset.ai = on ? "on" : "off";
+    if (!$("view-home").hidden) $("idea-card").hidden = !on;
+  });
 }
 
 init();

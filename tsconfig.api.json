@@ -33,5 +33,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["api", "src/shared/cloudSaveValidation.ts"]
+  "include": ["api", "src/shared/cloudSaveValidation.ts", "src/story-builder/partnerApi.ts"]
 }

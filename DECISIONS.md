@@ -21,7 +21,26 @@ None open right now.
   monorepo. Nothing to do if it's already the default; flag it if you've
   changed it.
 
+- **Add `ANTHROPIC_API_KEY` in Vercel to turn on the AI story partner.**
+  Get a key at platform.claude.com (Billing: add credits and set a
+  monthly spend limit, e.g. $5; then API Keys → Create Key). In Vercel:
+  Settings → Environment Variables → `ANTHROPIC_API_KEY` for Production
+  and Preview, then redeploy. Until then `story-builder.html` runs its
+  pre-written stories.
+
 ## Resolved
+
+- **2026-11-15 — Story builder may use a paid AI partner (Claude Haiku 5.5).**
+  Your call: try the Anthropic API for 团团 in `story-builder.html`,
+  funded with prepaid credits under a Console spend limit you set
+  (estimated under a cent per story). No free Claude API tier exists, so
+  the page works fully without a key (pre-written stories, self-checked
+  missions) and switches to AI when `ANTHROPIC_API_KEY` is set. Requests
+  are capped per IP and in total per day via the existing Upstash
+  database; the spend limit is the hard ceiling. Also decided: missions
+  come from a spinner the child spins, stories are 3 turns for now
+  (`TURNS` in `src/story-builder/flow.ts`), and the story ends with
+  handwriting practice of characters from the child's own sentences.
 
 - **2026-10-21 — Science Snake moved to its own repo.** Your call
   (2026-10-07): the idiom game and the science games are different

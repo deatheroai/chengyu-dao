@@ -57,25 +57,25 @@ and the "清除练习记录" link on the reading step clears them.
 
 ## Story builder (`story-builder.html`)
 
-一起编故事: collaborative story writing for Mandarin practice. The child
-picks an adventure. 团团 the panda writes a line (with pinyin and read
-aloud) and asks a question, and the child writes the next sentence. They
-can type it, tap a sentence starter, or say it with 🎤 where the browser
-supports speech input. Before the sentence goes into the story, the
-**五感放大镜** step helps make it richer. Tabs for 👀看到 / 👂听到 /
-👃闻到 / ✋摸到 / 💭心情 / 🪄好句子 each ask a question and offer
-scene-specific word chips (sounds like 哗啦啦, patterns like 像……一样)
-to insert. A meter lights up each sense used and shows how much the
-sentence grew. Each turn earns ★ for a sentence, ★★ for one sense and ★★★
-for two or more. Finished stories go into 我的故事书 (`localStorage`,
-this device only).
+一起编故事: collaborative story writing for Mandarin practice. 团团 the
+panda writes a line and asks a question, and the child writes the next
+sentence. Then they spin the **mission wheel** (👀看到 / 👂听到 / 👃闻到 /
+✋摸到 / 💭心情 / 🪄比喻) and improve their own sentence to match the
+mission, typing it themselves. 💡提示 shows a few example words as
+inspiration only; nothing is inserted into their text. Each finished
+mission earns ⭐. After 3 turns (`TURNS` in `src/story-builder/flow.ts`)
+the story ends, is saved to 我的故事书 (`localStorage`, this device only),
+and the child can practise writing 1–3 characters from their own
+sentences (stroke data from hanzi-writer-data on jsDelivr).
 
-Content lives in `src/story-builder/adventures.ts` (each beat: partner
-line, question, starters, scene words, a plain → rich example) and
-`senses.ts` (general word banks). Pinyin comes from `pinyin-pro`, with
-context fixes for the particles 地/得 in `pinyin.ts`.
-`adventures.test.ts` checks every beat, including that each "rich"
-example really uses a sense.
+**AI partner (optional).** With `ANTHROPIC_API_KEY` set in Vercel,
+`api/story-partner.ts` uses Claude Haiku 5.5 to judge each mission
+(generously, accepting the child's own words), react to what they wrote,
+continue the story from it, and start stories from the child's own idea.
+Requests are capped per IP and per day when Upstash Redis is configured.
+Without a key, or if a call fails, the page uses the pre-written stories
+in `src/story-builder/adventures.ts` and the child confirms missions
+themselves. The page/server contract is `src/story-builder/partnerApi.ts`.
 
 ## Project structure
 

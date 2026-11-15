@@ -5,7 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#eef6ff" />
-    <meta name="description" content="一起编故事：write a story together with 团团 the panda, then use the five senses to make each sentence richer." />
+    <meta name="description" content="一起编故事：write a story together with 团团 the panda, spin a mission to make each sentence richer, then practise writing your own characters." />
     <title>一起编故事</title>
     <link rel="stylesheet" href="/src/story-builder/style.css" />
   </head>
@@ -19,8 +19,16 @@
 
       <!-- Home: choose an adventure, or open a saved story -->
       <section id="view-home" class="view">
-        <p class="intro">我是团团！我写一句，你写一句，我们一起编一个故事吧。<br />写好以后，用<b>五感放大镜</b>把句子变得更生动！</p>
+        <p class="intro">我是团团！我写一句，你写一句，我们一起编一个故事吧。<br />每写好一句，就转一转<b>任务转盘</b>，让句子变得更生动！</p>
         <div class="adventure-grid" id="adventure-grid"></div>
+        <form class="idea-card" id="idea-card" hidden>
+          <label for="idea-input">✏️ 我自己的想法</label>
+          <div class="idea-row">
+            <input id="idea-input" maxlength="60" placeholder="一只会飞的小狗……" lang="zh-Hans" autocomplete="off" />
+            <button class="btn btn-primary" id="btn-idea" type="submit">开始！</button>
+          </div>
+          <p class="hint" id="idea-hint" aria-live="polite"></p>
+        </form>
         <div class="library" id="library" hidden>
           <h2>📚 我的故事书</h2>
           <ul class="library-list" id="library-list"></ul>
@@ -32,42 +40,35 @@
         <h2 class="play-title" id="play-title"></h2>
         <ol class="story-flow" id="story-flow" aria-live="polite"></ol>
 
-        <!-- Turn, phase 1: write a sentence -->
-        <div class="turn-card" id="turn-write" hidden>
+        <div class="turn-card" id="turn" hidden>
           <p class="turn-label">✏️ 轮到你了 <span class="turn-count" id="turn-count"></span></p>
-          <p class="turn-prompt" id="write-prompt"></p>
-          <div class="chip-row" id="starter-row" aria-label="句子开头"></div>
+          <p class="turn-prompt" id="turn-prompt"></p>
           <div class="input-wrap">
-            <textarea id="write-input" rows="2" placeholder="写一句话……" lang="zh-Hans" autocomplete="off"></textarea>
-            <button class="icon-btn mic" id="btn-mic-write" type="button" aria-label="说一说" hidden>🎤</button>
+            <textarea id="sentence" rows="2" placeholder="写一句话……" lang="zh-Hans" autocomplete="off"></textarea>
+            <button class="icon-btn mic" id="btn-mic" type="button" aria-label="说一说" hidden>🎤</button>
           </div>
-          <p class="hint" id="write-hint" aria-live="polite"></p>
-          <button class="btn btn-primary" id="btn-write-done" type="button">写好了 →</button>
-        </div>
+          <p class="hint" id="turn-hint" aria-live="polite"></p>
+          <button class="btn btn-primary" id="btn-written" type="button">写好了 →</button>
 
-        <!-- Turn, phase 2: the five-senses magnifying glass -->
-        <div class="turn-card expand-card" id="turn-expand" hidden>
-          <p class="turn-label">🔍 五感放大镜：让句子更生动！</p>
-          <p class="plain-line">你写的：<span id="expand-plain"></span></p>
-          <details class="example">
-            <summary>看看团团的例子</summary>
-            <p><span class="ex-plain" id="example-plain"></span> → <span class="ex-rich" id="example-rich"></span></p>
-          </details>
-          <div class="input-wrap">
-            <textarea id="expand-input" rows="3" lang="zh-Hans" autocomplete="off"></textarea>
-            <button class="icon-btn mic" id="btn-mic-expand" type="button" aria-label="说一说" hidden>🎤</button>
+          <div class="spin-area" id="spin-area" hidden>
+            <div class="wheel-wrap">
+              <div class="wheel-pointer" aria-hidden="true">▼</div>
+              <div class="wheel" id="wheel"></div>
+            </div>
+            <button class="btn btn-primary btn-spin" id="btn-spin" type="button">转一转 🎡</button>
           </div>
-          <div class="meter">
-            <span class="badges" id="sense-badges"></span>
-            <span class="growth" id="growth"></span>
-          </div>
-          <div class="sense-tabs" id="sense-tabs" role="tablist" aria-label="五感"></div>
-          <p class="sense-question" id="sense-question"></p>
-          <div class="chip-row word-chips" id="word-row"></div>
-          <p class="hint" id="expand-hint" aria-live="polite"></p>
-          <div class="actions">
-            <button class="btn" id="btn-expand-back" type="button">← 改一改</button>
-            <button class="btn btn-primary" id="btn-expand-done" type="button">放进故事里 ✓</button>
+
+          <div class="mission" id="mission" hidden>
+            <p class="mission-title" id="mission-title"></p>
+            <p class="mission-question" id="mission-question"></p>
+            <button class="link-btn" id="btn-hint" type="button">💡 提示</button>
+            <p class="hint-words" id="hint-words" hidden></p>
+            <p class="partner-note" id="partner-note" hidden></p>
+            <p class="thinking" id="thinking" hidden>🐼 团团在读你的句子……</p>
+            <div class="actions">
+              <button class="btn" id="btn-skip" type="button">跳过</button>
+              <button class="btn btn-primary" id="btn-done" type="button">完成任务 ✓</button>
+            </div>
           </div>
         </div>
 
@@ -75,12 +76,28 @@
         <div class="turn-card end-card" id="turn-end" hidden>
           <p class="end-title">🎉 故事写完了！</p>
           <p class="end-stars" id="end-stars"></p>
-          <p class="end-senses" id="end-senses"></p>
-          <div class="actions">
+          <div class="actions center">
             <button class="btn" id="btn-read-all" type="button">🔊 读整个故事</button>
             <button class="btn btn-primary" id="btn-again" type="button">再编一个</button>
           </div>
           <p class="hint">故事已经放进“我的故事书”里了。</p>
+
+          <div class="practise" id="practise">
+            <h3>✍️ 练一练你故事里的字</h3>
+            <p class="hint">选 1～3 个你想学会写的字：</p>
+            <div class="char-pick" id="char-pick"></div>
+            <button class="btn btn-primary" id="btn-practise" type="button" disabled>开始练字</button>
+            <div class="practise-pad" id="practise-pad-wrap" hidden>
+              <div class="char-tabs" id="char-tabs" role="tablist"></div>
+              <div class="tianzige" id="practise-pad"></div>
+              <p class="feedback" id="practise-feedback" aria-live="polite"></p>
+              <div class="actions center">
+                <button class="btn" id="btn-animate" type="button">👀 看笔顺</button>
+                <button class="btn" id="btn-trace" type="button">✏️ 描一描</button>
+                <button class="btn" id="btn-free" type="button">✍️ 自己写</button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
