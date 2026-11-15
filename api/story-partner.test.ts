@@ -176,4 +176,20 @@ describe("story-partner", () => {
     // Only numbers are stored, never story text.
     expect(JSON.stringify([...hashes.values()])).not.toMatch(/\p{Script=Han}/u);
   });
+
+  it("explains why the stats database can't be reached", async () => {
+    process.env.KV_REST_API_URL = "https://gone-db.upstash.io";
+    process.env.KV_REST_API_TOKEN = "secret-token";
+    const { Redis } = await import("@upstash/redis");
+    vi.mocked(Redis).mockImplementationOnce(function RedisDown() {
+      const err = Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } });
+      return { hgetall: vi.fn(async () => Promise.reject(err)) } as never;
+    });
+    const res = await handler.fetch(new Request("https://example.com/api/story-partner?stats"));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe("usage read failed: fetch failed (ENOTFOUND)");
+    expect(body.databaseHost).toBe("gone-db.upstash.io");
+    expect(JSON.stringify(body)).not.toContain("secret-token");
+  });
 });

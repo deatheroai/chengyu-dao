@@ -155,6 +155,24 @@ async function ask<T>(client: Anthropic, prompt: string, schema: z.ZodType<T>): 
   return { out, inputTokens, outputTokens };
 }
 
+/** The database host name, for diagnosing connection failures (never the token). */
+function redisHost(): string | null {
+  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+  try {
+    return url ? new URL(url).host : null;
+  } catch {
+    return "invalid URL";
+  }
+}
+
+/** "fetch failed" alone hides the reason; Node puts it (e.g. ENOTFOUND) in `cause`. */
+function describeConnectionError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const cause = (err as Error & { cause?: { code?: string; message?: string } }).cause;
+  const detail = cause?.code ?? cause?.message;
+  return detail ? `${err.message} (${detail})` : err.message;
+}
+
 const usageKey = (day: string) => `chengyu-dao:story-partner:usage:${day}`;
 
 /** Logs one call's tokens and adds them to today's totals. Never fails the request. */
@@ -206,7 +224,7 @@ async function usageStats(): Promise<Response> {
       { status: 200, headers: { "content-type": "application/json; charset=utf-8" } },
     );
   } catch (err) {
-    return json({ error: `usage read failed: ${err instanceof Error ? err.message : String(err)}` }, 500);
+    return json({ error: `usage read failed: ${describeConnectionError(err)}`, databaseHost: redisHost() }, 500);
   }
 }
 
