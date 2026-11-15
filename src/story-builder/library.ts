@@ -5,9 +5,11 @@ import type { SenseId } from "./senses";
 export interface StoryLine {
   by: "partner" | "child";
   text: string;
-  /** Child lines only: the sentence before it was made richer. */
+  /** Child lines only: the sentence before the mission. */
   plain?: string;
-  senses?: SenseId[];
+  /** Child lines only: the mission they spun, and whether they did it. */
+  mission?: SenseId;
+  missionDone?: boolean;
 }
 
 export interface SavedStory {

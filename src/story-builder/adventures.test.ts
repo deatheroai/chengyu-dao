@@ -31,7 +31,8 @@ describe("adventures", () => {
   it("every sense has a question and general words", () => {
     for (const s of SENSES) {
       expect(s.question).toBeTruthy();
-      expect(s.words.length).toBeGreaterThanOrEqual(5);
+      expect(s.words.length).toBeGreaterThanOrEqual(3);
+      expect(s.mission).toBeTruthy();
     }
   });
 });
