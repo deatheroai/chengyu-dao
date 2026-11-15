@@ -83,6 +83,12 @@ environment variables to deployments built after they were saved, so
 redeploy after adding or changing the key (tick both Production and
 Preview so branch previews get it too).
 
+Cost: `/api/story-partner?stats` shows today's and the last 7 days' AI
+calls, tokens and an estimated cost (at Haiku 5.5 prices) per day and
+per finished story, from daily totals kept in Upstash Redis. Each call's
+token counts are also logged (Vercel → Logs). Only numbers are stored,
+never story text. The Claude Console bill is the official figure.
+
 ## Project structure
 
 `index.html` (the site root) is a static redirect to `idiom-door.html`, the

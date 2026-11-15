@@ -13,6 +13,7 @@ vi.mock("@anthropic-ai/sdk", () => {
 });
 
 const counts = new Map<string, number>();
+const hashes = new Map<string, Record<string, number>>();
 vi.mock("@upstash/redis", () => ({
   Redis: vi.fn().mockImplementation(function RedisMock() {
     return {
@@ -21,6 +22,13 @@ vi.mock("@upstash/redis", () => ({
         return counts.get(k)!;
       }),
       expire: vi.fn(async () => 1),
+      hincrby: vi.fn(async (k: string, f: string, by: number) => {
+        const h = hashes.get(k) ?? {};
+        h[f] = (h[f] ?? 0) + by;
+        hashes.set(k, h);
+        return h[f];
+      }),
+      hgetall: vi.fn(async (k: string) => hashes.get(k) ?? null),
     };
   }),
 }));
@@ -50,6 +58,8 @@ function post(body: unknown, ip = "1.2.3.4"): Promise<Response> {
 beforeEach(() => {
   parse.mockReset();
   counts.clear();
+  hashes.clear();
+  vi.spyOn(console, "log").mockImplementation(() => {});
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
@@ -77,6 +87,7 @@ describe("story-partner", () => {
     process.env.ANTHROPIC_API_KEY = "test";
     parse.mockResolvedValue({
       stop_reason: "end_turn",
+      usage: { input_tokens: 1800, output_tokens: 300 },
       parsed_output: { missionDone: true, reaction: "我听到雨声了！", hint: "", next: { line: "小猫跑出去了。", question: "然后呢？", hints } },
     });
     const res = await post(turnBody);
@@ -131,5 +142,38 @@ describe("story-partner", () => {
     for (let i = 0; i < 150; i++) expect((await post(turnBody)).status).toBe(200);
     expect((await post(turnBody)).status).toBe(429);
     expect((await post(turnBody, "5.6.7.8")).status).toBe(200);
+  });
+
+  it("logs and totals token usage, and serves it at ?stats", async () => {
+    process.env.ANTHROPIC_API_KEY = "test";
+    const stats = () => handler.fetch(new Request("https://example.com/api/story-partner?stats"));
+    expect((await stats()).status).toBe(501); // no database configured
+
+    process.env.KV_REST_API_URL = "https://example.upstash.io";
+    process.env.KV_REST_API_TOKEN = "t";
+    const reply = (n: number) => ({
+      stop_reason: "end_turn",
+      usage: { input_tokens: 2000, output_tokens: 400 },
+      parsed_output: { missionDone: true, reaction: "好！", hint: "", next: { line: `第${n}句。`, question: n < 3 ? "然后呢？" : "", hints } },
+    });
+    parse.mockResolvedValueOnce(reply(1)).mockResolvedValueOnce(reply(2)).mockResolvedValueOnce(reply(3));
+    await post({ ...turnBody, turnsLeft: 2 });
+    await post({ ...turnBody, turnsLeft: 1 });
+    await post({ ...turnBody, turnsLeft: 0 });
+
+    const logged = vi.mocked(console.log).mock.calls.map((c) => JSON.parse(String(c[0])));
+    expect(logged).toHaveLength(3);
+    expect(logged[0]).toMatchObject({ event: "story-partner-usage", action: "turn", inputTokens: 2000, outputTokens: 400 });
+
+    const res = await stats();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.model).toBe("claude-haiku-5-5");
+    expect(body.today).toMatchObject({ calls: 3, inputTokens: 6000, outputTokens: 1200, storiesFinished: 1 });
+    expect(body.today.costUsd).toBeCloseTo(0.0012);
+    expect(body.today.costPerStoryUsd).toBeCloseTo(0.0012);
+    expect(body.byDay).toHaveLength(7);
+    // Only numbers are stored, never story text.
+    expect(JSON.stringify([...hashes.values()])).not.toMatch(/\p{Script=Han}/u);
   });
 });

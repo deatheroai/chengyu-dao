@@ -10,6 +10,7 @@ import {
   type StartRequest,
   type TurnRequest,
 } from "../src/story-builder/partnerApi.js";
+import { costUsd, lastDays, summarize, toDayUsage } from "../src/story-builder/usageStats.js";
 
 /**
  * 团团, the AI story partner for story-builder.html.
@@ -21,6 +22,10 @@ import {
  * the page runs its pre-written stories instead. When Upstash Redis is
  * configured (same integration as cloud save), requests are capped per
  * IP and in total per day; the Console spend limit is the hard ceiling.
+ *
+ * Usage: every call's token counts are logged (Vercel → Logs) and added
+ * to daily totals in Redis; GET ?stats shows today and the last 7 days
+ * with an estimated cost. Only numbers are stored, never story text.
  */
 
 const MODEL = "claude-haiku-5-5";
@@ -126,7 +131,13 @@ async function overDailyLimit(request: Request): Promise<boolean> {
   }
 }
 
-async function ask<T>(client: Anthropic, prompt: string, schema: z.ZodType<T>): Promise<T | "refused" | null> {
+interface AskResult<T> {
+  out: T | "refused" | null;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+async function ask<T>(client: Anthropic, prompt: string, schema: z.ZodType<T>): Promise<AskResult<T>> {
   const response = await client.messages.parse({
     model: MODEL,
     max_tokens: 2000,
@@ -136,14 +147,76 @@ async function ask<T>(client: Anthropic, prompt: string, schema: z.ZodType<T>): 
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: prompt }],
   });
-  if (response.stop_reason === "refusal") return "refused";
-  return response.parsed_output ?? null;
+  const usage = response.usage;
+  const inputTokens =
+    (usage?.input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0) + (usage?.cache_creation_input_tokens ?? 0);
+  const outputTokens = usage?.output_tokens ?? 0;
+  const out = response.stop_reason === "refusal" ? "refused" : (response.parsed_output ?? null);
+  return { out, inputTokens, outputTokens };
+}
+
+const usageKey = (day: string) => `chengyu-dao:story-partner:usage:${day}`;
+
+/** Logs one call's tokens and adds them to today's totals. Never fails the request. */
+async function recordUsage(action: string, ending: boolean, r: { inputTokens: number; outputTokens: number }): Promise<void> {
+  console.log(
+    JSON.stringify({
+      event: "story-partner-usage",
+      action,
+      inputTokens: r.inputTokens,
+      outputTokens: r.outputTokens,
+      costUsd: costUsd(r.inputTokens, r.outputTokens),
+    }),
+  );
+  const redis = getRedis();
+  if (!redis) return;
+  const key = usageKey(new Date().toISOString().slice(0, 10));
+  try {
+    await Promise.all([
+      redis.hincrby(key, "calls", 1),
+      redis.hincrby(key, "endings", ending ? 1 : 0),
+      redis.hincrby(key, "input", r.inputTokens),
+      redis.hincrby(key, "output", r.outputTokens),
+    ]);
+    await redis.expire(key, 60 * 24 * 3600);
+  } catch (err) {
+    console.error("story-partner: usage not recorded:", err instanceof Error ? err.message : err);
+  }
+}
+
+async function usageStats(): Promise<Response> {
+  const redis = getRedis();
+  if (!redis) return json({ error: "no-database", note: "Usage totals need the Upstash Redis integration." }, 501);
+  const days = lastDays(new Date(), 7);
+  try {
+    const hashes = await Promise.all(days.map((d) => redis.hgetall<Record<string, unknown>>(usageKey(d))));
+    const usage = days.map((d, i) => toDayUsage(d, hashes[i]));
+    return new Response(
+      JSON.stringify(
+        {
+          model: MODEL,
+          today: summarize(usage.slice(0, 1)),
+          last7Days: summarize(usage),
+          byDay: usage,
+          note: "Estimated from token counts at Haiku 5.5 prices (USD); the Claude Console bill is the official figure. storiesFinished counts last-turn calls, so a retried last turn counts twice. Days are UTC.",
+        },
+        null,
+        2,
+      ),
+      { status: 200, headers: { "content-type": "application/json; charset=utf-8" } },
+    );
+  } catch (err) {
+    return json({ error: `usage read failed: ${err instanceof Error ? err.message : String(err)}` }, 500);
+  }
 }
 
 export default {
   async fetch(request: Request): Promise<Response> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (request.method === "GET") return json({ enabled: Boolean(apiKey) }, 200);
+    if (request.method === "GET") {
+      if (new URL(request.url).searchParams.has("stats")) return usageStats();
+      return json({ enabled: Boolean(apiKey) }, 200);
+    }
     if (request.method !== "POST") return json({ error: "method-not-allowed" }, 405);
     if (!apiKey) return json({ error: "not-configured" }, 501);
 
@@ -160,13 +233,15 @@ export default {
     const client = new Anthropic({ apiKey, timeout: 25_000, maxRetries: 1 });
     try {
       if (req.action === "start") {
-        const out = await ask(client, startPrompt(req), startSchema);
-        const clean = out && out !== "refused" ? cleanStartResponse(out) : null;
-        return clean ? json(clean, 200) : json({ error: out === "refused" ? "refused" : "bad-output" }, 502);
+        const r = await ask(client, startPrompt(req), startSchema);
+        await recordUsage("start", false, r);
+        const clean = r.out && r.out !== "refused" ? cleanStartResponse(r.out) : null;
+        return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);
       }
-      const out = await ask(client, turnPrompt(req), turnSchema);
-      const clean = out && out !== "refused" ? cleanTurnResponse(out) : null;
-      return clean ? json(clean, 200) : json({ error: out === "refused" ? "refused" : "bad-output" }, 502);
+      const r = await ask(client, turnPrompt(req), turnSchema);
+      await recordUsage("turn", req.turnsLeft === 0, r);
+      const clean = r.out && r.out !== "refused" ? cleanTurnResponse(r.out) : null;
+      return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);
     } catch (err) {
       // Logged for the Vercel dashboard; the page only needs to know to fall back.
       console.error("story-partner:", err instanceof Error ? err.message : err);
