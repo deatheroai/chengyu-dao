@@ -28,6 +28,17 @@ None open right now.
   and Preview, then redeploy. Until then `story-builder.html` runs its
   pre-written stories.
 
+- **Fix science-snake's cloud-save database (2026-11-15).** The shared
+  Upstash database (`upstash-kv-erin-candle`, endpoint
+  `neutral-wasp-240252.upstash.io`) was deleted when the Upstash
+  integration was uninstalled; its address no longer resolves, so cloud
+  save stopped working in both games and the saves in it are lost (each
+  device keeps its own local progress). chengyu-dao was moved to a new
+  Upstash database the same day. science-snake still lists the dead
+  database as connected, which blocks reconnecting with the default `KV_`
+  names. Either remove that connection, or connect the new database with
+  a prefix and update science-snake's code to read it (in that repo).
+
 ## Resolved
 
 - **2026-11-15 — Story builder may use a paid AI partner (Claude Haiku 5.5).**
