@@ -13,7 +13,28 @@ they superseded. This file starts fresh from that split rather than
 importing the monorepo's full backlog history — see `README.md`'s History
 section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 
-## Chinese Idiom Discovery Game (current focus)
+## Story builder (一起编故事)
+
+Vocabulary feedback after a story (decided 2026-11-17, see
+`DECISIONS.md`). Built in pieces, top to bottom:
+
+- [ ] `in-progress` — **Feedback data + AI.** `feedback.ts`: the 好词卡
+      shape (2 stars, 1 wish with 💡 words), validation, and an offline
+      builder (words each mission added, a word used twice). The
+      last-turn AI call also returns `feedback`; it's saved on the story.
+- [ ] `in-progress` — **好词卡 on the end screen.** Stars and the wish,
+      tap a word for its pinyin (no pinyin until tapped), 🔊 per line.
+      The child rewrites the wish's sentence with 💡 chips → ⭐, and the
+      story is updated. The same card shows on saved stories.
+- [ ] `todo` — **我的好词本 (good-words book).** Keep words from stars
+      and accepted rewrites on the device; offer them as 💡 hints and
+      for handwriting practice in later stories.
+- [ ] `todo` — **Idiom bridge.** Suggest one idiom the child has already
+      discovered in the idiom game that fits their story.
+- [ ] `blocked` — **One gentle grammar tip.** Left out on purpose for
+      now (vocabulary first); needs a decision before building.
+
+## Chinese Idiom Discovery Game
 
 - [x] `done` — **Fix: the "each jump costs HP..." e2e test assumed
       exactly one character gets chain-caught per jump (2026-09-27).**

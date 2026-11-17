@@ -41,6 +41,24 @@ None open right now.
 
 ## Resolved
 
+- **2026-11-17 — Story builder: vocabulary feedback after each story.**
+  Your calls, made against the saved story 我养宠物的天:
+  1. **When:** one 好词卡 (good-words card) on the end-of-story screen.
+     团团 still never corrects the child during the turns.
+  2. **The suggestion:** 2 stars (words the child used well, quoted,
+     with why they work) and 1 wish (one sentence to make richer). The
+     child rewrites that sentence themselves with 💡 word chips, like a
+     mission, and earns a ⭐.
+  3. **Pinyin:** none on the card at first; the child taps a word to
+     see that word's pinyin. 🔊 read-aloud on each line. Separate from
+     the page's 拼音 toggle.
+  4. **Source:** the AI writes the feedback in the same call as the
+     story's ending (no extra call or cost). Without AI, the card shows
+     what each mission added and any word used twice. Feedback is
+     saved with the story and shown again in the library.
+  Feedback is vocabulary only for now: no grammar tips (e.g. 想一会儿 →
+  想了一会儿). Follow-ups are in `BACKLOG.md`'s Story builder section.
+
 - **2026-11-15 — Story builder may use a paid AI partner (Claude Haiku 5.5).**
   Your call: try the Anthropic API for 团团 in `story-builder.html`,
   funded with prepaid credits under a Console spend limit you set
