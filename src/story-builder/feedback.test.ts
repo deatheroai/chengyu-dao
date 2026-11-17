@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   addedText,
+  shortQuote,
+  buildFeedback,
   cleanFeedbackOut,
   cleanStoryFeedback,
   feedbackFromAi,
@@ -33,6 +35,13 @@ describe("addedText", () => {
   });
 });
 
+describe("shortQuote", () => {
+  it("cuts a long addition to its last clause", () => {
+    expect(shortQuote("像火一样亮")).toBe("像火一样亮");
+    expect(shortQuote("我说：“你好。”它叫了一声“咕！”")).toBe("它叫了一声“咕！”");
+  });
+});
+
 describe("repeated everyday words", () => {
   it("counts a doubled word like 亮亮 once", () => {
     expect(timesUsed("太阳亮亮的", "亮")).toBe(1);
@@ -49,7 +58,7 @@ describe("offline card", () => {
   it("stars what two missions added and wishes on the repeated word", () => {
     const card = offlineFeedback(PET_DAY);
     expect(card.source).toBe("offline");
-    expect(card.stars.map((s) => s.quote)).toEqual(["我说：“你好。”它叫了一声“咕！”", "像火一样亮"]);
+    expect(card.stars.map((s) => s.quote)).toEqual(["它叫了一声“咕！”", "像火一样亮"]);
     expect(card.stars[1].why).toContain("比喻");
     expect(card.wish).toMatchObject({ sentence: SENTENCES[1], words: ["闪闪发光", "亮晶晶的", "金灿灿的"] });
     expect(card.wish?.tip).toContain("亮");
@@ -107,5 +116,16 @@ describe("isRewrite", () => {
     expect(isRewrite("小兔看到太阳亮亮的，像火一样亮。", "小兔看到太阳金灿灿的，像火一样亮。")).toBe(true);
     expect(isRewrite("小兔看到太阳亮亮的。", "小兔看到太阳亮亮的！")).toBe(false);
     expect(isRewrite("小兔看到太阳亮亮的。", "小兔")).toBe(false);
+  });
+});
+
+describe("buildFeedback", () => {
+  it("uses the AI card and fills a missing part offline", () => {
+    const ai = { stars: [{ quote: "咕！", why: "像真的一样！" }], wish: { turn: 7, tip: "x", words: ["y"] } };
+    const card = buildFeedback(ai, PET_DAY);
+    expect(card.source).toBe("ai");
+    expect(card.stars.map((s) => s.quote)).toEqual(["咕！"]);
+    expect(card.wish?.sentence).toBe(SENTENCES[1]);
+    expect(buildFeedback(undefined, PET_DAY).source).toBe("offline");
   });
 });

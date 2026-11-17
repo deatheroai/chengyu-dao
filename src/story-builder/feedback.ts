@@ -189,6 +189,19 @@ export function repeatedWord(text: string): string | undefined {
   return Object.keys(RICHER_WORDS).find((w) => timesUsed(text, w) >= 2);
 }
 
+/** Keeps a star's quote short: a long addition is cut to its last
+ * clause, without stray quote marks at the edges. */
+export function shortQuote(text: string, max = 8): string {
+  const hanCount = (t: string) => Array.from(t).filter(isHan).length;
+  let q = text;
+  if (hanCount(q) > max) {
+    const clauses = q.split(/[，,。；;：:]/).filter((c) => hanCount(c) > 0);
+    q = clauses.at(-1) ?? q;
+  }
+  q = q.replace(/^[\s”"’」]+/, "").replace(/[\s“"‘「]+$/, "");
+  return Array.from(q).slice(0, 20).join("");
+}
+
 /** A card built without AI: stars for what each mission added, and a
  * wish when a sentence repeats an everyday word. */
 export function offlineFeedback(lines: ChildSentence[]): StoryFeedback {
@@ -198,7 +211,7 @@ export function offlineFeedback(lines: ChildSentence[]): StoryFeedback {
     if (!l.missionDone || !l.mission || !l.plain) continue;
     const quote = addedText(l.plain, l.text);
     if (!quote || !Array.from(quote).some(isHan)) continue;
-    stars.push({ quote: Array.from(quote).slice(0, 20).join(""), why: WHY_BY_MISSION[l.mission] });
+    stars.push({ quote: shortQuote(quote), why: WHY_BY_MISSION[l.mission] });
   }
   let wish: FeedbackWish | undefined;
   for (const l of lines) {
@@ -215,4 +228,17 @@ export function offlineFeedback(lines: ChildSentence[]): StoryFeedback {
 export function isRewrite(before: string, after: string): boolean {
   const han = (t: string) => Array.from(t).filter(isHan).join("");
   return han(after).length >= 3 && han(after) !== han(before);
+}
+
+/** The card for a finished story: the AI's when it gave one, with the
+ * offline card filling in any part it left out. */
+export function buildFeedback(ai: FeedbackOut | undefined, lines: ChildSentence[]): StoryFeedback {
+  const offline = offlineFeedback(lines);
+  const fromAi = ai ? feedbackFromAi(ai, lines.map((l) => l.text)) : null;
+  if (!fromAi) return offline;
+  return {
+    source: "ai",
+    stars: fromAi.stars.length ? fromAi.stars : offline.stars,
+    wish: fromAi.wish ?? offline.wish,
+  };
 }

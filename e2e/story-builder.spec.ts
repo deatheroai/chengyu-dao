@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { ADVENTURES } from "../src/story-builder/adventures";
@@ -20,6 +20,15 @@ async function serveStrokeData(page: Page): Promise<void> {
 async function partnerText(page: Page, n: number): Promise<string> {
   const el = n < 0 ? page.locator(".line-partner .line-text").last() : page.locator(".line-partner .line-text").nth(n);
   await expect(el).toBeVisible();
+  return el.evaluate((node) => {
+    const copy = node.cloneNode(true) as HTMLElement;
+    copy.querySelectorAll("rt").forEach((rt) => rt.remove());
+    return copy.textContent ?? "";
+  });
+}
+
+/** Visible text of an element, without pinyin <rt> annotations. */
+async function textOf(el: Locator): Promise<string> {
   return el.evaluate((node) => {
     const copy = node.cloneNode(true) as HTMLElement;
     copy.querySelectorAll("rt").forEach((rt) => rt.remove());
@@ -133,6 +142,17 @@ test("with AI: 团团 starts from the child's idea, nudges, then reacts", async 
         missionDone: done,
         reaction: done ? "哇，我好像听到了！" : "好句子！",
         hint: done ? "" : "它飞的时候有什么声音？",
+        ...(last
+          ? {
+              feedback: {
+                stars: [
+                  { quote: "呼呼呼", why: "我好像听到了风声！" },
+                  { quote: "金色的星星", why: "这是团团写的，不是你写的。" },
+                ],
+                wish: { turn: 2, tip: "“开心”可以换一个词吗？", words: ["开心极了", "笑眯眯", "乐开了花"] },
+              },
+            }
+          : {}),
         next: last
           ? { line: "小狗回家睡觉了。", question: "", hints: { see: [], hear: [], smell: [], touch: [], feel: [], pattern: [] } }
           : { line: `小狗飞到了第${turnCalls}朵云上。`, question: "然后呢？", hints },
@@ -164,13 +184,87 @@ test("with AI: 团团 starts from the child's idea, nudges, then reacts", async 
   expect(turn1.sentence).toBe("小狗飞到天上，呼呼呼。");
   expect(turn1.turnsLeft).toBe(TURNS - 1);
 
+  const more = ["小狗很开心", "小狗笑了起来", "小狗看见星星"];
   for (let t = 1; t < TURNS; t++) {
-    await writeAndSpin(page, "小狗很开心");
+    await writeAndSpin(page, more[t - 1]);
     await page.click("#btn-done");
     await expect(page.locator(".line-child")).toHaveCount(t + 1);
   }
   await expect.poll(() => partnerText(page, -1)).toContain("回家睡觉");
   await expect(page.locator("#end-stars")).toContainText(`${TURNS} / ${TURNS}`);
+  expect(posts.at(-1)!.turnsLeft).toBe(0);
+
+  // 好词卡: the AI's star on the child's own words; a quote the child never wrote is dropped.
+  const card = page.locator("#end-feedback .fb-card");
+  await expect(card).toHaveAttribute("data-source", "ai");
+  await expect(card.locator(".fb-star")).toHaveCount(1);
+  await expect.poll(() => textOf(card.locator(".fb-quote"))).toBe("呼呼呼");
+
+  // No pinyin until a word is tapped, even though the page's 拼音 toggle is on.
+  const word = card.locator(".fb-why .tapword").first();
+  await expect(word.locator("rt").first()).toBeHidden();
+  await word.click();
+  await expect(word.locator("rt").first()).toBeVisible();
+
+  // The wish: the child rewrites their sentence; unchanged isn't accepted.
+  expect(await textOf(card.locator(".fb-wish .fb-sentence"))).toBe("小狗很开心。");
+  await card.locator(".fb-try").click();
+  await card.locator(".fb-save").click();
+  await expect(card.locator(".fb-rewrite .partner-note")).toBeVisible();
+  await card.locator(".fb-input").fill("小狗开心极了");
+  await card.locator(".fb-save").click();
+  await expect(card.locator(".fb-done")).toBeVisible();
+  await expect(page.locator(".line-child").nth(1)).toContainText("小狗开心极了。");
+
+  // Saved with the story: reopening shows the card and the rewrite.
+  await page.click("#btn-again");
+  await page.locator(".library-item").click();
+  await expect(page.locator("#read-flow .line-child").nth(1)).toContainText("小狗开心极了。");
+  await expect(page.locator("#read-feedback .fb-wish.done")).toBeVisible();
+  expect(await textOf(page.locator("#read-feedback .fb-wish .fb-sentence"))).toBe("小狗开心极了。");
+});
+
+test("a saved story from before feedback gets an offline 好词卡", async ({ page }) => {
+  await aiOff(page);
+  // The child's real story from 2026-11-17, saved before the card existed.
+  const petDay = {
+    id: "idea-1",
+    adventureId: "idea",
+    title: "我养宠物的天",
+    savedAt: 1,
+    lines: [
+      { by: "partner", text: "今天早上，团团醒来时，发现一只小兔子坐在我的床边。" },
+      { by: "child", text: "我想一会儿，就叫它小大。我说：“你好。”它叫了一声“咕！”", plain: "我想一会儿，就叫它小大。", mission: "hear", missionDone: true },
+      { by: "partner", text: "小兔子听了，开心地跳了起来。" },
+      { by: "child", text: "小兔看到太阳亮亮的，像火一样亮。", plain: "小兔看到太阳亮亮的。", mission: "pattern", missionDone: true },
+      { by: "partner", text: "小兔眯着眼睛笑，它的小鼻子闻到了香香的味道。" },
+      { by: "child", text: "原来是冰淇淋的味道，它心里觉得软软的。", plain: "原来是冰淇淋的味道。", mission: "feel", missionDone: true },
+      { by: "partner", text: "小兔子抱着团团，一起吃冰淇淋。" },
+    ],
+  };
+  await page.addInitScript((story) => {
+    if (!localStorage.getItem("chengyu-dao:story-builder:library:v1")) {
+      localStorage.setItem("chengyu-dao:story-builder:library:v1", JSON.stringify([story]));
+    }
+  }, petDay);
+  await page.goto("/story-builder.html");
+  await page.locator(".library-item").click();
+
+  const card = page.locator("#read-feedback .fb-card");
+  await expect(card).toHaveAttribute("data-source", "offline");
+  await expect(card.locator(".fb-star")).toHaveCount(2);
+  expect(await textOf(card.locator(".fb-star .fb-quote").nth(1))).toBe("像火一样亮");
+  expect(await textOf(card.locator(".fb-wish .fb-tip"))).toContain("“亮”用了两次");
+  await card.locator(".fb-try").click();
+  await expect(card.locator(".hint-word")).toHaveCount(3);
+  await card.locator(".fb-input").fill("小兔看到太阳金灿灿的，像火一样亮");
+  await card.locator(".fb-save").click();
+  await expect(page.locator("#read-flow .line-child").nth(1)).toContainText("金灿灿的");
+
+  await page.reload();
+  await page.locator(".library-item").click();
+  await expect(page.locator("#read-flow .line-child").nth(1)).toContainText("金灿灿的");
+  await expect(page.locator("#read-feedback .fb-wish.done")).toBeVisible();
 });
 
 test("with AI down mid-story: carries on with the pre-written story", async ({ page }) => {

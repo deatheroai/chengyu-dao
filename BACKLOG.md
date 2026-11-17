@@ -18,14 +18,23 @@ section and `TestAI`'s own `BACKLOG.md` for everything before this point.
 Vocabulary feedback after a story (decided 2026-11-17, see
 `DECISIONS.md`). Built in pieces, top to bottom:
 
-- [ ] `in-progress` — **Feedback data + AI.** `feedback.ts`: the 好词卡
-      shape (2 stars, 1 wish with 💡 words), validation, and an offline
-      builder (words each mission added, a word used twice). The
-      last-turn AI call also returns `feedback`; it's saved on the story.
-- [ ] `in-progress` — **好词卡 on the end screen.** Stars and the wish,
-      tap a word for its pinyin (no pinyin until tapped), 🔊 per line.
+- [x] `done` — **Feedback data + AI (2026-11-17).** `feedback.ts`: the
+      好词卡 shape (2 stars, 1 wish with 💡 words), validation, and an
+      offline card (what each mission added, an everyday word used
+      twice, from `RICHER_WORDS`). The last-turn AI call also returns
+      `feedback`; stars quoting words the child didn't write are dropped,
+      and any missing part is filled from the offline card. Saved on the
+      story (`SavedStory.feedback`).
+- [x] `done` — **好词卡 on the end screen (2026-11-17).**
+      `feedbackCard.ts`: stars and the wish, 🔊 per line, and no pinyin
+      until the child taps a word (words split with `Intl.Segmenter`,
+      pinyin worked out for the whole sentence so 了 reads in context).
       The child rewrites the wish's sentence with 💡 chips → ⭐, and the
-      story is updated. The same card shows on saved stories.
+      story line is updated. Saved stories show the card too; ones saved
+      before this get the offline card.
+- [ ] `todo` — **Try the AI card on real stories.** Check a few live
+      stories once `ANTHROPIC_API_KEY` is on: are the stars specific, is
+      the wish's word choice right for P2–P4, and is it ever grammar?
 - [ ] `todo` — **我的好词本 (good-words book).** Keep words from stars
       and accepted rewrites on the device; offer them as 💡 hints and
       for handwriting practice in later stories.

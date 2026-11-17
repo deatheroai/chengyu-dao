@@ -2,7 +2,9 @@ import { renderRubyText } from "../shared/rubyText";
 import { ADVENTURES, getAdventure, type Adventure } from "./adventures";
 import { finishSentence, isUsableSentence, sensesUsed } from "./expansion";
 import { TURNS, charsToPractise, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
-import { deleteStory, loadLibrary, saveStory, storyText, type SavedStory, type StoryLine } from "./library";
+import { buildFeedback, type FeedbackOut, type StoryFeedback } from "./feedback";
+import { feedbackCard } from "./feedbackCard";
+import { deleteStory, loadLibrary, saveStory, storyText, updateStory, type SavedStory, type StoryLine } from "./library";
 import type { NextBeat, TurnResponse } from "./partnerApi";
 import { partnerEnabled, requestStart, requestTurn } from "./partnerClient";
 import { charPinyin } from "./pinyin";
@@ -160,6 +162,10 @@ interface Game {
   stars: number;
   storyId: string;
   busy: boolean;
+  /** The 好词卡 from the last AI turn, if the AI gave one. */
+  aiFeedback?: FeedbackOut;
+  /** The rendered story lines, in step with `lines`. */
+  lineEls: HTMLLIElement[];
 }
 let game: Game | undefined;
 let wheelAngle = 0;
@@ -211,6 +217,7 @@ function addLine(line: StoryLine, note?: string): void {
     li.querySelector(".bubble")?.prepend(n);
   }
   $("story-flow").append(li);
+  game.lineEls.push(li);
 }
 
 function newGame(title: string, beat: NextBeat, adventure?: Adventure): void {
@@ -224,10 +231,12 @@ function newGame(title: string, beat: NextBeat, adventure?: Adventure): void {
     stars: 0,
     storyId: `${adventure?.id ?? "idea"}-${Date.now()}`,
     busy: false,
+    lineEls: [],
   };
   $("play-title").replaceChildren(adventure ? ruby(`${adventure.emoji} ${adventure.title}`) : ruby(`✏️ ${title}`));
   $("story-flow").replaceChildren();
   $("turn-end").hidden = true;
+  $("end-feedback").replaceChildren();
   show("play");
   addLine({ by: "partner", text: beat.line });
   speak(beat.line);
@@ -418,7 +427,7 @@ async function missionDone(): Promise<void> {
     return;
   }
   if (res.missionDone) {
-    commit(sentence, true, res.reaction, res.next);
+    commit(sentence, true, res.reaction, res.next, res.feedback);
   } else {
     g.pending = res;
     partnerNote(res.hint || res.reaction || "再试一试？");
@@ -431,7 +440,7 @@ async function skipMission(): Promise<void> {
   const raw = sentenceInput().value.trim();
   const sentence = finishSentence(isUsableSentence(raw) ? raw : g.original);
   if (g.pending) {
-    commit(sentence, false, g.pending.reaction, g.pending.next);
+    commit(sentence, false, g.pending.reaction, g.pending.next, g.pending.feedback);
     return;
   }
   if (aiEnabled && g.mission) {
@@ -440,16 +449,17 @@ async function skipMission(): Promise<void> {
     setBusy(false);
     if (game !== g) return;
     if (res) {
-      commit(sentence, res.missionDone, res.reaction, res.next);
+      commit(sentence, res.missionDone, res.reaction, res.next, res.feedback);
       return;
     }
   }
   commit(sentence, false, "好！我们接着写。", scriptedNext(g.adventure, g.done));
 }
 
-function commit(sentence: string, done: boolean, reaction: string, next: NextBeat): void {
+function commit(sentence: string, done: boolean, reaction: string, next: NextBeat, feedback?: FeedbackOut): void {
   if (!game) return;
   const g = game;
+  if (feedback) g.aiFeedback = feedback;
   addLine({ by: "child", text: sentence, plain: finishSentence(g.original), mission: g.mission, missionDone: done });
   if (done) g.stars += 1;
   g.done += 1;
@@ -471,16 +481,47 @@ const practice = createPractice({
 });
 let picked: string[] = [];
 
+/** The child's line a rewrite replaces: the last one with that text. */
+function rewriteLine(lines: StoryLine[], from: string, to: string): number {
+  const i = lines.map((l) => l.by === "child" && l.text === from).lastIndexOf(true);
+  if (i >= 0) lines[i] = { ...lines[i], text: to };
+  return i;
+}
+
 function finishStory(): void {
   if (!game) return;
   const g = game;
-  saveStory({
+  const feedback = buildFeedback(
+    g.aiFeedback,
+    g.lines.filter((l) => l.by === "child"),
+  );
+  const story: SavedStory = {
     id: g.storyId,
     adventureId: g.adventure?.id ?? "idea",
     title: g.title,
     savedAt: Date.now(),
     lines: g.lines,
-  });
+    feedback,
+  };
+  saveStory(story);
+  $("end-feedback").replaceChildren(
+    feedbackCard({
+      feedback,
+      speakButton,
+      onRewrite: (sentence) => {
+        const i = rewriteLine(g.lines, feedback.wish?.sentence ?? "", sentence);
+        if (i >= 0) {
+          const li = lineItem(g.lines[i]);
+          const old = g.lineEls[i];
+          const praise = old.querySelector(".praise");
+          if (praise) li.querySelector(".bubble")?.prepend(praise);
+          old.replaceWith(li);
+          g.lineEls[i] = li;
+        }
+        updateStory(story);
+      },
+    }),
+  );
   $("end-stars").textContent = `你完成了 ${g.stars} / ${TURNS} 个任务 ${"⭐".repeat(g.stars)}`;
 
   picked = [];
@@ -519,6 +560,20 @@ function openSaved(story: SavedStory): void {
   del.textContent = "删除";
   $("read-title").replaceChildren(ruby(`${getAdventure(story.adventureId)?.emoji ?? "✏️"} ${story.title}`));
   $("read-flow").replaceChildren(...story.lines.map((l) => lineItem(l)));
+  const feedback: StoryFeedback =
+    story.feedback ?? buildFeedback(undefined, story.lines.filter((l) => l.by === "child"));
+  $("read-feedback").replaceChildren(
+    feedbackCard({
+      feedback,
+      speakButton,
+      onRewrite: (sentence) => {
+        rewriteLine(story.lines, feedback.wish?.sentence ?? "", sentence);
+        story.feedback = feedback;
+        updateStory(story);
+        $("read-flow").replaceChildren(...story.lines.map((l) => lineItem(l)));
+      },
+    }),
+  );
   show("read");
 }
 
