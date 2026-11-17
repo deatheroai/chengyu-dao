@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
-import { deleteStory, loadLibrary, saveStory, storyText, type SavedStory } from "./library";
+import { deleteStory, loadLibrary, saveStory, storyText, updateStory, type SavedStory } from "./library";
 
 const story = (id: string, savedAt = 1): SavedStory => ({
   id,
@@ -43,5 +43,16 @@ describe("story library", () => {
 
   it("joins the lines into one paragraph", () => {
     expect(storyText(story("a").lines)).toBe("星期六，小明来到了海边。蓝蓝的大海哗哗地响。");
+  });
+
+  it("keeps a valid feedback card, drops a broken one, and updates in place", () => {
+    const feedback = { source: "offline" as const, stars: [{ quote: "哗哗", why: "有声音！" }] };
+    saveStory({ ...story("a"), feedback });
+    saveStory(story("b"));
+    expect(loadLibrary()[1].feedback).toEqual(feedback);
+    updateStory({ ...story("a"), title: "新的", feedback: { ...feedback, stars: [] } });
+    expect(loadLibrary().map((s) => [s.id, s.title])).toEqual([["b", "海边的一天"], ["a", "新的"]]);
+    localStorage.setItem("chengyu-dao:story-builder:library:v1", JSON.stringify([{ ...story("c"), feedback: { source: 1 } }]));
+    expect(loadLibrary()[0]).not.toHaveProperty("feedback");
   });
 });

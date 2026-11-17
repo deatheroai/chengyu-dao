@@ -43,6 +43,14 @@ describe("cleaning responses", () => {
     expect(out?.next.hints.see).toHaveLength(3);
   });
 
+  it("keeps last-turn feedback and leaves it out when absent or broken", () => {
+    const base = { missionDone: true, reaction: "", hint: "", next: { line: "完。", question: "", hints } };
+    const feedback = { stars: [{ quote: "哗啦啦", why: "好像听到了雨声！" }], wish: { turn: 1, tip: "换个词？", words: ["倾盆大雨"] } };
+    expect(cleanTurnResponse({ ...base, feedback })?.feedback).toEqual(feedback);
+    expect(cleanTurnResponse(base)).not.toHaveProperty("feedback");
+    expect(cleanTurnResponse({ ...base, feedback: "oops" })).not.toHaveProperty("feedback");
+  });
+
   it("rejects responses missing required parts", () => {
     expect(cleanTurnResponse({ reaction: "hi" })).toBeNull();
     expect(cleanTurnResponse({ missionDone: true, next: { line: "", question: "", hints } })).toBeNull();
