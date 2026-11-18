@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
-import { deleteStory, loadLibrary, saveStory, storyText, updateStory, type SavedStory } from "./library";
+import { deleteStory, isTestMode, loadLibrary, saveStory, storyText, updateStory, type SavedStory } from "./library";
 
 const story = (id: string, savedAt = 1): SavedStory => ({
   id,
@@ -54,5 +54,21 @@ describe("story library", () => {
     expect(loadLibrary().map((s) => [s.id, s.title])).toEqual([["b", "海边的一天"], ["a", "新的"]]);
     localStorage.setItem("chengyu-dao:story-builder:library:v1", JSON.stringify([{ ...story("c"), feedback: { source: 1 } }]));
     expect(loadLibrary()[0]).not.toHaveProperty("feedback");
+  });
+
+  it("keeps ?test stories in a separate test library", () => {
+    saveStory(story("child"));
+    history.replaceState(null, "", "?test");
+    try {
+      expect(isTestMode()).toBe(true);
+      expect(loadLibrary()).toEqual([]);
+      saveStory(story("trial"));
+      deleteStory("child");
+      expect(loadLibrary().map((s) => s.id)).toEqual(["trial"]);
+    } finally {
+      history.replaceState(null, "", "/");
+    }
+    expect(isTestMode()).toBe(false);
+    expect(loadLibrary().map((s) => s.id)).toEqual(["child"]);
   });
 });

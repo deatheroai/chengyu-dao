@@ -32,6 +32,11 @@ Vocabulary feedback after a story (decided 2026-11-17, see
       The child rewrites the wish's sentence with 💡 chips → ⭐, and the
       story line is updated. Saved stories show the card too; ones saved
       before this get the offline card.
+- [x] `done` — **Test mode (2026-11-18).** `story-builder.html?test`
+      keeps stories in a separate 🧪 测试故事书 (its own storage key), with
+      a strip at the top saying so, so a grown-up can try things without
+      touching the child's saved stories. AI calls still count against
+      the same daily limits and spend.
 - [ ] `todo` — **Try the AI card on real stories.** Check a few live
       stories once `ANTHROPIC_API_KEY` is on: are the stars specific, is
       the wish's word choice right for P2–P4, and is it ever grammar?

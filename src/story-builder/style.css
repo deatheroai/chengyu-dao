@@ -65,6 +65,16 @@ button {
   cursor: pointer;
 }
 
+.test-badge {
+  background: #fff1d6;
+  border: 2px dashed var(--child-edge);
+  border-radius: 12px;
+  padding: 6px 12px;
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .icon-btn {
   border: 2px solid var(--line);
   background: var(--card);
