@@ -4,7 +4,7 @@ import { finishSentence, isUsableSentence, sensesUsed } from "./expansion";
 import { TURNS, charsToPractise, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
 import { buildFeedback, type FeedbackOut, type StoryFeedback } from "./feedback";
 import { feedbackCard } from "./feedbackCard";
-import { deleteStory, loadLibrary, saveStory, storyText, updateStory, type SavedStory, type StoryLine } from "./library";
+import { deleteStory, isTestMode, loadLibrary, saveStory, storyText, updateStory, type SavedStory, type StoryLine } from "./library";
 import type { NextBeat, TurnResponse } from "./partnerApi";
 import { partnerEnabled, requestStart, requestTurn } from "./partnerClient";
 import { charPinyin } from "./pinyin";
@@ -581,6 +581,13 @@ function openSaved(story: SavedStory): void {
 
 function init(): void {
   applyPinyin();
+  if (isTestMode()) {
+    // ?test: a separate story book, so trying things doesn't touch the child's.
+    $("test-badge").hidden = false;
+    $("library-title").textContent = "🧪 测试故事书";
+    $("saved-hint").textContent = "故事已经放进“测试故事书”里了。";
+    document.title = `🧪 ${document.title}`;
+  }
   $("btn-pinyin").addEventListener("click", () => {
     showPinyin = !showPinyin;
     try {

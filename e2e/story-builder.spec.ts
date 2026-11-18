@@ -291,3 +291,23 @@ test("pinyin toggle hides and remembers", async ({ page }) => {
   await page.reload();
   await expect(page.locator(".adventure-title rt").first()).toBeHidden();
 });
+
+test("?test keeps a separate story book", async ({ page }) => {
+  await aiOff(page);
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("chengyu-dao:story-builder:library:v1")) {
+      localStorage.setItem(
+        "chengyu-dao:story-builder:library:v1",
+        JSON.stringify([{ id: "child-1", adventureId: "idea", title: "孩子的故事", savedAt: 1, lines: [{ by: "partner", text: "从前。" }] }]),
+      );
+    }
+  });
+  await page.goto("/story-builder.html?test");
+  await expect(page.locator("#test-badge")).toBeVisible();
+  await expect(page.locator("#library")).toBeHidden();
+
+  await page.goto("/story-builder.html");
+  await expect(page.locator("#test-badge")).toBeHidden();
+  await expect(page.locator(".library-item")).toHaveCount(1);
+  await expect(page.locator("#library-title")).toHaveText("📚 我的故事书");
+});

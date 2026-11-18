@@ -25,6 +25,20 @@ export interface SavedStory {
 }
 
 const KEY = "chengyu-dao:story-builder:library:v1";
+const TEST_KEY = `${KEY}:test`;
+
+/** True when the page was opened with ?test: stories then go to a
+ * separate test library, so a grown-up can try things without
+ * touching the child's saved stories. */
+export function isTestMode(): boolean {
+  try {
+    return new URLSearchParams(globalThis.location?.search ?? "").has("test");
+  } catch {
+    return false;
+  }
+}
+
+const libraryKey = () => (isTestMode() ? TEST_KEY : KEY);
 const MAX_STORIES = 30;
 
 function storage(): Storage | undefined {
@@ -55,7 +69,7 @@ function isStory(x: unknown): x is SavedStory {
 /** Saved stories, newest first. Bad or missing data reads as empty. */
 export function loadLibrary(): SavedStory[] {
   try {
-    const raw = storage()?.getItem(KEY);
+    const raw = storage()?.getItem(libraryKey());
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -73,7 +87,7 @@ export function loadLibrary(): SavedStory[] {
 export function saveStory(story: SavedStory): SavedStory[] {
   const next = [story, ...loadLibrary().filter((s) => s.id !== story.id)].slice(0, MAX_STORIES);
   try {
-    storage()?.setItem(KEY, JSON.stringify(next));
+    storage()?.setItem(libraryKey(), JSON.stringify(next));
   } catch {
     /* storage full or blocked: the story still shows on screen */
   }
@@ -84,7 +98,7 @@ export function saveStory(story: SavedStory): SavedStory[] {
 export function updateStory(story: SavedStory): SavedStory[] {
   const next = loadLibrary().map((s) => (s.id === story.id ? story : s));
   try {
-    storage()?.setItem(KEY, JSON.stringify(next));
+    storage()?.setItem(libraryKey(), JSON.stringify(next));
   } catch {
     /* ignore */
   }
@@ -94,7 +108,7 @@ export function updateStory(story: SavedStory): SavedStory[] {
 export function deleteStory(id: string): SavedStory[] {
   const next = loadLibrary().filter((s) => s.id !== id);
   try {
-    storage()?.setItem(KEY, JSON.stringify(next));
+    storage()?.setItem(libraryKey(), JSON.stringify(next));
   } catch {
     /* ignore */
   }

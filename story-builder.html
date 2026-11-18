@@ -16,6 +16,7 @@
         <h1>🐼 一起编故事</h1>
         <button class="pill-toggle" id="btn-pinyin" type="button" aria-pressed="true">拼音</button>
       </header>
+      <p class="test-badge" id="test-badge" hidden>🧪 测试模式：这里写的故事放在测试故事书里，不会影响孩子的故事。</p>
 
       <!-- Home: choose an adventure, or open a saved story -->
       <section id="view-home" class="view">
@@ -30,7 +31,7 @@
           <p class="hint" id="idea-hint" aria-live="polite"></p>
         </form>
         <div class="library" id="library" hidden>
-          <h2>📚 我的故事书</h2>
+          <h2 id="library-title">📚 我的故事书</h2>
           <ul class="library-list" id="library-list"></ul>
         </div>
       </section>
@@ -80,7 +81,7 @@
             <button class="btn" id="btn-read-all" type="button">🔊 读整个故事</button>
             <button class="btn btn-primary" id="btn-again" type="button">再编一个</button>
           </div>
-          <p class="hint">故事已经放进“我的故事书”里了。</p>
+          <p class="hint" id="saved-hint">故事已经放进“我的故事书”里了。</p>
           <div id="end-feedback"></div>
 
           <div class="practise" id="practise">
