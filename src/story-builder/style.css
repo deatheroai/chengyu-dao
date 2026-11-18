@@ -31,7 +31,8 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-body.no-pinyin rt {
+/* The 拼音 toggle leaves the 好词卡's tap-to-see words alone. */
+body.no-pinyin :not(.tapword) > ruby > rt {
   display: none;
 }
 
@@ -760,10 +761,8 @@ textarea:focus {
   border-bottom-color: var(--accent);
 }
 
-.fb-card .tapword rt {
+/* Only hide, never set a display to show: older Safari doesn't know
+   `display: ruby-text`, drops it, and the pinyin stayed hidden. */
+.fb-card .tapword:not(.show) rt {
   display: none;
-}
-
-.fb-card .tapword.show rt {
-  display: ruby-text;
 }

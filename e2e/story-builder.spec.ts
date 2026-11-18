@@ -205,6 +205,11 @@ test("with AI: 团团 starts from the child's idea, nudges, then reacts", async 
   await expect(word.locator("rt").first()).toBeHidden();
   await word.click();
   await expect(word.locator("rt").first()).toBeVisible();
+  // The page's 拼音 toggle hides the story's pinyin but not a tapped word's.
+  await page.click("#btn-pinyin");
+  await expect(page.locator(".line-child rt").first()).toBeHidden();
+  await expect(word.locator("rt").first()).toBeVisible();
+  await page.click("#btn-pinyin");
 
   // The wish: the child rewrites their sentence; unchanged isn't accepted.
   expect(await textOf(card.locator(".fb-wish .fb-sentence"))).toBe("小狗很开心。");
