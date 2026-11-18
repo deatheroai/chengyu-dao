@@ -1,3 +1,4 @@
+import { cleanStoryFeedback, type StoryFeedback } from "./feedback";
 import type { SenseId } from "./senses";
 
 /** One line of a finished story: who wrote it and, for the child's
@@ -18,6 +19,9 @@ export interface SavedStory {
   title: string;
   savedAt: number;
   lines: StoryLine[];
+  /** The 好词卡 shown at the end. Older stories have none: the page
+   * builds one offline for them. */
+  feedback?: StoryFeedback;
 }
 
 const KEY = "chengyu-dao:story-builder:library:v1";
@@ -54,7 +58,12 @@ export function loadLibrary(): SavedStory[] {
     const raw = storage()?.getItem(KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isStory) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isStory).map((s) => {
+      const feedback = cleanStoryFeedback(s.feedback);
+      const { feedback: _drop, ...rest } = s;
+      return feedback ? { ...rest, feedback } : rest;
+    });
   } catch {
     return [];
   }
@@ -67,6 +76,17 @@ export function saveStory(story: SavedStory): SavedStory[] {
     storage()?.setItem(KEY, JSON.stringify(next));
   } catch {
     /* storage full or blocked: the story still shows on screen */
+  }
+  return next;
+}
+
+/** Replaces a saved story in place (keeps its spot in the list). */
+export function updateStory(story: SavedStory): SavedStory[] {
+  const next = loadLibrary().map((s) => (s.id === story.id ? story : s));
+  try {
+    storage()?.setItem(KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
   }
   return next;
 }

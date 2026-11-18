@@ -1,9 +1,11 @@
 import type { SenseId } from "./senses";
+// .js extension: the serverless function loads this file unbundled (see tsconfig.api.json).
+import { cleanFeedbackOut, type FeedbackOut } from "./feedback.js";
 
 /**
  * The contract between the story page and api/story-partner.ts (the
  * AI 团团). Shared by both sides; no DOM and no runtime imports, so the
- * serverless function can load it as-is.
+ * serverless function can load it as-is (feedback.ts is the same).
  */
 
 export const PARTNER_SENSES = ["see", "hear", "smell", "touch", "feel", "pattern"] as const satisfies readonly SenseId[];
@@ -55,6 +57,8 @@ export interface TurnResponse {
   /** When the mission isn't done yet: a nudge (a question, not the answer). */
   hint: string;
   next: NextBeat;
+  /** Last turn only: the 好词卡 vocabulary feedback for the whole story. */
+  feedback?: FeedbackOut;
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null;
@@ -108,7 +112,14 @@ export function cleanTurnResponse(x: unknown): TurnResponse | null {
   const next = cleanNextBeat(x.next);
   if (!next) return null;
   const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
-  return { missionDone: x.missionDone, reaction: str(x.reaction, 80), hint: str(x.hint, 80), next };
+  const feedback = x.feedback === undefined ? null : cleanFeedbackOut(x.feedback);
+  return {
+    missionDone: x.missionDone,
+    reaction: str(x.reaction, 80),
+    hint: str(x.hint, 80),
+    next,
+    ...(feedback ? { feedback } : {}),
+  };
 }
 
 export function cleanStartResponse(x: unknown): StartResponse | null {

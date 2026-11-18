@@ -68,6 +68,11 @@ const turnSchema = z.object({
   hint: z.string(),
   next: nextSchema,
 });
+const feedbackSchema = z.object({
+  stars: z.array(z.object({ quote: z.string(), why: z.string() })),
+  wish: z.object({ turn: z.number().int(), tip: z.string(), words: z.array(z.string()) }),
+});
+const lastTurnSchema = turnSchema.extend({ feedback: feedbackSchema });
 
 const NEXT_INSTRUCTIONS = `"next": your next story line ("line"), a short question asking the child what happens next ("question", at most 15 characters), and "hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that fit the new scene, to inspire the child (for pattern, short similes like 像一团棉花).`;
 
@@ -84,6 +89,7 @@ function turnPrompt(req: TurnRequest): string {
     req.turnsLeft === 0
       ? `This was the child's last turn. In "next", "line" is a happy ending to the story (1–2 sentences), "question" is "" and every hint list is [].`
       : `The child has ${req.turnsLeft} more turn(s) after this one. ${NEXT_INSTRUCTIONS}`;
+  const feedback = req.turnsLeft === 0 ? `\n${feedbackInstructions(req)}` : "";
   return `<story_so_far>
 ${story}
 </story_so_far>
@@ -99,7 +105,26 @@ Return:
 "reaction": one short, warm sentence (at most 20 characters) reacting to the specific words they added, e.g. "噼里啪啦！我好像听到雨声了！". If missionDone is false, react kindly to their sentence instead.
 "hint": if missionDone is false, one short question (at most 20 characters) that nudges them toward the mission without giving the answer; otherwise "".
 ${ending}
-Continue the story from the improved sentence.`;
+Continue the story from the improved sentence.${feedback}`;
+}
+
+/** The child's own sentences, numbered, for the end-of-story feedback. */
+function childSentences(req: TurnRequest): string[] {
+  return [...req.story.filter((l) => l.by === "child").map((l) => l.text), req.sentence];
+}
+
+function feedbackInstructions(req: TurnRequest): string {
+  const numbered = childSentences(req)
+    .map((t, i) => `${i + 1}. ${t}`)
+    .join("\n");
+  return `
+The story is finished, so also return "feedback": vocabulary feedback for the child on their own sentences, written in simple Simplified Chinese a Primary 2–4 pupil can read. The child's sentences:
+<child_sentences>
+${numbered}
+</child_sentences>
+"stars": exactly 2 items, each about a different good word choice. "quote": a word or short phrase copied exactly, character for character, from one of the child's sentences (at most 10 characters). Prefer words the child thought of themselves over words 团团 used first. "why": one warm sentence (at most 20 characters) saying why it works, e.g. "让我好像听到了小兔的声音！".
+"wish": one sentence that could be richer. "turn": its number above. "tip": one short, friendly sentence (at most 25 characters) pointing at one plain or repeated word in it and inviting the child to change it, as a question or invitation; never write the improved sentence for them. "words": exactly 3 richer words or phrases (at most 6 characters each) that could replace that word in this sentence.
+Vocabulary only: no comments on grammar, punctuation or spelling. A creative or unusual word choice is not a mistake.`;
 }
 
 function json(body: unknown, status: number): Response {
@@ -256,7 +281,7 @@ export default {
         const clean = r.out && r.out !== "refused" ? cleanStartResponse(r.out) : null;
         return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);
       }
-      const r = await ask(client, turnPrompt(req), turnSchema);
+      const r = await ask(client, turnPrompt(req), req.turnsLeft === 0 ? lastTurnSchema : turnSchema);
       await recordUsage("turn", req.turnsLeft === 0, r);
       const clean = r.out && r.out !== "refused" ? cleanTurnResponse(r.out) : null;
       return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);
