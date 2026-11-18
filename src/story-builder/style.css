@@ -582,7 +582,6 @@ textarea:focus {
   margin: 8px 0 0;
 }
 
-.char-pick,
 .char-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -590,7 +589,6 @@ textarea:focus {
   margin: 8px 0 12px;
 }
 
-.char-chip,
 .char-tab {
   width: 48px;
   height: 48px;
@@ -601,10 +599,130 @@ textarea:focus {
   font-family: "KaiTi", "STKaiti", "Kaiti SC", serif;
 }
 
-.char-chip[aria-pressed="true"],
 .char-tab[aria-selected="true"] {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+.char-tab {
+  position: relative;
+}
+
+/* A character 团团 has learned this round. */
+.char-tab.learned::after {
+  content: "✓";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--good);
+  color: #fff;
+  font: 700 0.75rem/20px system-ui, sans-serif;
+}
+
+/* ---------- 教团团写字 ---------- */
+
+.tuan-says {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0;
+  width: 100%;
+  max-width: 420px;
+}
+
+.tuan-face {
+  font-size: 2.2rem;
+  line-height: 1;
+  flex: none;
+}
+
+.tuan-bubble {
+  position: relative;
+  margin: 0;
+  flex: 1;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  text-align: left;
+}
+
+.tuan-bubble::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 12px;
+  border: 8px solid transparent;
+  border-right-color: var(--line);
+  border-left: 0;
+}
+
+.teach-words {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.teach-word {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.teach-word.learned {
+  border-color: var(--good);
+}
+
+.teach-char {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed #e7a7a0;
+  border-radius: 8px;
+  font-size: 2rem;
+  font-family: "KaiTi", "STKaiti", "Kaiti SC", serif;
+}
+
+.teach-word.learned .teach-char::after {
+  content: "✓";
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  color: var(--good);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.teach-context {
+  line-height: 2;
+  min-width: 0;
+}
+
+.teach-context .hit {
+  color: var(--accent);
+  font-weight: 700;
+  background: var(--accent-soft);
+  border-radius: 4px;
+}
+
+.tuan-bubble.feedback {
+  text-align: left;
+}
+
+.teach-count {
+  text-align: center;
 }
 
 .practise-pad {
