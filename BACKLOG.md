@@ -45,6 +45,17 @@ Vocabulary feedback after a story (decided 2026-11-17, see
       each in her sentence, and asks her to teach him. A clean 自己写 means
       he learned it (✓, next character); taught characters are kept on
       the device and counted.
+- [x] `done` — **请爸爸妈妈写 + 团团's three choices (2026-11-20).**
+      Once per story the child can tap 🙋 请爸爸妈妈写这一句 and a parent
+      writes that turn (no wheel or mission; shown in a purple bubble
+      with pinyin; never used for the 好词卡, stars or 教团团写字). After
+      the first turn (`CHOICE_AFTER_TURN` in `flow.ts`), 团团 offers three
+      ways the story could go and the child taps one: the AI returns
+      `alternatives` when asked with `choices: true`; offline, each
+      adventure's second beat has two pre-written `choices`.
+- [ ] `todo` — **Try 团团's choices on real stories.** Check a few live
+      stories: are the three AI ideas really different, and does the
+      story carry on well from the one picked?
 - [ ] `todo` — **What 团团 learned, later.** Use the taught list: a
       "团团学会的字" page, and 团团 proudly using a taught character in
       his next story line.

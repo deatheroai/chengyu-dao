@@ -4,7 +4,8 @@ import type { SenseId } from "./senses";
 /** One line of a finished story: who wrote it and, for the child's
  * lines, how it grew in the five-senses step. */
 export interface StoryLine {
-  by: "partner" | "child";
+  /** "parent": the one turn a grown-up wrote (请爸爸妈妈写). */
+  by: "partner" | "child" | "parent";
   text: string;
   /** Child lines only: the sentence before the mission. */
   plain?: string;
@@ -51,7 +52,7 @@ function storage(): Storage | undefined {
 
 function isLine(x: unknown): x is StoryLine {
   const l = x as StoryLine;
-  return !!l && (l.by === "partner" || l.by === "child") && typeof l.text === "string";
+  return !!l && (l.by === "partner" || l.by === "child" || l.by === "parent") && typeof l.text === "string";
 }
 
 function isStory(x: unknown): x is SavedStory {

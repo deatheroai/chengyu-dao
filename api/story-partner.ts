@@ -32,7 +32,7 @@ const MODEL = "claude-haiku-5-5";
 const IP_DAILY_LIMIT = 150;
 const TOTAL_DAILY_LIMIT = 1500;
 
-const MISSION_DESCRIPTIONS: Record<TurnRequest["mission"], string> = {
+const MISSION_DESCRIPTIONS: Record<NonNullable<TurnRequest["mission"]>, string> = {
   see: "看到 — what something looks like: colour, shape, size, light",
   hear: "听到 — a sound, e.g. an onomatopoeia like 哗啦啦 or a described sound",
   smell: "闻到 — a smell",
@@ -73,6 +73,9 @@ const feedbackSchema = z.object({
   wish: z.object({ turn: z.number().int(), tip: z.string(), words: z.array(z.string()) }),
 });
 const lastTurnSchema = turnSchema.extend({ feedback: feedbackSchema });
+const choiceTurnSchema = turnSchema.extend({ alternatives: z.array(nextSchema) });
+
+const WRITER_LABELS = { partner: "团团", child: "孩子", parent: "爸爸妈妈" } as const;
 
 const NEXT_INSTRUCTIONS = `"next": your next story line ("line"), a short question asking the child what happens next ("question", at most 15 characters), and "hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that fit the new scene, to inspire the child (for pattern, short similes like 像一团棉花).`;
 
@@ -84,19 +87,37 @@ Write the opening. ${NEXT_INSTRUCTIONS}`;
 }
 
 function turnPrompt(req: TurnRequest): string {
-  const story = req.story.map((l) => `${l.by === "partner" ? "团团" : "孩子"}：${l.text}`).join("\n");
+  const story = req.story.map((l) => `${WRITER_LABELS[l.by]}：${l.text}`).join("\n");
   const ending =
     req.turnsLeft === 0
       ? `This was the child's last turn. In "next", "line" is a happy ending to the story (1–2 sentences), "question" is "" and every hint list is [].`
       : `The child has ${req.turnsLeft} more turn(s) after this one. ${NEXT_INSTRUCTIONS}`;
-  const feedback = req.turnsLeft === 0 ? `\n${feedbackInstructions(req)}` : "";
+  const feedback = req.turnsLeft === 0 && childSentences(req).length ? `\n${feedbackInstructions(req)}` : "";
+  const choices = req.choices
+    ? `\n"alternatives": exactly 2 more objects shaped like "next", each a clearly different way the story could go from here (e.g. if "next" has friends singing a birthday song, the others might have them playing catch, or climbing up to a tree house to explore). The child will pick one of the three, so make all three fun and each lead somewhere new.`
+    : "";
+  if (req.writer === "parent") {
+    return `<story_so_far>
+${story}
+</story_so_far>
+
+For this one turn, the child asked their parent to write the sentence instead. The parent wrote:
+<parent_sentence>${req.sentence}</parent_sentence>
+
+Return:
+"missionDone": false (there is no mission on a parent's turn).
+"reaction": one short, playful sentence (at most 20 characters) cheering that 爸爸妈妈 joined the story, reacting to what they wrote, e.g. "哇，爸爸妈妈也是写故事高手！".
+"hint": "".
+${ending}
+Continue the story from the parent's sentence.${choices}${feedback}`;
+  }
   return `<story_so_far>
 ${story}
 </story_so_far>
 
 The child wrote this sentence:
 <original>${req.original}</original>
-Then they were given a mission to add: ${MISSION_DESCRIPTIONS[req.mission]}
+Then they were given a mission to add: ${MISSION_DESCRIPTIONS[req.mission ?? "see"]}
 Their improved sentence:
 <improved>${req.sentence}</improved>
 
@@ -105,12 +126,13 @@ Return:
 "reaction": one short, warm sentence (at most 20 characters) reacting to the specific words they added, e.g. "噼里啪啦！我好像听到雨声了！". If missionDone is false, react kindly to their sentence instead.
 "hint": if missionDone is false, one short question (at most 20 characters) that nudges them toward the mission without giving the answer; otherwise "".
 ${ending}
-Continue the story from the improved sentence.${feedback}`;
+Continue the story from the improved sentence.${choices}${feedback}`;
 }
 
-/** The child's own sentences, numbered, for the end-of-story feedback. */
+/** The child's own sentences (never a parent's), numbered, for the end-of-story feedback. */
 function childSentences(req: TurnRequest): string[] {
-  return [...req.story.filter((l) => l.by === "child").map((l) => l.text), req.sentence];
+  const own = req.story.filter((l) => l.by === "child").map((l) => l.text);
+  return req.writer === "parent" ? own : [...own, req.sentence];
 }
 
 function feedbackInstructions(req: TurnRequest): string {
@@ -281,7 +303,8 @@ export default {
         const clean = r.out && r.out !== "refused" ? cleanStartResponse(r.out) : null;
         return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);
       }
-      const r = await ask(client, turnPrompt(req), req.turnsLeft === 0 ? lastTurnSchema : turnSchema);
+      const schema = req.turnsLeft === 0 ? lastTurnSchema : req.choices ? choiceTurnSchema : turnSchema;
+      const r = await ask<z.infer<typeof turnSchema>>(client, turnPrompt(req), schema);
       await recordUsage("turn", req.turnsLeft === 0, r);
       const clean = r.out && r.out !== "refused" ? cleanTurnResponse(r.out) : null;
       return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);

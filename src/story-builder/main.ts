@@ -1,7 +1,7 @@
 import { renderRubyText } from "../shared/rubyText";
 import { ADVENTURES, getAdventure, type Adventure } from "./adventures";
 import { finishSentence, isUsableSentence, sensesUsed } from "./expansion";
-import { TURNS, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
+import { TURNS, isChoiceTurn, openingBeat, pickMission, scriptedChoices, scriptedNext, shuffled, wheelRotation } from "./flow";
 import { buildFeedback, type FeedbackOut, type StoryFeedback } from "./feedback";
 import { feedbackCard } from "./feedbackCard";
 import { deleteStory, isTestMode, loadLibrary, saveStory, storyText, updateStory, type SavedStory, type StoryLine } from "./library";
@@ -167,7 +167,21 @@ interface Game {
   aiFeedback?: FeedbackOut;
   /** The rendered story lines, in step with `lines`. */
   lineEls: HTMLLIElement[];
+  /** This turn is being written by a parent (请爸爸妈妈写). */
+  byParent: boolean;
+  /** The parent turn has been used: once per story. */
+  parentUsed: boolean;
 }
+
+/** What 团团 says after a turn: the next beat, and other ways the story
+ * could go when this is the turn where the child picks. */
+interface Outcome {
+  next: NextBeat;
+  alternatives?: NextBeat[];
+  feedback?: FeedbackOut;
+}
+
+const PARENT_CHEER = "哇，爸爸妈妈也是写故事高手！";
 let game: Game | undefined;
 let wheelAngle = 0;
 
@@ -178,10 +192,11 @@ function lineItem(line: StoryLine): HTMLLIElement {
   li.className = `line line-${line.by}`;
   const who = document.createElement("span");
   who.className = "who";
-  who.textContent = line.by === "partner" ? "🐼" : "🧒";
+  who.textContent = line.by === "partner" ? "🐼" : line.by === "parent" ? "👨‍👩‍👧" : "🧒";
   const bubble = document.createElement("div");
   bubble.className = "bubble";
-  if (line.by === "partner") {
+  if (line.by !== "child") {
+    // 团团's and a parent's lines get pinyin: the child reads them.
     bubble.append(ruby(line.text, "line-text"));
   } else {
     const text = document.createElement("span");
@@ -233,10 +248,13 @@ function newGame(title: string, beat: NextBeat, adventure?: Adventure): void {
     storyId: `${adventure?.id ?? "idea"}-${Date.now()}`,
     busy: false,
     lineEls: [],
+    byParent: false,
+    parentUsed: false,
   };
   $("play-title").replaceChildren(adventure ? ruby(`${adventure.emoji} ${adventure.title}`) : ruby(`✏️ ${title}`));
   $("story-flow").replaceChildren();
   $("turn-end").hidden = true;
+  $("choice").hidden = true;
   $("end-feedback").replaceChildren();
   show("play");
   addLine({ by: "partner", text: beat.line });
@@ -278,6 +296,8 @@ function openTurn(): void {
   input.readOnly = false;
   $("turn-hint").textContent = "";
   $("btn-written").hidden = false;
+  $<HTMLButtonElement>("btn-written").disabled = false;
+  setWriter(false);
   $("spin-area").hidden = true;
   $("mission").hidden = true;
   g.mission = undefined;
@@ -288,10 +308,14 @@ function openTurn(): void {
 
 /** Phase 2: the sentence is written; spin for a mission. */
 function finishWriting(): void {
-  if (!game) return;
+  if (!game || game.busy) return;
   const text = sentenceInput().value.trim();
   if (!isUsableSentence(text)) {
     $("turn-hint").textContent = text ? "再多写几个字吧！" : "先写一句话吧！";
+    return;
+  }
+  if (game.byParent) {
+    void parentWrote(text);
     return;
   }
   game.original = text;
@@ -385,11 +409,56 @@ function turnRequest(sentence: string) {
   const g = game!;
   return {
     story: g.lines.map((l) => ({ by: l.by, text: l.text })),
+    ...(g.byParent ? { writer: "parent" as const } : { mission: g.mission! }),
     original: finishSentence(g.original),
     sentence,
-    mission: g.mission!,
     turnsLeft: TURNS - g.done - 1,
+    ...(isChoiceTurn(g.done) ? { choices: true } : {}),
   };
+}
+
+/** The pre-written outcome of this turn, when AI is off or fails. */
+function scriptedOutcome(g: Game): Outcome {
+  if (!isChoiceTurn(g.done)) return { next: scriptedNext(g.adventure, g.done) };
+  const [next, ...alternatives] = scriptedChoices(g.adventure, g.done);
+  return { next, alternatives };
+}
+
+/** Switches the write step between the child and a parent. */
+function setWriter(byParent: boolean): void {
+  if (!game) return;
+  game.byParent = byParent;
+  $("turn").classList.toggle("by-parent", byParent);
+  $("turn-who").textContent = byParent ? "👨‍👩‍👧 请爸爸妈妈写一句" : "✏️ 轮到你了";
+  sentenceInput().placeholder = byParent ? "爸爸妈妈写一句……" : "写一句话……";
+  const btn = $("btn-parent");
+  btn.hidden = game.parentUsed;
+  btn.textContent = byParent ? "↩ 还是我自己写" : "🙋 请爸爸妈妈写这一句";
+  $("parent-note").hidden = game.parentUsed || byParent;
+  $("turn-hint").textContent = "";
+}
+
+/** A parent wrote this turn: no mission, 团团 cheers and carries on. */
+async function parentWrote(text: string): Promise<void> {
+  if (!game) return;
+  const g = game;
+  g.original = text;
+  g.mission = undefined;
+  const sentence = finishSentence(text);
+  if (!aiEnabled) {
+    commit(sentence, false, PARENT_CHEER, scriptedOutcome(g));
+    return;
+  }
+  g.busy = true;
+  $<HTMLButtonElement>("btn-written").disabled = true;
+  $<HTMLButtonElement>("btn-parent").disabled = true;
+  sentenceInput().readOnly = true;
+  $("turn-hint").textContent = "🐼 团团在读爸爸妈妈的句子……";
+  const res = await requestTurn(turnRequest(sentence));
+  g.busy = false;
+  $<HTMLButtonElement>("btn-parent").disabled = false;
+  if (game !== g) return;
+  commit(sentence, false, res?.reaction || PARENT_CHEER, res ?? scriptedOutcome(g));
 }
 
 function partnerNote(text: string): void {
@@ -414,7 +483,7 @@ async function missionDone(): Promise<void> {
       partnerNote(`先把${sense.label}的东西加进你的句子里吧！`);
       return;
     }
-    commit(sentence, true, "句子变得更生动了！", scriptedNext(g.adventure, g.done));
+    commit(sentence, true, "句子变得更生动了！", scriptedOutcome(g));
     return;
   }
 
@@ -424,11 +493,11 @@ async function missionDone(): Promise<void> {
   if (game !== g) return;
   if (!res) {
     // AI unavailable mid-story: trust the child and carry on with the script.
-    commit(sentence, raw !== g.original, "好！我们接着写。", scriptedNext(g.adventure, g.done));
+    commit(sentence, raw !== g.original, "好！我们接着写。", scriptedOutcome(g));
     return;
   }
   if (res.missionDone) {
-    commit(sentence, true, res.reaction, res.next, res.feedback);
+    commit(sentence, true, res.reaction, res);
   } else {
     g.pending = res;
     partnerNote(res.hint || res.reaction || "再试一试？");
@@ -441,7 +510,7 @@ async function skipMission(): Promise<void> {
   const raw = sentenceInput().value.trim();
   const sentence = finishSentence(isUsableSentence(raw) ? raw : g.original);
   if (g.pending) {
-    commit(sentence, false, g.pending.reaction, g.pending.next, g.pending.feedback);
+    commit(sentence, false, g.pending.reaction, g.pending);
     return;
   }
   if (aiEnabled && g.mission) {
@@ -450,26 +519,74 @@ async function skipMission(): Promise<void> {
     setBusy(false);
     if (game !== g) return;
     if (res) {
-      commit(sentence, res.missionDone, res.reaction, res.next, res.feedback);
+      commit(sentence, res.missionDone, res.reaction, res);
       return;
     }
   }
-  commit(sentence, false, "好！我们接着写。", scriptedNext(g.adventure, g.done));
+  commit(sentence, false, "好！我们接着写。", scriptedOutcome(g));
 }
 
-function commit(sentence: string, done: boolean, reaction: string, next: NextBeat, feedback?: FeedbackOut): void {
+function commit(sentence: string, done: boolean, reaction: string, outcome: Outcome): void {
   if (!game) return;
   const g = game;
-  if (feedback) g.aiFeedback = feedback;
-  addLine({ by: "child", text: sentence, plain: finishSentence(g.original), mission: g.mission, missionDone: done });
+  if (outcome.feedback) g.aiFeedback = outcome.feedback;
+  if (g.byParent) {
+    g.parentUsed = true;
+    addLine({ by: "parent", text: sentence });
+  } else {
+    addLine({ by: "child", text: sentence, plain: finishSentence(g.original), mission: g.mission, missionDone: done });
+  }
   if (done) g.stars += 1;
+  const finished = g.done;
   g.done += 1;
-  g.beat = next;
   $("turn").hidden = true;
+  const alternatives = outcome.alternatives ?? [];
+  if (isChoiceTurn(finished) && alternatives.length) {
+    offerChoices(shuffled([outcome.next, ...alternatives]), reaction);
+  } else {
+    continueWith(outcome.next, reaction);
+  }
+}
+
+/** 团团 writes `next` and the story moves on (or ends). */
+function continueWith(next: NextBeat, reaction: string): void {
+  if (!game) return;
+  const g = game;
+  g.beat = next;
   addLine({ by: "partner", text: next.line }, reaction);
   speak(next.line);
   if (g.done >= TURNS) finishStory();
   else openTurn();
+}
+
+/** 团团 offers three ways the story could go; the child taps one. */
+function offerChoices(choices: NextBeat[], reaction: string): void {
+  const g = game!;
+  $("choice-reaction").textContent = reaction ? `🐼 ${reaction}` : "";
+  $("choice-reaction").hidden = !reaction;
+  $("choice-list").replaceChildren(
+    ...choices.map((c, i) => {
+      const li = document.createElement("li");
+      li.className = "choice-row";
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "choice-option";
+      const letter = document.createElement("span");
+      letter.className = "choice-letter";
+      letter.textContent = "ABC"[i] ?? "";
+      b.append(letter, ruby(c.line));
+      b.addEventListener("click", () => {
+        if (game !== g) return;
+        $("choice").hidden = true;
+        continueWith(c, reaction);
+      });
+      li.append(b, speakButton(c.line));
+      return li;
+    }),
+  );
+  $("choice").hidden = false;
+  speak("团团想了三个点子，你选哪一个？");
+  $("choice").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 const practice = createPractice({
@@ -553,7 +670,8 @@ function finishStory(): void {
       },
     }),
   );
-  $("end-stars").textContent = `你完成了 ${g.stars} / ${TURNS} 个任务 ${"⭐".repeat(g.stars)}`;
+  const missions = g.lines.filter((l) => l.by === "child").length;
+  $("end-stars").textContent = `你完成了 ${g.stars} / ${missions} 个任务 ${"⭐".repeat(g.stars)}`;
 
   practice.stop();
   $("practise-pad-wrap").hidden = true;
@@ -630,6 +748,7 @@ function init(): void {
   wireMic($<HTMLButtonElement>("btn-mic"), input);
   input.addEventListener("input", () => ($("turn-hint").textContent = ""));
   $("btn-written").addEventListener("click", finishWriting);
+  $("btn-parent").addEventListener("click", () => game && !game.busy && setWriter(!game.byParent));
   $("btn-spin").addEventListener("click", spin);
   $("btn-hint").addEventListener("click", () => {
     $("hint-words").hidden = !$("hint-words").hidden;

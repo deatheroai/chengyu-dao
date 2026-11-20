@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ADVENTURES } from "./adventures";
-import { TURNS, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
+import { TURNS, isChoiceTurn, openingBeat, pickMission, scriptedChoices, scriptedNext, shuffled, wheelRotation } from "./flow";
 import { SENSE_IDS } from "./senses";
 
 const adventure = ADVENTURES[0];
@@ -51,5 +51,34 @@ describe("wheelRotation", () => {
       expect((((i * 60 + next) % 360) + 360) % 360).toBe(0);
       angle = next;
     }
+  });
+});
+
+describe("团团's choices", () => {
+  it("happens once, in the middle of the story", () => {
+    const turns = Array.from({ length: TURNS }, (_, t) => t).filter(isChoiceTurn);
+    expect(turns).toHaveLength(1);
+    expect(turns[0] + 1).toBeLessThan(TURNS);
+  });
+
+  it("offers three different pre-written ways for every adventure, sharing the beat's hints", () => {
+    const t = Array.from({ length: TURNS }, (_, i) => i).find(isChoiceTurn)!;
+    for (const a of ADVENTURES) {
+      const choices = scriptedChoices(a, t);
+      expect(choices).toHaveLength(3);
+      expect(choices[0]).toEqual(scriptedNext(a, t));
+      expect(new Set(choices.map((c) => c.line)).size).toBe(3);
+      for (const c of choices) {
+        expect(c.question).not.toBe("");
+        expect(c.hints).toEqual(choices[0].hints);
+      }
+    }
+    expect(scriptedChoices(undefined, t)).toHaveLength(3);
+  });
+
+  it("shuffles without losing or adding anything", () => {
+    const items = ["a", "b", "c"];
+    for (const r of [0, 0.5, 0.99]) expect(shuffled(items, () => r).sort()).toEqual(items);
+    expect(items).toEqual(["a", "b", "c"]);
   });
 });

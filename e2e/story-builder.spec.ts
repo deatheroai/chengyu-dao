@@ -59,6 +59,16 @@ async function writePerfectly(page: Page, padSelector: string): Promise<void> {
   }
 }
 
+/** Taps the one of 团团's three choices that contains `text`. */
+async function pickChoice(page: Page, text: string): Promise<void> {
+  const options = page.locator(".choice-option");
+  await expect(options).toHaveCount(3);
+  for (let i = 0; i < 3; i++) {
+    if ((await textOf(options.nth(i))).includes(text)) return options.nth(i).click();
+  }
+  throw new Error(`no choice with ${text}`);
+}
+
 async function aiOff(page: Page): Promise<void> {
   await page.route("**/api/story-partner", (route) => route.fulfill({ json: { enabled: false } }));
 }
@@ -105,6 +115,13 @@ test("without AI: write, spin a mission, finish the story and practise character
   await expect(page.locator(".line-child").first()).toContainText("雨很大，哗啦啦。");
   await expect(page.locator(".line-child .line-before").first()).toContainText("原来：雨很大。");
   await expect(page.locator(".line-child .line-meta").first()).toContainText("⭐");
+
+  // 团团 offers three ways the story could go; the child picks one.
+  await expect(page.locator("#choice")).toBeVisible();
+  await expect(page.locator("#turn")).toBeHidden();
+  await expect(page.locator(".choice-option")).toHaveCount(3);
+  await pickChoice(page, adventure.beats[1].partner);
+  await expect(page.locator("#choice")).toBeHidden();
   expect(await partnerText(page, 1)).toContain(adventure.beats[1].partner.slice(0, 4));
 
   // Turn 2: skip the mission (no star).
@@ -319,7 +336,70 @@ test("with AI down mid-story: carries on with the pre-written story", async ({ p
   await page.keyboard.type("，滴答滴答");
   await page.click("#btn-done");
   await expect(page.locator(".line-child")).toHaveCount(1);
-  expect(await partnerText(page, 1)).toContain(adventure.beats[1].partner.slice(0, 4));
+  // The pre-written choices stand in for the AI's.
+  await expect(page.locator(".choice-option")).toHaveCount(3);
+  await pickChoice(page, adventure.beats[1].choices![0].partner);
+  expect(await partnerText(page, 1)).toContain(adventure.beats[1].choices![0].partner.slice(0, 4));
+  expect(await textOf(page.locator("#turn-prompt"))).toContain(adventure.beats[1].choices![0].prompt);
+});
+
+test("a parent writes one turn, and the child picks which way 团团's story goes", async ({ page }) => {
+  const posts: Record<string, unknown>[] = [];
+  await page.route("**/api/story-partner", async (route) => {
+    const req = route.request();
+    if (req.method() === "GET") return route.fulfill({ json: { enabled: true } });
+    const body = req.postDataJSON() as Record<string, unknown>;
+    posts.push(body);
+    const last = body.turnsLeft === 0;
+    const beat = (line: string) => ({ line, question: "然后呢？", hints });
+    return route.fulfill({
+      json: {
+        missionDone: body.writer !== "parent",
+        reaction: body.writer === "parent" ? "爸爸妈妈写得真好！" : "好棒！",
+        hint: "",
+        next: last ? { line: "大家开开心心地回家了。", question: "", hints: { see: [], hear: [], smell: [], touch: [], feel: [], pattern: [] } } : beat("朋友们围在一起唱生日歌。"),
+        ...(body.choices ? { alternatives: [beat("朋友们跑来跑去玩捉人游戏。"), beat("朋友们爬上树屋去探险。")] } : {}),
+      },
+    });
+  });
+  await page.goto("/story-builder.html");
+  await page.locator(`[data-adventure="${adventure.id}"]`).click();
+
+  // Turn 1: the parent writes it. No wheel, no mission.
+  await expect(page.locator("#btn-parent")).toBeVisible();
+  await page.click("#btn-parent");
+  await expect(page.locator("#turn-who")).toContainText("爸爸妈妈");
+  await page.fill("#sentence", "咪咪的妈妈拿来一把小伞");
+  await page.click("#btn-written");
+  await expect(page.locator(".line-parent")).toHaveCount(1);
+  expect(await textOf(page.locator(".line-parent .line-text"))).toBe("咪咪的妈妈拿来一把小伞。");
+  expect(posts[0]).toMatchObject({ writer: "parent", sentence: "咪咪的妈妈拿来一把小伞。", choices: true });
+  expect(posts[0]).not.toHaveProperty("mission");
+
+  // 团团's three ideas; the child picks the tree house.
+  await expect(page.locator("#choice-reaction")).toContainText("爸爸妈妈写得真好");
+  await expect(page.locator(".choice-option")).toHaveCount(3);
+  await pickChoice(page, "树屋");
+  expect(await partnerText(page, 1)).toBe("朋友们爬上树屋去探险。");
+
+  // Only once per story: the button is gone for the rest of it.
+  await expect(page.locator("#turn")).toBeVisible();
+  await expect(page.locator("#btn-parent")).toBeHidden();
+  await expect(page.locator("#turn-who")).toContainText("轮到你了");
+  for (let t = 1; t < TURNS; t++) {
+    await writeAndSpin(page, ["大家一起爬上去", "树屋里有好多书"][t - 1]);
+    await page.click("#btn-done");
+    await expect(page.locator(".line-child")).toHaveCount(t);
+  }
+  await expect(page.locator("#choice")).toBeHidden();
+  expect(posts.slice(1).every((p) => !p.choices && p.mission)).toBe(true);
+  expect((posts.at(-1)!.story as { by: string }[]).some((l) => l.by === "parent")).toBe(true);
+  await expect(page.locator("#end-stars")).toContainText(`${TURNS - 1} / ${TURNS - 1}`);
+
+  // Saved with the parent's line.
+  await page.click("#btn-again");
+  await page.locator(".library-item").click();
+  await expect(page.locator("#read-flow .line-parent")).toHaveCount(1);
 });
 
 test("pinyin toggle hides and remembers", async ({ page }) => {
