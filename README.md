@@ -65,8 +65,14 @@ mission, typing it themselves. 💡提示 shows a few example words as
 inspiration only; nothing is inserted into their text. Each finished
 mission earns ⭐. After 3 turns (`TURNS` in `src/story-builder/flow.ts`)
 the story ends, is saved to 我的故事书 (`localStorage`, this device only),
-and the child can practise writing 1–3 characters from their own
-sentences (stroke data from hanzi-writer-data on jsDelivr).
+and 团团 asks the child to **teach him to write** three characters from
+their own sentences (教团团写字, `src/story-builder/teach.ts`). The child
+doesn't choose: 团团 picks words the 好词卡 starred or the child added in
+a mission, skips everyday characters and ones he already learned, and
+shows each in its sentence. Showing the stroke order, tracing, then
+writing it alone with no wrong strokes means 团团 "learns" it and moves
+on; the characters he has learned are kept on the device. Stroke data
+comes from hanzi-writer-data on jsDelivr.
 
 **AI partner (optional).** With `ANTHROPIC_API_KEY` set in Vercel,
 `api/story-partner.ts` uses Claude Haiku 5.5 to judge each mission

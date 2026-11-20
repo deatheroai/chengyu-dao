@@ -2,7 +2,6 @@ import type { Adventure, Beat } from "./adventures";
 import { wordsFor } from "./expansion";
 import type { NextBeat } from "./partnerApi";
 import { SENSE_IDS, type SenseId } from "./senses";
-import type { StoryLine } from "./library";
 
 /** Child turns per story. Start short; raise it as stories grow. */
 export const TURNS = 3;
@@ -72,13 +71,4 @@ export function wheelRotation(current: number, index: number, slots = SENSE_IDS.
   let next = base + target + 3 * 360;
   if (next - current < 3 * 360) next += 360;
   return next;
-}
-
-/** Characters from the child's own sentences, in order, without repeats. */
-export function charsToPractise(lines: StoryLine[]): string[] {
-  const chars = lines
-    .filter((l) => l.by === "child")
-    .flatMap((l) => Array.from(l.text))
-    .filter((c) => /\p{Script=Han}/u.test(c));
-  return [...new Set(chars)];
 }

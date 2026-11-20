@@ -5,7 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#eef6ff" />
-    <meta name="description" content="一起编故事：write a story together with 团团 the panda, spin a mission to make each sentence richer, then practise writing your own characters." />
+    <meta name="description" content="一起编故事：write a story together with 团团 the panda, spin a mission to make each sentence richer, then teach 团团 to write characters from your story." />
     <title>一起编故事</title>
     <link rel="stylesheet" href="/src/story-builder/style.css" />
   </head>
@@ -84,21 +84,30 @@
           <p class="hint" id="saved-hint">故事已经放进“我的故事书”里了。</p>
           <div id="end-feedback"></div>
 
-          <div class="practise" id="practise">
-            <h3>✍️ 练一练你故事里的字</h3>
-            <p class="hint">选 1～3 个你想学会写的字：</p>
-            <div class="char-pick" id="char-pick"></div>
-            <button class="btn btn-primary" id="btn-practise" type="button" disabled>开始练字</button>
+          <div class="practise teach" id="practise">
+            <h3>✍️ 教团团写字</h3>
+            <div class="tuan-says">
+              <span class="tuan-face" aria-hidden="true">🐼</span>
+              <p class="tuan-bubble" id="teach-ask">你的故事里有几个字我还不会写，你能教教我吗？</p>
+            </div>
+            <ul class="teach-words" id="teach-words"></ul>
+            <div class="actions center">
+              <button class="btn btn-primary" id="btn-practise" type="button">好，我来教你！</button>
+            </div>
             <div class="practise-pad" id="practise-pad-wrap" hidden>
               <div class="char-tabs" id="char-tabs" role="tablist"></div>
               <div class="tianzige" id="practise-pad"></div>
-              <p class="feedback" id="practise-feedback" aria-live="polite"></p>
+              <div class="tuan-says">
+                <span class="tuan-face" aria-hidden="true">🐼</span>
+                <p class="tuan-bubble feedback" id="practise-feedback" aria-live="polite"></p>
+              </div>
               <div class="actions center">
-                <button class="btn" id="btn-animate" type="button">👀 看笔顺</button>
+                <button class="btn" id="btn-animate" type="button">👀 写给团团看</button>
                 <button class="btn" id="btn-trace" type="button">✏️ 描一描</button>
                 <button class="btn" id="btn-free" type="button">✍️ 自己写</button>
               </div>
             </div>
+            <p class="hint teach-count" id="teach-count" hidden></p>
           </div>
         </div>
       </section>

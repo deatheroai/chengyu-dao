@@ -1,7 +1,7 @@
 import { renderRubyText } from "../shared/rubyText";
 import { ADVENTURES, getAdventure, type Adventure } from "./adventures";
 import { finishSentence, isUsableSentence, sensesUsed } from "./expansion";
-import { TURNS, charsToPractise, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
+import { TURNS, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
 import { buildFeedback, type FeedbackOut, type StoryFeedback } from "./feedback";
 import { feedbackCard } from "./feedbackCard";
 import { deleteStory, isTestMode, loadLibrary, saveStory, storyText, updateStory, type SavedStory, type StoryLine } from "./library";
@@ -10,6 +10,7 @@ import { partnerEnabled, requestStart, requestTurn } from "./partnerClient";
 import { charPinyin } from "./pinyin";
 import { createPractice } from "./practice";
 import { SENSES, SENSE_IDS, getSense, type SenseId } from "./senses";
+import { loadTaught, pickCharsToTeach, saveTaught } from "./teach";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
@@ -478,8 +479,38 @@ const practice = createPractice({
   animate: $<HTMLButtonElement>("btn-animate"),
   trace: $<HTMLButtonElement>("btn-trace"),
   free: $<HTMLButtonElement>("btn-free"),
+},
+{
+  onLearned: (char) => {
+    const n = saveTaught(char).length;
+    const count = $("teach-count");
+    count.textContent = `团团已经跟你学会了 ${n} 个字。`;
+    count.hidden = false;
+    $(`teach-words`).querySelector(`[data-char="${char}"]`)?.classList.add("learned");
+  },
 });
 let picked: string[] = [];
+
+/** The child's sentence with `char` picked out, pinyin above it. */
+function teachWord(char: string, sentence: string): HTMLLIElement {
+  const li = document.createElement("li");
+  li.className = "teach-word";
+  li.dataset.char = char;
+  const big = document.createElement("span");
+  big.className = "teach-char";
+  big.textContent = char;
+  const ctx = document.createElement("span");
+  ctx.className = "teach-context";
+  const py = charPinyin(sentence);
+  Array.from(sentence).forEach((c, i) => {
+    const part = document.createElement("span");
+    if (c === char) part.className = "hit";
+    renderRubyText(part, c, [py[i] ?? ""]);
+    ctx.append(part);
+  });
+  li.append(big, ctx);
+  return li;
+}
 
 /** The child's line a rewrite replaces: the last one with that text. */
 function rewriteLine(lines: StoryLine[], from: string, to: string): number {
@@ -524,28 +555,14 @@ function finishStory(): void {
   );
   $("end-stars").textContent = `你完成了 ${g.stars} / ${TURNS} 个任务 ${"⭐".repeat(g.stars)}`;
 
-  picked = [];
   practice.stop();
   $("practise-pad-wrap").hidden = true;
-  $<HTMLButtonElement>("btn-practise").disabled = true;
-  $("char-pick").replaceChildren(
-    ...charsToPractise(g.lines).map((c) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "char-chip";
-      b.textContent = c;
-      b.dataset.char = c;
-      b.setAttribute("aria-pressed", "false");
-      b.addEventListener("click", () => {
-        const on = picked.includes(c);
-        if (!on && picked.length >= 3) return;
-        picked = on ? picked.filter((x) => x !== c) : [...picked, c];
-        b.setAttribute("aria-pressed", String(!on));
-        $<HTMLButtonElement>("btn-practise").disabled = picked.length === 0;
-      });
-      return b;
-    }),
-  );
+  $("teach-count").hidden = true;
+  const picks = pickCharsToTeach(g.lines, feedback, new Set(loadTaught()));
+  picked = picks.map((p) => p.char);
+  $("practise").hidden = picks.length === 0;
+  $<HTMLButtonElement>("btn-practise").hidden = false;
+  $("teach-words").replaceChildren(...picks.map((p) => teachWord(p.char, p.sentence)));
   $("turn-end").hidden = false;
   $("turn-end").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -628,6 +645,7 @@ function init(): void {
   });
   $("btn-practise").addEventListener("click", () => {
     if (!picked.length) return;
+    $<HTMLButtonElement>("btn-practise").hidden = true;
     $("practise-pad-wrap").hidden = false;
     practice.start(picked);
     $("practise-pad-wrap").scrollIntoView({ behavior: "smooth", block: "nearest" });

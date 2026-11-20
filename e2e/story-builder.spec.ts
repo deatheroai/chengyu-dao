@@ -36,6 +36,29 @@ async function textOf(el: Locator): Promise<string> {
   });
 }
 
+/** Writes the character on the pad stroke by stroke, along its medians. */
+async function writePerfectly(page: Page, padSelector: string): Promise<void> {
+  const pad = page.locator(padSelector);
+  const char = (await pad.getAttribute("data-char"))!;
+  const size = Number(await pad.getAttribute("data-size"));
+  const padding = Number(await pad.getAttribute("data-padding"));
+  const data = JSON.parse(readFileSync(require.resolve(`hanzi-writer-data/${char}.json`), "utf8")) as { medians: number[][][] };
+  await expect(pad.locator("svg")).toBeVisible();
+  const box = (await pad.locator("svg").boundingBox())!;
+  const scale = (size - 2 * padding) / 1024;
+  const toScreen = ([ix, iy]: number[]) => ({
+    x: box.x + padding + ix * scale,
+    y: box.y + size - (padding + 124 * scale) - iy * scale,
+  });
+  for (const median of data.medians) {
+    const pts = median.map(toScreen);
+    await page.mouse.move(pts[0].x, pts[0].y);
+    await page.mouse.down();
+    for (const p of pts.slice(1)) await page.mouse.move(p.x, p.y, { steps: 3 });
+    await page.mouse.up();
+  }
+}
+
 async function aiOff(page: Page): Promise<void> {
   await page.route("**/api/story-partner", (route) => route.fulfill({ json: { enabled: false } }));
 }
@@ -100,17 +123,30 @@ test("without AI: write, spin a mission, finish the story and practise character
   await expect(page.locator("#turn-end")).toBeVisible();
   await expect(page.locator("#end-stars")).toContainText(`2 / ${TURNS}`);
 
-  // Handwriting: pick characters from the child's own sentences.
-  await expect(page.locator('.char-chip[data-char="雨"]')).toBeVisible();
-  await expect(page.locator('.char-chip[data-char="团"]')).toHaveCount(0);
-  await page.locator('.char-chip[data-char="雨"]').click();
-  await page.locator('.char-chip[data-char="鸟"]').click();
+  // 教团团写字: 团团 asks about three characters from the child's own
+  // sentences, favouring ones added in a mission over everyday ones.
+  const words = page.locator(".teach-word");
+  await expect(words).toHaveCount(3);
+  const picks = await words.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.char!));
+  const childText = "雨很大，哗啦啦。咪咪跳进水坑。原来是一只小鸟，冷得发抖。";
+  for (const c of picks) expect(childText).toContain(c);
+  expect(picks).toContain("哗");
+  expect(picks).not.toContain("是");
   await page.click("#btn-practise");
-  await expect(page.locator(".char-tab")).toHaveCount(2);
+  await expect(page.locator("#btn-practise")).toBeHidden();
+  await expect(page.locator(".char-tab")).toHaveCount(3);
   await expect(page.locator("#practise-pad svg")).toBeVisible();
-  await expect(page.locator("#practise-pad")).toHaveAttribute("data-char", "雨");
-  await page.locator(".char-tab").nth(1).click();
-  await expect(page.locator("#practise-pad")).toHaveAttribute("data-char", "鸟");
+  await expect(page.locator("#practise-pad")).toHaveAttribute("data-char", picks[0]);
+  await expect(page.locator("#practise-feedback")).toContainText("怎么写");
+
+  // Writing it alone with no mistakes teaches 团团, and the pad moves on.
+  await page.click("#btn-free");
+  await writePerfectly(page, "#practise-pad");
+  await expect(page.locator("#practise-feedback")).toContainText(`我学会「${picks[0]}」啦`);
+  await expect(page.locator(".char-tab").first()).toHaveClass(/learned/);
+  await expect(page.locator(`.teach-word[data-char="${picks[0]}"]`)).toHaveClass(/learned/);
+  await expect(page.locator("#teach-count")).toContainText("学会了 1 个字");
+  await expect(page.locator("#practise-pad")).toHaveAttribute("data-char", picks[1]);
 
   // Saved to the story book; opens again; deletes with two taps.
   await page.click("#btn-again");

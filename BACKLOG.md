@@ -37,6 +37,17 @@ Vocabulary feedback after a story (decided 2026-11-17, see
       a strip at the top saying so, so a grown-up can try things without
       touching the child's saved stories. AI calls still count against
       the same daily limits and spend.
+- [x] `done` — **教团团写字 replaces the character picker (2026-11-18).**
+      The end-of-story picker showed every character the child typed
+      (often 30+ tiles, 的/我/了 included) and she didn't pick any. Now
+      团团 picks three (starred / mission-added words first, everyday and
+      already-taught characters last, spread over different words), shows
+      each in her sentence, and asks her to teach him. A clean 自己写 means
+      he learned it (✓, next character); taught characters are kept on
+      the device and counted.
+- [ ] `todo` — **What 团团 learned, later.** Use the taught list: a
+      "团团学会的字" page, and 团团 proudly using a taught character in
+      his next story line.
 - [ ] `todo` — **Try the AI card on real stories.** Check a few live
       stories once `ANTHROPIC_API_KEY` is on: are the stars specific, is
       the wish's word choice right for P2–P4, and is it ever grammar?

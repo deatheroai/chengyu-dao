@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ADVENTURES } from "./adventures";
-import { TURNS, charsToPractise, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
+import { TURNS, openingBeat, pickMission, scriptedNext, wheelRotation } from "./flow";
 import { SENSE_IDS } from "./senses";
 
 const adventure = ADVENTURES[0];
@@ -51,16 +51,5 @@ describe("wheelRotation", () => {
       expect((((i * 60 + next) % 360) + 360) % 360).toBe(0);
       angle = next;
     }
-  });
-});
-
-describe("charsToPractise", () => {
-  it("takes the child's characters only, in order, without repeats", () => {
-    const chars = charsToPractise([
-      { by: "partner", text: "下雨了。" },
-      { by: "child", text: "雨点滴答滴答。" },
-      { by: "child", text: "小猫笑了！" },
-    ]);
-    expect(chars).toEqual(["雨", "点", "滴", "答", "小", "猫", "笑", "了"]);
   });
 });
