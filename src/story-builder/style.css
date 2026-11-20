@@ -7,6 +7,8 @@
   --accent-soft: #dcebfa;
   --child: #fff1d6;
   --child-edge: #f2c46b;
+  --parent: #f0e8ff;
+  --parent-edge: #b79be6;
   --line: #d9e3ee;
   --good: #2f9a5b;
   --star: #e8a21e;
@@ -883,4 +885,79 @@ textarea:focus {
    `display: ruby-text`, drops it, and the pinyin stayed hidden. */
 .fb-card .tapword:not(.show) rt {
   display: none;
+}
+
+/* ---- a grown-up's turn (请爸爸妈妈写) ---- */
+.line-parent {
+  flex-direction: row-reverse;
+}
+
+.line-parent .bubble {
+  background: var(--parent);
+  border-color: var(--parent-edge);
+}
+
+.write-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+
+.parent-note {
+  margin-top: 0;
+}
+
+.turn-card.by-parent {
+  border-color: var(--parent-edge);
+}
+
+.turn-card.by-parent .turn-label {
+  color: var(--ink);
+}
+
+/* ---- 团团's three choices ---- */
+.choice-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.choice-row {
+  position: relative;
+}
+
+.choice-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 2;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  padding: 10px 44px 10px 14px;
+  cursor: pointer;
+}
+
+.choice-option:hover,
+.choice-option:focus-visible {
+  border-color: var(--accent);
+}
+
+.choice-letter {
+  font-weight: 700;
+  color: var(--accent);
+  margin-right: 6px;
+}
+
+.choice-note {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  color: var(--good);
+  line-height: 1.4;
 }

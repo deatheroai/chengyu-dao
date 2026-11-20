@@ -28,6 +28,21 @@ describe("parsePartnerRequest", () => {
     expect(parsePartnerRequest({ ...turn, sentence: "长".repeat(121) })).toEqual({ error: "invalid-sentence" });
     expect(parsePartnerRequest({ ...turn, mission: "taste" })).toEqual({ error: "invalid-mission" });
     expect(parsePartnerRequest({ ...turn, turnsLeft: -1 })).toEqual({ error: "invalid-turns" });
+    expect(parsePartnerRequest({ ...turn, writer: "teacher" })).toEqual({ error: "invalid-writer" });
+  });
+
+  it("accepts a parent's turn without a mission, and parent lines in the story", () => {
+    const { mission: _m, ...noMission } = turn;
+    const parent = { ...noMission, writer: "parent", story: [...turn.story, { by: "parent", text: "小猫笑了。" }] };
+    expect(parsePartnerRequest(parent)).toEqual(parent);
+    expect(parsePartnerRequest({ ...parent, mission: "hear" })).not.toHaveProperty("mission");
+    expect(parsePartnerRequest(noMission)).toEqual({ error: "invalid-mission" });
+  });
+
+  it("keeps a request for choices only while the story goes on", () => {
+    expect(parsePartnerRequest({ ...turn, choices: true })).toEqual({ ...turn, choices: true });
+    expect(parsePartnerRequest({ ...turn, choices: true, turnsLeft: 0 })).not.toHaveProperty("choices");
+    expect(parsePartnerRequest({ ...turn, choices: "yes" })).not.toHaveProperty("choices");
   });
 });
 
@@ -41,6 +56,20 @@ describe("cleaning responses", () => {
     });
     expect(out?.reaction).toBe("我听到雨声了！");
     expect(out?.next.hints.see).toHaveLength(3);
+  });
+
+  it("keeps up to two usable alternatives", () => {
+    const next = { line: "大家唱生日歌。", question: "然后呢？", hints };
+    const alt = (line: string) => ({ line, question: "然后呢？", hints });
+    const out = cleanTurnResponse({
+      missionDone: true,
+      reaction: "",
+      hint: "",
+      next,
+      alternatives: [alt("大家玩捉人游戏。"), "oops", alt("大家唱生日歌。"), alt("大家爬上树屋。"), alt("第四个")],
+    });
+    expect(out?.alternatives?.map((a) => a.line)).toEqual(["大家玩捉人游戏。", "大家爬上树屋。"]);
+    expect(cleanTurnResponse({ missionDone: true, reaction: "", hint: "", next })).not.toHaveProperty("alternatives");
   });
 
   it("keeps last-turn feedback and leaves it out when absent or broken", () => {

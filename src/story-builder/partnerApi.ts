@@ -14,7 +14,8 @@ export const PARTNER_SENSES = ["see", "hear", "smell", "touch", "feel", "pattern
 export const LIMITS = { text: 120, idea: 60, lines: 16 } as const;
 
 export interface StoryLineIn {
-  by: "partner" | "child";
+  /** "parent": the one turn a grown-up wrote for the child. */
+  by: "partner" | "child" | "parent";
   text: string;
 }
 
@@ -35,13 +36,18 @@ export interface StartRequest {
 export interface TurnRequest {
   action: "turn";
   story: StoryLineIn[];
-  /** The child's sentence before the mission. */
+  /** Who wrote this turn. A parent's turn has no mission. Default child. */
+  writer?: "child" | "parent";
+  /** The sentence before the mission (the same as `sentence` for a parent). */
   original: string;
-  /** The child's sentence after the mission. */
+  /** The sentence after the mission. */
   sentence: string;
-  mission: SenseId;
-  /** Child turns still to come after this one; 0 means write the ending. */
+  /** The child's mission; absent on a parent's turn. */
+  mission?: SenseId;
+  /** Turns still to come after this one; 0 means write the ending. */
   turnsLeft: number;
+  /** Also return two other ways the story could go (see `alternatives`). */
+  choices?: boolean;
 }
 
 export type PartnerRequest = StartRequest | TurnRequest;
@@ -57,6 +63,9 @@ export interface TurnResponse {
   /** When the mission isn't done yet: a nudge (a question, not the answer). */
   hint: string;
   next: NextBeat;
+  /** When the request asked for choices: two other next beats, so the
+   * child can pick which of three ways the story goes. */
+  alternatives?: NextBeat[];
   /** Last turn only: the 好词卡 vocabulary feedback for the whole story. */
   feedback?: FeedbackOut;
 }
@@ -72,19 +81,32 @@ export function parsePartnerRequest(body: unknown): PartnerRequest | { error: st
     return isText(body.idea, LIMITS.idea) ? { action: "start", idea: body.idea.trim() } : { error: "invalid-idea" };
   }
   if (body.action === "turn") {
-    const { story, original, sentence, mission, turnsLeft } = body;
+    const { story, original, sentence, mission, turnsLeft, writer, choices } = body;
+    if (writer !== undefined && writer !== "child" && writer !== "parent") return { error: "invalid-writer" };
     if (!Array.isArray(story) || story.length === 0 || story.length > LIMITS.lines) return { error: "invalid-story" };
     const lines: StoryLineIn[] = [];
     for (const l of story) {
-      if (!isObj(l) || (l.by !== "partner" && l.by !== "child") || !isText(l.text, LIMITS.text)) return { error: "invalid-story" };
+      if (!isObj(l) || (l.by !== "partner" && l.by !== "child" && l.by !== "parent") || !isText(l.text, LIMITS.text)) {
+        return { error: "invalid-story" };
+      }
       lines.push({ by: l.by, text: l.text.trim() });
     }
     if (!isText(original, LIMITS.text) || !isText(sentence, LIMITS.text)) return { error: "invalid-sentence" };
-    if (!isSense(mission)) return { error: "invalid-mission" };
+    const byParent = writer === "parent";
+    if (!byParent && !isSense(mission)) return { error: "invalid-mission" };
     if (typeof turnsLeft !== "number" || !Number.isInteger(turnsLeft) || turnsLeft < 0 || turnsLeft > 10) {
       return { error: "invalid-turns" };
     }
-    return { action: "turn", story: lines, original: original.trim(), sentence: sentence.trim(), mission, turnsLeft };
+    return {
+      action: "turn",
+      story: lines,
+      ...(byParent ? { writer: "parent" as const } : {}),
+      original: original.trim(),
+      sentence: sentence.trim(),
+      ...(byParent ? {} : { mission: mission as SenseId }),
+      turnsLeft,
+      ...(choices === true && turnsLeft > 0 ? { choices: true } : {}),
+    };
   }
   return { error: "invalid-action" };
 }
@@ -113,11 +135,18 @@ export function cleanTurnResponse(x: unknown): TurnResponse | null {
   if (!next) return null;
   const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
   const feedback = x.feedback === undefined ? null : cleanFeedbackOut(x.feedback);
+  const alternatives = Array.isArray(x.alternatives)
+    ? x.alternatives
+        .map(cleanNextBeat)
+        .filter((b): b is NextBeat => b !== null && b.question !== "" && b.line !== next.line)
+        .slice(0, 2)
+    : [];
   return {
     missionDone: x.missionDone,
     reaction: str(x.reaction, 80),
     hint: str(x.hint, 80),
     next,
+    ...(alternatives.length ? { alternatives } : {}),
     ...(feedback ? { feedback } : {}),
   };
 }

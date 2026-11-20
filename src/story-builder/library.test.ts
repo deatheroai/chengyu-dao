@@ -24,6 +24,13 @@ describe("story library", () => {
     expect(loadLibrary().map((s) => s.id)).toEqual(["a"]);
   });
 
+  it("keeps a parent's line", () => {
+    const s = story("p");
+    s.lines.push({ by: "parent", text: "小明的爸爸也跳进了海里。" });
+    saveStory(s);
+    expect(loadLibrary()[0].lines.at(-1)).toEqual({ by: "parent", text: "小明的爸爸也跳进了海里。" });
+  });
+
   it("saves newest first, replaces by id and deletes", () => {
     saveStory(story("a"));
     saveStory(story("b"));

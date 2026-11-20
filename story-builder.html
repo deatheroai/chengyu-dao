@@ -42,14 +42,18 @@
         <ol class="story-flow" id="story-flow" aria-live="polite"></ol>
 
         <div class="turn-card" id="turn" hidden>
-          <p class="turn-label">✏️ 轮到你了 <span class="turn-count" id="turn-count"></span></p>
+          <p class="turn-label"><span id="turn-who">✏️ 轮到你了</span> <span class="turn-count" id="turn-count"></span></p>
           <p class="turn-prompt" id="turn-prompt"></p>
           <div class="input-wrap">
             <textarea id="sentence" rows="2" placeholder="写一句话……" lang="zh-Hans" autocomplete="off"></textarea>
             <button class="icon-btn mic" id="btn-mic" type="button" aria-label="说一说" hidden>🎤</button>
           </div>
           <p class="hint" id="turn-hint" aria-live="polite"></p>
-          <button class="btn btn-primary" id="btn-written" type="button">写好了 →</button>
+          <div class="write-actions">
+            <button class="btn btn-primary" id="btn-written" type="button">写好了 →</button>
+            <button class="link-btn parent-btn" id="btn-parent" type="button">🙋 请爸爸妈妈写这一句</button>
+          </div>
+          <p class="hint parent-note" id="parent-note">每个故事只能请爸爸妈妈帮忙一次哦！</p>
 
           <div class="spin-area" id="spin-area" hidden>
             <div class="wheel-wrap">
@@ -71,6 +75,13 @@
               <button class="btn btn-primary" id="btn-done" type="button">完成任务 ✓</button>
             </div>
           </div>
+        </div>
+
+        <!-- 团团 offers three ways the story could go; the child picks one -->
+        <div class="turn-card choice-card" id="choice" hidden>
+          <p class="choice-note" id="choice-reaction"></p>
+          <p class="turn-label">🐼 团团想了三个点子，你选哪一个？</p>
+          <ul class="choice-list" id="choice-list"></ul>
         </div>
 
         <!-- The end -->

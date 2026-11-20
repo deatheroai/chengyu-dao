@@ -15,6 +15,12 @@ export interface Beat {
   words: Partial<Record<SenseId, string[]>>;
   /** A short "plain → richer" example sentence for this scene. */
   example: { plain: string; rich: string };
+  /**
+   * Other ways 团团 could write this beat, for the turn where the child
+   * picks which way the story goes (see `CHOICE_AFTER_TURN` in flow.ts).
+   * Each must still lead into the next beat. Hints come from this beat.
+   */
+  choices?: { partner: string; prompt: string }[];
 }
 
 export interface Adventure {
@@ -50,6 +56,10 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "咪咪穿上小雨靴，打开门，跑到了院子里。",
         prompt: "咪咪在院子里做了什么？",
+        choices: [
+          { partner: "咪咪撑起一把小红伞，慢慢地走进了花园。", prompt: "花园里是什么样子的？" },
+          { partner: "咪咪在门口发现了一个又大又圆的水坑。", prompt: "咪咪对着水坑做了什么？" },
+        ],
         starters: ["咪咪踩着", "她跳进", "院子里"],
         words: {
           see: ["一个个小水坑", "绿油油的草地"],
@@ -109,6 +119,10 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "乐乐把耳朵贴在盒子上，好像听到了什么。",
         prompt: "盒子里有什么声音？乐乐觉得怎么样？",
+        choices: [
+          { partner: "乐乐轻轻地摇了摇盒子，里面好像有东西在动！", prompt: "盒子里的东西是怎么动的？" },
+          { partner: "乐乐发现盒子上贴着一张小纸条，上面写着字。", prompt: "纸条上写了什么？" },
+        ],
         starters: ["盒子里传来", "乐乐吓了一跳", "她小心地"],
         words: {
           hear: ["咚咚咚", "嘀嘀嗒嗒", "沙沙沙", "轻轻的歌声"],
@@ -166,6 +180,10 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "小明脱了鞋子，跑到沙滩上玩。",
         prompt: "小明在沙滩上玩什么？",
+        choices: [
+          { partner: "小明提着小桶，跑到海水边去捡贝壳。", prompt: "小明捡到了什么样的贝壳？" },
+          { partner: "小明和爸爸在沙滩上比赛跑步。", prompt: "比赛的时候发生了什么？" },
+        ],
         starters: ["小明用沙子", "他蹲下来", "小明捡到"],
         words: {
           see: ["一座高高的城堡", "五颜六色的贝壳", "一只横着走的小螃蟹"],

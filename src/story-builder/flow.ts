@@ -3,8 +3,19 @@ import { wordsFor } from "./expansion";
 import type { NextBeat } from "./partnerApi";
 import { SENSE_IDS, type SenseId } from "./senses";
 
-/** Child turns per story. Start short; raise it as stories grow. */
+/** Turns per story. Start short; raise it as stories grow. */
 export const TURNS = 3;
+
+/**
+ * After this turn (0-based), 团团 offers three ways the story could go
+ * and the child picks one, instead of 团团 just writing the next line.
+ * The middle of the story: never the opening, never the ending.
+ */
+export const CHOICE_AFTER_TURN = 0;
+
+/** True when 团团's next line, after turn `finishedTurn`, is a choice. */
+export const isChoiceTurn = (finishedTurn: number): boolean =>
+  finishedTurn === CHOICE_AFTER_TURN && finishedTurn + 1 < TURNS;
 
 function beatToNext(beat: Beat): NextBeat {
   const hints = {} as Record<SenseId, string[]>;
@@ -51,6 +62,33 @@ export function scriptedNext(adventure: Adventure | undefined, finishedTurn: num
   }
   const beat = adventure?.beats[finishedTurn + 1] ?? GENERIC_BEATS[finishedTurn % GENERIC_BEATS.length];
   return beatToNext(beat);
+}
+
+/** Other ways a child's own story can go when AI is unavailable. */
+const GENERIC_CHOICES: { partner: string; prompt: string }[] = [
+  { partner: "这时候，来了一个新朋友。", prompt: "新朋友是谁？它想做什么？" },
+  { partner: "突然，天上掉下来一个奇怪的东西！", prompt: "掉下来的是什么？" },
+];
+
+/**
+ * 团团's three pre-written choices after turn `finishedTurn`: the usual
+ * next beat plus its alternatives, all sharing that beat's hints.
+ */
+export function scriptedChoices(adventure: Adventure | undefined, finishedTurn: number): NextBeat[] {
+  const main = scriptedNext(adventure, finishedTurn);
+  const beat = adventure?.beats[finishedTurn + 1];
+  const others = beat ? (beat.choices ?? []) : GENERIC_CHOICES;
+  return [main, ...others.map((c) => ({ line: c.partner, question: c.prompt, hints: main.hints }))];
+}
+
+/** A shuffled copy, so 团团's usual line isn't always first. */
+export function shuffled<T>(items: T[], rand: () => number = Math.random): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.min(i, Math.floor(rand() * (i + 1)));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
 /** A random mission, avoiding senses the sentence already uses (unless that's all of them). */
