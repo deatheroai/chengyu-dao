@@ -26,6 +26,15 @@ describe("scripted beats", () => {
     expect(scriptedNext(undefined, TURNS - 1).question).toBe("");
   });
 
+  it("carries each beat's 🤔 guide, including the choices and a child's own story", () => {
+    const opening = openingBeat(adventure).guide;
+    expect(opening?.explain).toBe(adventure.beats[0].explain);
+    expect(opening?.starters).toEqual(adventure.beats[0].starters);
+    expect(opening?.example).toBe(adventure.beats[0].example.rich);
+    for (const c of scriptedChoices(adventure, 0)) expect(c.guide?.explain).toBeTruthy();
+    for (const c of scriptedChoices(undefined, 0)) expect(c.guide?.starters.length).toBeGreaterThan(0);
+  });
+
   it("every adventure has enough beats for a full story", () => {
     for (const a of ADVENTURES) expect(a.beats.length).toBeGreaterThanOrEqual(TURNS);
   });

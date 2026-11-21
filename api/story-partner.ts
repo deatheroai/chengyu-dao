@@ -47,10 +47,12 @@ const MISSION_DESCRIPTIONS: Record<NonNullable<TurnRequest["mission"]>, string> 
 
 const SYSTEM_PROMPT = `You are 团团, a friendly panda who writes a story together with a primary school child (about 7–10 years old) in Singapore who is practising Mandarin. You take turns: you write a line, the child writes the next sentence.
 
+Setting: stories happen in the everyday Singapore life the child knows, not fairy tales. Home in an HDB flat (组屋), the void deck (组屋楼下), the playground (游乐场), the lift and the corridor; school (课室, 食堂, 小息, 操场, 华文课, 老师, 同学, 班长, 校车); the hawker centre (小贩中心), the wet market (巴刹), the coffee shop (咖啡店), the community centre (民众俱乐部), the library (图书馆), the MRT (地铁) and bus, parks and the beach; festivals such as 农历新年, 中秋节, 开斋节 and 屠妖节; local food such as 鸡饭, 椰浆饭, 炒粿条, 榴梿 and 红毛丹. Characters are ordinary children, their family (爸爸妈妈, 婆婆, 公公, 爷爷, 奶奶), classmates, teachers and neighbours (邻居). Don't bring in magic, fairies, talking animals, castles, treasure, dragons or monsters yourself. If the child's own idea or sentences bring in something imaginative, go along with it, but keep it rooted in their everyday world. Use the words Singapore children use (组屋, 巴刹, 小贩中心, 食阁, 小息, 课室, 德士, 脚车, 民众俱乐部, 榴梿).
+
 Writing rules for everything you write (always Simplified Chinese):
-- Use simple, everyday words a Primary 2–4 pupil knows. Each sentence at most about 25 characters. Your story line is 1–2 sentences.
+- Use words a Primary 3–4 pupil is learning, a little richer than what the child writes: vivid words and common 四字词语 (人山人海, 津津有味, 手忙脚乱, 倾盆大雨) are welcome. Each sentence at most about 25 characters. Your story line is 1–2 sentences. Always write every word correctly, even if the child wrote it wrongly.
 - Keep the story warm, playful and safe for young children: no violence, horror, romance, brands, real people, or anything sad that isn't resolved kindly.
-- Build on the child's ideas. What they wrote is canon: continue from it, even if it is silly or surprising. Never correct or rewrite their sentence.
+- Build on the child's ideas. What they wrote is canon: continue from it, even if it is silly or surprising. Don't rewrite their sentence; when asked, you point out words written with the wrong character (错别字) so the child can fix them and learn the right way.
 - Never ask about the child's real life, name, school, family or location.
 - If the child writes something unkind or unsafe, don't repeat it; gently steer the story somewhere friendly without scolding.
 
@@ -74,26 +76,36 @@ const hintsSchema = z.object({
   feel: z.array(z.string()),
   pattern: z.array(z.string()),
 });
-const nextSchema = z.object({ line: z.string(), question: z.string(), hints: hintsSchema });
+const wordSchema = z.object({ word: z.string(), meaning: z.string() });
+const guideSchema = z.object({ explain: z.string(), starters: z.array(z.string()), example: z.string() });
+const nextSchema = z.object({ line: z.string(), question: z.string(), hints: hintsSchema, word: wordSchema, guide: guideSchema });
+const fixSchema = z.object({ wrong: z.string(), right: z.string(), why: z.string() });
 const startSchema = z.object({ next: nextSchema });
 const turnSchema = z.object({
   missionDone: z.boolean(),
   reaction: z.string(),
   hint: z.string(),
+  fixes: z.array(fixSchema),
   next: nextSchema,
 });
 const feedbackSchema = z.object({
   stars: z.array(z.object({ quote: z.string(), why: z.string() })),
   wish: z.object({ turn: z.number().int(), tip: z.string(), words: z.array(z.string()) }),
+  practice: z.array(z.string()),
 });
 const lastTurnSchema = turnSchema.extend({ feedback: feedbackSchema });
-const choiceTurnSchema = turnSchema.extend({ alternatives: z.array(nextSchema) });
+// Alternatives skip the 💡 hints (18 phrases each): they reuse the hints
+// of "next", which cuts the choice turn's output by about a third.
+const altSchema = nextSchema.omit({ hints: true });
+const choiceTurnSchema = turnSchema.extend({ alternatives: z.array(altSchema) });
 
 const growSchema = z.object({ senseDone: z.boolean(), reaction: z.string(), hint: z.string(), hints: hintsSchema });
 
 const WRITER_LABELS = { partner: "团团", child: "孩子", parent: "爸爸妈妈" } as const;
 
-const NEXT_INSTRUCTIONS = `"next": your next story line ("line"), a short question asking the child what happens next ("question", at most 15 characters), and "hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that fit the new scene, to inspire the child (for pattern, short similes like 像一团棉花).`;
+const NEXT_INSTRUCTIONS = `"next": your next story line ("line"), a short question asking the child what happens next ("question", at most 15 characters), "hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that fit the new scene, to inspire the child; make them a step richer than plain words (热腾腾的 rather than 热的, 人山人海 rather than 很多人; for pattern, short similes like 像一团棉花), and "word": one word from your line for the child to learn, preferably an everyday Singapore word (组屋楼下, 巴刹, 小息) or a vivid 好词, copied exactly from "line" ("word", at most 6 characters), with its meaning in simple Chinese a Primary 2 pupil understands ("meaning", at most 20 characters, e.g. "卖菜、卖鱼、卖肉的市场"), and "guide": help for a child who doesn't understand the question or doesn't know what to write: "explain", the question said more simply in Primary 2 Chinese, with 2–3 small questions to think about and, if the scene has a place or thing the child may not know, what it is (at most 50 characters, e.g. "鱼摊上有很多鱼，放在冰块上。鱼是什么样子的？叔叔在做什么？"); "starters", exactly 3 ways to begin the child's sentence (at most 6 characters each, e.g. "冰块上", "叔叔拿起"); "example", one example answer at the child's level (at most 30 characters) that they could learn from but should not just copy.`;
+
+const FIX_INSTRUCTIONS = `"fixes": every 错别字 in the child's sentence: a word written with the wrong character, usually a same-sound slip from pinyin typing (e.g. 芭莎 → 巴刹, 以经 → 已经, 眼晴 → 眼睛, 蓝球 → 篮球 when it means basketball). For each: "wrong", the whole word copied exactly from the sentence (at most 6 characters); "right", the same word written correctly (same number of characters); "why", one short sentence (at most 20 characters) that helps the child remember the right characters, e.g. "巴刹是卖菜卖鱼的市场" or "篮球要投进篮子里，所以有竹字头". Only real wrong characters: not grammar, punctuation, word order, style, or an unusual but correct word choice, and names the child made up are never wrong. [] if there are none (most sentences have none).`;
 
 function startPrompt(req: StartRequest): string {
   return `The child wants a story about this idea:
@@ -106,11 +118,11 @@ function turnPrompt(req: TurnRequest): string {
   const story = req.story.map((l) => `${WRITER_LABELS[l.by]}：${l.text}`).join("\n");
   const ending =
     req.turnsLeft === 0
-      ? `This was the child's last turn. In "next", "line" is a happy ending to the story (1–2 sentences), "question" is "" and every hint list is [].`
+      ? `This was the child's last turn. In "next", "line" is a happy ending to the story (1–2 sentences), "question" is "", every hint list is [], "word" is a word from the ending to learn, as above, and "guide" has "explain": "", "starters": [] and "example": "".`
       : `The child has ${req.turnsLeft} more turn(s) after this one. ${NEXT_INSTRUCTIONS}`;
   const feedback = req.turnsLeft === 0 && childSentences(req).length ? `\n${feedbackInstructions(req)}` : "";
   const choices = req.choices
-    ? `\n"alternatives": exactly 2 more objects shaped like "next", each a clearly different way the story could go from here (e.g. if "next" has friends singing a birthday song, the others might have them playing catch, or climbing up to a tree house to explore). The child will pick one of the three, so make all three fun and each lead somewhere new.`
+    ? `\n"alternatives": exactly 2 more objects shaped like "next" but without "hints", each a clearly different way the story could go from here (e.g. if "next" has friends singing a birthday song, the others might have them playing catch, or climbing up to a tree house to explore). The child will pick one of the three, so make all three fun and each lead somewhere new.`
     : "";
   if (req.writer === "parent") {
     return `<story_so_far>
@@ -124,6 +136,7 @@ Return:
 "missionDone": false (there is no mission on a parent's turn).
 "reaction": one short, playful sentence (at most 20 characters) cheering that 爸爸妈妈 joined the story, reacting to what they wrote, e.g. "哇，爸爸妈妈也是写故事高手！".
 "hint": "".
+"fixes": [] (never correct a parent).
 ${ending}
 Continue the story from the parent's sentence.${choices}${feedback}`;
   }
@@ -141,6 +154,7 @@ Return:
 "missionDone": true if the improved sentence includes any detail of the mission's kind (be generous: their own creative words count, and it may have been there already). When in doubt, answer true.
 "reaction": one short, warm sentence (at most 20 characters) reacting to the specific words they added, e.g. "噼里啪啦！我好像听到雨声了！". If missionDone is false, react kindly to their sentence instead.
 "hint": if missionDone is false, one short question (at most 20 characters) that nudges them toward the mission without giving the answer; otherwise "".
+${FIX_INSTRUCTIONS}
 ${ending}
 Continue the story from the improved sentence.${choices}${feedback}`;
 }
@@ -177,8 +191,18 @@ The story is finished, so also return "feedback": vocabulary feedback for the ch
 ${numbered}
 </child_sentences>
 "stars": exactly 2 items, each about a different good word choice. "quote": a word or short phrase copied exactly, character for character, from one of the child's sentences (at most 10 characters). Prefer words the child thought of themselves over words 团团 used first. "why": one warm sentence (at most 20 characters) saying why it works, e.g. "让我好像听到了小兔的声音！".
-"wish": one sentence that could be richer. "turn": its number above. "tip": one short, friendly sentence (at most 25 characters) pointing at one plain or repeated word in it and inviting the child to change it, as a question or invitation; never write the improved sentence for them. "words": exactly 3 richer words or phrases (at most 6 characters each) that could replace that word in this sentence.
-Vocabulary only: no comments on grammar, punctuation or spelling. A creative or unusual word choice is not a mistake.`;
+"wish": one sentence that could be richer. "turn": its number above. "tip": one short, friendly sentence (at most 25 characters) pointing at one plain or repeated word in it and inviting the child to change it, as a question or invitation; never write the improved sentence for them. "words": exactly 3 richer words or phrases (at most 6 characters each) that could replace that word in this sentence, at Primary 3–4 level (e.g. 兴高采烈, 津津有味, 金灿灿的).
+"practice": exactly 3 single characters, copied from the child's sentences, worth practising writing: ones a Primary 3–4 pupil is still learning, with many strokes or easy to mix up with a same-sound character (e.g. 篮, 睛, 刹, 馆, 操). Never very common ones like 的, 我, 是, 大, 了, 人.
+Vocabulary only: no comments on grammar or punctuation (wrong characters were already fixed during the story). A creative or unusual word choice is not a mistake.`;
+}
+
+/** Gives each alternative the hints of "next" (the model writes them only once). */
+function withSharedHints(out: unknown): unknown {
+  if (typeof out !== "object" || out === null) return out;
+  const o = out as { next?: { hints?: unknown }; alternatives?: unknown };
+  if (!Array.isArray(o.alternatives)) return out;
+  const hints = o.next?.hints;
+  return { ...o, alternatives: o.alternatives.map((a) => (typeof a === "object" && a !== null ? { hints, ...a } : a)) };
 }
 
 function json(body: unknown, status: number): Response {
@@ -349,7 +373,7 @@ export default {
       const schema = req.turnsLeft === 0 ? lastTurnSchema : req.choices ? choiceTurnSchema : turnSchema;
       const r = await ask<z.infer<typeof turnSchema>>(client, turnPrompt(req), schema);
       await recordUsage("turn", req.turnsLeft === 0, r);
-      const clean = r.out && r.out !== "refused" ? cleanTurnResponse(r.out) : null;
+      const clean = r.out && r.out !== "refused" ? cleanTurnResponse(withSharedHints(r.out)) : null;
       return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);
     } catch (err) {
       // Logged for the Vercel dashboard; the page only needs to know to fall back.

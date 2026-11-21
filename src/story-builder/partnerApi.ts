@@ -1,6 +1,7 @@
 import type { SenseId } from "./senses";
 // .js extension: the serverless function loads this file unbundled (see tsconfig.api.json).
 import { cleanFeedbackOut, type FeedbackOut } from "./feedback.js";
+import { cleanFixes, type Fix } from "./corrections.js";
 
 /**
  * The contract between the story page and api/story-partner.ts (the
@@ -19,12 +20,33 @@ export interface StoryLineIn {
   text: string;
 }
 
+/** A word from 团团's line for the child to learn (📗 新词), usually an
+ * everyday Singapore word like 巴刹 or 组屋楼下. */
+export interface NewWord {
+  word: string;
+  meaning: string;
+}
+
+/** 🤔 不知道写什么？ Help for a child who doesn't understand the question. */
+export interface TurnGuide {
+  /** The question said more simply, with things to think about. */
+  explain: string;
+  /** Ways to start the sentence; tapping one puts it in the box. */
+  starters: string[];
+  /** One example sentence, shown only when the child asks for it. */
+  example?: string;
+}
+
 /** 团团's next line, the question for the child, and 💡 hints per mission. */
 export interface NextBeat {
   line: string;
   /** Empty when `line` is the ending. */
   question: string;
   hints: Record<SenseId, string[]>;
+  /** A word in `line` worth learning, with what it means. */
+  word?: NewWord;
+  /** Help with the question, for a child who doesn't know what to write. */
+  guide?: TurnGuide;
 }
 
 export interface StartRequest {
@@ -75,6 +97,9 @@ export interface TurnResponse {
   /** When the mission isn't done yet: a nudge (a question, not the answer). */
   hint: string;
   next: NextBeat;
+  /** 错别字 in the child's sentence, for the child to fix (never on a
+   * parent's turn). The page still checks each one is in the sentence. */
+  fixes?: Fix[];
   /** When the request asked for choices: two other next beats, so the
    * child can pick which of three ways the story goes. */
   alternatives?: NextBeat[];
@@ -156,7 +181,27 @@ export function cleanNextBeat(x: unknown): NextBeat | null {
   if (!isObj(x) || !isText(x.line, 200) || typeof x.question !== "string") return null;
   const hints = cleanHints(x.hints);
   if (!hints) return null;
-  return { line: x.line.trim(), question: x.question.trim().slice(0, 80), hints };
+  const line = x.line.trim();
+  const word = cleanNewWord(x.word, line);
+  const guide = cleanGuide(x.guide);
+  return { line, question: x.question.trim().slice(0, 80), hints, ...(word ? { word } : {}), ...(guide ? { guide } : {}) };
+}
+
+/** Keeps a 🤔 guide when it at least explains the question. */
+export function cleanGuide(x: unknown): TurnGuide | undefined {
+  if (!isObj(x) || !isText(x.explain, 120)) return undefined;
+  const starters = Array.isArray(x.starters) ? x.starters.filter((w): w is string => isText(w, 12)).map((w) => w.trim()).slice(0, 3) : [];
+  const example = isText(x.example, 60) ? x.example.trim() : "";
+  return { explain: x.explain.trim(), starters, ...(example ? { example } : {}) };
+}
+
+/** Keeps a 📗 新词 only when it really is in the line. */
+export function cleanNewWord(x: unknown, line: string): NewWord | undefined {
+  if (!isObj(x) || typeof x.word !== "string" || typeof x.meaning !== "string") return undefined;
+  const word = x.word.trim().replace(/^[“"「]+|[”"」]+$/g, "");
+  const meaning = x.meaning.trim().slice(0, 40);
+  if (!word || Array.from(word).length > 8 || !meaning || !line.includes(word)) return undefined;
+  return { word, meaning };
 }
 
 export function cleanTurnResponse(x: unknown): TurnResponse | null {
@@ -171,11 +216,13 @@ export function cleanTurnResponse(x: unknown): TurnResponse | null {
         .filter((b): b is NextBeat => b !== null && b.question !== "" && b.line !== next.line)
         .slice(0, 2)
     : [];
+  const fixes = cleanFixes(x.fixes);
   return {
     missionDone: x.missionDone,
     reaction: str(x.reaction, 80),
     hint: str(x.hint, 80),
     next,
+    ...(fixes.length ? { fixes } : {}),
     ...(alternatives.length ? { alternatives } : {}),
     ...(feedback ? { feedback } : {}),
   };

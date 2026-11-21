@@ -25,7 +25,7 @@
         <form class="idea-card" id="idea-card" hidden>
           <label for="idea-input">✏️ 我自己的想法</label>
           <div class="idea-row">
-            <input id="idea-input" maxlength="60" placeholder="一只会飞的小狗……" lang="zh-Hans" autocomplete="off" />
+            <input id="idea-input" maxlength="60" placeholder="我和好朋友在组屋楼下玩……" lang="zh-Hans" autocomplete="off" />
             <button class="btn btn-primary" id="btn-idea" type="submit">开始！</button>
           </div>
           <p class="hint" id="idea-hint" aria-live="polite"></p>
@@ -40,11 +40,27 @@
       <!-- Play: the story so far, plus the current turn -->
       <section id="view-play" class="view" hidden>
         <h2 class="play-title" id="play-title"></h2>
+        <!-- 📖 故事小知识: what the story's place is, for a child who doesn't know it -->
+        <details class="topic-card" id="topic-card" hidden>
+          <summary>📖 故事小知识：这是什么地方？</summary>
+          <p class="topic-text" id="topic-text"></p>
+        </details>
         <ol class="story-flow" id="story-flow" aria-live="polite"></ol>
 
         <div class="turn-card" id="turn" hidden>
           <p class="turn-label"><span id="turn-who">✏️ 轮到你了</span> <span class="turn-count" id="turn-count"></span></p>
           <p class="turn-prompt" id="turn-prompt"></p>
+          <p class="turn-word" id="turn-word" hidden></p>
+          <button class="link-btn guide-btn" id="btn-guide" type="button" aria-expanded="false">🤔 不知道写什么？</button>
+          <div class="guide-card" id="guide" hidden>
+            <p class="guide-explain" id="guide-explain"></p>
+            <p class="guide-label" id="guide-starters-label">可以这样开头（点一点）：</p>
+            <p class="hint-words" id="guide-starters"></p>
+            <p class="guide-label">想一想：</p>
+            <ul class="guide-think" id="guide-think"></ul>
+            <button class="link-btn" id="btn-example" type="button">👀 看看团团的例句</button>
+            <p class="guide-example" id="guide-example" hidden></p>
+          </div>
           <div class="input-wrap">
             <textarea id="sentence" rows="2" placeholder="写一句话……" lang="zh-Hans" autocomplete="off"></textarea>
             <button class="icon-btn mic" id="btn-mic" type="button" aria-label="说一说" hidden>🎤</button>
@@ -71,9 +87,19 @@
             <p class="hint-words" id="hint-words" hidden></p>
             <p class="partner-note" id="partner-note" hidden></p>
             <p class="thinking" id="thinking" hidden>🐼 团团在读你的句子……</p>
-            <div class="actions">
+            <div class="actions" id="mission-actions">
               <button class="btn" id="btn-skip" type="button">跳过</button>
               <button class="btn btn-primary" id="btn-done" type="button">完成任务 ✓</button>
+            </div>
+            <!-- 错别字: 团团 found a wrong character; the child fixes it before the line goes into the story -->
+            <div class="fix-card" id="fix-card" hidden>
+              <p class="fix-title">🔍 团团发现了错别字！</p>
+              <ul class="fix-list" id="fix-list"></ul>
+              <p class="partner-note" id="fix-note" aria-live="polite">请你在上面的句子里改一改，再点“改好了”。</p>
+              <div class="actions">
+                <button class="btn" id="btn-fix-help" type="button">帮我改</button>
+                <button class="btn btn-primary" id="btn-fix-done" type="button">改好了 ✓</button>
+              </div>
             </div>
           </div>
         </div>
