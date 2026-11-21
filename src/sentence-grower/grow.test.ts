@@ -10,6 +10,8 @@ import {
   dotsLabel,
   insertAt,
   slotOffsets,
+  slotWidthEm,
+  tidySpaces,
   slotWords,
   spotOffset,
   cheerFor,
@@ -205,6 +207,23 @@ describe("where the new words go", () => {
         expect(slotOffsets(seed.plain, at)).toContain(at);
       }
     }
+  });
+
+  it("never puts two ＋ around a stray space", () => {
+    const text = "下雨了， 雨点落下。";
+    const slots = slotOffsets(text);
+    expect(slotWords(text, slots).some((w) => w.trim() === "")).toBe(false);
+  });
+
+  it("removes stray spaces next to Chinese", () => {
+    expect(tidySpaces(" 下雨了， 雨点 滴答 落下。 ")).toBe("下雨了，雨点滴答落下。");
+    expect(tidySpaces("我喜欢 Lego 积木")).toBe("我喜欢Lego积木");
+  });
+
+  it("makes the ＋ box wide enough for Chinese characters", () => {
+    expect(slotWidthEm("")).toBe(4);
+    expect(slotWidthEm("的味道漂浮着")).toBeGreaterThanOrEqual(7.5);
+    expect(slotWidthEm("piao")).toBeLessThan(slotWidthEm("漂浮着呢"));
   });
 
   it("counts down the senses left", () => {

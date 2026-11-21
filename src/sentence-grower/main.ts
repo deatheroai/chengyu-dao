@@ -16,6 +16,8 @@ import {
   cheerFor,
   dotsLabel,
   insertAt,
+  slotWidthEm,
+  tidySpaces,
   slotOffsets,
   slotWords,
   spotOffset,
@@ -182,8 +184,8 @@ const slotInput = () => document.querySelector<HTMLInputElement>("#slot-sentence
 
 /** The sentence with what the child is adding right now. */
 function sentenceNow(p: Play): string {
-  if (p.whole) return input().value.trim();
-  return p.slot !== undefined && p.addition.trim() ? insertAt(p.current, p.slot, p.addition) : p.current;
+  if (p.whole) return tidySpaces(input().value);
+  return p.slot !== undefined && p.addition.trim() ? tidySpaces(insertAt(p.current, p.slot, p.addition)) : p.current;
 }
 
 /** `fresh`: the sense just added, which grows in. `preview`: the
@@ -314,6 +316,15 @@ function renderSlots(): void {
   $("slot-tip").replaceChildren(ruby(tip));
   const slots = slotOffsets(p.current, p.suggested);
   const words = slotWords(p.current, slots);
+  // Pinyin for the whole sentence, so 了 and 地 read in context (le, de).
+  const py = charPinyin(p.current);
+  const wordRuby = (from: number, word: string): HTMLElement => {
+    const span = document.createElement("span");
+    span.className = "slot-word";
+    const start = Array.from(p.current.slice(0, from)).length;
+    renderRubyText(span, word, py.slice(start, start + Array.from(word).length));
+    return span;
+  };
   const parts: Node[] = [];
   slots.forEach((at, i) => {
     if (at === p.slot) {
@@ -324,10 +335,10 @@ function renderSlots(): void {
       box.value = p.addition;
       box.placeholder = at === slots.at(-1) && at > 0 ? "，……" : "……";
       box.setAttribute("aria-label", "写新的词");
-      box.size = Math.max(4, Array.from(p.addition).length + 1);
+      box.style.width = `${slotWidthEm(p.addition)}em`;
       box.addEventListener("input", () => {
         p.addition = box.value;
-        box.size = Math.max(4, Array.from(box.value).length + 1);
+        box.style.width = `${slotWidthEm(box.value)}em`;
         $("step-note").hidden = true;
         renderSentence(undefined, sentenceNow(p));
       });
@@ -351,10 +362,10 @@ function renderSlots(): void {
       });
       parts.push(b);
     }
-    if (i < words.length) parts.push(ruby(words[i], "slot-word"));
+    if (i < words.length) parts.push(wordRuby(at, words[i]));
   });
   const ending = p.current.slice(slots.at(-1));
-  if (ending) parts.push(ruby(ending, "slot-word"));
+  if (ending) parts.push(wordRuby(slots.at(-1)!, ending));
   $("slot-sentence").replaceChildren(...parts);
 }
 

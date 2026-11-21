@@ -116,6 +116,11 @@ Built in pieces, top to bottom; each piece lands with its tests.
       readings for the other senses, in both games), and is told "when
       in doubt, true". The suggested ＋ stops glowing once the child picks
       another one.
+- [x] `done` — **＋ box too narrow (2026-11-21).** It was sized by letter
+      count, but Chinese characters are about twice as wide; now sized
+      in em. Also: the word blocks take pinyin from the whole sentence
+      (了 = le, 地 = de), stray spaces are removed, and 地 before 落/飘/
+      响/望… reads de.
 - [ ] `todo` — **Later: try it with the child.** Is 3 senses right? Do
       they pick varied senses or always 👀? Are AI hints for 我的故事书
       sentences good?

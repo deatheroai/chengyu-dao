@@ -23,7 +23,7 @@ export function charPinyin(text: string): string[] {
     const next = chars[i + 1] ?? "";
     const prevIsHan = /\p{Script=Han}/u.test(prev);
     if (c === "地" && prevIsHan && !NOUN_DI.has(prev + c) && !/\p{Script=Han}/u.test(next)) return "de";
-    if (c === "地" && prevIsHan && !NOUN_DI.has(prev + c) && /[走跑跳飞叫笑哭说唱看想跟往向下上打吃玩点抖转流游爬挂]/.test(next)) return "de";
+    if (c === "地" && prevIsHan && !NOUN_DI.has(prev + c) && /[走跑跳飞叫笑哭说唱看想跟往向下上打吃玩点抖转流游爬挂落飘响望站坐躺喊摇拍]/.test(next)) return "de";
     if (c === "得" && prevIsHan) return DE2_AFTER.has(next) ? "dé" : "de";
     return raw[i] ?? "";
   });
