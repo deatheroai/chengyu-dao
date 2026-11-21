@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { charPinyin } from "./pinyin";
+import { charPinyin, toneless } from "./pinyin";
 import { ADVENTURES } from "./adventures";
 import { SENSES } from "./senses";
 
@@ -45,5 +45,18 @@ describe("charPinyin", () => {
         if (/\p{Script=Han}/u.test(c)) expect(p[i], `${c} in ${t}`).toMatch(/^[a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]+$/);
       });
     }
+  });
+  it("reads common words with their neutral tone", () => {
+    expect(charPinyin("小息的时候")).toEqual(["xiǎo", "xī", "de", "shí", "hou"]);
+    expect(charPinyin("早上，好朋友来了")).toEqual(["zǎo", "shang", "", "hǎo", "péng", "you", "lái", "le"]);
+    expect(charPinyin("买东西")[2]).toBe("xi");
+    expect(charPinyin("看看")).toEqual(["kàn", "kan"]);
+    // Only the second syllable, and only inside the word.
+    expect(charPinyin("时间")).toEqual(["shí", "jiān"]);
+  });
+
+  it("drops only the tone mark", () => {
+    expect(toneless("hòu")).toBe("hou");
+    expect(toneless("lǜ")).toBe("lü");
   });
 });
