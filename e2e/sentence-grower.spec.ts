@@ -221,8 +221,17 @@ test("AI failing falls back to the offline check", async ({ page }) => {
   // A long addition still fits in its box (Chinese characters are wide).
   await page.click('.sense-card[data-sense="smell"]');
   await page.locator(".slot-input").pressSequentially("，泥土的味道漂浮着");
-  const [shown, needed] = await page.locator(".slot-input").evaluate((e) => [e.clientWidth, e.scrollWidth]);
-  expect(needed).toBeLessThanOrEqual(shown);
+  // Measure the text itself against the room inside the box (scrollWidth
+  // can't be used: some browsers report it 1px over clientWidth whatever the text).
+  const [room, text] = await page.locator(".slot-input").evaluate((e) => {
+    const input = e as HTMLInputElement;
+    const css = getComputedStyle(input);
+    const ctx = document.createElement("canvas").getContext("2d")!;
+    ctx.font = css.font;
+    const room = input.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight);
+    return [room, ctx.measureText(input.value).width];
+  });
+  expect(text).toBeLessThanOrEqual(room);
 });
 
 test("sentences from 我的故事书 can be grown, and ?test keeps a separate list", async ({ page }) => {
