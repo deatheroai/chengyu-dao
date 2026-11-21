@@ -41,6 +41,21 @@ None open right now.
 
 ## Resolved
 
+- **2026-11-21 — New game: 句子长大了 (grow a sentence one sense at a
+  time).** Your calls (you said go with the suggested defaults):
+  1. **A separate page** (`sentence-grower.html`), not a mode inside the
+     story builder. It shares the story builder's code and 我的故事书.
+  2. **The child picks the sense** from six cards (used ones greyed
+     out), instead of spinning the wheel: choosing which sense fits is
+     the skill this game practises.
+  3. **3 senses per sentence**, then a 读一读 step, so sentences get
+     richer without turning into word piles.
+  4. **Seeds:** pre-written picture cards first, plus short sentences
+     from the child's own 我的故事书.
+  As in the story builder, nothing is ever inserted into the child's
+  text: 💡 words and examples are inspiration only. Plan in
+  `BACKLOG.md`'s Sentence grower section.
+
 - **2026-11-17 — Story builder: vocabulary feedback after each story.**
   Your calls, made against the saved story 我养宠物的天:
   1. **When:** one 好词卡 (good-words card) on the end-of-story screen.
