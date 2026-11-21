@@ -164,6 +164,14 @@ Built in pieces, top to bottom; each piece lands with its tests.
       `readsWell`: a clearly broken sentence gets a question quoting the
       odd part (never the fix); 就这样吧 still moves on, keeping the ⭐ if
       the sense was there. New 🔊 读给我听 reads the sentence as it is.
+- [x] `done` — **团团 still passed 小狗汪汪叫在跑，像皮球一样滚 (2026-11-21).**
+      The reads-well check only caught clearly broken sentences, at low
+      effort with no thinking. It now judges like a P3 teacher marking
+      不通顺 (missing 着/地/的/得/了, jammed actions, repeated words), with
+      examples, and the grow call alone uses adaptive thinking at medium
+      effort (a few seconds slower, well under US$0.001 per check).
+- [ ] `todo` — **Check the reads-well judge on real tries.** Is it now
+      too strict (nagging about fine sentences)? Note any it gets wrong.
 - [ ] `todo` — **Later: try it with the child.** Is 3 senses right? Do
       they pick varied senses or always 👀? Are AI hints for 我的故事书
       sentences good?
