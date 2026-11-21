@@ -21,6 +21,7 @@ export default defineConfig({
         idiomDoor: resolve(rootDir, "idiom-door.html"),
         storyWriter: resolve(rootDir, "story-writer.html"),
         storyBuilder: resolve(rootDir, "story-builder.html"),
+        sentenceGrower: resolve(rootDir, "sentence-grower.html"),
       },
     },
   },

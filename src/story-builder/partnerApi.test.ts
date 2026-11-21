@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanStartResponse, cleanTurnResponse, parsePartnerRequest } from "./partnerApi";
+import { cleanGrowResponse, cleanStartResponse, cleanTurnResponse, parsePartnerRequest } from "./partnerApi";
 
 const hints = { see: ["红红的"], hear: ["哗啦啦"], smell: [], touch: [], feel: [], pattern: [] };
 const turn = {
@@ -85,5 +85,30 @@ describe("cleaning responses", () => {
     expect(cleanTurnResponse({ missionDone: true, next: { line: "", question: "", hints } })).toBeNull();
     expect(cleanStartResponse({ next: { line: "从前……", question: "?", hints: null } })).toBeNull();
     expect(cleanStartResponse({ next: { line: "从前……", question: "?", hints } })?.next.line).toBe("从前……");
+  });
+});
+
+describe("句子长大了 grow requests", () => {
+  const grow = { action: "grow", plain: "小狗在跑。", before: "小狗在跑。", sentence: " 白白的小狗在跑。 ", sense: "see" };
+
+  it("accepts a valid grow request, trimming text", () => {
+    expect(parsePartnerRequest(grow)).toEqual({ ...grow, sentence: "白白的小狗在跑。" });
+  });
+
+  it("rejects a bad sense or sentence", () => {
+    expect(parsePartnerRequest({ ...grow, sense: "taste" })).toEqual({ error: "invalid-mission" });
+    expect(parsePartnerRequest({ ...grow, sentence: "" })).toEqual({ error: "invalid-sentence" });
+    expect(parsePartnerRequest({ ...grow, before: "长".repeat(121) })).toEqual({ error: "invalid-sentence" });
+  });
+
+  it("cleans the verdict, filling missing hints", () => {
+    expect(cleanGrowResponse({ senseDone: true, reaction: " 好白！ ", hint: "", hints: { ...hints, see: ["a", "b", "c", "d"] } })).toEqual({
+      senseDone: true,
+      reaction: "好白！",
+      hint: "",
+      hints: { ...hints, see: ["a", "b", "c"] },
+    });
+    expect(cleanGrowResponse({ senseDone: false, hint: "小狗是什么颜色的？" })?.hints.see).toEqual([]);
+    expect(cleanGrowResponse({ reaction: "好" })).toBeNull();
   });
 });

@@ -1,0 +1,256 @@
+/* 句子长大了: on top of the story builder's style.css. */
+:root {
+  --see: #ffe796;
+  --hear: #c4e4ff;
+  --smell: #d3f2c6;
+  --touch: #ffd8c4;
+  --feel: #f9cfe4;
+  --pattern: #e2d7ff;
+}
+
+.view > * + * {
+  margin-top: 12px;
+}
+
+.seed-card .adventure-emoji {
+  letter-spacing: 2px;
+}
+
+.scene {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scene-emoji {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.scene .play-title {
+  margin: 0;
+  text-align: left;
+}
+
+/* ---- the sentence, coloured by layer ---- */
+.grow-card {
+  background: var(--card);
+  border: 3px solid var(--child-edge);
+  border-radius: 20px;
+  padding: 12px 14px;
+}
+
+.grow-sentence-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.grow-sentence {
+  flex: 1;
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 2.2;
+}
+
+.seg.fresh {
+  animation: grow-in 0.6s ease-out;
+}
+
+@keyframes grow-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seg.fresh {
+    animation: none;
+  }
+}
+
+.seg {
+  display: inline;
+  border-radius: 8px;
+  padding: 2px 0;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.seg-see { background: var(--see); }
+.seg-hear { background: var(--hear); }
+.seg-smell { background: var(--smell); }
+.seg-touch { background: var(--touch); }
+.seg-feel { background: var(--feel); }
+.seg-pattern { background: var(--pattern); }
+.seg.seg-edit {
+  background: none;
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 6px;
+}
+
+.layer-dots {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px dashed var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+}
+
+.dot.filled {
+  border-style: solid;
+  border-color: transparent;
+}
+
+.reaction {
+  font-size: 1.05rem;
+}
+
+/* ---- pick a sense ---- */
+.sense-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.sense-card {
+  border: 2px solid transparent;
+  border-radius: 16px;
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 84px;
+  color: var(--ink);
+}
+
+.sense-card:active {
+  transform: scale(0.96);
+}
+
+.sense-card:disabled {
+  background: #eef1f4;
+  color: var(--muted);
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+.sense-emoji {
+  font-size: 1.8rem;
+}
+
+.sense-label {
+  font-weight: 700;
+}
+
+/* ---- one step ---- */
+#step.mission {
+  margin-top: 12px;
+  border-top: 3px solid var(--accent);
+}
+
+#step[data-sense="see"] { border-color: #e6c24a; }
+#step[data-sense="hear"] { border-color: #6fb3ea; }
+#step[data-sense="smell"] { border-color: #7fc66a; }
+#step[data-sense="touch"] { border-color: #ef9f78; }
+#step[data-sense="feel"] { border-color: #e28ab6; }
+#step[data-sense="pattern"] { border-color: #9d86e6; }
+
+.help-row {
+  display: flex;
+  gap: 18px;
+}
+
+.example {
+  background: #f6f8fb;
+  border-radius: 12px;
+  padding: 4px 12px;
+  line-height: 2;
+}
+
+.example p {
+  margin: 0;
+}
+
+/* ---- the end ---- */
+.before-after {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 8px 12px;
+}
+
+.ba-label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.ba-row {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+  line-height: 2.1;
+}
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: grid;
+  gap: 6px;
+}
+
+.legend-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-radius: 12px;
+  padding: 4px 12px;
+}
+
+.legend-sense {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.legend-added {
+  flex: 1;
+}
+
+.read-card {
+  margin: 10px 0;
+}
+
+.long-note {
+  background: #fff6e0;
+  border-radius: 12px;
+  padding: 6px 12px;
+}
+
+.edit-wrap {
+  margin-top: 8px;
+}
+
+/* 🔊 sits next to the sentence, not in a story bubble's corner. */
+.grow-sentence-row .speak-btn,
+.ba-row .speak-btn {
+  position: static;
+  vertical-align: middle;
+}

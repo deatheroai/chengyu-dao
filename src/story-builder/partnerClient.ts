@@ -1,6 +1,9 @@
 import {
+  cleanGrowResponse,
   cleanStartResponse,
   cleanTurnResponse,
+  type GrowRequest,
+  type GrowResponse,
   type StartResponse,
   type TurnRequest,
   type TurnResponse,
@@ -47,4 +50,9 @@ export async function requestStart(idea: string): Promise<StartResponse | null> 
 /** 团团's verdict on a mission plus the next beat, or null if AI failed. */
 export async function requestTurn(req: Omit<TurnRequest, "action">): Promise<TurnResponse | null> {
   return cleanTurnResponse(await post({ action: "turn", ...req }));
+}
+
+/** 团团's verdict on one sense added in 句子长大了, or null if AI failed. */
+export async function requestGrow(req: Omit<GrowRequest, "action">): Promise<GrowResponse | null> {
+  return cleanGrowResponse(await post({ action: "grow", ...req }));
 }

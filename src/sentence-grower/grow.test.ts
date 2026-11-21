@@ -7,6 +7,8 @@ import {
   addedRuns,
   charOrigins,
   checkNote,
+  cheerFor,
+  legendRows,
   growthText,
   hintsFor,
   isLong,
@@ -109,6 +111,24 @@ describe("senses, questions and help", () => {
     expect(starCount([{ sense: "see", text: "", done: true }, { sense: "hear", text: "", done: false }])).toBe(1);
     expect(isLong("小".repeat(36))).toBe(true);
     expect(isLong("小".repeat(20))).toBe(false);
+  });
+});
+
+describe("end card", () => {
+  it("lists what each sense added", () => {
+    const layers: Layer[] = [
+      { sense: "see", text: "白白的小狗在草地上跑。", done: true },
+      { sense: "hear", text: "白白的小狗汪汪叫着在草地上跑。", done: false },
+    ];
+    expect(legendRows("小狗在跑。", layers)).toEqual([
+      { sense: "see", added: ["白白的", "草地上"], done: true },
+      { sense: "hear", added: ["汪汪叫着"], done: false },
+    ]);
+  });
+
+  it("cheers, quoting a hint word the child used", () => {
+    expect(cheerFor("hear", "汪汪汪")).toContain("“汪汪汪”");
+    expect(cheerFor("hear")).toContain("听到");
   });
 });
 

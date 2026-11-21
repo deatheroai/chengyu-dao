@@ -212,3 +212,28 @@ export function seedsFromLibrary(stories: SavedStory[], max = 6): Seed[] {
   }
   return out.slice(0, max);
 }
+
+/** What 团团 says when a sense is added and there's no AI reaction. */
+const CHEERS: Record<SenseId, string> = {
+  see: "我好像看到了！",
+  hear: "我好像听到声音了！",
+  smell: "我好像也闻到了！",
+  touch: "我好像也摸到了！",
+  feel: "我知道他心里的感觉了！",
+  pattern: "这个比喻好有想象力！",
+};
+
+export function cheerFor(sense: SenseId, used?: string): string {
+  return used ? `“${used}”用得真好！${CHEERS[sense]}` : `句子长大了！${CHEERS[sense]}`;
+}
+
+/** One row of the end card's legend: a sense and what it added. */
+export interface LegendRow {
+  sense: SenseId;
+  added: string[];
+  done: boolean;
+}
+
+export function legendRows(plain: string, layers: Layer[]): LegendRow[] {
+  return layers.map((l, i) => ({ sense: l.sense, added: addedRuns(i ? layers[i - 1].text : plain, l.text), done: l.done }));
+}
