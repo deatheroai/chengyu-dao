@@ -161,6 +161,8 @@ interface Game {
   mission?: SenseId;
   /** The latest AI verdict this turn (used if the child skips). */
   pending?: TurnResponse;
+  /** The sentence that verdict was for. */
+  asked?: string;
   stars: number;
   storyId: string;
   busy: boolean;
@@ -336,6 +338,7 @@ function openTurn(): void {
   $("mission").hidden = true;
   g.mission = undefined;
   g.pending = undefined;
+  g.asked = undefined;
   g.fixing = undefined;
   g.original = "";
   showFixCard(false);
@@ -570,15 +573,22 @@ async function missionDone(): Promise<void> {
   const sentence = finishSentence(raw);
   const sense = getSense(g.mission!);
 
+  // Nothing added yet: nudge here, without spending an AI call.
+  if (raw === g.original) {
+    partnerNote(`先把${sense.label}的东西加进你的句子里吧！`);
+    return;
+  }
   if (!aiEnabled) {
-    if (raw === g.original) {
-      partnerNote(`先把${sense.label}的东西加进你的句子里吧！`);
-      return;
-    }
     settle(sentence, true, "句子变得更生动了！", scriptedOutcome(g));
     return;
   }
+  // Tapped again without changing anything since 团团's nudge: same answer, no new call.
+  if (g.pending && g.asked === sentence) {
+    partnerNote(g.pending.hint || g.pending.reaction || "再试一试？");
+    return;
+  }
 
+  g.asked = sentence;
   setBusy(true);
   const res = await requestTurn(turnRequest(sentence));
   setBusy(false);

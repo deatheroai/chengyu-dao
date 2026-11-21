@@ -131,6 +131,18 @@ describe("story-partner", () => {
     expect(args.messages[0].content).toContain('"guide"');
   });
 
+  it("asks for alternatives without hints and gives them the hints of next", async () => {
+    process.env.ANTHROPIC_API_KEY = "test";
+    const next = { line: "大家唱生日歌。", question: "然后呢？", hints };
+    parse.mockResolvedValue({
+      stop_reason: "end_turn",
+      parsed_output: { missionDone: true, reaction: "好！", hint: "", fixes: [], next, alternatives: [{ line: "大家去游乐场。", question: "玩什么？" }] },
+    });
+    const body = await (await post({ ...turnBody, choices: true })).json();
+    expect(body.alternatives).toEqual([{ line: "大家去游乐场。", question: "玩什么？", hints }]);
+    expect(parse.mock.calls[0][0].messages[0].content).toContain('without "hints"');
+  });
+
   it("never asks for fixes on a parent's turn", async () => {
     process.env.ANTHROPIC_API_KEY = "test";
     parse.mockResolvedValue({

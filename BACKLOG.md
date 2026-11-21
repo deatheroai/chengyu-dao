@@ -71,6 +71,17 @@ Vocabulary feedback after a story (decided 2026-11-17, see
       (`explain` on each beat and choice), sentence starters to tap into
       the box, four think-about questions, and an example sentence behind
       one more tap. The AI returns the same `guide` for its own lines.
+- [x] `done` — **Fewer, smaller AI calls (2026-11-21).** One call per
+      turn is the minimum, so: an unchanged sentence gets 团团's nudge
+      locally (no call), tapping 完成任务 again without a change reuses the
+      last nudge, and the choice turn's two alternatives no longer get
+      their own 💡 hints (they share those of the main beat). Estimated
+      before: ~3 calls, ~7K input + ~1.4K output tokens per story, about
+      $0.0014 at Haiku 5.5 prices. Prompt caching not added: the cached
+      part would be ~760 tokens and saves ~$0.0002 per story only when
+      calls come within 5 minutes of each other.
+- [ ] `todo` — **Check real usage at `/api/story-partner?stats`** after a
+      week, against the estimate above.
 - [ ] `todo` — **Try 错别字 and 新词 on real stories.** Does the AI ever
       flag a correct word (false alarm) or miss an obvious slip? Are the
       新词 useful Singapore words rather than easy ones? Add slips the

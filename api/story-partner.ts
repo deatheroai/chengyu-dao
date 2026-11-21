@@ -80,7 +80,10 @@ const feedbackSchema = z.object({
   practice: z.array(z.string()),
 });
 const lastTurnSchema = turnSchema.extend({ feedback: feedbackSchema });
-const choiceTurnSchema = turnSchema.extend({ alternatives: z.array(nextSchema) });
+// Alternatives skip the 💡 hints (18 phrases each): they reuse the hints
+// of "next", which cuts the choice turn's output by about a third.
+const altSchema = nextSchema.omit({ hints: true });
+const choiceTurnSchema = turnSchema.extend({ alternatives: z.array(altSchema) });
 
 const WRITER_LABELS = { partner: "团团", child: "孩子", parent: "爸爸妈妈" } as const;
 
@@ -103,7 +106,7 @@ function turnPrompt(req: TurnRequest): string {
       : `The child has ${req.turnsLeft} more turn(s) after this one. ${NEXT_INSTRUCTIONS}`;
   const feedback = req.turnsLeft === 0 && childSentences(req).length ? `\n${feedbackInstructions(req)}` : "";
   const choices = req.choices
-    ? `\n"alternatives": exactly 2 more objects shaped like "next", each a clearly different way the story could go from here (e.g. if "next" has friends singing a birthday song, the others might have them playing catch, or climbing up to a tree house to explore). The child will pick one of the three, so make all three fun and each lead somewhere new.`
+    ? `\n"alternatives": exactly 2 more objects shaped like "next" but without "hints", each a clearly different way the story could go from here (e.g. if "next" has friends singing a birthday song, the others might have them playing catch, or climbing up to a tree house to explore). The child will pick one of the three, so make all three fun and each lead somewhere new.`
     : "";
   if (req.writer === "parent") {
     return `<story_so_far>
@@ -159,6 +162,15 @@ ${numbered}
 "wish": one sentence that could be richer. "turn": its number above. "tip": one short, friendly sentence (at most 25 characters) pointing at one plain or repeated word in it and inviting the child to change it, as a question or invitation; never write the improved sentence for them. "words": exactly 3 richer words or phrases (at most 6 characters each) that could replace that word in this sentence, at Primary 3–4 level (e.g. 兴高采烈, 津津有味, 金灿灿的).
 "practice": exactly 3 single characters, copied from the child's sentences, worth practising writing: ones a Primary 3–4 pupil is still learning, with many strokes or easy to mix up with a same-sound character (e.g. 篮, 睛, 刹, 馆, 操). Never very common ones like 的, 我, 是, 大, 了, 人.
 Vocabulary only: no comments on grammar or punctuation (wrong characters were already fixed during the story). A creative or unusual word choice is not a mistake.`;
+}
+
+/** Gives each alternative the hints of "next" (the model writes them only once). */
+function withSharedHints(out: unknown): unknown {
+  if (typeof out !== "object" || out === null) return out;
+  const o = out as { next?: { hints?: unknown }; alternatives?: unknown };
+  if (!Array.isArray(o.alternatives)) return out;
+  const hints = o.next?.hints;
+  return { ...o, alternatives: o.alternatives.map((a) => (typeof a === "object" && a !== null ? { hints, ...a } : a)) };
 }
 
 function json(body: unknown, status: number): Response {
@@ -318,7 +330,7 @@ export default {
       const schema = req.turnsLeft === 0 ? lastTurnSchema : req.choices ? choiceTurnSchema : turnSchema;
       const r = await ask<z.infer<typeof turnSchema>>(client, turnPrompt(req), schema);
       await recordUsage("turn", req.turnsLeft === 0, r);
-      const clean = r.out && r.out !== "refused" ? cleanTurnResponse(r.out) : null;
+      const clean = r.out && r.out !== "refused" ? cleanTurnResponse(withSharedHints(r.out)) : null;
       return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);
     } catch (err) {
       // Logged for the Vercel dashboard; the page only needs to know to fall back.

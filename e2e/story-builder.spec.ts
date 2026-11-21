@@ -73,6 +73,13 @@ async function aiOff(page: Page): Promise<void> {
   await page.route("**/api/story-partner", (route) => route.fulfill({ json: { enabled: false } }));
 }
 
+/** Adds words to the sentence for the mission, then taps 完成任务. */
+async function addAndFinish(page: Page, extra = "，开心极了"): Promise<void> {
+  await page.locator("#sentence").press("End");
+  await page.keyboard.type(extra);
+  await page.click("#btn-done");
+}
+
 /** Writes a sentence, spins, and waits for the mission card. */
 async function writeAndSpin(page: Page, sentence: string): Promise<void> {
   await page.fill("#sentence", sentence);
@@ -258,9 +265,19 @@ test("with AI: 团团 starts from the child's idea, nudges, then reacts", async 
   await writeAndSpin(page, "小狗飞到天上");
   await page.click("#btn-hint");
   await expect(page.locator("#hint-words .hint-word").first()).toBeVisible();
+  // Nothing added yet: 团团 nudges without asking the AI.
+  await page.click("#btn-done");
+  await expect(page.locator("#partner-note")).toBeVisible();
+  expect(posts.filter((p) => p.action === "turn")).toHaveLength(0);
+  await page.locator("#sentence").press("End");
+  await page.keyboard.type("，很高");
   await page.click("#btn-done");
   await expect(page.locator("#partner-note")).toContainText("有什么声音");
   await expect(page.locator(".line-child")).toHaveCount(0);
+  // Tapping again without a change gets the same nudge, not a new AI call.
+  await page.click("#btn-done");
+  await expect(page.locator("#partner-note")).toContainText("有什么声音");
+  expect(posts.filter((p) => p.action === "turn")).toHaveLength(1);
   await page.locator("#sentence").press("End");
   await page.keyboard.type("，呼呼呼");
   await page.click("#btn-done");
@@ -269,13 +286,13 @@ test("with AI: 团团 starts from the child's idea, nudges, then reacts", async 
 
   const turn1 = posts.filter((p) => p.action === "turn").at(-1)!;
   expect(turn1.original).toBe("小狗飞到天上。");
-  expect(turn1.sentence).toBe("小狗飞到天上，呼呼呼。");
+  expect(turn1.sentence).toBe("小狗飞到天上，很高，呼呼呼。");
   expect(turn1.turnsLeft).toBe(TURNS - 1);
 
   const more = ["小狗很开心", "小狗笑了起来", "小狗看见星星"];
   for (let t = 1; t < TURNS; t++) {
     await writeAndSpin(page, more[t - 1]);
-    await page.click("#btn-done");
+    await addAndFinish(page, "，汪汪");
     await expect(page.locator(".line-child")).toHaveCount(t + 1);
   }
   await expect.poll(() => partnerText(page, -1)).toContain("回家睡觉");
@@ -300,7 +317,7 @@ test("with AI: 团团 starts from the child's idea, nudges, then reacts", async 
   await page.click("#btn-pinyin");
 
   // The wish: the child rewrites their sentence; unchanged isn't accepted.
-  expect(await textOf(card.locator(".fb-wish .fb-sentence"))).toBe("小狗很开心。");
+  expect(await textOf(card.locator(".fb-wish .fb-sentence"))).toBe("小狗很开心，汪汪。");
   await card.locator(".fb-try").click();
   await card.locator(".fb-save").click();
   await expect(card.locator(".fb-rewrite .partner-note")).toBeVisible();
@@ -416,7 +433,7 @@ test("with AI: 团团 points out a 错别字, helps fix it, and carries on from 
   // The next turn tells 团团 the fixed sentence, never the wrong one.
   await pickChoice(page, "阿明");
   await writeAndSpin(page, "阿明带来一个足球");
-  await page.click("#btn-done");
+  await addAndFinish(page);
   await expect(page.locator(".line-child")).toHaveCount(2);
   const story = JSON.stringify(posts.at(-1)!.story);
   expect(story).toContain("篮球");
@@ -468,7 +485,7 @@ test("a parent writes one turn, and the child picks which way 团团's story goe
   await expect(page.locator("#turn-who")).toContainText("轮到你了");
   for (let t = 1; t < TURNS; t++) {
     await writeAndSpin(page, ["大家一起爬上去", "树屋里有好多书"][t - 1]);
-    await page.click("#btn-done");
+    await addAndFinish(page);
     await expect(page.locator(".line-child")).toHaveCount(t);
   }
   await expect(page.locator("#choice")).toBeHidden();
