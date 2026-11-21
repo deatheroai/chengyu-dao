@@ -305,6 +305,11 @@ function openStep(sense: SenseId): void {
   slotInput()?.focus();
 }
 
+/** CSS width of the ＋ box: room for the text, plus the box's own padding
+ * and border (it is border-box sized, so those would otherwise eat into
+ * the text's room and clip the last character with wider fonts). */
+const slotWidth = (text: string) => `calc(${slotWidthEm(text)}em + 20px)`;
+
 /** The sentence as words with a ＋ between them; the chosen ＋ is a box to type in. */
 function renderSlots(): void {
   if (!play) return;
@@ -339,10 +344,10 @@ function renderSlots(): void {
       box.value = p.addition;
       box.placeholder = at === slots.at(-1) && at > 0 ? "，……" : "……";
       box.setAttribute("aria-label", "写新的词");
-      box.style.width = `${slotWidthEm(p.addition)}em`;
+      box.style.width = slotWidth(p.addition);
       box.addEventListener("input", () => {
         p.addition = box.value;
-        box.style.width = `${slotWidthEm(box.value)}em`;
+        box.style.width = slotWidth(box.value);
         $("step-note").hidden = true;
         renderSentence(undefined, sentenceNow(p));
       });
