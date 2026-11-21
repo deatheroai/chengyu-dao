@@ -292,9 +292,6 @@ function openStep(sense: SenseId): void {
   $("whole-wrap").hidden = true;
   $("slot-sentence").hidden = false;
   $("btn-whole").hidden = false;
-  const tip =
-    p.suggested !== undefined ? "团团觉得可以加在发光的 ＋ 这里。你也可以点别的 ＋。" : "点一个 ＋，把新的词写进去。";
-  $("slot-tip").replaceChildren(ruby(tip));
   $("slot-tip").hidden = false;
   renderSlots();
   speak(question);
@@ -306,6 +303,15 @@ function openStep(sense: SenseId): void {
 function renderSlots(): void {
   if (!play) return;
   const p = play;
+  // 团团's spot only glows until the child picks another: it's a suggestion, not a must.
+  const lit = p.slot === undefined || p.slot === p.suggested ? p.suggested : undefined;
+  const tip =
+    lit !== undefined
+      ? "团团觉得可以加在发光的 ＋ 这里。你也可以点别的 ＋。"
+      : p.slot !== undefined
+        ? "好，就加在这里！想换地方，就点别的 ＋。"
+        : "点一个 ＋，把新的词写进去。";
+  $("slot-tip").replaceChildren(ruby(tip));
   const slots = slotOffsets(p.current, p.suggested);
   const words = slotWords(p.current, slots);
   const parts: Node[] = [];
@@ -332,7 +338,7 @@ function renderSlots(): void {
     } else {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = at === p.suggested ? "slot-btn suggested" : "slot-btn";
+      b.className = at === lit ? "slot-btn suggested" : "slot-btn";
       b.dataset.at = String(at);
       b.textContent = "+";
       b.setAttribute("aria-label", "加在这里");

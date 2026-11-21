@@ -110,6 +110,12 @@ Built in pieces, top to bottom; each piece lands with its tests.
       usually goes glows, and the sentence previews in colour.
       ✏️ 整句改一改 stays for bigger edits. The three circles now count
       down (还要加 3 个感觉) and show 1 / 2 / 3 when empty.
+- [x] `done` — **团团 too strict; the glowing ＋ looked required
+      (2026-11-21).** 默默地 for 👂 was judged "not a sound". The AI now
+      counts quietness/loudness and speaking as sound (and similar wider
+      readings for the other senses, in both games), and is told "when
+      in doubt, true". The suggested ＋ stops glowing once the child picks
+      another one.
 - [ ] `todo` — **Later: try it with the child.** Is 3 senses right? Do
       they pick varied senses or always 👀? Are AI hints for 我的故事书
       sentences good?
