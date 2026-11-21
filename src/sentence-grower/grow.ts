@@ -264,7 +264,21 @@ export function slotOffsets(text: string, extra?: number): number[] {
   const [body] = splitEnd(text);
   const set = new Set([...wordBoundaries(body), body.length]);
   if (extra !== undefined && extra >= 0 && extra <= body.length) set.add(extra);
-  return [...set].sort((a, b) => a - b);
+  // No ＋ right after a stray space: it would sit next to the ＋ before it.
+  const sorted = [...set].sort((a, b) => a - b);
+  return sorted.filter((at, i) => i === 0 || at === extra || body.slice(sorted[i - 1], at).trim() !== "");
+}
+
+/** Removes spaces next to Chinese characters or punctuation (a slip of the keyboard). */
+export function tidySpaces(text: string): string {
+  return text.trim().replace(/\s+(?=[\p{Script=Han}，。！？、：；“”])|(?<=[\p{Script=Han}，。！？、：；“”])\s+/gu, "");
+}
+
+/** How wide the ＋ box should be, in em: Chinese characters are about
+ * 1em wide, letters (pinyin while typing) about half that. */
+export function slotWidthEm(text: string): number {
+  const w = Array.from(text).reduce((n, c) => n + (/[\p{Script=Han}，。！？、：；“”]/u.test(c) ? 1 : 0.6), 0);
+  return Math.max(4, Math.ceil(w + 1.5));
 }
 
 /** The words between slots, for showing the sentence with ＋ between them. */

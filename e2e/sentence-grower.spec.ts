@@ -177,6 +177,12 @@ test("AI failing falls back to the offline check", async ({ page }) => {
   await page.click('[data-seed="rain"]');
   await addSense(page, "hear", "，哗啦啦");
   await expect(page.locator("#reaction")).toContainText("⭐");
+
+  // A long addition still fits in its box (Chinese characters are wide).
+  await page.click('.sense-card[data-sense="smell"]');
+  await page.locator(".slot-input").pressSequentially("，泥土的味道漂浮着");
+  const [shown, needed] = await page.locator(".slot-input").evaluate((e) => [e.clientWidth, e.scrollWidth]);
+  expect(needed).toBeLessThanOrEqual(shown);
 });
 
 test("sentences from 我的故事书 can be grown, and ?test keeps a separate list", async ({ page }) => {
