@@ -85,22 +85,22 @@ Built in pieces, top to bottom; each piece lands with its tests.
       an example on a *different* sentence per sense, growth count,
       seeds from 我的故事书), `garden.ts` (我的好句子 saved on the
       device, `?test` keeps a separate list). Unit tests for all.
-- [x] `done` — **2. The page, offline (2026-11-21).**** Home (picture cards, 我的故事书
+- [x] `done` — **2. The page, offline (2026-11-21).** Home (picture cards, 我的故事书
       sentences, 我的好句子), pick a sense (used ones greyed), rewrite the
       whole sentence yourself, help ladder (团团's question → 💡 words →
       👀 an example on another sentence), the sentence shown in coloured
       layers, ⭐ per sense. Shared UI helpers (pinyin, 🔊, 🎤) moved out of
       the story builder's `main.ts` so both pages use them.
-- [x] `done` — **3. AI judge (2026-11-21).**** `action: "grow"` on
+- [x] `done` — **3. AI judge (2026-11-21).** `action: "grow"` on
       `/api/story-partner`: judges one sense generously, reacts to the
       words added, nudges with a question when not done, and returns
       hint words for the next senses. Same limits and usage stats.
       Offline fallback when off or failing.
-- [x] `done` — **4. End of a sentence (2026-11-21).**** Before/after with 🔊, “从 X 个字
+- [x] `done` — **4. End of a sentence (2026-11-21).** Before/after with 🔊, “从 X 个字
       长到 Y 个字”, the layer legend, 读一读 (团团 reads it; 顺不顺? →
       👍 or ✏️ 改一改), saved to 我的好句子, optional 教团团写字 for one
       character the child added.
-- [ ] `todo` — **5. Links + e2e.** Link to the page from the story
+- [x] `done` — **5. Links + e2e (2026-11-21).** Link to the page from the story
       builder's home (and back); Playwright tests for the offline and AI
       flows; README section.
 - [ ] `todo` — **Later: try it with the child.** Is 3 senses right? Do

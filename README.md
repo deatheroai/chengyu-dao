@@ -95,6 +95,32 @@ per finished story, from daily totals kept in Upstash Redis. Each call's
 token counts are also logged (Vercel → Logs). Only numbers are stored,
 never story text. The Claude Console bill is the official figure.
 
+## Sentence grower (`sentence-grower.html`)
+
+句子长大了: the child takes one plain sentence (小狗在跑。) and makes it
+richer one sense at a time. They pick a sense card (👀看到 / 👂听到 /
+👃闻到 / ✋摸到 / 💭心情 / 🪄比喻; used ones grey out), 团团 asks a question
+about the picture, and the child rewrites the whole sentence themselves.
+If they're stuck, they can use 💡 hint words and 👀 an example on a
+*different* sentence. Nothing is ever inserted into their text. What each
+sense added shows in that sense's colour, and each finished sense earns
+⭐. After 3 senses (`SENSES_PER_SENTENCE` in
+`src/sentence-grower/grow.ts`) the end card shows before/after and what
+each sense added. Then comes 读一读: 团团 asks whether it reads smoothly,
+and the child can ✏️ 改一改. The sentence is saved to 我的好句子
+(`localStorage`, this device only; `?test` uses a separate list), and
+团团 asks to learn one character the child added (教团团写字).
+
+Plain sentences come from the picture cards in `src/sentence-grower/seeds.ts`
+(an emoji picture, a question and 3 hint words per sense), plus short
+sentences the child wrote in the story builder's 我的故事书. With the AI
+partner on, the `grow` action of `api/story-partner.ts` judges each
+sense generously, reacts to what was added, nudges with a question when
+it's missing, and suggests hint words for the next sense. It uses the
+same limits and cost tracking as the story builder. Without AI, any newly
+added characters count. The two pages link to each other and share
+`src/story-builder/ui.ts` (pinyin, 🔊, 🎤).
+
 ## Project structure
 
 `index.html` (the site root) is a static redirect to `idiom-door.html`, the
@@ -110,6 +136,7 @@ src/
   idioms/      # idiom content data + types
   reading/     # story-writer.html: read, practise and 默写 characters
   story-builder/ # story-builder.html: collaborative story writing
+  sentence-grower/ # sentence-grower.html: grow a sentence one sense at a time
   idiom-door/  # match/door/balloon scenes, level content, session flow
   shared/      # shared helpers: ruby text (pinyin), player-position DOM
                # hook, application-check distractor builder, session
