@@ -105,6 +105,61 @@ Vocabulary feedback after a story (decided 2026-11-17, see
 - [ ] `blocked` — **One gentle grammar tip.** Left out on purpose for
       now (vocabulary first); needs a decision before building.
 
+## Sentence grower (句子长大了)
+
+Grow one plain sentence, one sense at a time (decided 2026-11-21, see
+`DECISIONS.md`). A separate page, `sentence-grower.html`, reusing the
+story builder's senses, pinyin, read-aloud, AI partner and 教团团写字.
+Built in pieces, top to bottom; each piece lands with its tests.
+
+- [x] `done` — **1. Core logic + seeds (2026-11-21).** `src/sentence-grower/`:
+      `seeds.ts` (about 10 emoji picture scenes, each a plain sentence
+      plus per-sense questions and hint words), `grow.ts` (3 senses per
+      sentence, which characters each layer added — a per-character
+      diff so additions in two places both count —, the offline check,
+      an example on a *different* sentence per sense, growth count,
+      seeds from 我的故事书), `garden.ts` (我的好句子 saved on the
+      device, `?test` keeps a separate list). Unit tests for all.
+- [x] `done` — **2. The page, offline (2026-11-21).** Home (picture cards, 我的故事书
+      sentences, 我的好句子), pick a sense (used ones greyed), rewrite the
+      whole sentence yourself, help ladder (团团's question → 💡 words →
+      👀 an example on another sentence), the sentence shown in coloured
+      layers, ⭐ per sense. Shared UI helpers (pinyin, 🔊, 🎤) moved out of
+      the story builder's `main.ts` so both pages use them.
+- [x] `done` — **3. AI judge (2026-11-21).** `action: "grow"` on
+      `/api/story-partner`: judges one sense generously, reacts to the
+      words added, nudges with a question when not done, and returns
+      hint words for the next senses. Same limits and usage stats.
+      Offline fallback when off or failing.
+- [x] `done` — **4. End of a sentence (2026-11-21).** Before/after with 🔊, “从 X 个字
+      长到 Y 个字”, the layer legend, 读一读 (团团 reads it; 顺不顺? →
+      👍 or ✏️ 改一改), saved to 我的好句子, optional 教团团写字 for one
+      character the child added.
+- [x] `done` — **5. Links + e2e (2026-11-21).** Link to the page from the story
+      builder's home (and back); Playwright tests for the offline and AI
+      flows; README section.
+- [x] `done` — **Tap a ＋ to add words (2026-11-21).** First try: editing
+      a full sentence on a phone was confusing (where does the addition
+      go?), so she just replaced it. Now the sentence shows a ＋ between
+      words; she types only the new words in one, the ＋ where that sense
+      usually goes glows, and the sentence previews in colour.
+      ✏️ 整句改一改 stays for bigger edits. The three circles now count
+      down (还要加 3 个感觉) and show 1 / 2 / 3 when empty.
+- [x] `done` — **团团 too strict; the glowing ＋ looked required
+      (2026-11-21).** 默默地 for 👂 was judged "not a sound". The AI now
+      counts quietness/loudness and speaking as sound (and similar wider
+      readings for the other senses, in both games), and is told "when
+      in doubt, true". The suggested ＋ stops glowing once the child picks
+      another one.
+- [x] `done` — **＋ box too narrow (2026-11-21).** It was sized by letter
+      count, but Chinese characters are about twice as wide; now sized
+      in em. Also: the word blocks take pinyin from the whole sentence
+      (了 = le, 地 = de), stray spaces are removed, and 地 before 落/飘/
+      响/望… reads de.
+- [ ] `todo` — **Later: try it with the child.** Is 3 senses right? Do
+      they pick varied senses or always 👀? Are AI hints for 我的故事书
+      sentences good?
+
 ## Chinese Idiom Discovery Game
 
 - [x] `done` — **Fix: the "each jump costs HP..." e2e test assumed

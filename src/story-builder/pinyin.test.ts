@@ -17,6 +17,7 @@ describe("charPinyin", () => {
     expect(charPinyin("慢慢地走")[2]).toBe("de");
     expect(charPinyin("叽叽喳喳地唱歌")[4]).toBe("de");
     expect(charPinyin("笑眯眯地")[3]).toBe("de");
+    expect(charPinyin("雨点滴滴答答地落下")[6]).toBe("de");
     expect(charPinyin("湿湿的草地")[4]).toBe("dì");
     expect(charPinyin("地上有水")[0]).toBe("dì");
   });

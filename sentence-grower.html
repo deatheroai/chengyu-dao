@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#eef6ff" />
+    <meta name="description" content="句子长大了：take one plain sentence and make it richer with 团团 the panda, adding one sense at a time." />
+    <title>句子长大了</title>
+    <link rel="stylesheet" href="/src/story-builder/style.css" />
+    <link rel="stylesheet" href="/src/sentence-grower/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <button class="icon-btn" id="btn-home" type="button" aria-label="回到首页" style="visibility: hidden">←</button>
+        <h1>🌱 句子长大了</h1>
+        <button class="pill-toggle" id="btn-pinyin" type="button" aria-pressed="true">拼音</button>
+      </header>
+      <p class="test-badge" id="test-badge" hidden>🧪 测试模式：这里的句子放在测试句子本里，不会影响孩子的句子。</p>
+
+      <!-- Home: pick a sentence to grow -->
+      <section id="view-home" class="view">
+        <div class="tuan-says">
+          <span class="tuan-face" aria-hidden="true">🐼</span>
+          <p class="tuan-bubble" id="home-intro"></p>
+        </div>
+        <div class="adventure-grid" id="seed-grid"></div>
+        <div class="library" id="story-seeds-wrap" hidden>
+          <h2>📚 从我的故事书里选一句</h2>
+          <ul class="library-list" id="story-seeds"></ul>
+        </div>
+        <div class="library" id="garden-wrap" hidden>
+          <h2 id="garden-title">🌻 我的好句子</h2>
+          <ul class="library-list" id="garden"></ul>
+        </div>
+        <p class="other-game"><a id="link-story" href="/story-builder.html">🐼 去和团团一起编故事 →</a></p>
+      </section>
+
+      <!-- Play: grow one sentence -->
+      <section id="view-play" class="view" hidden>
+        <div class="scene">
+          <span class="scene-emoji" id="scene-emoji" aria-hidden="true"></span>
+          <h2 class="play-title" id="scene-title"></h2>
+        </div>
+
+        <div class="grow-card">
+          <div class="grow-sentence-row">
+            <p class="grow-sentence" id="grow-sentence" aria-live="polite"></p>
+            <span id="grow-speak"></span>
+          </div>
+          <p class="dots-label" id="dots-label"></p>
+          <ol class="layer-dots" id="layer-dots" aria-label="加了几个感觉"></ol>
+        </div>
+        <p class="partner-note reaction" id="reaction" hidden></p>
+
+        <div class="turn-card" id="pick" hidden>
+          <p class="turn-label" id="pick-label"></p>
+          <div class="sense-cards" id="sense-cards"></div>
+        </div>
+
+        <div class="turn-card mission" id="step" hidden>
+          <p class="mission-title" id="step-title"></p>
+          <p class="mission-question" id="step-question"></p>
+          <p class="hint slot-tip" id="slot-tip"></p>
+          <p class="slot-sentence" id="slot-sentence"></p>
+          <div class="whole-wrap" id="whole-wrap" hidden>
+            <textarea id="grow-input" rows="3" lang="zh-Hans" autocomplete="off" aria-label="改整个句子"></textarea>
+          </div>
+          <div class="help-row">
+            <button class="link-btn" id="btn-hint" type="button">💡 提示</button>
+            <button class="link-btn" id="btn-example" type="button">👀 看个例子</button>
+            <button class="link-btn" id="btn-mic" type="button" hidden>🎤 说一说</button>
+          </div>
+          <p class="hint-words" id="hint-words" hidden></p>
+          <div class="example" id="example" hidden></div>
+          <p class="partner-note" id="step-note" hidden></p>
+          <p class="thinking" id="thinking" hidden>🐼 团团在读你的句子……</p>
+          <button class="link-btn whole-btn" id="btn-whole" type="button">✏️ 整句改一改</button>
+          <div class="actions">
+            <button class="btn" id="btn-back" type="button">换一个</button>
+            <button class="btn" id="btn-keep" type="button" hidden>就这样吧</button>
+            <button class="btn btn-primary" id="btn-grow" type="button">长大吧 ✓</button>
+          </div>
+        </div>
+
+        <!-- The sentence has grown -->
+        <div class="turn-card end-card" id="end" hidden>
+          <p class="end-title">🎉 句子长大了！</p>
+          <p class="end-stars" id="end-growth"></p>
+          <div class="before-after">
+            <p class="ba-label">原来</p>
+            <p class="ba-row" id="end-before"></p>
+            <p class="ba-label">现在</p>
+            <p class="ba-row" id="end-after"></p>
+          </div>
+          <ul class="legend" id="legend"></ul>
+
+          <div class="read-card" id="read-card">
+            <div class="tuan-says">
+              <span class="tuan-face" aria-hidden="true">🐼</span>
+              <p class="tuan-bubble" id="read-ask">我们一起读一读，听听顺不顺？</p>
+            </div>
+            <p class="hint long-note" id="long-note" hidden>句子有点长了，读的时候喘不过气吗？可以用逗号分开，或者删掉一点点。</p>
+            <div class="actions center" id="read-actions">
+              <button class="btn" id="btn-read" type="button">🔊 读一读</button>
+              <button class="btn" id="btn-edit" type="button">✏️ 改一改</button>
+              <button class="btn btn-primary" id="btn-smooth" type="button">很顺 👍</button>
+            </div>
+            <div class="edit-wrap" id="edit-wrap" hidden>
+              <textarea id="edit-input" rows="3" lang="zh-Hans" autocomplete="off" aria-label="改一改句子"></textarea>
+              <p class="hint" id="edit-hint" aria-live="polite"></p>
+              <div class="actions center">
+                <button class="btn btn-primary" id="btn-edit-save" type="button">改好了 ✓</button>
+              </div>
+            </div>
+          </div>
+          <p class="hint" id="saved-hint">句子已经放进“我的好句子”里了。</p>
+
+          <div class="practise teach" id="practise" hidden>
+            <h3>✍️ 教团团写字</h3>
+            <div class="tuan-says">
+              <span class="tuan-face" aria-hidden="true">🐼</span>
+              <p class="tuan-bubble" id="teach-ask"></p>
+            </div>
+            <ul class="teach-words" id="teach-words"></ul>
+            <div class="actions center">
+              <button class="btn btn-primary" id="btn-practise" type="button">好，我来教你！</button>
+            </div>
+            <div class="practise-pad" id="practise-pad-wrap" hidden>
+              <div class="char-tabs" id="char-tabs" role="tablist"></div>
+              <div class="tianzige" id="practise-pad"></div>
+              <div class="tuan-says">
+                <span class="tuan-face" aria-hidden="true">🐼</span>
+                <p class="tuan-bubble feedback" id="practise-feedback" aria-live="polite"></p>
+              </div>
+              <div class="actions center">
+                <button class="btn" id="btn-animate" type="button">👀 写给团团看</button>
+                <button class="btn" id="btn-trace" type="button">✏️ 描一描</button>
+                <button class="btn" id="btn-free" type="button">✍️ 自己写</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions center">
+            <button class="btn btn-primary" id="btn-again" type="button">🌱 再种一句</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- A saved sentence -->
+      <section id="view-read" class="view" hidden>
+        <div class="scene">
+          <span class="scene-emoji" id="read-emoji" aria-hidden="true"></span>
+          <h2 class="play-title" id="read-title"></h2>
+        </div>
+        <div class="before-after">
+          <p class="ba-label">原来</p>
+          <p class="ba-row" id="read-before"></p>
+          <p class="ba-label">现在</p>
+          <p class="ba-row" id="read-after"></p>
+        </div>
+        <ul class="legend" id="read-legend"></ul>
+        <div class="actions">
+          <button class="btn" id="btn-regrow" type="button">🌱 再种一次</button>
+          <button class="btn btn-danger" id="btn-delete" type="button">删除</button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/sentence-grower/main.ts"></script>
+  </body>
+</html>

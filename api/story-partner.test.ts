@@ -171,6 +171,31 @@ describe("story-partner", () => {
     expect((await res.json()).next.line).toContain("小狗");
   });
 
+  it("judges one sense for 句子长大了 with its own prompt", async () => {
+    process.env.ANTHROPIC_API_KEY = "test";
+    parse.mockResolvedValue({
+      stop_reason: "end_turn",
+      usage: { input_tokens: 500, output_tokens: 100 },
+      parsed_output: { senseDone: true, reaction: "好白的小狗！", hint: "", hints },
+    });
+    const res = await post({ action: "grow", plain: "小狗在跑。", before: "小狗在跑。", sentence: "白白的小狗在跑。", sense: "see" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ senseDone: true, reaction: "好白的小狗！", hint: "", hints });
+    const args = parse.mock.calls[0][0];
+    expect(args.system).toContain("one sense at a time");
+    expect(args.messages[0].content).toContain("<improved>白白的小狗在跑。</improved>");
+    expect(args.messages[0].content).toContain("看到");
+    expect(args.messages[0].content).toContain("When in doubt, answer true");
+  });
+
+  it("counts quietness as a sound (默默地 was judged not a sound)", async () => {
+    process.env.ANTHROPIC_API_KEY = "test";
+    parse.mockResolvedValue({ stop_reason: "end_turn", parsed_output: { senseDone: true, reaction: "好安静！", hint: "", hints } });
+    await post({ action: "grow", plain: "月亮出来了。", before: "月亮出来了。", sentence: "月亮默默地出来了。", sense: "hear" });
+    expect(parse.mock.calls[0][0].messages[0].content).toContain("默默地");
+    expect(parse.mock.calls[0][0].messages[0].content).toContain("静悄悄");
+  });
+
   it("returns 502 on a refusal, bad output or an SDK error", async () => {
     process.env.ANTHROPIC_API_KEY = "test";
     vi.spyOn(console, "error").mockImplementation(() => {});

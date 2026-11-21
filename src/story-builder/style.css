@@ -1110,3 +1110,15 @@ textarea:focus {
   background: var(--card);
   line-height: 2.1;
 }
+
+/* Link to the other writing game (句子长大了 ↔ 一起编故事). */
+.other-game {
+  text-align: center;
+  margin: 16px 0;
+}
+
+.other-game a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}

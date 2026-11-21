@@ -12,86 +12,15 @@ import { charPinyin } from "./pinyin";
 import { createPractice } from "./practice";
 import { SENSES, SENSE_IDS, getSense, type SenseId } from "./senses";
 import { loadTaught, pickCharsToTeach, saveTaught } from "./teach";
-
-const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`#${id} missing`);
-  return el as T;
-};
+import { $, readPinyinPref, ruby, savePinyinPref, speak, speakButton, wireMic } from "./ui";
 
 // ---------- shared helpers ----------
 
-const PINYIN_KEY = "chengyu-dao:story-builder:pinyin";
-function readPinyinPref(): boolean {
-  try {
-    return localStorage.getItem(PINYIN_KEY) !== "off";
-  } catch {
-    return true;
-  }
-}
 let showPinyin = readPinyinPref();
 
 function applyPinyin(): void {
   document.body.classList.toggle("no-pinyin", !showPinyin);
   $("btn-pinyin").setAttribute("aria-pressed", String(showPinyin));
-}
-
-/** Text with pinyin over each character. */
-function ruby(text: string, cls = ""): HTMLElement {
-  const span = document.createElement("span");
-  if (cls) span.className = cls;
-  renderRubyText(span, text, charPinyin(text));
-  return span;
-}
-
-function speak(text: string): void {
-  if (!("speechSynthesis" in window)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "zh-CN";
-  u.rate = 0.8;
-  speechSynthesis.speak(u);
-}
-
-function speakButton(text: string): HTMLButtonElement {
-  const b = document.createElement("button");
-  b.type = "button";
-  b.className = "speak-btn";
-  b.textContent = "🔊";
-  b.setAttribute("aria-label", "朗读");
-  b.hidden = !("speechSynthesis" in window);
-  b.addEventListener("click", () => speak(text));
-  return b;
-}
-
-// Voice input (Chrome / Safari); hidden where unsupported.
-type Recognition = {
-  lang: string;
-  interimResults: boolean;
-  start(): void;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onend: (() => void) | null;
-};
-const RecognitionCtor: (new () => Recognition) | undefined =
-  (window as unknown as Record<string, new () => Recognition>).SpeechRecognition ??
-  (window as unknown as Record<string, new () => Recognition>).webkitSpeechRecognition;
-
-function wireMic(button: HTMLButtonElement, input: HTMLTextAreaElement): void {
-  if (!RecognitionCtor) return;
-  button.hidden = false;
-  button.addEventListener("click", () => {
-    const rec = new RecognitionCtor();
-    rec.lang = "zh-CN";
-    rec.interimResults = false;
-    button.classList.add("listening");
-    rec.onresult = (e) => {
-      const said = e.results[0]?.[0]?.transcript ?? "";
-      const at = input.selectionEnd ?? input.value.length;
-      input.value = input.value.slice(0, at) + said + input.value.slice(at);
-    };
-    rec.onend = () => button.classList.remove("listening");
-    rec.start();
-  });
 }
 
 // ---------- views ----------
@@ -917,15 +846,12 @@ function init(): void {
     $("test-badge").hidden = false;
     $("library-title").textContent = "🧪 测试故事书";
     $("saved-hint").textContent = "故事已经放进“测试故事书”里了。";
+    $<HTMLAnchorElement>("link-grower").href = "/sentence-grower.html?test";
     document.title = `🧪 ${document.title}`;
   }
   $("btn-pinyin").addEventListener("click", () => {
     showPinyin = !showPinyin;
-    try {
-      localStorage.setItem(PINYIN_KEY, showPinyin ? "on" : "off");
-    } catch {
-      /* ignore */
-    }
+    savePinyinPref(showPinyin);
     applyPinyin();
   });
   $("btn-home").addEventListener("click", () => {
