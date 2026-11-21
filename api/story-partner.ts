@@ -99,7 +99,14 @@ const lastTurnSchema = turnSchema.extend({ feedback: feedbackSchema });
 const altSchema = nextSchema.omit({ hints: true });
 const choiceTurnSchema = turnSchema.extend({ alternatives: z.array(altSchema) });
 
-const growSchema = z.object({ senseDone: z.boolean(), reaction: z.string(), hint: z.string(), hints: hintsSchema });
+const growSchema = z.object({
+  senseDone: z.boolean(),
+  readsWell: z.boolean(),
+  fixHint: z.string(),
+  reaction: z.string(),
+  hint: z.string(),
+  hints: hintsSchema,
+});
 
 const WRITER_LABELS = { partner: "团团", child: "孩子", parent: "爸爸妈妈" } as const;
 
@@ -172,7 +179,9 @@ Return:
 "senseDone": true if the new sentence adds any detail of that kind (be generous: their own creative words count, even unusual ones, and it can be anywhere in the sentence). When in doubt, answer true: saying no to a real try discourages the child, so only say false when nothing they added has to do with this sense.
 "reaction": one short, warm sentence (at most 20 characters) reacting to the specific words they added, e.g. "汪汪汪！我好像听到小狗在叫！". If senseDone is false, react kindly to their sentence instead.
 "hint": if senseDone is false, one short question (at most 20 characters) about the sentence's scene that nudges them toward the sense without giving the answer; otherwise "".
-"hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that would fit this sentence's scene, to inspire the child's next step (for pattern, short similes like 像一团棉花).`;
+"readsWell": false only if the new sentence is clearly broken Chinese that a Primary 2 teacher would circle: words in the wrong order, a word repeated by mistake (e.g. 一碗面汤的味道面), or an added part that doesn't join onto the rest. A simple, plain or unusual-but-understandable sentence reads well; a missing comma alone is fine. Judge this separately from senseDone.
+"fixHint": if readsWell is false, one short, kind question (at most 25 characters) that quotes the odd part exactly as written (at most 8 characters, in “”) and invites them to read it aloud and fix it, e.g. "“汤的味道面”读起来有点怪，可以怎么改？". Never write the corrected sentence. Otherwise "".
+"hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that would fit this sentence's scene, to inspire the child's next step (for pattern, short similes like 像一团棉花). Each should fit somewhere in this sentence as it is: a describing word ending in 的 to go before a thing, a word ending in 地 to go before an action, or a part starting with “，” to add at the end.`;
 }
 
 /** The child's own sentences (never a parent's), numbered, for the end-of-story feedback. */

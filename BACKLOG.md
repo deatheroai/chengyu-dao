@@ -156,6 +156,14 @@ Built in pieces, top to bottom; each piece lands with its tests.
       in em. Also: the word blocks take pinyin from the whole sentence
       (了 = le, 地 = de), stray spaces are removed, and 地 before 落/飘/
       响/望… reads de.
+- [x] `done` — **A helper word made a broken sentence, and it passed
+      (2026-11-21).** 💡 浓浓的汤味 in the ＋ before 面 gave 一碗面汤的味道面.
+      Hint words on every picture card now fit their suggested ＋ (…的
+      before a thing, …地 before an action, “，…” at the end; a test
+      checks it) and come before AI hints. The AI also returns
+      `readsWell`: a clearly broken sentence gets a question quoting the
+      odd part (never the fix); 就这样吧 still moves on, keeping the ⭐ if
+      the sense was there. New 🔊 读给我听 reads the sentence as it is.
 - [ ] `todo` — **Later: try it with the child.** Is 3 senses right? Do
       they pick varied senses or always 👀? Are AI hints for 我的故事书
       sentences good?

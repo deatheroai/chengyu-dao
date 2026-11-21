@@ -115,6 +115,10 @@ export interface GrowResponse {
   hint: string;
   /** 💡 words for each sense that fit the new sentence, for the next layer. */
   hints: Record<SenseId, string[]>;
+  /** False when the new sentence is clearly broken (e.g. 一碗面汤的味道面). */
+  readsWell: boolean;
+  /** When it doesn't read well: a question quoting the odd part (never the fix). */
+  fixHint: string;
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null;
@@ -239,5 +243,13 @@ export function cleanGrowResponse(x: unknown): GrowResponse | null {
   const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
   const empty = {} as Record<SenseId, string[]>;
   for (const s of PARTNER_SENSES) empty[s] = [];
-  return { senseDone: x.senseDone, reaction: str(x.reaction, 80), hint: str(x.hint, 80), hints: cleanHints(x.hints) ?? empty };
+  return {
+    senseDone: x.senseDone,
+    reaction: str(x.reaction, 80),
+    hint: str(x.hint, 80),
+    hints: cleanHints(x.hints) ?? empty,
+    // An older or partial reply without the check counts as reading well.
+    readsWell: x.readsWell !== false,
+    fixHint: x.readsWell === false ? str(x.fixHint, 80) : "",
+  };
 }

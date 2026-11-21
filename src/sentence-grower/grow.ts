@@ -162,9 +162,10 @@ export function questionFor(seed: Seed | undefined, sense: SenseId): string {
   return seed?.questions[sense] ?? getSense(sense).question;
 }
 
-/** Three 💡 words: 团团's (AI) ones first, then the picture's, then general ones. */
+/** Three 💡 words: the picture's first (they fit its suggested ＋), then
+ * 团团's (AI) ones, then general ones. */
 export function hintsFor(seed: Seed | undefined, sense: SenseId, ai: string[] = []): string[] {
-  const all = [...ai, ...(seed?.words[sense] ?? []), ...getSense(sense).words];
+  const all = [...(seed?.words[sense] ?? []), ...ai, ...getSense(sense).words];
   return [...new Set(all)].slice(0, 3);
 }
 
