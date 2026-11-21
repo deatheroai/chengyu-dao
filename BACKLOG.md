@@ -77,7 +77,7 @@ Grow one plain sentence, one sense at a time (decided 2026-11-21, see
 story builder's senses, pinyin, read-aloud, AI partner and 教团团写字.
 Built in pieces, top to bottom; each piece lands with its tests.
 
-- [ ] `todo` — **1. Core logic + seeds.** `src/sentence-grower/`:
+- [x] `done` — **1. Core logic + seeds (2026-11-21).** `src/sentence-grower/`:
       `seeds.ts` (about 10 emoji picture scenes, each a plain sentence
       plus per-sense questions and hint words), `grow.ts` (3 senses per
       sentence, which characters each layer added — a per-character
