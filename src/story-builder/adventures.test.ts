@@ -50,6 +50,19 @@ describe("adventures", () => {
     }
   });
 
+  it("explain the place and every question, for a child who doesn't understand", () => {
+    for (const a of ADVENTURES) {
+      expect(a.about.length, a.title).toBeGreaterThan(20);
+      for (const b of a.beats) {
+        for (const c of [b, ...(b.choices ?? [])]) {
+          expect(c.explain.length, c.prompt).toBeGreaterThan(8);
+          expect(c.explain, c.prompt).not.toBe(c.prompt);
+          expect(c.starters.length, c.prompt).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
   it("every sense has a question and general words", () => {
     for (const s of SENSES) {
       expect(s.question).toBeTruthy();

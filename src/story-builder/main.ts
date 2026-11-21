@@ -278,6 +278,10 @@ function newGame(title: string, beat: NextBeat, adventure?: Adventure): void {
   };
   $("play-title").replaceChildren(adventure ? ruby(`${adventure.emoji} ${adventure.title}`) : ruby(`✏️ ${title}`));
   $("story-flow").replaceChildren();
+  const about = adventure?.about;
+  $("topic-card").hidden = !about;
+  ($("topic-card") as HTMLDetailsElement).open = true;
+  $("topic-text").replaceChildren(...(about ? [ruby(about), speakButton(about)] : []));
   $("turn-end").hidden = true;
   $("choice").hidden = true;
   $("end-feedback").replaceChildren();
@@ -319,12 +323,14 @@ function openTurn(): void {
   const word = g.beat.word;
   $("turn-word").replaceChildren(...(word ? [ruby(`📗 试试在句子里用上新词「${word.word}」！`)] : []));
   $("turn-word").hidden = !word;
+  renderGuide(g.beat);
   const input = sentenceInput();
   input.value = "";
   input.readOnly = false;
   $("turn-hint").textContent = "";
   $("btn-written").hidden = false;
   $<HTMLButtonElement>("btn-written").disabled = false;
+  $("btn-guide").hidden = false;
   setWriter(false);
   $("spin-area").hidden = true;
   $("mission").hidden = true;
@@ -334,6 +340,60 @@ function openTurn(): void {
   g.original = "";
   showFixCard(false);
   $("turn").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/** Questions that help with any scene, whatever 团团 asked. */
+const THINK_QUESTIONS = ["谁？在哪里？", "他们在做什么？", "看到、听到了什么？", "心里觉得怎么样？"];
+
+/** 🤔 不知道写什么？ The question said simply, starters to tap, things to
+ * think about, and an example sentence behind one more tap. */
+function renderGuide(beat: NextBeat): void {
+  const guide = beat.guide;
+  $("guide").hidden = true;
+  $("btn-guide").setAttribute("aria-expanded", "false");
+  const explain = guide?.explain || `团团问：“${beat.question}” 想一想下面的问题，写一句话就可以了！`;
+  $("guide-explain").replaceChildren(ruby(explain), speakButton(explain));
+  $("guide-explain").dataset.say = explain;
+  const starters = guide?.starters ?? [];
+  $("guide-starters-label").hidden = starters.length === 0;
+  $("guide-starters").replaceChildren(
+    ...starters.map((st) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "hint-word guide-starter";
+      b.append(ruby(st));
+      b.addEventListener("click", () => {
+        const input = sentenceInput();
+        if (input.readOnly) return;
+        input.value = input.value.trim() ? `${input.value}${st}` : st;
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+        $("turn-hint").textContent = "";
+      });
+      return b;
+    }),
+  );
+  $("guide-think").replaceChildren(
+    ...THINK_QUESTIONS.map((q) => {
+      const li = document.createElement("li");
+      li.append(ruby(q));
+      return li;
+    }),
+  );
+  const example = guide?.example;
+  $("btn-example").hidden = !example;
+  $("guide-example").hidden = true;
+  $("guide-example").replaceChildren(...(example ? [ruby(`比如：${example}`), speakButton(example)] : []));
+}
+
+function toggleGuide(): void {
+  const open = $("guide").hidden;
+  $("guide").hidden = !open;
+  $("btn-guide").setAttribute("aria-expanded", String(open));
+  if (open) {
+    ($("topic-card") as HTMLDetailsElement).open = false;
+    speak($("guide-explain").dataset.say ?? "");
+  }
 }
 
 /** Phase 2: the sentence is written; spin for a mission. */
@@ -351,6 +411,8 @@ function finishWriting(): void {
   game.original = text;
   $("turn-hint").textContent = "";
   $("btn-written").hidden = true;
+  $("btn-guide").hidden = true;
+  $("guide").hidden = true;
   renderWheel(sensesUsed(text, game.adventure?.beats[game.done]));
   $("spin-area").hidden = false;
   $<HTMLButtonElement>("btn-spin").disabled = false;
@@ -880,6 +942,11 @@ function init(): void {
   $("btn-done").addEventListener("click", () => void missionDone());
   $("btn-skip").addEventListener("click", () => void skipMission());
   $("btn-fix-done").addEventListener("click", fixDone);
+  $("btn-guide").addEventListener("click", toggleGuide);
+  $("btn-example").addEventListener("click", () => {
+    $("btn-example").hidden = true;
+    $("guide-example").hidden = false;
+  });
   $("btn-fix-help").addEventListener("click", fixHelp);
 
   $("btn-read-all").addEventListener("click", () => game && speak(storyText(game.lines)));

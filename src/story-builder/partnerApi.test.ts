@@ -94,6 +94,15 @@ describe("cleaning responses", () => {
     expect(noWord).not.toHaveProperty("fixes");
   });
 
+  it("keeps a 🤔 guide only when it explains something", () => {
+    const next = (guide: unknown) => cleanTurnResponse({ missionDone: true, reaction: "", hint: "", next: { line: "好。", question: "然后呢？", hints, guide } })?.next;
+    expect(next({ explain: " 想一想谁来了？ ", starters: ["突然", "", "原来是", "大家", "第四个"], example: "" })?.guide).toEqual({
+      explain: "想一想谁来了？",
+      starters: ["突然", "原来是", "大家"],
+    });
+    expect(next({ explain: "", starters: ["突然"], example: "x" })).not.toHaveProperty("guide");
+  });
+
   it("rejects responses missing required parts", () => {
     expect(cleanTurnResponse({ reaction: "hi" })).toBeNull();
     expect(cleanTurnResponse({ missionDone: true, next: { line: "", question: "", hints } })).toBeNull();

@@ -10,6 +10,9 @@ export interface Beat {
   partner: string;
   /** Question the partner asks the child to answer with a sentence. */
   prompt: string;
+  /** 🤔 The question said more simply, with ideas to think about, for a
+   * child who doesn't know what to write. */
+  explain: string;
   /** Sentence starters the child can tap to begin. */
   starters: string[];
   /** Scene-specific words for the five-senses helper. */
@@ -24,7 +27,7 @@ export interface Beat {
    * picks which way the story goes (see `CHOICE_AFTER_TURN` in flow.ts).
    * Each must still lead into the next beat. Hints come from this beat.
    */
-  choices?: { partner: string; prompt: string; word?: NewWord }[];
+  choices?: { partner: string; prompt: string; explain: string; starters: string[]; word?: NewWord }[];
 }
 
 /**
@@ -38,6 +41,9 @@ export interface Adventure {
   emoji: string;
   /** Who the story is about — used in the cover blurb. */
   blurb: string;
+  /** 📖 故事小知识: what the place or topic is, for a child who has never
+   * been there (what a void deck is, what you find at a 巴刹). */
+  about: string;
   beats: Beat[];
   /** The partner's closing line after the last beat. */
   ending: string;
@@ -49,10 +55,12 @@ export const ADVENTURES: Adventure[] = [
     title: "组屋楼下的下午",
     emoji: "🏢",
     blurb: "放学后，小华在组屋楼下等好朋友……",
+    about: "新加坡很多人住在组屋里。组屋最下面的一层空空的，没有住人，叫“组屋楼下”。小朋友在这里玩，爷爷们在这里下棋，邻居们在这里聊天。旁边常常还有一个游乐场。",
     beats: [
       {
         partner: "放学后，小华背着书包回到组屋楼下，好朋友阿明已经在等她了。",
         prompt: "组屋楼下是什么样子的？谁在那里？",
+        explain: "想一想：组屋楼下有什么东西？有哪些人？他们在做什么？",
         word: { word: "组屋楼下", meaning: "组屋最下面空空的一层，大家可以在这里玩、聊天。" },
         starters: ["组屋楼下", "小华看见", "阿明"],
         words: {
@@ -67,16 +75,21 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "两个人跑到旁边的游乐场去玩。",
         prompt: "他们在游乐场玩什么？",
+        explain: "游乐场有滑梯、秋千、攀爬架。小华和阿明先玩哪一个？怎么玩？",
         word: { word: "游乐场", meaning: "有滑梯、秋千，给小朋友玩的地方。" },
         choices: [
           {
             partner: "两个人在组屋楼下踢起了足球。",
             prompt: "踢球的时候发生了什么？",
+            explain: "他们在组屋楼下踢足球。谁踢得最好？球踢到哪里去了？",
+            starters: ["阿明用力一踢", "足球", "小华跑过去"],
             word: { word: "足球", meaning: "用脚踢的球。" },
           },
           {
             partner: "邻居婆婆提着一大袋东西，慢慢地走过来。",
             prompt: "婆婆需要什么帮忙？",
+            explain: "婆婆提着很重的袋子。小华和阿明可以怎么帮婆婆？",
+            starters: ["小华跑过去", "他们帮婆婆", "婆婆笑着说"],
             word: { word: "邻居", meaning: "住在你家旁边的人。" },
           },
         ],
@@ -93,6 +106,7 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "突然，天空乌云密布，下起了倾盆大雨！",
         prompt: "下大雨了，他们怎么办？",
+        explain: "雨突然下得很大。他们会跑去哪里躲雨？身上怎么样了？",
         word: { word: "倾盆大雨", meaning: "雨非常大，好像有人用盆把水倒下来。" },
         starters: ["他们赶紧", "雨点", "小华大喊"],
         words: {
@@ -108,6 +122,7 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "雨停了，邻居婆婆拿来了两条干毛巾。",
         prompt: "婆婆说了什么？他们心里觉得怎么样？",
+        explain: "婆婆给了他们毛巾。婆婆会说什么话？他们会怎么谢谢婆婆？",
         starters: ["婆婆笑着说", "小华接过", "他们一起"],
         words: {
           see: ["一道彩虹", "亮晶晶的水坑"],
@@ -126,10 +141,12 @@ export const ADVENTURES: Adventure[] = [
     title: "小息的时候",
     emoji: "🍜",
     blurb: "铃声响了，美玲拿着零用钱跑到食堂……",
+    about: "上课上到一半，学校会让大家休息一下，这就是“小息”。小息的时候，同学们去食堂排队买东西吃，用的是爸爸妈妈给的零用钱。",
     beats: [
       {
         partner: "叮铃铃，小息的铃声响了！美玲和同学们排着队，走进了食堂。",
         prompt: "食堂里是什么样子的？",
+        explain: "食堂是学校里买东西吃的地方。那里有很多摊位和同学，你看到、闻到、听到了什么？",
         word: { word: "小息", meaning: "上课中间休息、吃东西的时间。" },
         starters: ["食堂里", "美玲看见", "每个摊位"],
         words: {
@@ -144,16 +161,21 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "美玲拿出零用钱，想买一样好吃的东西。",
         prompt: "美玲买了什么？味道怎么样？",
+        explain: "美玲喜欢吃什么？可以是鸡饭、面、炸鸡翅……吃起来是什么味道？",
         word: { word: "零用钱", meaning: "爸爸妈妈给你，让你自己买东西的钱。" },
         choices: [
           {
             partner: "美玲看见同班的小文一个人坐着，好像不开心。",
             prompt: "小文怎么了？美玲怎么做？",
+            explain: "小文一个人坐着，不开心。他为什么不开心？美玲会过去对他说什么？",
+            starters: ["美玲走过去", "原来小文", "美玲把"],
             word: { word: "同班", meaning: "在同一个班上课。" },
           },
           {
             partner: "排队的时候，美玲发现地上有一个钱包。",
             prompt: "美玲会怎么做？",
+            explain: "地上有一个别人的钱包。美玲会拿去给谁？要怎么做才对？",
+            starters: ["美玲捡起", "她把钱包", "老师说"],
             word: { word: "钱包", meaning: "装钱的小包。" },
           },
         ],
@@ -170,6 +192,7 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "这时候，美玲不小心把饮料打翻了！",
         prompt: "发生了什么？谁来帮忙？",
+        explain: "饮料洒出来了！桌子和地上怎么样了？美玲着急吗？哪个同学来帮她？",
         word: { word: "打翻", meaning: "把杯子弄倒了，里面的东西流出来。" },
         starters: ["哐当一声", "饮料流到", "同学们"],
         words: {
@@ -184,6 +207,7 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "同学们一起帮忙，很快就把桌子擦干净了。",
         prompt: "最后，美玲心里觉得怎么样？",
+        explain: "同学们帮了美玲。她心里有什么感觉？她会对同学说什么？",
         starters: ["美玲笑着说", "大家", "她觉得"],
         words: {
           see: ["干干净净的桌子", "一张张笑脸"],
@@ -200,10 +224,12 @@ export const ADVENTURES: Adventure[] = [
     title: "跟婆婆去巴刹",
     emoji: "🥬",
     blurb: "星期六一大早，小明跟着婆婆去巴刹买菜……",
+    about: "“巴刹”就是菜市场，有卖菜的、卖鱼的、卖肉的、卖水果的摊位，地上常常湿湿的，很热闹。很多巴刹的旁边或楼上就是小贩中心，可以吃早餐。",
     beats: [
       {
         partner: "星期六一大早，小明跟着婆婆去巴刹买菜。",
         prompt: "巴刹里是什么样子的？",
+        explain: "巴刹就是菜市场。想一想：那里卖什么东西？人多不多？有什么声音和味道？",
         word: { word: "巴刹", meaning: "卖菜、卖鱼、卖肉的市场。" },
         starters: ["巴刹里", "小明看到", "卖菜的阿姨"],
         words: {
@@ -218,16 +244,21 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "婆婆走到卖鱼的摊位，和叔叔讨价还价。",
         prompt: "小明在鱼摊看到了什么？",
+        explain: "鱼摊上有很多鱼，放在冰块上。鱼是什么样子的？卖鱼的叔叔在做什么？",
         word: { word: "讨价还价", meaning: "买东西的时候，跟卖的人商量价钱。" },
         choices: [
           {
             partner: "小明跟着婆婆走到水果摊，闻到了榴梿的味道。",
             prompt: "榴梿是什么样子的？",
+            explain: "榴梿是有很多刺的水果，味道很浓。它看起来、闻起来是怎么样的？小明喜欢吗？",
+            starters: ["榴梿", "小明捏着鼻子", "婆婆买了"],
             word: { word: "榴梿", meaning: "有很多刺、味道很香的水果。" },
           },
           {
             partner: "婆婆的菜篮越来越重，小明想帮忙。",
             prompt: "小明怎么帮婆婆？",
+            explain: "婆婆的菜篮越来越重了。小明可以怎么帮忙？他会对婆婆说什么？",
+            starters: ["小明说", "他接过", "婆婆笑着"],
             word: { word: "菜篮", meaning: "装菜的篮子。" },
           },
         ],
@@ -245,6 +276,7 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "买完菜，婆婆带小明到小贩中心吃早餐。",
         prompt: "他们吃了什么？味道怎么样？",
+        explain: "小贩中心有很多好吃的，比如面、炒粿条、面包和咖啡。他们点了什么？好吃吗？",
         word: { word: "小贩中心", meaning: "有很多小吃摊位，大家坐在一起吃东西的地方。" },
         starters: ["婆婆点了", "小明吃了", "热乎乎的"],
         words: {
@@ -259,6 +291,7 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "回家的路上，小明帮婆婆提着重重的菜篮。",
         prompt: "婆婆说了什么？小明觉得怎么样？",
+        explain: "小明帮婆婆提菜篮。婆婆会怎么夸他？小明累不累？开心吗？",
         starters: ["婆婆摸摸", "小明说", "虽然菜篮"],
         words: {
           see: ["满满的菜篮", "婆婆的笑脸"],
@@ -275,10 +308,12 @@ export const ADVENTURES: Adventure[] = [
     title: "东海岸公园",
     emoji: "🏖️",
     blurb: "星期天，一家人去东海岸公园骑脚车……",
+    about: "东海岸公园在新加坡的海边，很长很长。大家在这里骑脚车、放风筝、在沙滩上玩，还可以烧烤。海风吹来，凉凉的，咸咸的。",
     beats: [
       {
         partner: "星期天，美玲一家人来到东海岸公园，租了几辆脚车。",
         prompt: "公园里是什么样子的？",
+        explain: "东海岸公园在海边。你会看到大海、沙滩、树和很多人。他们在做什么？",
         word: { word: "脚车", meaning: "自行车。新加坡人常常叫它“脚车”。" },
         starters: ["大海", "公园里", "美玲看到"],
         words: {
@@ -293,15 +328,20 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "美玲骑着脚车，沿着海边慢慢地骑。",
         prompt: "一路上美玲看到了什么？",
+        explain: "美玲在海边骑脚车。路边有什么人、什么东西？风吹在身上是什么感觉？",
         choices: [
           {
             partner: "美玲放下脚车，跑到沙滩上堆沙堡。",
             prompt: "她的沙堡是什么样子的？",
+            explain: "美玲用沙子堆城堡。城堡有多高？她用了什么来装饰？",
+            starters: ["美玲用沙子", "沙堡上", "她找来"],
             word: { word: "沙堡", meaning: "用沙子堆成的城堡。" },
           },
           {
             partner: "爸爸在烧烤炉旁边，开始烤鸡翅。",
             prompt: "烤鸡翅的时候发生了什么？",
+            explain: "爸爸在烧烤。鸡翅烤得怎么样了？有什么味道和声音？",
+            starters: ["鸡翅", "爸爸翻着", "美玲闻到"],
             word: { word: "烧烤", meaning: "在炭火上烤东西吃。" },
           },
         ],
@@ -318,6 +358,7 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "突然，一阵大风把美玲的帽子吹走了，大家手忙脚乱地去追。",
         prompt: "帽子飞到哪里去了？",
+        explain: "大风把帽子吹走了！帽子飞到了哪里？大家怎么去拿回来？",
         word: { word: "手忙脚乱", meaning: "急得不知道怎么做才好。" },
         starters: ["呼的一声", "帽子", "爸爸跳起来"],
         words: {
@@ -332,6 +373,7 @@ export const ADVENTURES: Adventure[] = [
       {
         partner: "傍晚，太阳慢慢地落到海里去了。",
         prompt: "傍晚的海边美吗？美玲在想什么？",
+        explain: "太阳快下山了。天空是什么颜色？美玲想回家吗？她在想什么？",
         starters: ["天空", "太阳", "美玲想"],
         words: {
           see: ["红红的太阳", "橘黄色的天空", "亮晶晶的海面"],

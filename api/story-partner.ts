@@ -63,7 +63,8 @@ const hintsSchema = z.object({
   pattern: z.array(z.string()),
 });
 const wordSchema = z.object({ word: z.string(), meaning: z.string() });
-const nextSchema = z.object({ line: z.string(), question: z.string(), hints: hintsSchema, word: wordSchema });
+const guideSchema = z.object({ explain: z.string(), starters: z.array(z.string()), example: z.string() });
+const nextSchema = z.object({ line: z.string(), question: z.string(), hints: hintsSchema, word: wordSchema, guide: guideSchema });
 const fixSchema = z.object({ wrong: z.string(), right: z.string(), why: z.string() });
 const startSchema = z.object({ next: nextSchema });
 const turnSchema = z.object({
@@ -83,7 +84,7 @@ const choiceTurnSchema = turnSchema.extend({ alternatives: z.array(nextSchema) }
 
 const WRITER_LABELS = { partner: "团团", child: "孩子", parent: "爸爸妈妈" } as const;
 
-const NEXT_INSTRUCTIONS = `"next": your next story line ("line"), a short question asking the child what happens next ("question", at most 15 characters), "hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that fit the new scene, to inspire the child; make them a step richer than plain words (热腾腾的 rather than 热的, 人山人海 rather than 很多人; for pattern, short similes like 像一团棉花), and "word": one word from your line for the child to learn, preferably an everyday Singapore word (组屋楼下, 巴刹, 小息) or a vivid 好词, copied exactly from "line" ("word", at most 6 characters), with its meaning in simple Chinese a Primary 2 pupil understands ("meaning", at most 20 characters, e.g. "卖菜、卖鱼、卖肉的市场").`;
+const NEXT_INSTRUCTIONS = `"next": your next story line ("line"), a short question asking the child what happens next ("question", at most 15 characters), "hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that fit the new scene, to inspire the child; make them a step richer than plain words (热腾腾的 rather than 热的, 人山人海 rather than 很多人; for pattern, short similes like 像一团棉花), and "word": one word from your line for the child to learn, preferably an everyday Singapore word (组屋楼下, 巴刹, 小息) or a vivid 好词, copied exactly from "line" ("word", at most 6 characters), with its meaning in simple Chinese a Primary 2 pupil understands ("meaning", at most 20 characters, e.g. "卖菜、卖鱼、卖肉的市场"), and "guide": help for a child who doesn't understand the question or doesn't know what to write: "explain", the question said more simply in Primary 2 Chinese, with 2–3 small questions to think about and, if the scene has a place or thing the child may not know, what it is (at most 50 characters, e.g. "鱼摊上有很多鱼，放在冰块上。鱼是什么样子的？叔叔在做什么？"); "starters", exactly 3 ways to begin the child's sentence (at most 6 characters each, e.g. "冰块上", "叔叔拿起"); "example", one example answer at the child's level (at most 30 characters) that they could learn from but should not just copy.`;
 
 const FIX_INSTRUCTIONS = `"fixes": every 错别字 in the child's sentence: a word written with the wrong character, usually a same-sound slip from pinyin typing (e.g. 芭莎 → 巴刹, 以经 → 已经, 眼晴 → 眼睛, 蓝球 → 篮球 when it means basketball). For each: "wrong", the whole word copied exactly from the sentence (at most 6 characters); "right", the same word written correctly (same number of characters); "why", one short sentence (at most 20 characters) that helps the child remember the right characters, e.g. "巴刹是卖菜卖鱼的市场" or "篮球要投进篮子里，所以有竹字头". Only real wrong characters: not grammar, punctuation, word order, style, or an unusual but correct word choice, and names the child made up are never wrong. [] if there are none (most sentences have none).`;
 
@@ -98,7 +99,7 @@ function turnPrompt(req: TurnRequest): string {
   const story = req.story.map((l) => `${WRITER_LABELS[l.by]}：${l.text}`).join("\n");
   const ending =
     req.turnsLeft === 0
-      ? `This was the child's last turn. In "next", "line" is a happy ending to the story (1–2 sentences), "question" is "", every hint list is [], and "word" is a word from the ending to learn, as above.`
+      ? `This was the child's last turn. In "next", "line" is a happy ending to the story (1–2 sentences), "question" is "", every hint list is [], "word" is a word from the ending to learn, as above, and "guide" has "explain": "", "starters": [] and "example": "".`
       : `The child has ${req.turnsLeft} more turn(s) after this one. ${NEXT_INSTRUCTIONS}`;
   const feedback = req.turnsLeft === 0 && childSentences(req).length ? `\n${feedbackInstructions(req)}` : "";
   const choices = req.choices

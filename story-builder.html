@@ -39,12 +39,27 @@
       <!-- Play: the story so far, plus the current turn -->
       <section id="view-play" class="view" hidden>
         <h2 class="play-title" id="play-title"></h2>
+        <!-- 📖 故事小知识: what the story's place is, for a child who doesn't know it -->
+        <details class="topic-card" id="topic-card" hidden>
+          <summary>📖 故事小知识：这是什么地方？</summary>
+          <p class="topic-text" id="topic-text"></p>
+        </details>
         <ol class="story-flow" id="story-flow" aria-live="polite"></ol>
 
         <div class="turn-card" id="turn" hidden>
           <p class="turn-label"><span id="turn-who">✏️ 轮到你了</span> <span class="turn-count" id="turn-count"></span></p>
           <p class="turn-prompt" id="turn-prompt"></p>
           <p class="turn-word" id="turn-word" hidden></p>
+          <button class="link-btn guide-btn" id="btn-guide" type="button" aria-expanded="false">🤔 不知道写什么？</button>
+          <div class="guide-card" id="guide" hidden>
+            <p class="guide-explain" id="guide-explain"></p>
+            <p class="guide-label" id="guide-starters-label">可以这样开头（点一点）：</p>
+            <p class="hint-words" id="guide-starters"></p>
+            <p class="guide-label">想一想：</p>
+            <ul class="guide-think" id="guide-think"></ul>
+            <button class="link-btn" id="btn-example" type="button">👀 看看团团的例句</button>
+            <p class="guide-example" id="guide-example" hidden></p>
+          </div>
           <div class="input-wrap">
             <textarea id="sentence" rows="2" placeholder="写一句话……" lang="zh-Hans" autocomplete="off"></textarea>
             <button class="icon-btn mic" id="btn-mic" type="button" aria-label="说一说" hidden>🎤</button>

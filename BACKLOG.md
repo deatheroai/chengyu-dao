@@ -64,6 +64,13 @@ Vocabulary feedback after a story (decided 2026-11-17, see
       four ready-made stories are now Singapore everyday life, every
       团团 line can carry a 📗 新词 (`word`), and the AI prompt keeps
       stories in that world and pitches hints at P3–P4.
+- [x] `done` — **Help with the topics (2026-11-21).** Each ready-made
+      story opens with a 📖 故事小知识 card saying what the place is (what
+      a void deck is, what a 巴刹 sells), read aloud and collapsible. Every
+      turn has 🤔 不知道写什么？: the question said more simply
+      (`explain` on each beat and choice), sentence starters to tap into
+      the box, four think-about questions, and an example sentence behind
+      one more tap. The AI returns the same `guide` for its own lines.
 - [ ] `todo` — **Try 错别字 and 新词 on real stories.** Does the AI ever
       flag a correct word (false alarm) or miss an obvious slip? Are the
       新词 useful Singapore words rather than easy ones? Add slips the

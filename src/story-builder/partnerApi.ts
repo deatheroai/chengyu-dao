@@ -27,6 +27,16 @@ export interface NewWord {
   meaning: string;
 }
 
+/** 🤔 不知道写什么？ Help for a child who doesn't understand the question. */
+export interface TurnGuide {
+  /** The question said more simply, with things to think about. */
+  explain: string;
+  /** Ways to start the sentence; tapping one puts it in the box. */
+  starters: string[];
+  /** One example sentence, shown only when the child asks for it. */
+  example?: string;
+}
+
 /** 团团's next line, the question for the child, and 💡 hints per mission. */
 export interface NextBeat {
   line: string;
@@ -35,6 +45,8 @@ export interface NextBeat {
   hints: Record<SenseId, string[]>;
   /** A word in `line` worth learning, with what it means. */
   word?: NewWord;
+  /** Help with the question, for a child who doesn't know what to write. */
+  guide?: TurnGuide;
 }
 
 export interface StartRequest {
@@ -141,7 +153,16 @@ export function cleanNextBeat(x: unknown): NextBeat | null {
   if (!hints) return null;
   const line = x.line.trim();
   const word = cleanNewWord(x.word, line);
-  return { line, question: x.question.trim().slice(0, 80), hints, ...(word ? { word } : {}) };
+  const guide = cleanGuide(x.guide);
+  return { line, question: x.question.trim().slice(0, 80), hints, ...(word ? { word } : {}), ...(guide ? { guide } : {}) };
+}
+
+/** Keeps a 🤔 guide when it at least explains the question. */
+export function cleanGuide(x: unknown): TurnGuide | undefined {
+  if (!isObj(x) || !isText(x.explain, 120)) return undefined;
+  const starters = Array.isArray(x.starters) ? x.starters.filter((w): w is string => isText(w, 12)).map((w) => w.trim()).slice(0, 3) : [];
+  const example = isText(x.example, 60) ? x.example.trim() : "";
+  return { explain: x.explain.trim(), starters, ...(example ? { example } : {}) };
 }
 
 /** Keeps a 📗 新词 only when it really is in the line. */

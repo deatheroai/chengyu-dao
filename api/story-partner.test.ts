@@ -110,17 +110,25 @@ describe("story-partner", () => {
         reaction: "好热闹！",
         hint: "",
         fixes: [{ wrong: "芭莎", right: "巴刹", why: "巴刹是卖菜卖鱼的市场" }],
-        next: { line: "婆婆走到鱼摊，和叔叔讨价还价。", question: "然后呢？", hints, word: { word: "讨价还价", meaning: "商量价钱" } },
+        next: {
+          line: "婆婆走到鱼摊，和叔叔讨价还价。",
+          question: "然后呢？",
+          hints,
+          word: { word: "讨价还价", meaning: "商量价钱" },
+          guide: { explain: "鱼摊上有什么？叔叔在做什么？", starters: ["冰块上", "叔叔拿起", "婆婆说"], example: "冰块上躺着一条条银色的鱼。" },
+        },
       },
     });
     const res = await post({ ...turnBody, sentence: "芭莎里人很多，吵吵闹闹。" });
     const body = await res.json();
     expect(body.fixes).toEqual([{ wrong: "芭莎", right: "巴刹", why: "巴刹是卖菜卖鱼的市场" }]);
     expect(body.next.word).toEqual({ word: "讨价还价", meaning: "商量价钱" });
+    expect(body.next.guide.starters).toEqual(["冰块上", "叔叔拿起", "婆婆说"]);
     const args = parse.mock.calls[0][0];
     expect(args.system).toContain("组屋楼下");
     expect(args.system).toContain("not fairy tales");
     expect(args.messages[0].content).toContain('"fixes"');
+    expect(args.messages[0].content).toContain('"guide"');
   });
 
   it("never asks for fixes on a parent's turn", async () => {

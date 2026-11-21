@@ -99,6 +99,21 @@ test("without AI: write, spin a mission, finish the story and practise character
   await expect(page.locator(".line-partner .new-word")).toContainText(adventure.beats[0].word!.word.slice(0, 1));
   await expect(page.locator("#turn-word")).toBeVisible();
 
+  // 📖 故事小知识 explains the place; 🤔 不知道写什么？ explains the question.
+  await expect(page.locator("#topic-card")).toBeVisible();
+  expect(await textOf(page.locator("#topic-text"))).toContain("组屋");
+  await expect(page.locator("#guide")).toBeHidden();
+  await page.click("#btn-guide");
+  await expect(page.locator("#guide")).toBeVisible();
+  expect(await textOf(page.locator("#guide-explain"))).toContain(adventure.beats[0].explain.slice(0, 6));
+  await expect(page.locator("#guide-example")).toBeHidden();
+  await page.click("#btn-example");
+  await expect(page.locator("#guide-example")).toBeVisible();
+  await page.locator(".guide-starter").first().click();
+  await expect(page.locator("#sentence")).toHaveValue(adventure.beats[0].starters[0]);
+  await page.click("#btn-guide");
+  await expect(page.locator("#guide")).toBeHidden();
+
   // Too short: stays on the write step.
   await page.fill("#sentence", "雨");
   await page.click("#btn-written");
@@ -108,7 +123,7 @@ test("without AI: write, spin a mission, finish the story and practise character
   // Turn 1: unchanged sentence isn't accepted; an edited one earns a star.
   await writeAndSpin(page, "楼下有很多人");
   await page.click("#btn-hint");
-  await expect(page.locator(".hint-word").first()).toBeVisible();
+  await expect(page.locator("#hint-words .hint-word").first()).toBeVisible();
   await page.click("#btn-done");
   await expect(page.locator("#partner-note")).toBeVisible();
   await page.locator("#sentence").press("End");
@@ -242,7 +257,7 @@ test("with AI: 团团 starts from the child's idea, nudges, then reacts", async 
 
   await writeAndSpin(page, "小狗飞到天上");
   await page.click("#btn-hint");
-  await expect(page.locator(".hint-word").first()).toBeVisible();
+  await expect(page.locator("#hint-words .hint-word").first()).toBeVisible();
   await page.click("#btn-done");
   await expect(page.locator("#partner-note")).toContainText("有什么声音");
   await expect(page.locator(".line-child")).toHaveCount(0);

@@ -1039,3 +1039,74 @@ textarea:focus {
   margin: 2px 0;
   line-height: 2;
 }
+
+/* ---- 📖 故事小知识 and 🤔 不知道写什么？ ---- */
+.topic-card {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #fff8e6;
+  border: 2px solid #f2d48b;
+}
+
+.topic-card summary {
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 2;
+}
+
+.topic-text {
+  margin: 6px 0 0;
+  line-height: 2.1;
+}
+
+.topic-text .speak-btn,
+.guide-explain .speak-btn,
+.guide-example .speak-btn {
+  position: static;
+  padding: 0 4px;
+}
+
+.guide-btn {
+  display: block;
+  margin: 0 0 8px;
+}
+
+.guide-card {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f3f8ee;
+  border: 2px solid #cfe5c0;
+}
+
+.guide-explain {
+  margin: 0 0 6px;
+  line-height: 2.1;
+}
+
+.guide-label {
+  margin: 6px 0 2px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.guide-starter {
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.guide-think {
+  margin: 0 0 6px;
+  padding-left: 20px;
+  line-height: 2;
+}
+
+.guide-example {
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--card);
+  line-height: 2.1;
+}
