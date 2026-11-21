@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "gen:story-strokes": "node scripts/gen-story-strokes.mjs"
+    "gen:story-strokes": "node scripts/gen-story-strokes.mjs",
+    "gen:stroke-counts": "node scripts/gen-stroke-counts.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

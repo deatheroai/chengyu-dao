@@ -20,7 +20,7 @@ export const isChoiceTurn = (finishedTurn: number): boolean =>
 function beatToNext(beat: Beat): NextBeat {
   const hints = {} as Record<SenseId, string[]>;
   for (const s of SENSE_IDS) hints[s] = wordsFor(beat, s).slice(0, 3);
-  return { line: beat.partner, question: beat.prompt, hints };
+  return { line: beat.partner, question: beat.prompt, hints, ...(beat.word ? { word: beat.word } : {}) };
 }
 
 const NO_HINTS = (): Record<SenseId, string[]> => {
@@ -65,9 +65,9 @@ export function scriptedNext(adventure: Adventure | undefined, finishedTurn: num
 }
 
 /** Other ways a child's own story can go when AI is unavailable. */
-const GENERIC_CHOICES: { partner: string; prompt: string }[] = [
+const GENERIC_CHOICES: NonNullable<Beat["choices"]> = [
   { partner: "这时候，来了一个新朋友。", prompt: "新朋友是谁？它想做什么？" },
-  { partner: "突然，天上掉下来一个奇怪的东西！", prompt: "掉下来的是什么？" },
+  { partner: "突然，下起了一场倾盆大雨！", prompt: "下雨了，大家怎么办？", word: { word: "倾盆大雨", meaning: "雨非常大，好像有人用盆把水倒下来。" } },
 ];
 
 /**
@@ -78,7 +78,10 @@ export function scriptedChoices(adventure: Adventure | undefined, finishedTurn: 
   const main = scriptedNext(adventure, finishedTurn);
   const beat = adventure?.beats[finishedTurn + 1];
   const others = beat ? (beat.choices ?? []) : GENERIC_CHOICES;
-  return [main, ...others.map((c) => ({ line: c.partner, question: c.prompt, hints: main.hints }))];
+  return [
+    main,
+    ...others.map((c) => ({ line: c.partner, question: c.prompt, hints: main.hints, ...(c.word ? { word: c.word } : {}) })),
+  ];
 }
 
 /** A shuffled copy, so 团团's usual line isn't always first. */

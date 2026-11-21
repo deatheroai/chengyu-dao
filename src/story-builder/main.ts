@@ -1,11 +1,12 @@
 import { renderRubyText } from "../shared/rubyText";
 import { ADVENTURES, getAdventure, type Adventure } from "./adventures";
+import { applyFixes, findFixes, fixedChars, fixesLeft, type Fix } from "./corrections";
 import { finishSentence, isUsableSentence, sensesUsed } from "./expansion";
 import { TURNS, isChoiceTurn, openingBeat, pickMission, scriptedChoices, scriptedNext, shuffled, wheelRotation } from "./flow";
 import { buildFeedback, type FeedbackOut, type StoryFeedback } from "./feedback";
 import { feedbackCard } from "./feedbackCard";
 import { deleteStory, isTestMode, loadLibrary, saveStory, storyText, updateStory, type SavedStory, type StoryLine } from "./library";
-import type { NextBeat, TurnResponse } from "./partnerApi";
+import type { NewWord, NextBeat, TurnResponse } from "./partnerApi";
 import { partnerEnabled, requestStart, requestTurn } from "./partnerClient";
 import { charPinyin } from "./pinyin";
 import { createPractice } from "./practice";
@@ -171,6 +172,8 @@ interface Game {
   byParent: boolean;
   /** The parent turn has been used: once per story. */
   parentUsed: boolean;
+  /** 错别字 the child is fixing before the line goes into the story. */
+  fixing?: { done: boolean; reaction: string; outcome: Outcome; fixes: Fix[] };
 }
 
 /** What 团团 says after a turn: the next beat, and other ways the story
@@ -179,6 +182,8 @@ interface Outcome {
   next: NextBeat;
   alternatives?: NextBeat[];
   feedback?: FeedbackOut;
+  /** 错别字 the AI found in the child's sentence. */
+  fixes?: Fix[];
 }
 
 const PARENT_CHEER = "哇，爸爸妈妈也是写故事高手！";
@@ -198,6 +203,7 @@ function lineItem(line: StoryLine): HTMLLIElement {
   if (line.by !== "child") {
     // 团团's and a parent's lines get pinyin: the child reads them.
     bubble.append(ruby(line.text, "line-text"));
+    if (line.word) bubble.append(newWordChip(line.word));
   } else {
     const text = document.createElement("span");
     text.className = "line-text";
@@ -208,6 +214,12 @@ function lineItem(line: StoryLine): HTMLLIElement {
       before.className = "line-before";
       before.textContent = `原来：${line.plain}`;
       bubble.append(before);
+    }
+    for (const f of line.fixes ?? []) {
+      const fixed = document.createElement("span");
+      fixed.className = "line-fixed";
+      fixed.textContent = `🔍 改正了：${f.wrong} → ${f.right}`;
+      bubble.append(fixed);
     }
     if (line.mission) {
       const meta = document.createElement("span");
@@ -221,6 +233,19 @@ function lineItem(line: StoryLine): HTMLLIElement {
   li.append(who, bubble);
   return li;
 }
+
+/** 📗 新词 under 团团's line: the word and what it means, with pinyin. */
+function newWordChip(word: NewWord): HTMLElement {
+  const chip = document.createElement("span");
+  chip.className = "new-word";
+  const b = document.createElement("b");
+  b.append(ruby(word.word));
+  chip.append("📗 新词：", b, "——", ruby(word.meaning));
+  return chip;
+}
+
+/** 团团's line as a story line, keeping its 📗 新词. */
+const partnerLine = (beat: NextBeat): StoryLine => ({ by: "partner", text: beat.line, ...(beat.word ? { word: beat.word } : {}) });
 
 function addLine(line: StoryLine, note?: string): void {
   if (!game) return;
@@ -257,7 +282,7 @@ function newGame(title: string, beat: NextBeat, adventure?: Adventure): void {
   $("choice").hidden = true;
   $("end-feedback").replaceChildren();
   show("play");
-  addLine({ by: "partner", text: beat.line });
+  addLine(partnerLine(beat));
   speak(beat.line);
   openTurn();
 }
@@ -291,6 +316,9 @@ function openTurn(): void {
   $("turn").hidden = false;
   $("turn-count").textContent = `${g.done + 1} / ${TURNS}`;
   $("turn-prompt").replaceChildren(ruby(g.beat.question), speakButton(g.beat.question));
+  const word = g.beat.word;
+  $("turn-word").replaceChildren(...(word ? [ruby(`📗 试试在句子里用上新词「${word.word}」！`)] : []));
+  $("turn-word").hidden = !word;
   const input = sentenceInput();
   input.value = "";
   input.readOnly = false;
@@ -302,7 +330,9 @@ function openTurn(): void {
   $("mission").hidden = true;
   g.mission = undefined;
   g.pending = undefined;
+  g.fixing = undefined;
   g.original = "";
+  showFixCard(false);
   $("turn").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
@@ -483,7 +513,7 @@ async function missionDone(): Promise<void> {
       partnerNote(`先把${sense.label}的东西加进你的句子里吧！`);
       return;
     }
-    commit(sentence, true, "句子变得更生动了！", scriptedOutcome(g));
+    settle(sentence, true, "句子变得更生动了！", scriptedOutcome(g));
     return;
   }
 
@@ -493,11 +523,11 @@ async function missionDone(): Promise<void> {
   if (game !== g) return;
   if (!res) {
     // AI unavailable mid-story: trust the child and carry on with the script.
-    commit(sentence, raw !== g.original, "好！我们接着写。", scriptedOutcome(g));
+    settle(sentence, raw !== g.original, "好！我们接着写。", scriptedOutcome(g));
     return;
   }
   if (res.missionDone) {
-    commit(sentence, true, res.reaction, res);
+    settle(sentence, true, res.reaction, res);
   } else {
     g.pending = res;
     partnerNote(res.hint || res.reaction || "再试一试？");
@@ -510,7 +540,7 @@ async function skipMission(): Promise<void> {
   const raw = sentenceInput().value.trim();
   const sentence = finishSentence(isUsableSentence(raw) ? raw : g.original);
   if (g.pending) {
-    commit(sentence, false, g.pending.reaction, g.pending);
+    settle(sentence, false, g.pending.reaction, g.pending);
     return;
   }
   if (aiEnabled && g.mission) {
@@ -519,22 +549,100 @@ async function skipMission(): Promise<void> {
     setBusy(false);
     if (game !== g) return;
     if (res) {
-      commit(sentence, res.missionDone, res.reaction, res);
+      settle(sentence, res.missionDone, res.reaction, res);
       return;
     }
   }
-  commit(sentence, false, "好！我们接着写。", scriptedOutcome(g));
+  settle(sentence, false, "好！我们接着写。", scriptedOutcome(g));
 }
 
-function commit(sentence: string, done: boolean, reaction: string, outcome: Outcome): void {
+/**
+ * The child's sentence is ready. If it has 错别字 (from the AI, or a
+ * common slip like 芭莎 for 巴刹), 团团 points them out and the child
+ * fixes the sentence first; otherwise it goes straight into the story.
+ */
+function settle(sentence: string, done: boolean, reaction: string, outcome: Outcome): void {
+  if (!game) return;
+  const fixes = findFixes(sentence, outcome.fixes);
+  if (!fixes.length) {
+    commit(sentence, done, reaction, outcome);
+    return;
+  }
+  game.fixing = { done, reaction, outcome, fixes };
+  sentenceInput().value = sentence;
+  sentenceInput().readOnly = false;
+  $("fix-list").replaceChildren(
+    ...fixes.map((f) => {
+      const li = document.createElement("li");
+      li.className = "fix-item";
+      const wrong = document.createElement("span");
+      wrong.className = "fix-wrong";
+      wrong.textContent = f.wrong;
+      const right = document.createElement("span");
+      right.className = "fix-right";
+      right.append(ruby(f.right));
+      li.append(wrong, " → ", right, speakButton(f.right));
+      if (f.why) li.append(ruby(f.why, "fix-why"));
+      return li;
+    }),
+  );
+  $("fix-note").textContent = "🐼 请你在上面的句子里改一改，再点“改好了”。";
+  showFixCard(true);
+  speak(`团团发现了错别字。${fixes.map((f) => `应该写${f.right}。${f.why}`).join("")}`);
+  $("fix-card").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function showFixCard(on: boolean): void {
+  $("fix-card").hidden = !on;
+  $("mission-actions").hidden = on;
+  if (on) $("partner-note").hidden = true;
+}
+
+/** 改好了: the line goes into the story once every wrong word is gone. */
+function fixDone(): void {
+  if (!game?.fixing) return;
+  const { done, reaction, outcome, fixes } = game.fixing;
+  const text = sentenceInput().value.trim();
+  const left = fixesLeft(text, fixes);
+  if (left.length) {
+    $("fix-note").textContent = `🐼 还有「${left[0].wrong}」没改哦，应该是「${left[0].right}」。`;
+    return;
+  }
+  if (!isUsableSentence(text)) {
+    $("fix-note").textContent = "🐼 句子不见了，再写一写吧！";
+    return;
+  }
+  game.fixing = undefined;
+  showFixCard(false);
+  commit(finishSentence(text), done, `${reaction} 错别字也改好了！✅`.trim(), outcome, fixes);
+}
+
+/** 帮我改: 团团 fixes it in the box, and the child looks before tapping 改好了. */
+function fixHelp(): void {
+  if (!game?.fixing) return;
+  const input = sentenceInput();
+  input.value = applyFixes(input.value, game.fixing.fixes);
+  $("fix-note").textContent = `🐼 看，正确的写法是${game.fixing.fixes.map((f) => `「${f.right}」`).join("")}。记住了吗？点“改好了”。`;
+}
+
+function commit(sentence: string, done: boolean, reaction: string, outcome: Outcome, fixes: Fix[] = []): void {
   if (!game) return;
   const g = game;
+  const word = g.beat.word?.word;
+  if (!g.byParent && word && sentence.includes(word)) reaction = `${reaction} 你用上了新词「${word}」！📗`.trim();
   if (outcome.feedback) g.aiFeedback = outcome.feedback;
   if (g.byParent) {
     g.parentUsed = true;
     addLine({ by: "parent", text: sentence });
   } else {
-    addLine({ by: "child", text: sentence, plain: finishSentence(g.original), mission: g.mission, missionDone: done });
+    addLine({
+      by: "child",
+      text: sentence,
+      plain: applyFixes(finishSentence(g.original), fixes),
+      mission: g.mission,
+      missionDone: done,
+      ...(fixes.length ? { fixes } : {}),
+    });
   }
   if (done) g.stars += 1;
   const finished = g.done;
@@ -553,7 +661,7 @@ function continueWith(next: NextBeat, reaction: string): void {
   if (!game) return;
   const g = game;
   g.beat = next;
-  addLine({ by: "partner", text: next.line }, reaction);
+  addLine(partnerLine(next), reaction);
   speak(next.line);
   if (g.done >= TURNS) finishStory();
   else openTurn();
@@ -629,6 +737,15 @@ function teachWord(char: string, sentence: string): HTMLLIElement {
   return li;
 }
 
+/** The 错别字 the child fixed and the 📗 新词 团团 used, for the 好词卡. */
+function learnedFrom(lines: StoryLine[]): { fixes: Fix[]; words: NewWord[] } {
+  const fixes = lines.flatMap((l) => (l.by === "child" ? (l.fixes ?? []) : []));
+  const words = lines.flatMap((l) => (l.by === "partner" && l.word ? [l.word] : []));
+  const unique = <T extends { wrong?: string; word?: string }>(xs: T[], key: (x: T) => string) =>
+    xs.filter((x, i) => xs.findIndex((y) => key(y) === key(x)) === i);
+  return { fixes: unique(fixes, (f) => f.wrong), words: unique(words, (w) => w.word) };
+}
+
 /** The child's line a rewrite replaces: the last one with that text. */
 function rewriteLine(lines: StoryLine[], from: string, to: string): number {
   const i = lines.map((l) => l.by === "child" && l.text === from).lastIndexOf(true);
@@ -655,6 +772,7 @@ function finishStory(): void {
   $("end-feedback").replaceChildren(
     feedbackCard({
       feedback,
+      ...learnedFrom(g.lines),
       speakButton,
       onRewrite: (sentence) => {
         const i = rewriteLine(g.lines, feedback.wish?.sentence ?? "", sentence);
@@ -681,6 +799,11 @@ function finishStory(): void {
   $("practise").hidden = picks.length === 0;
   $<HTMLButtonElement>("btn-practise").hidden = false;
   $("teach-words").replaceChildren(...picks.map((p) => teachWord(p.char, p.sentence)));
+  const fixed = new Set(g.lines.flatMap((l) => (l.fixes ?? []).flatMap(fixedChars)));
+  const fixedPicks = picks.filter((p) => fixed.has(p.char)).map((p) => p.char);
+  $("teach-ask").textContent = fixedPicks.length
+    ? `你刚才改正了「${fixedPicks.join("」「")}」，我们一起把它写对、记牢吧！还有几个难写的字，也教教我吧！`
+    : "你的故事里有几个难写的字，我还不会写，你能教教我吗？";
   $("turn-end").hidden = false;
   $("turn-end").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -700,6 +823,7 @@ function openSaved(story: SavedStory): void {
   $("read-feedback").replaceChildren(
     feedbackCard({
       feedback,
+      ...learnedFrom(story.lines),
       speakButton,
       onRewrite: (sentence) => {
         rewriteLine(story.lines, feedback.wish?.sentence ?? "", sentence);
@@ -755,6 +879,8 @@ function init(): void {
   });
   $("btn-done").addEventListener("click", () => void missionDone());
   $("btn-skip").addEventListener("click", () => void skipMission());
+  $("btn-fix-done").addEventListener("click", fixDone);
+  $("btn-fix-help").addEventListener("click", fixHelp);
 
   $("btn-read-all").addEventListener("click", () => game && speak(storyText(game.lines)));
   $("btn-again").addEventListener("click", () => {

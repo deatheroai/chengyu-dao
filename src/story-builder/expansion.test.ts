@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { countHanzi, finishSentence, isUsableSentence, sensesUsed, usesWord, wordsFor } from "./expansion";
 import { ADVENTURES } from "./adventures";
 
-const beat = ADVENTURES[0].beats[1]; // 咪咪 in the yard
+const beat = ADVENTURES[0].beats[1]; // 小华 and 阿明 at the playground
 
 describe("countHanzi / isUsableSentence", () => {
   it("counts only Chinese characters", () => {
@@ -32,13 +32,13 @@ describe("usesWord", () => {
 describe("wordsFor / sensesUsed", () => {
   it("puts scene words before general ones, without duplicates", () => {
     const words = wordsFor(beat, "touch");
-    expect(words[0]).toBe("湿湿的草地");
+    expect(words[0]).toBe("滑溜溜的");
     expect(new Set(words).size).toBe(words.length);
     expect(words).toContain("毛茸茸的");
   });
   it("finds the senses a sentence uses", () => {
-    expect(sensesUsed("咪咪跳水坑。", beat)).toEqual([]);
-    expect(sensesUsed("咪咪啪嗒啪嗒地踩着湿湿的草地，开心极了。", beat)).toEqual(["hear", "touch", "feel"]);
+    expect(sensesUsed("小华玩滑梯。", beat)).toEqual([]);
+    expect(sensesUsed("小华嗖的一声滑下来，滑梯滑溜溜的，她玩得满头大汗。", beat)).toEqual(["hear", "touch", "feel"]);
   });
 });
 

@@ -80,6 +80,20 @@ describe("cleaning responses", () => {
     expect(cleanTurnResponse({ ...base, feedback: "oops" })).not.toHaveProperty("feedback");
   });
 
+  it("keeps 错别字 fixes and a 📗 新词 that is really in the line", () => {
+    const base = { missionDone: true, reaction: "", hint: "" };
+    const out = cleanTurnResponse({
+      ...base,
+      fixes: [{ wrong: "芭莎", right: "巴刹", why: "市场" }, { wrong: "x" }],
+      next: { line: "婆婆带小明去巴刹。", question: "然后呢？", hints, word: { word: "巴刹", meaning: "卖菜的市场" } },
+    });
+    expect(out?.fixes).toEqual([{ wrong: "芭莎", right: "巴刹", why: "市场" }]);
+    expect(out?.next.word).toEqual({ word: "巴刹", meaning: "卖菜的市场" });
+    const noWord = cleanTurnResponse({ ...base, fixes: [], next: { line: "大家回家。", question: "", hints, word: { word: "巴刹", meaning: "市场" } } });
+    expect(noWord?.next).not.toHaveProperty("word");
+    expect(noWord).not.toHaveProperty("fixes");
+  });
+
   it("rejects responses missing required parts", () => {
     expect(cleanTurnResponse({ reaction: "hi" })).toBeNull();
     expect(cleanTurnResponse({ missionDone: true, next: { line: "", question: "", hints } })).toBeNull();

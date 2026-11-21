@@ -28,6 +28,28 @@ describe("adventures", () => {
     }
   });
 
+  it("every 📗 新词 is really in 团团's line, with a meaning", () => {
+    for (const a of ADVENTURES) {
+      for (const b of a.beats) {
+        const all = [{ partner: b.partner, word: b.word }, ...(b.choices ?? [])];
+        for (const c of all) {
+          if (!c.word) continue;
+          expect(c.partner, c.word.word).toContain(c.word.word);
+          expect(c.word.meaning.length, c.word.word).toBeGreaterThan(3);
+        }
+      }
+    }
+  });
+
+  it("are set in everyday Singapore life, each opening with a word to learn", () => {
+    const sgWords = ["组屋", "巴刹", "小息", "小贩中心", "食堂", "课室", "脚车", "游乐场"];
+    for (const a of ADVENTURES) {
+      const text = [a.blurb, a.ending, ...a.beats.map((b) => b.partner)].join("");
+      expect(sgWords.some((w) => text.includes(w)), a.title).toBe(true);
+      expect(a.beats[0].word, a.title).toBeTruthy();
+    }
+  });
+
   it("every sense has a question and general words", () => {
     for (const s of SENSES) {
       expect(s.question).toBeTruthy();

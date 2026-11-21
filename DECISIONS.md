@@ -41,6 +41,25 @@ None open right now.
 
 ## Resolved
 
+- **2026-11-21 — Story builder: fix 错别字 during the story, harder
+  writing practice, Singapore everyday-life stories.** Your call, after
+  the child wrote 芭莎 for 巴刹 and nothing corrected it:
+  1. **错别字 are corrected during the turn.** This changes the
+     2026-11-17 call ("团团 never corrects the child during the turns")
+     for wrong characters only: when a sentence has a word written with
+     the wrong character, 团团 shows it (芭莎 → 巴刹, with what the right
+     word means) and the child fixes the sentence before it goes into
+     the story (帮我改 fills it in if they're stuck). Grammar is still
+     left alone (the grammar-tip item stays blocked). The fixed words
+     show on the 好词卡 and their characters come first in 教团团写字.
+  2. **Harder characters to practise:** many-stroke characters beat
+     simple ones, and the AI suggests three P3–P4 characters per story.
+  3. **Everyday Singapore life, not fairy tales:** the ready-made
+     stories are now 组屋楼下, 小息 in the 食堂, the 巴刹 and 东海岸公园
+     (the kitten and magic-box stories are gone); the AI keeps stories in
+     that world unless the child's own idea is imaginative, and each of
+     团团's lines teaches one 📗 新词.
+
 - **2026-11-17 — Story builder: vocabulary feedback after each story.**
   Your calls, made against the saved story 我养宠物的天:
   1. **When:** one 好词卡 (good-words card) on the end-of-story screen.

@@ -95,6 +95,9 @@ test("without AI: write, spin a mission, finish the story and practise character
 
   await page.locator(`[data-adventure="${adventure.id}"]`).click();
   await expect(page.locator(".line-partner")).toHaveCount(1);
+  // 团团's line teaches a Singapore everyday word, and invites the child to use it.
+  await expect(page.locator(".line-partner .new-word")).toContainText(adventure.beats[0].word!.word.slice(0, 1));
+  await expect(page.locator("#turn-word")).toBeVisible();
 
   // Too short: stays on the write step.
   await page.fill("#sentence", "雨");
@@ -103,17 +106,17 @@ test("without AI: write, spin a mission, finish the story and practise character
   await expect(page.locator("#spin-area")).toBeHidden();
 
   // Turn 1: unchanged sentence isn't accepted; an edited one earns a star.
-  await writeAndSpin(page, "雨很大");
+  await writeAndSpin(page, "楼下有很多人");
   await page.click("#btn-hint");
   await expect(page.locator(".hint-word").first()).toBeVisible();
   await page.click("#btn-done");
   await expect(page.locator("#partner-note")).toBeVisible();
   await page.locator("#sentence").press("End");
-  await page.keyboard.type("，哗啦啦");
+  await page.keyboard.type("，热闹极了");
   await page.click("#btn-done");
   await expect(page.locator(".line-child")).toHaveCount(1);
-  await expect(page.locator(".line-child").first()).toContainText("雨很大，哗啦啦。");
-  await expect(page.locator(".line-child .line-before").first()).toContainText("原来：雨很大。");
+  await expect(page.locator(".line-child").first()).toContainText("楼下有很多人，热闹极了。");
+  await expect(page.locator(".line-child .line-before").first()).toContainText("原来：楼下有很多人。");
   await expect(page.locator(".line-child .line-meta").first()).toContainText("⭐");
 
   // 团团 offers three ways the story could go; the child picks one.
@@ -124,31 +127,48 @@ test("without AI: write, spin a mission, finish the story and practise character
   await expect(page.locator("#choice")).toBeHidden();
   expect(await partnerText(page, 1)).toContain(adventure.beats[1].partner.slice(0, 4));
 
-  // Turn 2: skip the mission (no star).
-  await writeAndSpin(page, "咪咪跳进水坑");
+  // Turn 2: skip the mission (no star). 团团 spots a 错别字 (芭莎 for 巴刹)
+  // and the line only goes into the story once the child fixes it.
+  await writeAndSpin(page, "我们去芭莎买菜");
   await page.click("#btn-skip");
+  await expect(page.locator("#fix-card")).toBeVisible();
+  await expect(page.locator("#mission-actions")).toBeHidden();
+  expect(await textOf(page.locator(".fix-right").first())).toBe("巴刹");
+  await page.click("#btn-fix-done");
+  await expect(page.locator("#fix-note")).toContainText("还有「芭莎」没改");
+  await expect(page.locator(".line-child")).toHaveCount(1);
+  await page.fill("#sentence", "我们去巴刹买菜");
+  await page.click("#btn-fix-done");
   await expect(page.locator(".line-child")).toHaveCount(2);
+  await expect(page.locator(".line-child").nth(1)).toContainText("我们去巴刹买菜。");
+  await expect(page.locator(".line-child .line-fixed").first()).toContainText("芭莎 → 巴刹");
   await expect(page.locator(".line-child .line-meta").nth(1)).not.toContainText("⭐");
 
   // Turn 3, then the ending.
-  await writeAndSpin(page, "原来是一只小鸟");
+  await writeAndSpin(page, "阿明荡秋千");
   await page.locator("#sentence").press("End");
-  await page.keyboard.type("，冷得发抖");
+  await page.keyboard.type("，嘎吱嘎吱");
   await page.click("#btn-done");
   await expect(page.locator(".line-child")).toHaveCount(TURNS);
   await expect.poll(() => partnerText(page, -1)).toContain(adventure.ending.slice(0, 4));
   await expect(page.locator("#turn-end")).toBeVisible();
   await expect(page.locator("#end-stars")).toContainText(`2 / ${TURNS}`);
 
+  // 好词卡: the fixed 错别字 and the new words from 团团's lines.
+  const endCard = page.locator("#end-feedback .fb-card");
+  await expect(endCard.locator(".fb-fix")).toContainText("芭莎");
+  await expect(endCard.locator(".fb-newword .fb-quote")).toHaveCount(3);
+
   // 教团团写字: 团团 asks about three characters from the child's own
-  // sentences, favouring ones added in a mission over everyday ones.
+  // sentences: the ones she got wrong first, then hard ones, never everyday ones.
   const words = page.locator(".teach-word");
   await expect(words).toHaveCount(3);
   const picks = await words.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.char!));
-  const childText = "雨很大，哗啦啦。咪咪跳进水坑。原来是一只小鸟，冷得发抖。";
+  const childText = "楼下有很多人，热闹极了。我们去巴刹买菜。阿明荡秋千，嘎吱嘎吱。";
   for (const c of picks) expect(childText).toContain(c);
-  expect(picks).toContain("哗");
-  expect(picks).not.toContain("是");
+  expect(picks.slice(0, 2).sort()).toEqual(["刹", "巴"].sort());
+  expect(picks).not.toContain("有");
+  await expect(page.locator("#teach-ask")).toContainText("改正了");
   await page.click("#btn-practise");
   await expect(page.locator("#btn-practise")).toBeHidden();
   await expect(page.locator(".char-tab")).toHaveCount(3);
@@ -331,9 +351,9 @@ test("with AI down mid-story: carries on with the pre-written story", async ({ p
   );
   await page.goto("/story-builder.html");
   await page.locator(`[data-adventure="${adventure.id}"]`).click();
-  await writeAndSpin(page, "雨很大");
+  await writeAndSpin(page, "楼下有很多人");
   await page.locator("#sentence").press("End");
-  await page.keyboard.type("，滴答滴答");
+  await page.keyboard.type("，哈哈的笑声");
   await page.click("#btn-done");
   await expect(page.locator(".line-child")).toHaveCount(1);
   // The pre-written choices stand in for the AI's.
@@ -341,6 +361,51 @@ test("with AI down mid-story: carries on with the pre-written story", async ({ p
   await pickChoice(page, adventure.beats[1].choices![0].partner);
   expect(await partnerText(page, 1)).toContain(adventure.beats[1].choices![0].partner.slice(0, 4));
   expect(await textOf(page.locator("#turn-prompt"))).toContain(adventure.beats[1].choices![0].prompt);
+});
+
+test("with AI: 团团 points out a 错别字, helps fix it, and carries on from the fixed line", async ({ page }) => {
+  const posts: Record<string, unknown>[] = [];
+  await page.route("**/api/story-partner", async (route) => {
+    const req = route.request();
+    if (req.method() === "GET") return route.fulfill({ json: { enabled: true } });
+    const body = req.postDataJSON() as Record<string, unknown>;
+    posts.push(body);
+    const sentence = String(body.sentence);
+    return route.fulfill({
+      json: {
+        missionDone: true,
+        reaction: "好热闹！",
+        hint: "",
+        fixes: sentence.includes("蓝球") ? [{ wrong: "蓝球", right: "篮球", why: "篮球要投进篮子里，所以有竹字头。" }] : [],
+        next: { line: "这时候，阿明也跑来了。", question: "然后呢？", hints, word: { word: "阿明", meaning: "小华的好朋友" } },
+        ...(body.choices ? { alternatives: [{ line: "下雨了。", question: "怎么办？", hints }, { line: "婆婆来了。", question: "她说什么？", hints }] } : {}),
+      },
+    });
+  });
+  await page.goto("/story-builder.html");
+  await page.locator(`[data-adventure="${adventure.id}"]`).click();
+  await writeAndSpin(page, "我们在楼下打蓝球");
+  await page.locator("#sentence").press("End");
+  await page.keyboard.type("，砰砰砰");
+  await page.click("#btn-done");
+  await expect(page.locator("#fix-card")).toBeVisible();
+  expect(await textOf(page.locator(".fix-why"))).toContain("竹字头");
+  await page.click("#btn-fix-help");
+  await expect(page.locator("#sentence")).toHaveValue("我们在楼下打篮球，砰砰砰。");
+  await page.click("#btn-fix-done");
+  await expect(page.locator(".line-child")).toHaveCount(1);
+  expect(await textOf(page.locator(".line-child .line-text"))).toBe("我们在楼下打篮球，砰砰砰。");
+  await expect(page.locator(".line-child .line-before")).toContainText("原来：我们在楼下打篮球。");
+  await expect(page.locator("#choice-reaction")).toContainText("错别字也改好了");
+
+  // The next turn tells 团团 the fixed sentence, never the wrong one.
+  await pickChoice(page, "阿明");
+  await writeAndSpin(page, "阿明带来一个足球");
+  await page.click("#btn-done");
+  await expect(page.locator(".line-child")).toHaveCount(2);
+  const story = JSON.stringify(posts.at(-1)!.story);
+  expect(story).toContain("篮球");
+  expect(story).not.toContain("蓝球");
 });
 
 test("a parent writes one turn, and the child picks which way 团团's story goes", async ({ page }) => {
@@ -369,11 +434,11 @@ test("a parent writes one turn, and the child picks which way 团团's story goe
   await expect(page.locator("#btn-parent")).toBeVisible();
   await page.click("#btn-parent");
   await expect(page.locator("#turn-who")).toContainText("爸爸妈妈");
-  await page.fill("#sentence", "咪咪的妈妈拿来一把小伞");
+  await page.fill("#sentence", "小华的妈妈拿来一把雨伞");
   await page.click("#btn-written");
   await expect(page.locator(".line-parent")).toHaveCount(1);
-  expect(await textOf(page.locator(".line-parent .line-text"))).toBe("咪咪的妈妈拿来一把小伞。");
-  expect(posts[0]).toMatchObject({ writer: "parent", sentence: "咪咪的妈妈拿来一把小伞。", choices: true });
+  expect(await textOf(page.locator(".line-parent .line-text"))).toBe("小华的妈妈拿来一把雨伞。");
+  expect(posts[0]).toMatchObject({ writer: "parent", sentence: "小华的妈妈拿来一把雨伞。", choices: true });
   expect(posts[0]).not.toHaveProperty("mission");
 
   // 团团's three ideas; the child picks the tree house.

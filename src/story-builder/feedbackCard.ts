@@ -1,4 +1,6 @@
 import { renderRubyText } from "../shared/rubyText";
+import type { Fix } from "./corrections";
+import type { NewWord } from "./partnerApi";
 import { finishSentence } from "./expansion";
 import { isRewrite, type StoryFeedback } from "./feedback";
 import { charPinyin } from "./pinyin";
@@ -12,6 +14,10 @@ import { charPinyin } from "./pinyin";
 
 export interface FeedbackCardOptions {
   feedback: StoryFeedback;
+  /** 错别字 the child fixed during the story. */
+  fixes?: Fix[];
+  /** 📗 新词 from 团团's lines. */
+  words?: NewWord[];
   speakButton: (text: string) => HTMLButtonElement;
   /** Called with the child's rewrite, already checked and finished. */
   onRewrite: (sentence: string) => void;
@@ -64,7 +70,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, ...child
 }
 
 /** Builds the card. */
-export function feedbackCard({ feedback, speakButton, onRewrite }: FeedbackCardOptions): HTMLElement {
+export function feedbackCard({ feedback, fixes = [], words: newWords = [], speakButton, onRewrite }: FeedbackCardOptions): HTMLElement {
   const card = el("section", "fb-card");
   card.dataset.source = feedback.source;
   card.append(el("h3", "fb-title", "📝 团团的好词卡"), el("p", "hint", "不认识的字？点一点，看拼音。"));
@@ -129,6 +135,26 @@ export function feedbackCard({ feedback, speakButton, onRewrite }: FeedbackCardO
       });
     }
     li.append(body, speakButton(wish.rewritten ?? `${wish.sentence}${wish.tip}`));
+    list.append(li);
+  }
+
+  if (fixes.length) {
+    const body = el("div", "fb-body", el("span", "fb-label", "改正的字（要记住哦）："));
+    for (const f of fixes) {
+      body.append(
+        el("p", "fb-fix-row", el("span", "fix-wrong", f.wrong), " → ", el("span", "fix-right", tapText(f.right)), ...(f.why ? [tapText(f.why, "fix-why")] : [])),
+      );
+    }
+    const li = el("li", "fb-item fb-fix", el("span", "fb-icon", "🔍"), body);
+    li.append(speakButton(fixes.map((f) => `${f.right}。${f.why}`).join("")));
+    list.append(li);
+  }
+
+  if (newWords.length) {
+    const body = el("div", "fb-body", el("span", "fb-label", "这次学到的新词："));
+    for (const w of newWords) body.append(el("p", "fb-word-row", el("span", "fb-quote", tapText(w.word)), " ", tapText(w.meaning, "fb-why")));
+    const li = el("li", "fb-item fb-newword", el("span", "fb-icon", "📗"), body);
+    li.append(speakButton(newWords.map((w) => `${w.word}，${w.meaning}`).join("")));
     list.append(li);
   }
 

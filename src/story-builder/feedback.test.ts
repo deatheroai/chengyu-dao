@@ -97,6 +97,13 @@ describe("AI feedback", () => {
     expect(feedbackFromAi({ stars: [], wish: { turn: 0, tip: "", words: [] } }, SENTENCES)).toBeNull();
   });
 
+  it("keeps practice characters only when the child wrote them", () => {
+    const out = cleanFeedbackOut({ ...ai, practice: ["淇", "我们", "龙", "淋", "a"] });
+    expect(out?.practice).toEqual(["淇", "龙", "淋"]);
+    expect(feedbackFromAi(out, SENTENCES)?.practice).toEqual(["淇", "淋"]);
+    expect(buildFeedback(out!, PET_DAY).practice).toEqual(["淇", "淋"]);
+  });
+
   it("rejects a malformed shape", () => {
     expect(cleanFeedbackOut({ stars: "no" })).toBeNull();
     expect(cleanFeedbackOut(null)).toBeNull();

@@ -1,4 +1,6 @@
 import { cleanStoryFeedback, type StoryFeedback } from "./feedback";
+import type { Fix } from "./corrections";
+import type { NewWord } from "./partnerApi";
 import type { SenseId } from "./senses";
 
 /** One line of a finished story: who wrote it and, for the child's
@@ -12,6 +14,10 @@ export interface StoryLine {
   /** Child lines only: the mission they spun, and whether they did it. */
   mission?: SenseId;
   missionDone?: boolean;
+  /** Child lines only: 错别字 团团 found and the child fixed. */
+  fixes?: Fix[];
+  /** 团团's lines only: the 📗 新词 in it. */
+  word?: NewWord;
 }
 
 export interface SavedStory {

@@ -29,6 +29,8 @@ export interface StoryFeedback {
   source: "ai" | "offline";
   stars: FeedbackStar[];
   wish?: FeedbackWish;
+  /** Characters the AI thinks are worth practising (教团团写字 favours them). */
+  practice?: string[];
 }
 
 /** What the AI returns on the last turn: the wish points at a child
@@ -36,6 +38,8 @@ export interface StoryFeedback {
 export interface FeedbackOut {
   stars: FeedbackStar[];
   wish: { turn: number; tip: string; words: string[] };
+  /** Up to 3 challenging characters from the child's sentences. */
+  practice?: string[];
 }
 
 /** The child's own lines, as the page and the AI both see them. */
@@ -50,6 +54,13 @@ export interface ChildSentence {
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null;
 const str = (x: unknown, max: number): string => (typeof x === "string" ? x.trim().slice(0, max) : "");
 const isHan = (c: string) => /\p{Script=Han}/u.test(c);
+
+/** Single Chinese characters, at most three, no repeats. */
+function cleanChars(x: unknown): string[] {
+  if (!Array.isArray(x)) return [];
+  const chars = x.map((c) => str(c, 4)).filter((c) => Array.from(c).length === 1 && isHan(c));
+  return [...new Set(chars)].slice(0, 3);
+}
 
 function cleanWords(x: unknown): string[] {
   if (!Array.isArray(x)) return [];
@@ -84,8 +95,10 @@ export function feedbackFromAi(x: unknown, sentences: string[]): StoryFeedback |
     const sentence = typeof turn === "number" && Number.isInteger(turn) ? sentences[turn - 1] : undefined;
     if (sentence && tip && words.length) wish = { sentence, tip, words };
   }
+  const text = sentences.join("");
+  const practice = cleanChars(x.practice).filter((c) => text.includes(c));
   if (!stars.length && !wish) return null;
-  return { source: "ai", stars, wish };
+  return { source: "ai", stars, wish, ...(practice.length ? { practice } : {}) };
 }
 
 /** Validates the AI's raw feedback shape (before it is matched to sentences). */
@@ -97,6 +110,7 @@ export function cleanFeedbackOut(x: unknown): FeedbackOut | null {
     .filter((s) => s.quote && s.why)
     .slice(0, 2);
   const turn = x.wish.turn;
+  const practice = cleanChars(x.practice);
   return {
     stars,
     wish: {
@@ -104,6 +118,7 @@ export function cleanFeedbackOut(x: unknown): FeedbackOut | null {
       tip: str(x.wish.tip, 50),
       words: cleanWords(x.wish.words),
     },
+    ...(practice.length ? { practice } : {}),
   };
 }
 
@@ -123,7 +138,8 @@ export function cleanStoryFeedback(x: unknown): StoryFeedback | undefined {
     const rewritten = str(x.wish.rewritten, 200);
     if (sentence && tip && words.length) wish = { sentence, tip, words, ...(rewritten ? { rewritten } : {}) };
   }
-  return { source: x.source, stars, wish };
+  const practice = cleanChars(x.practice);
+  return { source: x.source, stars, wish, ...(practice.length ? { practice } : {}) };
 }
 
 // ---------- offline card (no AI) ----------
@@ -240,5 +256,6 @@ export function buildFeedback(ai: FeedbackOut | undefined, lines: ChildSentence[
     source: "ai",
     stars: fromAi.stars.length ? fromAi.stars : offline.stars,
     wish: fromAi.wish ?? offline.wish,
+    ...(fromAi.practice ? { practice: fromAi.practice } : {}),
   };
 }
