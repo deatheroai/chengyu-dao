@@ -130,6 +130,12 @@ describe("句子长大了 grow requests", () => {
       reaction: "好白！",
       hint: "",
       hints: { ...hints, see: ["a", "b", "c"] },
+      readsWell: true,
+      fixHint: "",
+    });
+    expect(cleanGrowResponse({ senseDone: true, readsWell: false, fixHint: "“汤的味道面”读起来有点怪？", hints })).toMatchObject({
+      readsWell: false,
+      fixHint: "“汤的味道面”读起来有点怪？",
     });
     expect(cleanGrowResponse({ senseDone: false, hint: "小狗是什么颜色的？" })?.hints.see).toEqual([]);
     expect(cleanGrowResponse({ reaction: "好" })).toBeNull();

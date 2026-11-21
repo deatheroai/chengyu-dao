@@ -99,7 +99,14 @@ const lastTurnSchema = turnSchema.extend({ feedback: feedbackSchema });
 const altSchema = nextSchema.omit({ hints: true });
 const choiceTurnSchema = turnSchema.extend({ alternatives: z.array(altSchema) });
 
-const growSchema = z.object({ senseDone: z.boolean(), reaction: z.string(), hint: z.string(), hints: hintsSchema });
+const growSchema = z.object({
+  senseDone: z.boolean(),
+  readsWell: z.boolean(),
+  fixHint: z.string(),
+  reaction: z.string(),
+  hint: z.string(),
+  hints: hintsSchema,
+});
 
 const WRITER_LABELS = { partner: "团团", child: "孩子", parent: "爸爸妈妈" } as const;
 
@@ -172,7 +179,14 @@ Return:
 "senseDone": true if the new sentence adds any detail of that kind (be generous: their own creative words count, even unusual ones, and it can be anywhere in the sentence). When in doubt, answer true: saying no to a real try discourages the child, so only say false when nothing they added has to do with this sense.
 "reaction": one short, warm sentence (at most 20 characters) reacting to the specific words they added, e.g. "汪汪汪！我好像听到小狗在叫！". If senseDone is false, react kindly to their sentence instead.
 "hint": if senseDone is false, one short question (at most 20 characters) about the sentence's scene that nudges them toward the sense without giving the answer; otherwise "".
-"hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that would fit this sentence's scene, to inspire the child's next step (for pattern, short similes like 像一团棉花).`;
+"readsWell": read the whole new sentence aloud in your head, as a Primary 3 Chinese teacher marking a composition. false if the teacher would underline any part of it as not smooth (不通顺). Look especially at where the new words were joined on:
+  - a missing small linking word: 着, 地, 的, 得, 了 (e.g. 小狗汪汪叫在跑 needs 着: 小狗汪汪叫着在跑),
+  - a word repeated by mistake or words in the wrong order (e.g. 一碗面汤的味道面),
+  - two actions or ideas jammed together that don't fit (e.g. 小狗在跑，像皮球一样滚 — running and rolling at once),
+  - an added part that doesn't join onto the rest of the sentence.
+  true when it reads naturally, even if plain, simple or unusual. Don't mark style, word choice, or a missing comma. Judge this separately from senseDone: a sentence can have the sense and still not read well.
+"fixHint": if readsWell is false, one short, kind question (at most 25 characters) that quotes the odd part exactly as written (at most 8 characters, in “”) and hints at what kind of fix it needs without giving the answer, e.g. "“汪汪叫在跑”中间好像少了一个小字？" or "“汤的味道面”读起来有点怪，可以怎么改？". Never write the corrected sentence or the missing word. Otherwise "".
+"hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that would fit this sentence's scene, to inspire the child's next step (for pattern, short similes like 像一团棉花). Each should fit somewhere in this sentence as it is: a describing word ending in 的 to go before a thing, a word ending in 地 to go before an action, or a part starting with “，” to add at the end.`;
 }
 
 /** The child's own sentences (never a parent's), numbered, for the end-of-story feedback. */
@@ -240,19 +254,24 @@ interface AskResult<T> {
   outputTokens: number;
 }
 
-async function ask<T>(
-  client: Anthropic,
-  prompt: string,
-  schema: z.ZodType<T>,
-  system: string = SYSTEM_PROMPT,
-): Promise<AskResult<T>> {
+interface AskOptions {
+  system?: string;
+  /** Let the model think first (adaptive), at medium effort. For judging
+   * whether a sentence reads well, which low effort without thinking
+   * got wrong (小狗汪汪叫在跑 passed). Costs a little more and adds a
+   * few seconds. */
+  careful?: boolean;
+}
+
+async function ask<T>(client: Anthropic, prompt: string, schema: z.ZodType<T>, opts: AskOptions = {}): Promise<AskResult<T>> {
   const response = await client.messages.parse({
     model: MODEL,
-    max_tokens: 2000,
-    // Short creative replies a child is waiting on: no thinking, low effort.
-    thinking: { type: "disabled" },
-    output_config: { effort: "low", format: zodOutputFormat(schema) },
-    system,
+    ...(opts.careful
+      ? // Adaptive thinking is Haiku 5.5's default when `thinking` is omitted; it needs room to think.
+        { max_tokens: 8000, output_config: { effort: "medium" as const, format: zodOutputFormat(schema) } }
+      : // Short creative replies a child is waiting on: no thinking, low effort.
+        { max_tokens: 2000, thinking: { type: "disabled" as const }, output_config: { effort: "low" as const, format: zodOutputFormat(schema) } }),
+    system: opts.system ?? SYSTEM_PROMPT,
     messages: [{ role: "user", content: prompt }],
   });
   const usage = response.usage;
@@ -365,7 +384,7 @@ export default {
         return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);
       }
       if (req.action === "grow") {
-        const r = await ask(client, growPrompt(req), growSchema, GROW_SYSTEM_PROMPT);
+        const r = await ask(client, growPrompt(req), growSchema, { system: GROW_SYSTEM_PROMPT, careful: true });
         await recordUsage("grow", false, r);
         const clean = r.out && r.out !== "refused" ? cleanGrowResponse(r.out) : null;
         return clean ? json(clean, 200) : json({ error: r.out === "refused" ? "refused" : "bad-output" }, 502);

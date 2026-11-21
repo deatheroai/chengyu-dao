@@ -97,6 +97,9 @@ describe("story-partner", () => {
     expect(body.next.line).toBe("小猫跑出去了。");
     const args = parse.mock.calls[0][0];
     expect(args.model).toBe("claude-haiku-5-5");
+    // Story turns stay fast: no thinking, low effort.
+    expect(args.thinking).toEqual({ type: "disabled" });
+    expect(args.output_config.effort).toBe("low");
     expect(args.messages[0].content).toContain("<improved>雨哗啦啦地下着。</improved>");
     expect(args.messages[0].content).toContain("1 more turn");
   });
@@ -176,13 +179,18 @@ describe("story-partner", () => {
     parse.mockResolvedValue({
       stop_reason: "end_turn",
       usage: { input_tokens: 500, output_tokens: 100 },
-      parsed_output: { senseDone: true, reaction: "好白的小狗！", hint: "", hints },
+      parsed_output: { senseDone: true, readsWell: true, fixHint: "", reaction: "好白的小狗！", hint: "", hints },
     });
     const res = await post({ action: "grow", plain: "小狗在跑。", before: "小狗在跑。", sentence: "白白的小狗在跑。", sense: "see" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ senseDone: true, reaction: "好白的小狗！", hint: "", hints });
+    expect(await res.json()).toEqual({ senseDone: true, readsWell: true, fixHint: "", reaction: "好白的小狗！", hint: "", hints });
     const args = parse.mock.calls[0][0];
+    expect(args.messages[0].content).toContain("一碗面汤的味道面");
     expect(args.system).toContain("one sense at a time");
+    // Judging whether a sentence reads well: thinking on (Haiku 5.5's adaptive default), medium effort.
+    expect(args.thinking).toBeUndefined();
+    expect(args.output_config.effort).toBe("medium");
+    expect(args.messages[0].content).toContain("小狗汪汪叫在跑");
     expect(args.messages[0].content).toContain("<improved>白白的小狗在跑。</improved>");
     expect(args.messages[0].content).toContain("看到");
     expect(args.messages[0].content).toContain("When in doubt, answer true");

@@ -104,8 +104,9 @@ describe("senses, questions and help", () => {
     expect(questionFor(undefined, "see")).toContain("颜色");
   });
 
-  it("gives three hints: AI first, then the picture's, then general", () => {
-    expect(hintsFor(puppy, "see", ["雪白的"])).toEqual(["雪白的", "白白的", "胖乎乎的"]);
+  it("gives three hints: the picture's first, then AI, then general", () => {
+    expect(hintsFor(puppy, "see", ["雪白的"])).toEqual(["白白的", "胖乎乎的", "小小的"]);
+    expect(hintsFor(undefined, "see", ["雪白的"])[0]).toBe("雪白的");
     expect(hintsFor(undefined, "hear")).toHaveLength(3);
   });
 
@@ -197,6 +198,21 @@ describe("where the new words go", () => {
   it("inserts the child's words at a spot", () => {
     expect(insertAt("小狗在跑。", 0, " 白白的 ")).toBe("白白的小狗在跑。");
     expect(insertAt("小狗在跑。", 4, "，像一阵风")).toBe("小狗在跑，像一阵风。");
+  });
+
+  it("every picture's hint words fit that sense's suggested ＋", () => {
+    for (const seed of SEEDS) {
+      for (const id of SENSE_IDS) {
+        const spot = seed.spots?.[id] ?? "";
+        for (const w of seed.words[id] ?? []) {
+          const where = `${seed.id} ${id} ${w}`;
+          if (spot === "$") expect(w, where).toMatch(/^，/);
+          // Before a noun: a describing word; before a verb: …地; at the very start: a part ending in “，”.
+          else if (spot.startsWith("<")) expect(w, where).toMatch(/[的地，]$/);
+          expect(w, where).not.toContain("……");
+        }
+      }
+    }
   });
 
   it("every picture seed's spots work on its sentence", () => {
