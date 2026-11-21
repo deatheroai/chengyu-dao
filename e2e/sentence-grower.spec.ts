@@ -83,11 +83,13 @@ test("without AI: grow a sentence with three senses, read it, save it", async ({
   await expect(page.locator("#dots-label")).toHaveText("还要加 2 个感觉");
   await expect(page.locator('.sense-card[data-sense="see"]')).toBeDisabled();
 
-  // Another ＋ can be picked; the suggested one stays lit.
+  // Another ＋ can be picked; then the suggested one stops glowing (it's not a must).
   await page.click('.sense-card[data-sense="hear"]');
   await page.click('.slot-btn[data-at="0"]');
   await expect(page.locator(".slot-input")).toHaveCount(1);
-  await page.click(".slot-btn.suggested");
+  await expect(page.locator(".slot-btn.suggested")).toHaveCount(0);
+  expect(await textOf(page.locator("#slot-tip"))).toContain("就加在这里");
+  await page.click('.slot-btn[data-at="5"]');
   await page.fill(".slot-input", "汪汪叫着，");
   await page.click("#btn-grow");
   expect(await textOf(page.locator("#grow-sentence"))).toBe("白白的小狗汪汪叫着，在跑。");

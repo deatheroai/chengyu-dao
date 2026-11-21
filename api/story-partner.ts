@@ -37,11 +37,11 @@ const IP_DAILY_LIMIT = 150;
 const TOTAL_DAILY_LIMIT = 1500;
 
 const MISSION_DESCRIPTIONS: Record<NonNullable<TurnRequest["mission"]>, string> = {
-  see: "看到 — what something looks like: colour, shape, size, light",
-  hear: "听到 — a sound, e.g. an onomatopoeia like 哗啦啦 or a described sound",
-  smell: "闻到 — a smell",
-  touch: "摸到 — how something feels to the touch: soft, wet, cold, rough…",
-  feel: "心情 — how a character feels inside",
+  see: "看到 — what something looks like: colour, shape, size, light, or where it is",
+  hear: "听到 — anything about sound: an onomatopoeia like 哗啦啦, a described sound, someone speaking, singing or calling, or how quiet or loud it is (静悄悄, 安静地, 默默地, 轻轻地, 大声地 all count)",
+  smell: "闻到 — a smell (a taste counts too)",
+  touch: "摸到 — how something feels to the touch or on the skin: soft, wet, cold, warm, rough, windy…",
+  feel: "心情 — how a character feels inside, or an action that shows it (笑眯眯地, 跳了起来)",
   pattern: "比喻 — a comparison or simile, e.g. 像……一样 / 好像",
 };
 
@@ -138,7 +138,7 @@ Their improved sentence:
 <improved>${req.sentence}</improved>
 
 Return:
-"missionDone": true if the improved sentence includes any detail of the mission's kind (be generous: their own creative words count, and it may have been there already).
+"missionDone": true if the improved sentence includes any detail of the mission's kind (be generous: their own creative words count, and it may have been there already). When in doubt, answer true.
 "reaction": one short, warm sentence (at most 20 characters) reacting to the specific words they added, e.g. "噼里啪啦！我好像听到雨声了！". If missionDone is false, react kindly to their sentence instead.
 "hint": if missionDone is false, one short question (at most 20 characters) that nudges them toward the mission without giving the answer; otherwise "".
 ${ending}
@@ -155,7 +155,7 @@ Their new sentence:
 <improved>${req.sentence}</improved>
 
 Return:
-"senseDone": true if the new sentence adds any detail of that kind (be generous: their own creative words count, even unusual ones; it only has to be somewhere in the sentence).
+"senseDone": true if the new sentence adds any detail of that kind (be generous: their own creative words count, even unusual ones, and it can be anywhere in the sentence). When in doubt, answer true: saying no to a real try discourages the child, so only say false when nothing they added has to do with this sense.
 "reaction": one short, warm sentence (at most 20 characters) reacting to the specific words they added, e.g. "汪汪汪！我好像听到小狗在叫！". If senseDone is false, react kindly to their sentence instead.
 "hint": if senseDone is false, one short question (at most 20 characters) about the sentence's scene that nudges them toward the sense without giving the answer; otherwise "".
 "hints": for each of see, hear, smell, touch, feel, pattern, exactly 3 short example words or phrases (at most 8 characters each) that would fit this sentence's scene, to inspire the child's next step (for pattern, short similes like 像一团棉花).`;

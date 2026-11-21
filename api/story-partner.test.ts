@@ -132,6 +132,15 @@ describe("story-partner", () => {
     expect(args.system).toContain("one sense at a time");
     expect(args.messages[0].content).toContain("<improved>白白的小狗在跑。</improved>");
     expect(args.messages[0].content).toContain("看到");
+    expect(args.messages[0].content).toContain("When in doubt, answer true");
+  });
+
+  it("counts quietness as a sound (默默地 was judged not a sound)", async () => {
+    process.env.ANTHROPIC_API_KEY = "test";
+    parse.mockResolvedValue({ stop_reason: "end_turn", parsed_output: { senseDone: true, reaction: "好安静！", hint: "", hints } });
+    await post({ action: "grow", plain: "月亮出来了。", before: "月亮出来了。", sentence: "月亮默默地出来了。", sense: "hear" });
+    expect(parse.mock.calls[0][0].messages[0].content).toContain("默默地");
+    expect(parse.mock.calls[0][0].messages[0].content).toContain("静悄悄");
   });
 
   it("returns 502 on a refusal, bad output or an SDK error", async () => {
