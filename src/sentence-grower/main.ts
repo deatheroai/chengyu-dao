@@ -174,6 +174,9 @@ interface Play {
   addition: string;
   /** ✏️ 整句改一改: editing the whole sentence instead of one ＋. */
   whole: boolean;
+  /** 团团 asked for another try: whether that sentence had the sense
+   * (就这样吧 then keeps the ⭐), and its reaction. */
+  pending?: { done: boolean; reaction: string };
   /** The finished, saved sentence. */
   saved?: GrownSentence;
 }
@@ -284,6 +287,7 @@ function openStep(sense: SenseId): void {
   $("step-note").hidden = true;
   $("thinking").hidden = true;
   $("btn-keep").hidden = true;
+  p.pending = undefined;
   $("pick").hidden = true;
   $("reaction").hidden = true;
   $("step").hidden = false;
@@ -430,20 +434,28 @@ async function grow(): Promise<void> {
     return;
   }
   p.aiHints = res.hints;
-  if (res.senseDone) {
+  if (res.senseDone && res.readsWell) {
     addLayer(sentence, true, res.reaction || offlineCheer);
-  } else {
-    stepNote(res.hint || res.reaction || "再试一试？");
-    $("btn-keep").hidden = false;
+    return;
   }
+  // Not yet: either the sense is missing, or it's there but the sentence
+  // reads oddly. 团团 asks a question; the child can fix it or move on.
+  p.pending = { done: res.senseDone, reaction: res.reaction || offlineCheer };
+  const note = !res.senseDone
+    ? res.hint || res.reaction || "再试一试？"
+    : res.fixHint || "感觉加进去了！不过读起来有点怪，点 🔊 读给我听，听一听哪里不顺？";
+  stepNote(note);
+  speak(note);
+  $("btn-keep").hidden = false;
 }
 
-/** 就这样吧: keep the sentence as written, without a ⭐. */
+/** 就这样吧: keep the sentence as written. ⭐ only if 团团 found the sense in it. */
 function keepAnyway(): void {
   if (!play || !play.sense || play.busy) return;
   const raw = sentenceNow(play);
   if (!isUsableSentence(raw)) return;
-  addLayer(finishSentence(raw), false, "好，我们接着让它长大！");
+  const done = play.pending?.done ?? false;
+  addLayer(finishSentence(raw), done, done ? play.pending!.reaction : "好，我们接着让它长大！");
 }
 
 function addLayer(text: string, done: boolean, reaction: string): void {
@@ -608,6 +620,7 @@ function init(): void {
     if (play) renderSentence(undefined, sentenceNow(play));
   });
   $("btn-whole").addEventListener("click", openWhole);
+  $("btn-listen").addEventListener("click", () => play && speak(sentenceNow(play)));
   $("btn-hint").addEventListener("click", () => ($("hint-words").hidden = !$("hint-words").hidden));
   $("btn-example").addEventListener("click", () => ($("example").hidden = !$("example").hidden));
   $("btn-back").addEventListener("click", () => {

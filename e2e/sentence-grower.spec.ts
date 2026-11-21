@@ -154,10 +154,10 @@ test("with AI: 团团 judges each sense, nudges, and the child can move on", asy
   await expect(page.locator("#reaction")).toContainText("好白的小狗！ ⭐");
   expect(asked[0]).toMatchObject({ action: "grow", plain: "小狗在跑。", before: "小狗在跑。", sentence: "白白的小狗在跑。", sense: "see" });
 
-  // AI hints are used for the next sense.
+  // The picture's hint words come first: they fit its suggested ＋.
   await page.click('.sense-card[data-sense="hear"]');
   await page.click("#btn-hint");
-  expect(await textOf(page.locator(".hint-word").first())).toBe("汪汪汪");
+  expect(await textOf(page.locator(".hint-word").first())).toBe("汪汪叫着");
 
   // Not done: a nudge, and 就这样吧 keeps it without a star.
   await page.fill(".slot-input", "很快地");
@@ -166,6 +166,46 @@ test("with AI: 团团 judges each sense, nudges, and the child can move on", asy
   await page.click("#btn-keep");
   await expect(page.locator(".dot.filled")).toHaveCount(2);
   await expect(page.locator("#reaction")).not.toContainText("⭐");
+});
+
+test("with AI: a sense that's there but reads oddly gets a question, not a pass", async ({ page }) => {
+  await page.route("**/api/story-partner", async (route) => {
+    const req = route.request();
+    if (req.method() === "GET") return route.fulfill({ json: { enabled: true } });
+    const odd = (req.postDataJSON() as { sentence: string }).sentence.includes("汤的味道面");
+    return route.fulfill({
+      json: {
+        senseDone: true,
+        readsWell: !odd,
+        fixHint: odd ? "“汤的味道面”读起来有点怪，可以怎么改？" : "",
+        reaction: "好香！",
+        hint: "",
+        hints,
+      },
+    });
+  });
+  await page.goto("/sentence-grower.html");
+  await expect(page.locator("body")).toHaveAttribute("data-ai", "on");
+  await page.click('[data-seed="noodles"]');
+  await addSense(page, "smell", "面汤的味道");
+  await expect(page.locator("#step-note")).toContainText("“汤的味道面”");
+  await expect(page.locator(".dot.filled")).toHaveCount(0);
+  await expect(page.locator("#btn-listen")).toBeVisible();
+
+  // Fixed: accepted with a star.
+  await page.fill(".slot-input", "香喷喷的");
+  await page.click("#btn-grow");
+  await expect(page.locator("#reaction")).toContainText("好香！ ⭐");
+  expect(await textOf(page.locator("#grow-sentence"))).toBe("爸爸买了一碗香喷喷的面。");
+
+  // Or moving on anyway keeps the ⭐ for the sense.
+  await page.click('.sense-card[data-sense="touch"]');
+  await page.fill(".slot-input", "面汤的味道");
+  await page.click("#btn-grow");
+  await expect(page.locator("#btn-keep")).toBeVisible();
+  await page.click("#btn-keep");
+  await expect(page.locator(".dot.filled")).toHaveCount(2);
+  await expect(page.locator("#reaction")).toContainText("⭐");
 });
 
 test("AI failing falls back to the offline check", async ({ page }) => {

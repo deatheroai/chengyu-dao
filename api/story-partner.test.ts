@@ -176,12 +176,13 @@ describe("story-partner", () => {
     parse.mockResolvedValue({
       stop_reason: "end_turn",
       usage: { input_tokens: 500, output_tokens: 100 },
-      parsed_output: { senseDone: true, reaction: "好白的小狗！", hint: "", hints },
+      parsed_output: { senseDone: true, readsWell: true, fixHint: "", reaction: "好白的小狗！", hint: "", hints },
     });
     const res = await post({ action: "grow", plain: "小狗在跑。", before: "小狗在跑。", sentence: "白白的小狗在跑。", sense: "see" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ senseDone: true, reaction: "好白的小狗！", hint: "", hints });
+    expect(await res.json()).toEqual({ senseDone: true, readsWell: true, fixHint: "", reaction: "好白的小狗！", hint: "", hints });
     const args = parse.mock.calls[0][0];
+    expect(args.messages[0].content).toContain("一碗面汤的味道面");
     expect(args.system).toContain("one sense at a time");
     expect(args.messages[0].content).toContain("<improved>白白的小狗在跑。</improved>");
     expect(args.messages[0].content).toContain("看到");
