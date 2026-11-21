@@ -50,7 +50,19 @@ export interface TurnRequest {
   choices?: boolean;
 }
 
-export type PartnerRequest = StartRequest | TurnRequest;
+/** 句子长大了 (sentence-grower.html): judge one sense added to one sentence. */
+export interface GrowRequest {
+  action: "grow";
+  /** The sentence the child started from. */
+  plain: string;
+  /** The sentence before this sense. */
+  before: string;
+  /** The sentence after adding this sense. */
+  sentence: string;
+  sense: SenseId;
+}
+
+export type PartnerRequest = StartRequest | TurnRequest | GrowRequest;
 
 export interface StartResponse {
   next: NextBeat;
@@ -68,6 +80,16 @@ export interface TurnResponse {
   alternatives?: NextBeat[];
   /** Last turn only: the 好词卡 vocabulary feedback for the whole story. */
   feedback?: FeedbackOut;
+}
+
+export interface GrowResponse {
+  senseDone: boolean;
+  /** A short warm reaction to the words the child added. */
+  reaction: string;
+  /** When the sense isn't added yet: a nudge (a question, not the answer). */
+  hint: string;
+  /** 💡 words for each sense that fit the new sentence, for the next layer. */
+  hints: Record<SenseId, string[]>;
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null;
@@ -107,6 +129,14 @@ export function parsePartnerRequest(body: unknown): PartnerRequest | { error: st
       turnsLeft,
       ...(choices === true && turnsLeft > 0 ? { choices: true } : {}),
     };
+  }
+  if (body.action === "grow") {
+    const { plain, before, sentence, sense } = body;
+    if (!isText(plain, LIMITS.text) || !isText(before, LIMITS.text) || !isText(sentence, LIMITS.text)) {
+      return { error: "invalid-sentence" };
+    }
+    if (!isSense(sense)) return { error: "invalid-mission" };
+    return { action: "grow", plain: plain.trim(), before: before.trim(), sentence: sentence.trim(), sense };
   }
   return { error: "invalid-action" };
 }
@@ -155,4 +185,12 @@ export function cleanStartResponse(x: unknown): StartResponse | null {
   if (!isObj(x)) return null;
   const next = cleanNextBeat(x.next);
   return next ? { next } : null;
+}
+
+export function cleanGrowResponse(x: unknown): GrowResponse | null {
+  if (!isObj(x) || typeof x.senseDone !== "boolean") return null;
+  const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+  const empty = {} as Record<SenseId, string[]>;
+  for (const s of PARTNER_SENSES) empty[s] = [];
+  return { senseDone: x.senseDone, reaction: str(x.reaction, 80), hint: str(x.hint, 80), hints: cleanHints(x.hints) ?? empty };
 }
