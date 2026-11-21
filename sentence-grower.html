@@ -49,6 +49,7 @@
             <p class="grow-sentence" id="grow-sentence" aria-live="polite"></p>
             <span id="grow-speak"></span>
           </div>
+          <p class="dots-label" id="dots-label"></p>
           <ol class="layer-dots" id="layer-dots" aria-label="加了几个感觉"></ol>
         </div>
         <p class="partner-note reaction" id="reaction" hidden></p>
@@ -61,19 +62,21 @@
         <div class="turn-card mission" id="step" hidden>
           <p class="mission-title" id="step-title"></p>
           <p class="mission-question" id="step-question"></p>
-          <div class="input-wrap">
-            <textarea id="grow-input" rows="3" lang="zh-Hans" autocomplete="off" aria-label="把句子再写一遍"></textarea>
-            <button class="icon-btn mic" id="btn-mic" type="button" aria-label="说一说" hidden>🎤</button>
+          <p class="hint slot-tip" id="slot-tip"></p>
+          <p class="slot-sentence" id="slot-sentence"></p>
+          <div class="whole-wrap" id="whole-wrap" hidden>
+            <textarea id="grow-input" rows="3" lang="zh-Hans" autocomplete="off" aria-label="改整个句子"></textarea>
           </div>
-          <p class="hint">把整个句子再写一遍，加上新的东西。</p>
           <div class="help-row">
             <button class="link-btn" id="btn-hint" type="button">💡 提示</button>
             <button class="link-btn" id="btn-example" type="button">👀 看个例子</button>
+            <button class="link-btn" id="btn-mic" type="button" hidden>🎤 说一说</button>
           </div>
           <p class="hint-words" id="hint-words" hidden></p>
           <div class="example" id="example" hidden></div>
           <p class="partner-note" id="step-note" hidden></p>
           <p class="thinking" id="thinking" hidden>🐼 团团在读你的句子……</p>
+          <button class="link-btn whole-btn" id="btn-whole" type="button">✏️ 整句改一改</button>
           <div class="actions">
             <button class="btn" id="btn-back" type="button">换一个</button>
             <button class="btn" id="btn-keep" type="button" hidden>就这样吧</button>

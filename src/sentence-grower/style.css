@@ -254,3 +254,94 @@
   position: static;
   vertical-align: middle;
 }
+
+/* ---- the three sense circles ---- */
+.dots-label {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.layer-dots .dot:not(.filled) {
+  color: var(--line);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ---- tap a ＋ to add words there ---- */
+.slot-sentence {
+  font-size: 1.35rem;
+  line-height: 2.4;
+  margin: 6px 0;
+  background: #fbfdff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 6px 10px;
+}
+
+.slot-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 3px;
+  padding: 0 0 2px;
+  line-height: 1;
+  font-weight: 700;
+  border: 2px dashed var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+.slot-btn.suggested {
+  border: 2px solid var(--star);
+  background: #fff1d6;
+  color: var(--ink);
+  animation: slot-glow 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes slot-glow {
+  from {
+    box-shadow: 0 0 0 0 rgba(232, 162, 30, 0.5);
+  }
+  to {
+    box-shadow: 0 0 0 7px rgba(232, 162, 30, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-btn.suggested {
+    animation: none;
+  }
+}
+
+.slot-input {
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1.4;
+  min-width: 4em;
+  max-width: 100%;
+  margin: 0 4px;
+  padding: 0 6px;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  vertical-align: middle;
+}
+
+.slot-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.help-row {
+  flex-wrap: wrap;
+}
+
+.whole-btn {
+  display: block;
+  font-size: 0.95rem;
+}

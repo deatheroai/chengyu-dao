@@ -237,3 +237,63 @@ export interface LegendRow {
 export function legendRows(plain: string, layers: Layer[]): LegendRow[] {
   return layers.map((l, i) => ({ sense: l.sense, added: addedRuns(i ? layers[i - 1].text : plain, l.text), done: l.done }));
 }
+
+// ---------- where the new words go ----------
+
+const TERMINAL = /[。！？!?…]+[”"]?$/u;
+
+/** The sentence without its final 。！？, and that ending. */
+function splitEnd(text: string): [string, string] {
+  const m = text.match(TERMINAL);
+  return m ? [text.slice(0, m.index), m[0]] : [text, ""];
+}
+
+function wordBoundaries(body: string): number[] {
+  const Seg = (Intl as unknown as { Segmenter?: new (l: string, o: { granularity: string }) => { segment(t: string): Iterable<{ index: number }> } }).Segmenter;
+  if (!Seg) return Array.from(body).map((_, i, a) => a.slice(0, i).join("").length);
+  return [...new Seg("zh", { granularity: "word" }).segment(body)].map((s) => s.index);
+}
+
+/**
+ * Where the child can tap ＋ to add words: string offsets between the
+ * words of `text` (from Intl.Segmenter, or between every character
+ * without it), from the start up to just before the final 。. `extra`
+ * (团团's suggested spot) is always included, even mid-word.
+ */
+export function slotOffsets(text: string, extra?: number): number[] {
+  const [body] = splitEnd(text);
+  const set = new Set([...wordBoundaries(body), body.length]);
+  if (extra !== undefined && extra >= 0 && extra <= body.length) set.add(extra);
+  return [...set].sort((a, b) => a - b);
+}
+
+/** The words between slots, for showing the sentence with ＋ between them. */
+export function slotWords(text: string, slots: number[]): string[] {
+  return slots.slice(0, -1).map((at, i) => text.slice(at, slots[i + 1]));
+}
+
+/**
+ * 团团's suggested spot for a sense, from a seed's `spots` entry:
+ * "<词" before 词, ">词" after 词, "$" at the end (before 。).
+ * Undefined when the word isn't in the sentence any more.
+ */
+export function spotOffset(text: string, spec: string | undefined): number | undefined {
+  if (!spec) return undefined;
+  const [body] = splitEnd(text);
+  if (spec === "$") return body.length;
+  const word = spec.slice(1);
+  const at = body.indexOf(word);
+  if (!word || at < 0) return undefined;
+  return spec[0] === ">" ? at + word.length : at;
+}
+
+/** `text` with `addition` put in at string offset `at`. */
+export function insertAt(text: string, at: number, addition: string): string {
+  return text.slice(0, at) + addition.trim() + text.slice(at);
+}
+
+/** The line above the three sense circles. */
+export function dotsLabel(added: number): string {
+  const left = SENSES_PER_SENTENCE - added;
+  return left > 0 ? `还要加 ${left} 个感觉` : "完成！";
+}

@@ -7,6 +7,11 @@ import {
   addedRuns,
   charOrigins,
   checkNote,
+  dotsLabel,
+  insertAt,
+  slotOffsets,
+  slotWords,
+  spotOffset,
   cheerFor,
   legendRows,
   growthText,
@@ -162,5 +167,49 @@ describe("seeds", () => {
     const seeds = seedsFromLibrary([story]);
     expect(seeds.map((s) => s.plain)).toEqual(["大海很大。"]);
     expect(seeds[0]).toMatchObject({ id: "story:s1:1", fromStory: true, title: "会飞的小狗" });
+  });
+});
+
+describe("where the new words go", () => {
+  it("puts ＋ between words, ending before the full stop", () => {
+    const slots = slotOffsets("小狗在跑。");
+    expect(slots[0]).toBe(0);
+    expect(slots.at(-1)).toBe(4);
+    expect(slots).toEqual([...new Set(slots)].sort((a, b) => a - b));
+    expect(slotWords("小狗在跑。", slots).join("")).toBe("小狗在跑");
+  });
+
+  it("always offers 团团's spot, even inside a word", () => {
+    // 我在 can come out of the word splitter as one word.
+    expect(slotOffsets("我在玩滑梯。", 1)).toContain(1);
+  });
+
+  it("finds 团团's suggested spot", () => {
+    expect(spotOffset("小狗在跑。", "<小狗")).toBe(0);
+    expect(spotOffset("白白的小狗在跑。", ">小狗")).toBe(5);
+    expect(spotOffset("小狗在跑！", "$")).toBe(4);
+    expect(spotOffset("大象在跑。", "<小狗")).toBeUndefined();
+    expect(spotOffset("小狗在跑。", undefined)).toBeUndefined();
+  });
+
+  it("inserts the child's words at a spot", () => {
+    expect(insertAt("小狗在跑。", 0, " 白白的 ")).toBe("白白的小狗在跑。");
+    expect(insertAt("小狗在跑。", 4, "，像一阵风")).toBe("小狗在跑，像一阵风。");
+  });
+
+  it("every picture seed's spots work on its sentence", () => {
+    for (const seed of SEEDS) {
+      for (const id of SENSE_IDS) {
+        const at = spotOffset(seed.plain, seed.spots?.[id]);
+        expect(at, `${seed.id} ${id}`).toBeDefined();
+        expect(slotOffsets(seed.plain, at)).toContain(at);
+      }
+    }
+  });
+
+  it("counts down the senses left", () => {
+    expect(dotsLabel(0)).toBe("还要加 3 个感觉");
+    expect(dotsLabel(2)).toBe("还要加 1 个感觉");
+    expect(dotsLabel(3)).toBe("完成！");
   });
 });
