@@ -100,7 +100,11 @@ never story text. The Claude Console bill is the official figure.
 句子长大了: the child takes one plain sentence (小狗在跑。) and makes it
 richer one sense at a time. They pick a sense card (👀看到 / 👂听到 /
 👃闻到 / ✋摸到 / 💭心情 / 🪄比喻; used ones grey out), 团团 asks a question
-about the picture, and the child rewrites the whole sentence themselves.
+about the picture, and the child taps a ＋ between the words and types
+only the new words there. The ＋ where that sense usually goes in the
+picture glows (`spots` in `seeds.ts`), and the sentence above updates in
+the sense's colour as they type. ✏️ 整句改一改 lets them edit the whole
+sentence instead, for bigger changes like 跑 → 跑来跑去.
 If they're stuck, they can use 💡 hint words and 👀 an example on a
 *different* sentence. Nothing is ever inserted into their text. What each
 sense added shows in that sense's colour, and each finished sense earns

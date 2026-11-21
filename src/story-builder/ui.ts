@@ -69,8 +69,12 @@ type Recognition = {
   onend: (() => void) | null;
 };
 
-/** Shows `button` and makes it add what the child says at the cursor in `input`. */
-export function wireMic(button: HTMLButtonElement, input: HTMLTextAreaElement): void {
+/** Shows `button` and makes it add what the child says at the cursor in
+ * `input` (or in whichever box `input()` returns at the time). */
+export function wireMic(
+  button: HTMLButtonElement,
+  input: HTMLTextAreaElement | HTMLInputElement | (() => HTMLTextAreaElement | HTMLInputElement | null),
+): void {
   const Ctor: (new () => Recognition) | undefined =
     (window as unknown as Record<string, new () => Recognition>).SpeechRecognition ??
     (window as unknown as Record<string, new () => Recognition>).webkitSpeechRecognition;
@@ -82,9 +86,12 @@ export function wireMic(button: HTMLButtonElement, input: HTMLTextAreaElement): 
     rec.interimResults = false;
     button.classList.add("listening");
     rec.onresult = (e) => {
+      const box = typeof input === "function" ? input() : input;
+      if (!box) return;
       const said = e.results[0]?.[0]?.transcript ?? "";
-      const at = input.selectionEnd ?? input.value.length;
-      input.value = input.value.slice(0, at) + said + input.value.slice(at);
+      const at = box.selectionEnd ?? box.value.length;
+      box.value = box.value.slice(0, at) + said + box.value.slice(at);
+      box.dispatchEvent(new Event("input", { bubbles: true }));
     };
     rec.onend = () => button.classList.remove("listening");
     rec.start();

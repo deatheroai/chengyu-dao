@@ -103,6 +103,13 @@ Built in pieces, top to bottom; each piece lands with its tests.
 - [x] `done` — **5. Links + e2e (2026-11-21).** Link to the page from the story
       builder's home (and back); Playwright tests for the offline and AI
       flows; README section.
+- [x] `done` — **Tap a ＋ to add words (2026-11-21).** First try: editing
+      a full sentence on a phone was confusing (where does the addition
+      go?), so she just replaced it. Now the sentence shows a ＋ between
+      words; she types only the new words in one, the ＋ where that sense
+      usually goes glows, and the sentence previews in colour.
+      ✏️ 整句改一改 stays for bigger edits. The three circles now count
+      down (还要加 3 个感觉) and show 1 / 2 / 3 when empty.
 - [ ] `todo` — **Later: try it with the child.** Is 3 senses right? Do
       they pick varied senses or always 👀? Are AI hints for 我的故事书
       sentences good?

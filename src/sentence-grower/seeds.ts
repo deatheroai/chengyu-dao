@@ -18,6 +18,11 @@ export interface Seed {
   questions: Partial<Record<SenseId, string>>;
   /** Hint words per sense that fit this picture (inspiration only). */
   words: Partial<Record<SenseId, string[]>>;
+  /**
+   * Where each sense usually goes in this sentence, so 团团 can light
+   * up that ＋: "<词" before 词, ">词" after 词, "$" at the end.
+   */
+  spots?: Partial<Record<SenseId, string>>;
   /** Taken from a story in 我的故事书. */
   fromStory?: boolean;
 }
@@ -44,6 +49,7 @@ export const SEEDS: Seed[] = [
       feel: ["开心极了", "兴奋地", "高兴得摇尾巴"],
       pattern: ["像一阵风", "像一个小雪球", "像箭一样"],
     },
+    spots: { see: "<小狗", hear: ">小狗", smell: "$", touch: "<小狗", feel: "<在", pattern: "$" },
   },
   {
     id: "rain",
@@ -66,6 +72,7 @@ export const SEEDS: Seed[] = [
       feel: ["有点无聊", "很舒服", "很想出去玩"],
       pattern: ["像细细的银线", "像一颗颗珠子", "像在唱歌"],
     },
+    spots: { see: "<下雨", hear: "$", smell: "$", touch: "$", feel: "$", pattern: "$" },
   },
   {
     id: "cake",
@@ -88,6 +95,7 @@ export const SEEDS: Seed[] = [
       feel: ["开心极了", "很惊喜", "口水都流出来了"],
       pattern: ["像白白的云", "像一座雪山", "像一朵花"],
     },
+    spots: { see: "<蛋糕", hear: "$", smell: "<蛋糕", touch: "<蛋糕", feel: "$", pattern: "$" },
   },
   {
     id: "beach",
@@ -110,6 +118,7 @@ export const SEEDS: Seed[] = [
       feel: ["开心得大叫", "很放松", "舍不得回家"],
       pattern: ["像白色的花", "像在跳舞", "像小朋友在追来追去"],
     },
+    spots: { see: "<海边", hear: "$", smell: "$", touch: "$", feel: "<去", pattern: "$" },
   },
   {
     id: "noodles",
@@ -132,6 +141,7 @@ export const SEEDS: Seed[] = [
       feel: ["好满足", "饿极了", "很幸福"],
       pattern: ["像长长的绳子", "像一条条小蛇", "像毛线一样"],
     },
+    spots: { see: "<面", hear: "$", smell: "<面", touch: "<面", feel: "$", pattern: "$" },
   },
   {
     id: "butterfly",
@@ -154,6 +164,7 @@ export const SEEDS: Seed[] = [
       feel: ["快乐地", "自由自在地", "很轻松"],
       pattern: ["像一朵会飞的花", "像在跳舞", "像风筝一样"],
     },
+    spots: { see: "<蝴蝶", hear: "$", smell: "$", touch: "$", feel: "<飞", pattern: "$" },
   },
   {
     id: "cat",
@@ -176,6 +187,7 @@ export const SEEDS: Seed[] = [
       feel: ["舒服极了", "懒洋洋地", "很安心"],
       pattern: ["像一个毛线球", "像一个小面包", "像一团棉花"],
     },
+    spots: { see: "<小猫", hear: "$", smell: "$", touch: "<小猫", feel: "<睡觉", pattern: "$" },
   },
   {
     id: "fireworks",
@@ -198,6 +210,7 @@ export const SEEDS: Seed[] = [
       feel: ["兴奋极了", "开心地拍手", "吓了一跳"],
       pattern: ["像天上的花", "像星星一样", "像下金色的雨"],
     },
+    spots: { see: "<烟花", hear: "$", smell: "$", touch: "$", feel: "<在", pattern: "$" },
   },
   {
     id: "slide",
@@ -220,6 +233,7 @@ export const SEEDS: Seed[] = [
       feel: ["有点害怕", "开心得大叫", "心怦怦跳"],
       pattern: ["像一阵风", "像坐火箭", "像小鸟一样"],
     },
+    spots: { see: "<滑梯", hear: "$", smell: "$", touch: "$", feel: "<在", pattern: "$" },
   },
   {
     id: "moon",
@@ -242,6 +256,7 @@ export const SEEDS: Seed[] = [
       feel: ["很安静", "想睡觉了", "很想奶奶"],
       pattern: ["像一个大玉盘", "像一条小船", "像一个银色的球"],
     },
+    spots: { see: "<月亮", hear: "$", smell: "$", touch: "$", feel: "$", pattern: "$" },
   },
 ];
 

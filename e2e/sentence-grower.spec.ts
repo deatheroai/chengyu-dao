@@ -27,11 +27,11 @@ async function aiOff(page: Page): Promise<void> {
   await page.route("**/api/story-partner", (route) => route.fulfill({ json: { enabled: false } }));
 }
 
-/** Picks a sense, rewrites the sentence and taps 长大吧. */
-async function addSense(page: Page, sense: string, sentence: string): Promise<void> {
+/** Picks a sense, types `addition` in 团团's suggested ＋ and taps 长大吧. */
+async function addSense(page: Page, sense: string, addition: string): Promise<void> {
   await page.click(`.sense-card[data-sense="${sense}"]`);
   await expect(page.locator("#step")).toBeVisible();
-  await page.fill("#grow-input", sentence);
+  await page.fill(".slot-input", addition);
   await page.click("#btn-grow");
 }
 
@@ -50,31 +50,54 @@ test("without AI: grow a sentence with three senses, read it, save it", async ({
   expect(await textOf(page.locator("#grow-sentence"))).toBe("小狗在跑。");
   await expect(page.locator(".sense-card:not([disabled])")).toHaveCount(6);
 
-  // The child's sentence starts in the box; unchanged isn't accepted.
-  await page.click('.sense-card[data-sense="see"]');
-  await expect(page.locator("#grow-input")).toHaveValue("小狗在跑。");
-  await page.click("#btn-grow");
-  await expect(page.locator("#step-note")).toContainText("看到");
+  await expect(page.locator("#dots-label")).toHaveText("还要加 3 个感觉");
 
-  // Help ladder: hint words, then an example on a different sentence.
+  // 团团's suggested ＋ (before 小狗) is open and empty; empty isn't accepted.
+  await page.click('.sense-card[data-sense="see"]');
+  await expect(page.locator(".slot-input")).toHaveCount(1);
+  await expect(page.locator(".slot-input")).toHaveValue("");
+  await page.click("#btn-grow");
+  await expect(page.locator("#step-note")).toContainText("＋");
+
+  // Help ladder: hint words, then an example with its added part in colour.
   await page.click("#btn-hint");
   await expect(page.locator(".hint-word")).toHaveCount(3);
   await page.click("#btn-example");
   expect(await textOf(page.locator("#example"))).toContain("红红的花开了");
+  await expect(page.locator("#example .seg-see")).toHaveCount(1);
+
+  // Typing previews the sentence with the new words in colour.
+  await page.fill(".slot-input", "白白的");
+  expect(await textOf(page.locator("#grow-sentence"))).toBe("白白的小狗在跑。");
+  await expect(page.locator("#grow-sentence .seg-see")).toHaveCount(1);
 
   // 换一个 goes back to the cards without adding anything.
   await page.click("#btn-back");
   await expect(page.locator("#pick")).toBeVisible();
   await expect(page.locator(".dot.filled")).toHaveCount(0);
+  expect(await textOf(page.locator("#grow-sentence"))).toBe("小狗在跑。");
 
-  await addSense(page, "see", "白白的小狗在草地上跑");
+  await addSense(page, "see", "白白的");
   await expect(page.locator("#reaction")).toContainText("“白白的”");
   await expect(page.locator(".dot.filled")).toHaveCount(1);
+  await expect(page.locator("#dots-label")).toHaveText("还要加 2 个感觉");
   await expect(page.locator('.sense-card[data-sense="see"]')).toBeDisabled();
-  await expect(page.locator("#grow-sentence .seg-see")).toHaveCount(2);
 
-  await addSense(page, "hear", "白白的小狗汪汪叫着，在草地上跑。");
-  await addSense(page, "feel", "白白的小狗开心地汪汪叫着，在草地上跑。");
+  // Another ＋ can be picked; the suggested one stays lit.
+  await page.click('.sense-card[data-sense="hear"]');
+  await page.click('.slot-btn[data-at="0"]');
+  await expect(page.locator(".slot-input")).toHaveCount(1);
+  await page.click(".slot-btn.suggested");
+  await page.fill(".slot-input", "汪汪叫着，");
+  await page.click("#btn-grow");
+  expect(await textOf(page.locator("#grow-sentence"))).toBe("白白的小狗汪汪叫着，在跑。");
+
+  // ✏️ 整句改一改 for bigger changes, in two places at once.
+  await page.click('.sense-card[data-sense="feel"]');
+  await page.click("#btn-whole");
+  await expect(page.locator("#grow-input")).toHaveValue("白白的小狗汪汪叫着，在跑。");
+  await page.fill("#grow-input", "白白的小狗开心地汪汪叫着，在草地上跑。");
+  await page.click("#btn-grow");
 
   // The end: growth, before/after, a legend row per sense.
   await expect(page.locator("#end")).toBeVisible();
@@ -82,7 +105,7 @@ test("without AI: grow a sentence with three senses, read it, save it", async ({
   await expect(page.locator("#end-growth")).toContainText("从 4 个字长到 17 个字");
   await expect(page.locator("#end-growth")).toContainText("⭐⭐⭐");
   await expect(page.locator(".legend-row")).toHaveCount(3);
-  expect(await textOf(page.locator('#legend [data-sense="see"]'))).toContain("白白的、草地上");
+  expect(await textOf(page.locator('#legend [data-sense="feel"]'))).toContain("开心地、草地上");
 
   // 改一改: the edit is saved and shown as an edit, not a sense.
   await page.click("#btn-edit");
@@ -125,7 +148,7 @@ test("with AI: 团团 judges each sense, nudges, and the child can move on", asy
   await expect(page.locator("body")).toHaveAttribute("data-ai", "on");
   await page.click('[data-seed="puppy"]');
 
-  await addSense(page, "see", "白白的小狗在跑。");
+  await addSense(page, "see", "白白的");
   await expect(page.locator("#reaction")).toContainText("好白的小狗！ ⭐");
   expect(asked[0]).toMatchObject({ action: "grow", plain: "小狗在跑。", before: "小狗在跑。", sentence: "白白的小狗在跑。", sense: "see" });
 
@@ -135,7 +158,7 @@ test("with AI: 团团 judges each sense, nudges, and the child can move on", asy
   expect(await textOf(page.locator(".hint-word").first())).toBe("汪汪汪");
 
   // Not done: a nudge, and 就这样吧 keeps it without a star.
-  await page.fill("#grow-input", "白白的小狗很快地在跑。");
+  await page.fill(".slot-input", "很快地");
   await page.click("#btn-grow");
   await expect(page.locator("#step-note")).toContainText("什么声音");
   await page.click("#btn-keep");
@@ -150,7 +173,7 @@ test("AI failing falls back to the offline check", async ({ page }) => {
   await page.goto("/sentence-grower.html");
   await expect(page.locator("body")).toHaveAttribute("data-ai", "on");
   await page.click('[data-seed="rain"]');
-  await addSense(page, "hear", "雨哗啦啦地下着。");
+  await addSense(page, "hear", "，哗啦啦");
   await expect(page.locator("#reaction")).toContainText("⭐");
 });
 
@@ -179,8 +202,16 @@ test("sentences from 我的故事书 can be grown, and ?test keeps a separate li
   await page.click(".story-seed");
   expect(await textOf(page.locator("#grow-sentence"))).toBe("大海很大。");
   await page.click('.sense-card[data-sense="see"]');
-  // No picture: 团团 asks the general question.
+  // No picture: 团团 asks the general question, and no ＋ is suggested.
   expect(await textOf(page.locator("#step-question"))).toContain("颜色");
+  await expect(page.locator(".slot-input")).toHaveCount(0);
+  await expect(page.locator(".slot-btn.suggested")).toHaveCount(0);
+  await page.click("#btn-grow");
+  await expect(page.locator("#step-note")).toContainText("先点一个");
+  await page.locator(".slot-btn").first().click();
+  await page.fill(".slot-input", "蓝蓝的");
+  await page.click("#btn-grow");
+  expect(await textOf(page.locator("#grow-sentence"))).toBe("蓝蓝的大海很大。");
 
   await page.goto("/sentence-grower.html?test");
   await expect(page.locator("#test-badge")).toBeVisible();

@@ -14,6 +14,11 @@ import {
   SENSES_PER_SENTENCE,
   checkNote,
   cheerFor,
+  dotsLabel,
+  insertAt,
+  slotOffsets,
+  slotWords,
+  spotOffset,
   growthText,
   hintsFor,
   isLong,
@@ -159,33 +164,52 @@ interface Play {
   /** 💡 words from the AI's last verdict, for the next senses. */
   aiHints: Partial<Record<SenseId, string[]>>;
   busy: boolean;
+  /** The ＋ the child is writing in: a string offset into `current`. */
+  slot?: number;
+  /** 团团's suggested ＋ for this sense, if the picture has one. */
+  suggested?: number;
+  /** What the child typed in the ＋. */
+  addition: string;
+  /** ✏️ 整句改一改: editing the whole sentence instead of one ＋. */
+  whole: boolean;
   /** The finished, saved sentence. */
   saved?: GrownSentence;
 }
 
 let play: Play | undefined;
 const input = () => $<HTMLTextAreaElement>("grow-input");
+const slotInput = () => document.querySelector<HTMLInputElement>("#slot-sentence .slot-input");
 
-/** `fresh`: the sense just added, which grows in. */
-function renderSentence(fresh?: Origin): void {
+/** The sentence with what the child is adding right now. */
+function sentenceNow(p: Play): string {
+  if (p.whole) return input().value.trim();
+  return p.slot !== undefined && p.addition.trim() ? insertAt(p.current, p.slot, p.addition) : p.current;
+}
+
+/** `fresh`: the sense just added, which grows in. `preview`: the
+ * sentence with what the child is typing, in the current sense's colour. */
+function renderSentence(fresh?: Origin, preview?: string): void {
   if (!play) return;
   const p = play;
   const text = p.saved?.final ?? p.current;
-  $("grow-sentence").replaceChildren(coloured(p.seed.plain, layerSteps(p.layers, p.saved?.final), fresh));
+  const steps = layerSteps(p.layers, p.saved?.final);
+  if (preview && p.sense && preview !== p.current) steps.push({ text: preview, origin: p.sense });
+  $("grow-sentence").replaceChildren(coloured(p.seed.plain, steps, fresh));
   $("grow-speak").replaceChildren(speakButton(text));
+  $("dots-label").textContent = dotsLabel(p.layers.length);
   $("layer-dots").replaceChildren(
     ...Array.from({ length: SENSES_PER_SENTENCE }, (_, i) => {
       const li = document.createElement("li");
       const layer = p.layers[i];
       li.className = layer ? `dot filled seg-${layer.sense}` : "dot";
-      li.textContent = layer ? getSense(layer.sense).emoji : "";
+      li.textContent = layer ? getSense(layer.sense).emoji : String(i + 1);
       return li;
     }),
   );
 }
 
 function startGrowing(seed: Seed): void {
-  play = { seed, layers: [], current: seed.plain, aiHints: {}, busy: false };
+  play = { seed, layers: [], current: seed.plain, aiHints: {}, busy: false, addition: "", whole: false };
   practice.stop();
   $("scene-emoji").textContent = seed.emoji;
   $("scene-title").replaceChildren(ruby(seed.title));
@@ -250,8 +274,9 @@ function openStep(sense: SenseId): void {
   const ex = EXAMPLES[sense];
   const plainEx = document.createElement("p");
   plainEx.append(ruby(`例子：${ex.plain}`));
+  // The added part in colour, so the example also shows *where* it went.
   const richEx = document.createElement("p");
-  richEx.append(ruby(`→ ${ex.rich}`));
+  richEx.append("→ ", coloured(ex.plain, [{ text: ex.rich, origin: sense }]));
   $("example").replaceChildren(plainEx, richEx);
   $("example").hidden = true;
   $("step-note").hidden = true;
@@ -260,13 +285,86 @@ function openStep(sense: SenseId): void {
   $("pick").hidden = true;
   $("reaction").hidden = true;
   $("step").hidden = false;
-  const box = input();
-  box.value = p.current;
-  box.readOnly = false;
+  p.whole = false;
+  p.addition = "";
+  p.suggested = spotOffset(p.current, p.seed.spots?.[sense]);
+  p.slot = p.suggested;
+  $("whole-wrap").hidden = true;
+  $("slot-sentence").hidden = false;
+  $("btn-whole").hidden = false;
+  const tip =
+    p.suggested !== undefined ? "团团觉得可以加在发光的 ＋ 这里。你也可以点别的 ＋。" : "点一个 ＋，把新的词写进去。";
+  $("slot-tip").replaceChildren(ruby(tip));
+  $("slot-tip").hidden = false;
+  renderSlots();
   speak(question);
   $("step").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  slotInput()?.focus();
+}
+
+/** The sentence as words with a ＋ between them; the chosen ＋ is a box to type in. */
+function renderSlots(): void {
+  if (!play) return;
+  const p = play;
+  const slots = slotOffsets(p.current, p.suggested);
+  const words = slotWords(p.current, slots);
+  const parts: Node[] = [];
+  slots.forEach((at, i) => {
+    if (at === p.slot) {
+      const box = document.createElement("input");
+      box.className = `slot-input seg-${p.sense}`;
+      box.lang = "zh-Hans";
+      box.autocomplete = "off";
+      box.value = p.addition;
+      box.placeholder = at === slots.at(-1) && at > 0 ? "，……" : "……";
+      box.setAttribute("aria-label", "写新的词");
+      box.size = Math.max(4, Array.from(p.addition).length + 1);
+      box.addEventListener("input", () => {
+        p.addition = box.value;
+        box.size = Math.max(4, Array.from(box.value).length + 1);
+        $("step-note").hidden = true;
+        renderSentence(undefined, sentenceNow(p));
+      });
+      box.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.isComposing) void grow();
+      });
+      parts.push(box);
+    } else {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = at === p.suggested ? "slot-btn suggested" : "slot-btn";
+      b.dataset.at = String(at);
+      b.textContent = "+";
+      b.setAttribute("aria-label", "加在这里");
+      b.addEventListener("click", () => {
+        if (p.busy) return;
+        p.slot = at;
+        renderSlots();
+        renderSentence(undefined, sentenceNow(p));
+        slotInput()?.focus();
+      });
+      parts.push(b);
+    }
+    if (i < words.length) parts.push(ruby(words[i], "slot-word"));
+  });
+  const ending = p.current.slice(slots.at(-1));
+  if (ending) parts.push(ruby(ending, "slot-word"));
+  $("slot-sentence").replaceChildren(...parts);
+}
+
+/** ✏️ 整句改一改: edit the whole sentence (for bigger changes like 跑 → 跑来跑去). */
+function openWhole(): void {
+  if (!play || play.busy) return;
+  const p = play;
+  const box = input();
+  box.value = sentenceNow(p);
+  p.whole = true;
+  $("slot-sentence").hidden = true;
+  $("slot-tip").hidden = true;
+  $("btn-whole").hidden = true;
+  $("whole-wrap").hidden = false;
+  box.readOnly = false;
   box.focus();
-  box.setSelectionRange(box.value.length, box.value.length);
 }
 
 function stepNote(text: string): void {
@@ -278,15 +376,21 @@ function setBusy(busy: boolean): void {
   if (!play) return;
   play.busy = busy;
   $("thinking").hidden = !busy;
-  for (const id of ["btn-grow", "btn-back", "btn-keep"]) $<HTMLButtonElement>(id).disabled = busy;
+  for (const id of ["btn-grow", "btn-back", "btn-keep", "btn-whole"]) $<HTMLButtonElement>(id).disabled = busy;
   input().readOnly = busy;
+  const box = slotInput();
+  if (box) box.readOnly = busy;
 }
 
 async function grow(): Promise<void> {
   if (!play || !play.sense || play.busy) return;
   const p = play;
   const sense = p.sense!;
-  const raw = input().value.trim();
+  if (!p.whole && !p.addition.trim()) {
+    stepNote(p.slot === undefined ? "先点一个 ＋，选一个地方加新的词吧！" : "在 ＋ 里写上新的词吧！");
+    return;
+  }
+  const raw = sentenceNow(p);
   const words = hintsFor(p.seed, sense, p.aiHints[sense]);
   const check = offlineCheck(p.current, raw, words);
   if (!check.ok) {
@@ -320,7 +424,7 @@ async function grow(): Promise<void> {
 /** 就这样吧: keep the sentence as written, without a ⭐. */
 function keepAnyway(): void {
   if (!play || !play.sense || play.busy) return;
-  const raw = input().value.trim();
+  const raw = sentenceNow(play);
   if (!isUsableSentence(raw)) return;
   addLayer(finishSentence(raw), false, "好，我们接着让它长大！");
 }
@@ -481,11 +585,20 @@ function init(): void {
     renderHome();
   });
 
-  wireMic($<HTMLButtonElement>("btn-mic"), input());
-  input().addEventListener("input", () => ($("step-note").hidden = true));
+  wireMic($<HTMLButtonElement>("btn-mic"), () => (play?.whole ? input() : slotInput()));
+  input().addEventListener("input", () => {
+    $("step-note").hidden = true;
+    if (play) renderSentence(undefined, sentenceNow(play));
+  });
+  $("btn-whole").addEventListener("click", openWhole);
   $("btn-hint").addEventListener("click", () => ($("hint-words").hidden = !$("hint-words").hidden));
   $("btn-example").addEventListener("click", () => ($("example").hidden = !$("example").hidden));
-  $("btn-back").addEventListener("click", () => play && !play.busy && openPick());
+  $("btn-back").addEventListener("click", () => {
+    if (!play || play.busy) return;
+    play.sense = undefined;
+    renderSentence();
+    openPick();
+  });
   $("btn-grow").addEventListener("click", () => void grow());
   $("btn-keep").addEventListener("click", keepAnyway);
 
