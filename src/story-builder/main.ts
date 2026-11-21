@@ -1,4 +1,4 @@
-import { renderRubyText } from "../shared/rubyText";
+import { renderPinyin } from "./rubyLayout";
 import { ADVENTURES, getAdventure, type Adventure } from "./adventures";
 import { applyFixes, findFixes, fixedChars, fixesLeft, type Fix } from "./corrections";
 import { finishSentence, isUsableSentence, sensesUsed } from "./expansion";
@@ -731,7 +731,7 @@ function teachWord(char: string, sentence: string): HTMLLIElement {
   Array.from(sentence).forEach((c, i) => {
     const part = document.createElement("span");
     if (c === char) part.className = "hit";
-    renderRubyText(part, c, [py[i] ?? ""]);
+    renderPinyin(part, c, [py[i] ?? ""]);
     ctx.append(part);
   });
   li.append(big, ctx);

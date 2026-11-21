@@ -1,4 +1,4 @@
-import { renderRubyText } from "../shared/rubyText";
+import { renderPinyin } from "./rubyLayout";
 import type { Fix } from "./corrections";
 import type { NewWord } from "./partnerApi";
 import { finishSentence } from "./expansion";
@@ -39,7 +39,7 @@ function tapWord(word: string, pinyin: string[]): HTMLElement {
   b.type = "button";
   b.className = "tapword";
   b.setAttribute("aria-pressed", "false");
-  renderRubyText(b, word, pinyin);
+  renderPinyin(b, word, pinyin);
   b.addEventListener("click", () => {
     const on = b.classList.toggle("show");
     b.setAttribute("aria-pressed", String(on));

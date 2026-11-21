@@ -1,4 +1,4 @@
-import { renderRubyText } from "../shared/rubyText";
+import { renderPinyin } from "../story-builder/rubyLayout";
 import { finishSentence, isUsableSentence } from "../story-builder/expansion";
 import { isTestMode, loadLibrary } from "../story-builder/library";
 import type { GrowResponse } from "../story-builder/partnerApi";
@@ -67,7 +67,7 @@ function coloured(plain: string, steps: { text: string; origin: Origin }[], fres
     span.className = `seg seg-${seg.origin}${seg.origin === fresh ? " fresh" : ""}`;
     span.dataset.origin = seg.origin;
     const n = Array.from(seg.text).length;
-    renderRubyText(span, seg.text, py.slice(at, at + n));
+    renderPinyin(span, seg.text, py.slice(at, at + n));
     at += n;
     wrap.append(span);
   }
@@ -322,7 +322,7 @@ function renderSlots(): void {
     const span = document.createElement("span");
     span.className = "slot-word";
     const start = Array.from(p.current.slice(0, from)).length;
-    renderRubyText(span, word, py.slice(start, start + Array.from(word).length));
+    renderPinyin(span, word, py.slice(start, start + Array.from(word).length));
     return span;
   };
   const parts: Node[] = [];

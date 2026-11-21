@@ -34,12 +34,53 @@ body {
 }
 
 /* The 拼音 toggle leaves the 好词卡's tap-to-see words alone. */
-body.no-pinyin :not(.tapword) > ruby > rt {
+body.no-pinyin rt {
   display: none;
 }
 
+.tapword.show rt {
+  display: block;
+}
+
+/* Each character and its pinyin form one small column, pinyin on top.
+   Native <ruby> layout differs by browser: Safari lets a long syllable
+   (shēng, zhuàng) spill over its neighbours, so the pinyin ran together
+   and the characters were spaced unevenly. As a column, every syllable
+   stays over its own character, with a small gap between syllables. */
+ruby,
+.py-punct {
+  display: inline-flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  vertical-align: bottom;
+  margin: 0 0.04em;
+  line-height: 1.25;
+  text-indent: 0;
+}
+
+/* With pinyin showing, every character gets the same width (wide
+   enough for most syllables), so the text is evenly spaced like a
+   textbook's instead of stretching wherever a syllable is long. */
+body:not(.no-pinyin) ruby,
+.tapword.show ruby {
+  min-width: 1.22em;
+}
+
+.tapword:not(.show) ruby {
+  min-width: 0;
+}
+
+/* Punctuation stays with the character next to it (never starts a line). */
+.py-glue {
+  white-space: nowrap;
+}
+
 rt {
-  font-size: 0.55em;
+  display: block;
+  font-size: 0.52em;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
   color: var(--muted);
 }
 

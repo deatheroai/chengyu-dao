@@ -1,4 +1,4 @@
-import { renderRubyText } from "../shared/rubyText";
+import { renderPinyin } from "./rubyLayout";
 import { charPinyin } from "./pinyin";
 
 /**
@@ -36,7 +36,7 @@ export function savePinyinPref(on: boolean): void {
 export function ruby(text: string, cls = ""): HTMLElement {
   const span = document.createElement("span");
   if (cls) span.className = cls;
-  renderRubyText(span, text, charPinyin(text));
+  renderPinyin(span, text, charPinyin(text));
   return span;
 }
 
