@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { getStory } from "../src/reading/stories";
 import { storyStrokeData } from "../src/reading/storyStrokeData";
 import { targetMsFor } from "../src/reading/progress";
+import { storyGroups, reviewItems } from "../src/reading/library";
 
 const story = getStory();
 
@@ -149,4 +150,54 @@ test("a flawless but too-slow attempt earns two stars and still sets a fastest t
   await expect(page.locator("#practise-feedback")).toContainText("再快一点");
   await expect(page.locator(`#practise-char-row .mini-box[data-char="${t.char}"] .mini-badge`)).toHaveText("★★☆");
   await expect(page.locator("#practise-best")).toContainText("最快");
+});
+
+test("the story list opens an earlier story, with its own progress", async ({ page }) => {
+  await page.goto("/story-writer.html");
+  const all = storyGroups().flatMap((g) => g.stories);
+  await expect(page.locator(".library-story")).toHaveCount(all.length);
+  await expect(page.locator('.library-story[aria-current="page"]')).toContainText(story.title);
+  const earlier = all.find((s) => s.id !== story.id)!;
+  await page.locator(".library-story", { hasText: earlier.title }).click();
+  await expect(page.locator("#story-title")).toHaveText(earlier.title);
+  await expect(page.locator("#read-char-row .mini-box")).toHaveCount(earlier.targets.length);
+  await expect(page.locator('.library-story[aria-current="page"]')).toContainText(earlier.title);
+});
+
+test("revision: write all three stories' characters, then practise the missed one in its story", async ({ page }) => {
+  test.setTimeout(180000);
+  const group = storyGroups()[0];
+  const total = reviewItems(group).length;
+  await page.goto("/story-writer.html");
+  await page.locator(".library-review").first().click();
+  await expect(page.locator("#panel-test")).toBeVisible();
+  await expect(page.locator("#steps")).toBeHidden();
+  for (const st of group.stories) await expect(page.locator("#review-stories")).toContainText(st.title);
+  let missed = "";
+  for (let i = 0; i < total; i++) {
+    await expect(page.locator("#test-progress")).toContainText(`${i + 1} / ${total}`);
+    await expect(page.locator("#test-pad svg")).toBeVisible();
+    if (i === 0) {
+      missed = (await page.locator("#test-pad").getAttribute("data-char"))!;
+      await page.click("#btn-test-reveal");
+    } else {
+      await writePerfectly(page, "#test-pad");
+      await expect(page.locator("#test-feedback")).toContainText("✓");
+    }
+    await page.click("#btn-test-next");
+  }
+  await expect(page.locator("#summary-title")).toContainText(`${total - 1} / ${total}`);
+  await expect(page.locator("#summary-row .mini-box")).toHaveCount(total);
+  const from = group.stories.find((s) => s.targets.some((t) => t.char === missed))!;
+  const link = page.locator("#review-practise a");
+  await expect(link).toHaveCount(1);
+  await expect(link).toContainText(from.title);
+  await link.click();
+  await expect(page.locator("#story-title")).toHaveText(from.title);
+  await expect(page.locator("#panel-practise")).toBeVisible();
+  await expect(page.locator("#practise-pad")).toHaveAttribute("data-char", missed);
+
+  // The story list remembers the revision's best score.
+  await page.click('[data-step="read"]');
+  await expect(page.locator(".library-review").first()).toContainText(`最好 ${total - 1}/${total}`);
 });

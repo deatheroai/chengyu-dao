@@ -12,8 +12,8 @@
   <body>
     <main class="app">
       <header class="app-header">
-        <h1>读一读 · 写一写</h1>
-        <nav class="steps" role="tablist" aria-label="Steps">
+        <h1 id="app-title">读一读 · 写一写</h1>
+        <nav class="steps" id="steps" role="tablist" aria-label="Steps">
           <button class="step" role="tab" data-step="read" aria-selected="true"><span class="step-num">1</span>读故事</button>
           <button class="step" role="tab" data-step="practise" aria-selected="false"><span class="step-num">2</span>练字</button>
           <button class="step" role="tab" data-step="test" aria-selected="false"><span class="step-num">3</span>默写</button>
@@ -39,6 +39,11 @@
         </div>
         <button class="btn btn-primary btn-next" type="button" data-goto="practise">下一步：练字 →</button>
         <button class="link-btn" type="button" id="btn-reset">清除练习记录</button>
+
+        <section class="library" id="library" aria-labelledby="library-heading">
+          <h3 id="library-heading">📚 故事目录</h3>
+          <ol class="library-list" id="library-list"></ol>
+        </section>
       </section>
 
       <!-- Step 2: practise each character -->
@@ -64,6 +69,10 @@
 
       <!-- Step 3: write from memory -->
       <section class="panel" id="panel-test" data-panel="test" hidden>
+        <div class="review-banner" id="review-banner" hidden>
+          <p id="review-stories"></p>
+          <a class="link-btn" href="?#library">← 回到故事目录</a>
+        </div>
         <div id="test-run">
           <p class="test-progress" id="test-progress"></p>
           <div class="pad-card">
@@ -84,6 +93,7 @@
           <p class="summary-legend">✓ 写对了 · △ 有点难 · ✗ 看了答案</p>
           <div class="pad-actions">
             <button class="btn" type="button" id="btn-review" hidden>练习没写好的字</button>
+            <div class="review-practise" id="review-practise" hidden></div>
             <button class="btn btn-primary" type="button" id="btn-test-again">再默写一次</button>
           </div>
         </div>

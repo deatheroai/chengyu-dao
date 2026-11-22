@@ -1,9 +1,13 @@
 import HanziWriter from "hanzi-writer";
-import { getStory, type TargetCharacter } from "./stories";
+import { type Story, type TargetCharacter } from "./stories";
 import { segmentStory, blankSentence } from "./storyText";
 import { gradeAttempt, summarize, shuffled, type TestResult } from "./memoryTest";
 import { storyStrokeData } from "./storyStrokeData";
 import { keepClipRefsRelative } from "./clipRefs";
+import {
+  pageFor, storyGroups, isComplete, reviewItems, storyHref, reviewHref, starTotal, reviewName,
+  REVIEW_GROUP_SIZE, type TestItem,
+} from "./library";
 import {
   loadProgress, saveProgress, clearProgress, deviceStore, emptyProgress,
   recordStars, recordTime, recordTest, starsForTrace, starsForFreeWriting, formatSeconds,
@@ -13,10 +17,16 @@ import {
 
 type Step = "read" | "practise" | "test";
 
-const story = getStory();
+const page = pageFor(location.search);
+// On a revision page only the 默写 step is shown; the story steps are
+// still built (for its first story) but stay hidden.
+const story: Story = page.kind === "story" ? page.story : page.group.stories[0];
+const testItems: TestItem[] =
+  page.kind === "story" ? story.targets.map((target) => ({ story, target })) : reviewItems(page.group);
+const progressId = page.kind === "story" ? story.id : page.group.id;
 const store = deviceStore();
-let progress = loadProgress(story.id, store);
-const persist = () => saveProgress(story.id, progress, store);
+let progress = loadProgress(progressId, store);
+const persist = () => saveProgress(progressId, progress, store);
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // ---------- shared writer setup ----------
@@ -344,7 +354,7 @@ const practise = (() => {
       writer?.cancelQuiz();
     },
     refresh: refreshBoxes,
-    focusOn(chars: string[]): void {
+    focusOn(chars: readonly string[]): void {
       const i = story.targets.findIndex((t) => chars.includes(t.char));
       if (i >= 0) index = i;
     },
@@ -354,7 +364,7 @@ const practise = (() => {
 // ---------- step 3: write from memory ----------
 
 const test = (() => {
-  let order: TargetCharacter[] = [];
+  let order: TestItem[] = [];
   let pos = 0;
   let results: { char: string; result: TestResult }[] = [];
   let writer: ReturnType<typeof HanziWriter.create> | null = null;
@@ -366,7 +376,7 @@ const test = (() => {
   const revealBtn = $<HTMLButtonElement>("btn-test-reveal");
 
   function start(): void {
-    order = shuffled(story.targets);
+    order = shuffled(testItems);
     pos = 0;
     results = [];
     finished = false;
@@ -376,9 +386,10 @@ const test = (() => {
   }
 
   function show(): void {
-    const t = order[pos];
-    $("test-progress").textContent = `第 ${pos + 1} / ${order.length} 个字`;
-    const { before, after } = blankSentence(story, t);
+    const { story: from, target: t } = order[pos];
+    $("test-progress").textContent =
+      page.kind === "review" ? `第 ${pos + 1} / ${order.length} 个字 · 《${from.title}》` : `第 ${pos + 1} / ${order.length} 个字`;
+    const { before, after } = blankSentence(from, t);
     const prompt = $("test-prompt");
     prompt.replaceChildren();
     const blank = document.createElement("span");
@@ -419,7 +430,7 @@ const test = (() => {
 
   function record(result: TestResult, mistakes = 0): void {
     run++;
-    results.push({ char: order[pos].char, result });
+    results.push({ char: order[pos].target.char, result });
     feedback.textContent =
       result === "correct" ? "✓ 写对了！" : result === "shaky" ? `△ 写出来了，错了 ${mistakes} 笔。` : "✗ 记住它的样子，下次再试。";
     retryBtn.hidden = revealBtn.hidden = true;
@@ -468,7 +479,7 @@ const test = (() => {
     const row = $("summary-row");
     row.replaceChildren();
     const mark: Record<TestResult, string> = { correct: "✓", shaky: "△", revealed: "✗" };
-    for (const t of story.targets) {
+    for (const { target: t } of testItems) {
       const r = results.find((x) => x.char === t.char)!.result;
       const box = miniBox(t, mark[r]);
       box.classList.add(`result-${r}`);
@@ -476,11 +487,27 @@ const test = (() => {
       row.append(box);
     }
     const reviewBtn = $<HTMLButtonElement>("btn-review");
-    reviewBtn.hidden = s.toReview.length === 0;
-    reviewBtn.onclick = () => {
-      practise.focusOn(s.toReview);
-      goTo("practise");
-    };
+    const practiseLinks = $("review-practise");
+    if (page.kind === "story") {
+      reviewBtn.hidden = s.toReview.length === 0;
+      reviewBtn.onclick = () => {
+        practise.focusOn(s.toReview);
+        goTo("practise");
+      };
+      return;
+    }
+    // Revision: each story's missed characters link to its own practice.
+    practiseLinks.replaceChildren();
+    for (const st of page.group.stories) {
+      const missed = st.targets.map((t) => t.char).filter((c) => s.toReview.includes(c));
+      if (!missed.length) continue;
+      const a = document.createElement("a");
+      a.className = "btn";
+      a.href = storyHref(st, missed);
+      a.textContent = `练习《${st.title}》的 ${missed.join(" ")}`;
+      practiseLinks.append(a);
+    }
+    practiseLinks.hidden = practiseLinks.childElementCount === 0;
   }
 
   $("btn-test-again").addEventListener("click", start);
@@ -504,5 +531,70 @@ $("btn-reset").addEventListener("click", () => {
   practise.refresh();
 });
 
-renderStory();
-goTo("read");
+function renderLibrary(): void {
+  const list = $("library-list");
+  for (const group of storyGroups()) {
+    const set = document.createElement("li");
+    set.className = "library-set";
+    const items = document.createElement("ul");
+    for (const st of group.stories) {
+      const p = loadProgress(st.id, store);
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      a.className = "library-story";
+      a.href = storyHref(st);
+      if (st.id === story.id && page.kind === "story") a.setAttribute("aria-current", "page");
+      const title = document.createElement("span");
+      title.className = "library-title";
+      title.textContent = st.title;
+      const meta = document.createElement("span");
+      meta.className = "library-meta";
+      const { earned, max } = starTotal(st, p);
+      meta.textContent =
+        `★ ${earned}/${max}` + (p.bestTestScore > 0 ? ` · 默写 ${p.bestTestScore}/${st.targets.length}` : "");
+      a.append(title, meta);
+      li.append(a);
+      items.append(li);
+    }
+    set.append(items);
+    if (isComplete(group)) {
+      const best = loadProgress(group.id, store).bestTestScore;
+      const total = reviewItems(group).length;
+      const a = document.createElement("a");
+      a.className = "btn library-review";
+      a.href = reviewHref(group);
+      a.textContent = `🔁 ${reviewName(group)} · ${total} 个字一起默写` + (best > 0 ? ` · 最好 ${best}/${total}` : "");
+      set.append(a);
+    } else {
+      const note = document.createElement("p");
+      note.className = "library-note";
+      note.textContent = `再学 ${REVIEW_GROUP_SIZE - group.stories.length} 个故事，就可以三个故事一起复习了。`;
+      set.append(note);
+    }
+    list.append(set);
+  }
+}
+
+renderLibrary();
+if (page.kind === "review") {
+  document.body.dataset.mode = "review";
+  document.title = `${reviewName(page.group)} · 默写`;
+  $("app-title").textContent = `${reviewName(page.group)} · 三个故事一起默写`;
+  $("review-stories").replaceChildren(
+    ...page.group.stories.map((st) => {
+      const span = document.createElement("span");
+      span.textContent = `《${st.title}》`;
+      return span;
+    }),
+  );
+  $("review-banner").hidden = false;
+  goTo("test");
+} else {
+  renderStory();
+  if (page.practise.length) {
+    practise.focusOn(page.practise);
+    goTo("practise");
+  } else {
+    goTo("read");
+  }
+}

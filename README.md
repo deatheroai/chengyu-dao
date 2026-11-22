@@ -47,6 +47,15 @@ target character's pinyin, word and meaning), then run
 `src/reading/stories.test.ts` catches a target missing from the text or
 missing stroke data.
 
+Under the story, 📚 故事目录 lists every story with its stars and best
+默写 score; tapping one opens it (`?story=<id>`). Every three stories, in
+the order they appear in `stories`, form a set with a 复习 button: one
+默写 of all three stories' characters (18), each in its own sentence
+(`?review=<n>`, `src/reading/library.ts`). Its summary links each
+missed character to practice in its own story, and its best score is
+saved separately from the stories'. A target character must not repeat
+across stories (`src/reading/library.test.ts` checks this).
+
 Practice earns up to three stars per character: ★ for tracing, ★★ for
 writing it alone with at most one wrong stroke, ★★★ for writing it alone
 with none within its target time (1.5 s per stroke, rounded up —

@@ -443,3 +443,121 @@ body {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* ---- story list (故事目录) and revision (复习) ---- */
+a.btn {
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--card);
+}
+
+.library h3 {
+  margin: 0;
+}
+
+.library-list,
+.library-set ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-list {
+  gap: 16px;
+}
+
+.library-set {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.library-set:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.library-story {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.library-story[aria-current="page"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.library-title {
+  font-family: var(--kai);
+  font-size: 1.2rem;
+}
+
+.library-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.library-review {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.library-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+body[data-mode="review"] .steps {
+  display: none;
+}
+
+.review-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.review-banner p {
+  margin: 0;
+  font-family: var(--kai);
+  font-size: 1.15rem;
+}
+
+.review-practise {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.review-banner p span {
+  white-space: nowrap;
+}
