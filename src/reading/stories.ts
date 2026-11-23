@@ -132,9 +132,25 @@ export const stories: Story[] = [
       { char: "约", pinyin: "yuē", word: "约定", meaning: "to agree on, promise" },
     ],
   },
+  {
+    id: "holiday-party",
+    title: "假期派对",
+    text:
+      "年终假期里，我在家里举办了一个小派对，请了四位好朋友来玩。早上，我和妈妈一起布置客厅，把彩色的气球挂在墙上。" +
+      "中午，朋友们陆续到了，每个人都带了好吃的东西：有炒米粉、咖喱角，还有一大盒巧克力饼干。我们一边吃，一边玩游戏，客厅里充满了欢笑声。" +
+      "傍晚，大家依依不舍地说再见，还说下次要轮到别人家开派对呢！",
+    targets: [
+      { char: "举", pinyin: "jǔ", word: "举办", meaning: "to hold (an event)" },
+      { char: "布", pinyin: "bù", word: "布置", meaning: "to decorate, set up" },
+      { char: "挂", pinyin: "guà", word: "挂在", meaning: "to hang on" },
+      { char: "陆", pinyin: "lù", word: "陆续", meaning: "one after another" },
+      { char: "充", pinyin: "chōng", word: "充满", meaning: "to be full of" },
+      { char: "舍", pinyin: "shě", word: "依依不舍", meaning: "reluctant to part" },
+    ],
+  },
 ];
 
-export const currentStoryId = "goodbye-year-four";
+export const currentStoryId = "holiday-party";
 
 export function getStory(id: string = currentStoryId): Story {
   const story = stories.find((s) => s.id === id);
