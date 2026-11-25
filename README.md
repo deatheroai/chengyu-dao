@@ -145,6 +145,13 @@ is never game over, 团团 just circles what's left. 🔍 提示 never costs
 ink. Each note ends with a stamp (优 / 良 / 加油). The first note is
 easy and uses no ink.
 
+After each fix she teaches 团团 to write the right character: a new one
+is watched, traced, then written alone; one she has written before is
+written alone straight away. Writing every character in a note with no
+wrong stroke earns a ✍️ 金笔. The end card offers ✍️ 默写: the
+characters fixed so far, each in its sentence with a blank and the
+pinyin over it. Ones she misses come first in the next 默写.
+
 Content is in `src/sharp-eyes/`: `families.ts` (20 families of
 look-alike and sound-alike characters, P3–P5, each with meanings and a
 clue) and `notes.ts` (each mistake written `{wrong|right}` in the text,

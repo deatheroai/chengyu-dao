@@ -1,6 +1,12 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { FAMILIES } from "../src/sharp-eyes/families";
 import { noteById } from "../src/sharp-eyes/notes";
 import { correctText, parseNote } from "../src/sharp-eyes/round";
+
+const require = createRequire(import.meta.url);
+const PROGRESS_KEY = "chengyu-dao:sharp-eyes:progress:v1:test";
 
 /** Visible text of an element, without pinyin <rt> annotations. */
 async function textOf(el: Locator): Promise<string> {
@@ -13,20 +19,84 @@ async function textOf(el: Locator): Promise<string> {
 
 const cell = (page: Page, i: number) => page.locator(`.cell[data-cell="${i}"]`);
 
-/** Finds and fixes every mistake in the note on screen. */
+/** Stroke data comes from jsDelivr in production; serve it locally here. */
+async function serveStrokeData(page: Page): Promise<void> {
+  await page.route("https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1/**", (route) => {
+    const char = decodeURIComponent(route.request().url().split("/").pop()!.replace(/\.json$/, ""));
+    route.fulfill({ contentType: "application/json", body: readFileSync(require.resolve(`hanzi-writer-data/${char}.json`)) });
+  });
+}
+
+/** Writes the pad's character stroke by stroke along its medians (no wrong strokes). */
+async function writePerfectly(page: Page, padSelector: string): Promise<void> {
+  const pad = page.locator(padSelector);
+  const char = (await pad.getAttribute("data-char"))!;
+  const size = Number(await pad.getAttribute("data-size"));
+  const padding = Number(await pad.getAttribute("data-padding"));
+  const data = JSON.parse(readFileSync(require.resolve(`hanzi-writer-data/${char}.json`), "utf8")) as { medians: number[][][] };
+  await expect(pad.locator("svg")).toBeVisible();
+  await pad.scrollIntoViewIfNeeded();
+  // Wait until the pad stops moving (the page may still be scrolling to it).
+  let box = (await pad.locator("svg").boundingBox())!;
+  await expect
+    .poll(async () => {
+      const now = (await pad.locator("svg").boundingBox())!;
+      const still = now.y === box.y && now.x === box.x;
+      box = now;
+      return still;
+    })
+    .toBe(true);
+  const scale = (size - 2 * padding) / 1024;
+  const toScreen = ([ix, iy]: number[]) => ({
+    x: box.x + padding + ix * scale,
+    y: box.y + size - (padding + 124 * scale) - iy * scale,
+  });
+  for (const median of data.medians) {
+    const pts = median.map(toScreen);
+    await page.mouse.move(pts[0].x, pts[0].y);
+    await page.mouse.down();
+    for (const p of pts.slice(1)) await page.mouse.move(p.x, p.y, { steps: 3 });
+    await page.mouse.up();
+  }
+}
+
+const phase = (page: Page, pad: string) => page.locator(pad).getAttribute("data-phase");
+
+/** Teaches 团团 the fixed character: traces if asked, writes alone, then 继续. */
+async function teach(page: Page): Promise<void> {
+  await expect(page.locator("#write")).toBeVisible();
+  await expect.poll(() => phase(page, "#write-pad"), { timeout: 20000 }).toMatch(/^(trace|free)$/);
+  if ((await phase(page, "#write-pad")) === "trace") {
+    await writePerfectly(page, "#write-pad");
+    await expect.poll(() => phase(page, "#write-pad"), { timeout: 5000 }).toBe("free");
+  }
+  await writePerfectly(page, "#write-pad");
+  await expect(page.locator("#write-line")).toContainText("一笔都没错");
+  await page.click("#btn-write-next");
+}
+
+/** Finds, fixes and writes every mistake in the note on screen. */
 async function fixAll(page: Page, id: string): Promise<void> {
   for (const m of parseNote(noteById(id)!).mistakes) {
     await cell(page, m.cell).click();
     await expect(page.locator("#fix")).toBeVisible();
     await page.locator(".choice", { hasText: m.right }).click();
+    await teach(page);
   }
+}
+
+/** Every family character counts as written before, so writing goes straight to writing alone. */
+async function allWrittenBefore(page: Page): Promise<void> {
+  const written = FAMILIES.flatMap((f) => f.chars.map((c) => c.char));
+  await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [PROGRESS_KEY, JSON.stringify({ stamps: {}, written })] as const);
 }
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await serveStrokeData(page);
 });
 
-test("团团 asks for help with one note; the starter costs no ink and ends with a stamp", async ({ page }) => {
+test("团团 asks for help with one note; the starter costs no ink, she teaches 团团 the character, and gets a stamp", async ({ page }) => {
   await page.goto("/sharp-eyes.html?test");
   await expect(page.locator("#home-line")).toContainText("帮我");
   await expect(page.locator("#btn-start")).toContainText("只改一张便条");
@@ -53,13 +123,59 @@ test("团团 asks for help with one note; the starter costs no ink and ends with
   await expect(cell(page, m.cell)).toHaveClass(/fixed/);
   expect(await textOf(page.locator("#note-text"))).toBe("妈妈，我去楼下的操场找小猫，它欠我一根竹子！");
 
+  // A new character: 团团 watches, she traces, then writes it alone.
+  await expect(page.locator("#write-label")).toContainText("教团团写「场」");
+  await expect(page.locator("#write-pad")).toHaveAttribute("data-phase", "watch");
+  await teach(page);
+
   await expect(page.locator("#end")).toBeVisible();
   await expect(page.locator("#stamp")).toHaveText("优");
+  await expect(page.locator("#end-pens")).toContainText("金笔");
+  await expect(page.locator("#btn-dictate")).toHaveText("✍️ 默写 1 个字");
 
   // Back home, the next note is offered and the count shows.
   await page.click("#btn-end-home");
   await expect(page.locator("#home-count")).toContainText("1 张");
   await expect(page.locator("#start-sub")).toContainText("电梯里的通告");
+});
+
+test("a character written before goes straight to writing alone; 默写 tests it in its sentence", async ({ page }) => {
+  await allWrittenBefore(page);
+  await page.goto("/sharp-eyes.html?test&note=p3-play");
+  const m = parseNote(noteById("p3-play")!).mistakes[0];
+  await cell(page, m.cell).click();
+  await page.locator(".choice", { hasText: m.right }).click();
+  await expect.poll(() => phase(page, "#write-pad"), { timeout: 10000 }).toBe("free");
+  await teach(page);
+  await page.click("#btn-dictate");
+
+  await expect(page.locator("#view-dict")).toBeVisible();
+  await expect(page.locator("#dict-count")).toHaveText("第 1 / 1 个");
+  expect(await textOf(page.locator("#dict-sentence"))).toBe("妈妈，我去楼下的操　找小猫，它欠我一根竹子！");
+  await expect(page.locator(".dict-blank")).toHaveCount(1);
+  await expect(page.locator(".dict-blank rt")).toHaveText("chǎng");
+  await expect.poll(() => phase(page, "#dict-pad"), { timeout: 10000 }).toBe("free");
+  await writePerfectly(page, "#dict-pad");
+  await expect(page.locator("#dict-line")).toContainText("对了");
+  await page.click("#btn-dict-next");
+  await expect(page.locator("#dict-score")).toHaveText("默写：1 / 1");
+  await expect(page.locator(".dict-results li.ok")).toHaveCount(1);
+});
+
+test("a character shown in 默写 comes back first next time", async ({ page }) => {
+  await allWrittenBefore(page);
+  await page.goto("/sharp-eyes.html?test&note=p3-q-cat");
+  const m = parseNote(noteById("p3-q-cat")!).mistakes[0];
+  await cell(page, m.cell).click();
+  await page.locator(".choice", { hasText: m.right }).click();
+  await teach(page);
+  await page.click("#btn-dictate");
+  await page.click("#btn-dict-show");
+  await page.click("#btn-dict-next");
+  await expect(page.locator("#dict-score")).toHaveText("默写：0 / 1");
+  await expect(page.locator(".dict-results li.again")).toHaveText("睛");
+  await page.click("#btn-dict-home");
+  await expect(page.locator("#home-count")).toContainText("1 个字要再写一写");
 });
 
 test("wrong taps use red ink; running out shows the rest and gives 加油", async ({ page }) => {
@@ -76,9 +192,11 @@ test("wrong taps use red ink; running out shows the rest and gives 加油", asyn
   await expect(page.locator("#stamp")).toHaveText("加油");
   await expect(page.locator(".cell.missed")).toHaveCount(p.mistakes.length);
   expect(await textOf(page.locator("#note-text"))).toBe(correctText(p));
+  await expect(page.locator("#btn-dictate")).toBeHidden();
 });
 
 test("🔍 提示 narrows down to the character and gives the family's clue, with no ink", async ({ page }) => {
+  await allWrittenBefore(page);
   await page.goto("/sharp-eyes.html?test&note=p3-beach");
   const m = parseNote(noteById("p3-beach")!).mistakes[0];
   await page.click("#btn-hint");
@@ -95,6 +213,7 @@ test("🔍 提示 narrows down to the character and gives the family's clue, wit
 });
 
 test("an essay doesn't say how many and stays open until 改好了", async ({ page }) => {
+  await allWrittenBefore(page);
   await page.goto("/sharp-eyes.html?test&note=p3-e-dog");
   await expect(page.locator("#tuan-line")).toContainText("不知道错了几个");
   await expect(page.locator("#found-dots")).toBeHidden();

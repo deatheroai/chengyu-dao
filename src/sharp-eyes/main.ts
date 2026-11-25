@@ -1,6 +1,9 @@
+import { gradeAttempt, type TestResult } from "../reading/memoryTest";
 import { isTestMode } from "../story-builder/library";
 import { charPinyin } from "../story-builder/pinyin";
-import { $, readPinyinPref, savePinyinPref, speak, speakButton } from "../story-builder/ui";
+import { $, readPinyinPref, ruby, savePinyinPref, speak, speakButton } from "../story-builder/ui";
+import { afterDictation, dictationList, promptFor, type DictPrompt } from "./dictation";
+import { createWritePad } from "./writePad";
 import { LEVELS } from "./families";
 import {
   askFix,
@@ -17,7 +20,19 @@ import {
   wrongTapLine,
 } from "./lines";
 import { NOTES, type Note } from "./notes";
-import { firstFindToday, loadProgress, nextNote, notesDone, saveProgress, withStamp, type Progress } from "./progress";
+import {
+  firstFindToday,
+  hasWritten,
+  loadProgress,
+  nextNote,
+  notesDone,
+  saveProgress,
+  withPen,
+  withStamp,
+  withWritten,
+  type DictItem,
+  type Progress,
+} from "./progress";
 import {
   INK,
   choices,
@@ -45,14 +60,17 @@ function applyPinyin(): void {
   $("btn-pinyin").setAttribute("aria-pressed", String(showPinyin));
 }
 
-type View = "home" | "play";
+type View = "home" | "play" | "dict";
 function show(view: View): void {
-  for (const v of ["home", "play"] as View[]) $(`view-${v}`).hidden = v !== view;
+  for (const v of ["home", "play", "dict"] as View[]) $(`view-${v}`).hidden = v !== view;
   $("btn-home").style.visibility = view === "home" ? "hidden" : "visible";
   window.scrollTo({ top: 0 });
 }
 
 let progress: Progress = loadProgress();
+
+const scrollBehavior = (): ScrollBehavior =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 
 interface Play {
   p: ParsedNote;
@@ -62,9 +80,19 @@ interface Play {
   /** Pinyin per cell: as written, and once fixed. */
   pyWritten: string[];
   pyRight: string[];
+  /** The fixed mistake she is teaching 团团 to write, if any. */
+  writing?: number;
+  /** Per fixed mistake: written alone with no wrong stroke (in any try). */
+  clean: Map<number, boolean>;
   done: boolean;
 }
 let play: Play | undefined;
+
+/** Characters fixed since the last 默写, for the next one. */
+let session: DictItem[] = [];
+
+const writePad = createWritePad({ pad: $("write-pad"), say: (t) => ($("write-line").textContent = `🐼 ${t}`) });
+const dictPad = createWritePad({ pad: $("dict-pad"), say: (t) => ($("dict-line").textContent = `🐼 ${t}`) });
 
 // ---------- home ----------
 
@@ -75,9 +103,12 @@ function renderHome(): void {
   $("home-line").textContent = homeLine(done);
   $("start-emoji").textContent = next.emoji;
   $("start-sub").textContent = `${next.title} · P${next.level}`;
-  $("home-count").hidden = done === 0;
   const best = Object.values(progress.stamps).filter((s) => s === "优").length;
-  $("home-count").textContent = `已经改了 ${done} 张，${best} 个“优”`;
+  const pens = progress.pens?.length ?? 0;
+  const review = progress.review?.length ?? 0;
+  $("home-count").hidden = done === 0 && review === 0;
+  $("home-count").textContent =
+    `已经改了 ${done} 张，${best} 个“优”，${pens} 支✍️` + (review ? `。上次默写有 ${review} 个字要再写一写。` : "");
   show("home");
 }
 
@@ -200,6 +231,7 @@ function startNote(note: Note): void {
     s: newRound(p),
     pyWritten: charPinyin(writtenText(p)),
     pyRight: charPinyin(correctText(p)),
+    clean: new Map(),
     done: false,
   };
   $("note-emoji").textContent = note.emoji;
@@ -208,6 +240,7 @@ function startNote(note: Note): void {
   renderInk(play);
   renderDots(play);
   $("fix").hidden = true;
+  $("write").hidden = true;
   $("end").hidden = true;
   $("play-actions").hidden = false;
   $("btn-hint").hidden = false;
@@ -221,6 +254,10 @@ function onTap(cell: number): void {
   if (!pl || pl.done) return;
   if (pl.fixing !== undefined) {
     say("先把这个字改好吧！👇");
+    return;
+  }
+  if (pl.writing !== undefined) {
+    say("先教团团写好这个字吧！✍️");
     return;
   }
   const { state, result } = tap(pl.p, pl.s, cell);
@@ -261,7 +298,7 @@ function openFix(pl: Play, mistake: number): void {
     box.append(b);
   }
   $("fix").hidden = false;
-  $("fix").scrollIntoView({ block: "nearest", behavior: "smooth" });
+  $("fix").scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
 }
 
 function onPick(char: string, button: HTMLButtonElement): void {
@@ -287,7 +324,57 @@ function onPick(char: string, button: HTMLButtonElement): void {
   speak(m.family.chars.find((c) => c.char === m.right)?.word ?? m.right);
   say(fixedLine(m.right), "😊");
   renderDots(pl);
-  if (isOver(pl.p, pl.s)) setTimeout(() => endNote(pl), 900);
+  session.push({ noteId: pl.p.note.id, mistake });
+  setTimeout(() => openWrite(pl, mistake), 700);
+}
+
+// ---------- teach 团团 to write the fixed character ----------
+
+function openWrite(pl: Play, mistake: number): void {
+  if (play !== pl || pl.done) return;
+  pl.writing = mistake;
+  const m = pl.p.mistakes[mistake];
+  const word = m.family.chars.find((c) => c.char === m.right)?.word ?? m.right;
+  const label = $("write-label");
+  label.replaceChildren(`✍️ 教团团写「${m.right}」`, ruby(`（${word}）`, "write-word"), speakButton(word));
+  $("btn-again").hidden = true;
+  $("btn-write-next").hidden = true;
+  $("btn-watch").hidden = false;
+  $("btn-trace").hidden = false;
+  $("write").hidden = false;
+  $("write-line").textContent = "";
+  writePad.teach(m.right, !hasWritten(progress, m.right), onWritten);
+  // After teach() has sized the pad, so the whole card comes into view.
+  $("write").scrollIntoView({ block: "end", behavior: scrollBehavior() });
+}
+
+function onWritten(mistakes: number): void {
+  const pl = play;
+  if (!pl || pl.writing === undefined) return;
+  const m = pl.p.mistakes[pl.writing];
+  progress = withWritten(progress, m.right);
+  saveProgress(progress);
+  const clean = mistakes === 0;
+  if (clean) pl.clean.set(pl.writing, true);
+  else if (!pl.clean.has(pl.writing)) pl.clean.set(pl.writing, false);
+  $("btn-write-next").hidden = false;
+  $("btn-again").hidden = clean;
+  if (clean) {
+    $("write-line").textContent = `🥳 写得真好，一笔都没错！团团学会「${m.right}」了！✍️`;
+    burst($("write-pad"));
+  } else {
+    $("write-line").textContent = `🤔 写好了！不过有 ${mistakes} 笔不太对……再写一次，好吗？`;
+  }
+}
+
+function writeNext(): void {
+  const pl = play;
+  if (!pl || pl.writing === undefined) return;
+  writePad.stop();
+  pl.writing = undefined;
+  $("write").hidden = true;
+  if (isOver(pl.p, pl.s)) endNote(pl);
+  else say(pl.p.note.kind === "essay" ? "还有错字吗？找完了就按“改好了”。" : "还有错字，继续找！🔍");
 }
 
 function onHint(): void {
@@ -297,6 +384,7 @@ function onHint(): void {
     say("看看团团写的意思，再想想哪个字对。偏旁会告诉你答案！");
     return;
   }
+  if (pl.writing !== undefined) return;
   const h = hint(pl.p, pl.s);
   if (!h) {
     say(noHint);
@@ -312,7 +400,10 @@ function endNote(pl: Play): void {
   if (pl.done) return;
   pl.done = true;
   pl.fixing = undefined;
+  pl.writing = undefined;
+  writePad.stop();
   $("fix").hidden = true;
+  $("write").hidden = true;
   clearHints();
   const missed = left(pl.p, pl.s);
   for (const i of missed) {
@@ -332,11 +423,25 @@ function endNote(pl: Play): void {
   $("end-line").textContent = stampLine(st, pl.p.note.starter === true);
   $("end-missed").hidden = missed.length === 0;
   $("end-missed").textContent = missedLine(missed.length);
+  const written = [...pl.clean.values()];
+  const cleanCount = written.filter(Boolean).length;
+  const pens = $("end-pens");
+  pens.hidden = written.length === 0;
+  if (written.length && cleanCount === written.length && missed.length === 0) {
+    progress = withPen(progress, pl.p.note.id);
+    saveProgress(progress);
+    pens.textContent = "✍️ 每个字都写得一笔不错，得到一支金笔！";
+  } else {
+    pens.textContent = `✍️ 写对了 ${cleanCount} / ${written.length} 个字`;
+  }
+  const toWrite = dictationList(session, progress.review).length;
+  $("btn-dictate").hidden = toWrite === 0;
+  $("btn-dictate").textContent = `✍️ 默写 ${toWrite} 个字`;
   $("play-actions").hidden = true;
   $("end").hidden = false;
   say(st === "加油" ? "没关系，团团也常常写错！" : "谢谢你！🎉", st === "加油" ? "🐼" : "🥳");
   if (st === "优") burst(stampEl);
-  $("end").scrollIntoView({ block: "nearest", behavior: "smooth" });
+  $("end").scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
 }
 
 /** A small burst of stars from an element, for the big moments. */
@@ -357,6 +462,112 @@ function burst(from: HTMLElement | null): void {
   }
 }
 
+// ---------- 默写 ----------
+
+interface Dict {
+  prompts: DictPrompt[];
+  i: number;
+  results: { item: DictItem; char: string; result: TestResult }[];
+  revealed: boolean;
+  done: boolean;
+}
+let dict: Dict | undefined;
+
+function startDictation(): void {
+  const prompts = dictationList(session, progress.review)
+    .map(promptFor)
+    .filter((x): x is DictPrompt => x !== null);
+  if (!prompts.length) return;
+  writePad.stop();
+  dict = { prompts, i: 0, results: [], revealed: false, done: false };
+  $("dict-end").hidden = true;
+  $("dict-pad-wrap").hidden = false;
+  show("dict");
+  showDictPrompt();
+}
+
+function showDictPrompt(): void {
+  const d = dict;
+  if (!d) return;
+  const pr = d.prompts[d.i];
+  d.revealed = false;
+  d.done = false;
+  $("dict-count").textContent = `第 ${d.i + 1} / ${d.prompts.length} 个`;
+  const blank = (): HTMLElement => {
+    const r = document.createElement("ruby");
+    r.className = "dict-blank";
+    r.append("\u3000");
+    const rt = document.createElement("rt");
+    rt.textContent = pr.pinyin;
+    r.append(rt);
+    return r;
+  };
+  // "＿" marks the same character again (爬来爬去): it gets a blank too.
+  const part = (text: string): Node[] =>
+    text.split("＿").flatMap((piece, i) => [...(i ? [blank()] : []), ...(piece ? [ruby(piece)] : [])]);
+  $("dict-sentence").replaceChildren(...part(pr.before), blank(), ...part(pr.after));
+  $("dict-line").textContent = d.i === 0 ? "🐼 团团来考考你！空格里是哪个字？写出来吧。" : "🐼 下一个！空格里是哪个字？";
+  $("btn-dict-show").hidden = false;
+  $("btn-dict-next").hidden = true;
+  dictPad.dictate(pr.char, onDictWritten);
+}
+
+function onDictWritten(mistakes: number): void {
+  const d = dict;
+  if (!d || d.done) return;
+  d.done = true;
+  const pr = d.prompts[d.i];
+  const result = gradeAttempt(mistakes, d.revealed);
+  d.results.push({ item: pr.item, char: pr.char, result });
+  $("dict-line").textContent =
+    result === "correct" ? `🥳 对了！是「${pr.word}」的「${pr.char}」！⭐` : `🐼 写出来了！不过「${pr.char}」有几笔不太对，团团记下来，下次再写一写。`;
+  $("btn-dict-show").hidden = true;
+  $("btn-dict-next").hidden = false;
+}
+
+function dictShow(): void {
+  const d = dict;
+  if (!d || d.done) return;
+  d.revealed = true;
+  d.done = true;
+  const pr = d.prompts[d.i];
+  d.results.push({ item: pr.item, char: pr.char, result: "revealed" });
+  dictPad.reveal();
+  $("btn-dict-show").hidden = true;
+  $("btn-dict-next").hidden = false;
+}
+
+function dictNext(): void {
+  const d = dict;
+  if (!d || !d.done) return;
+  if (d.i + 1 < d.prompts.length) {
+    d.i++;
+    showDictPrompt();
+    return;
+  }
+  dictPad.stop();
+  progress = afterDictation(progress, d.results.map((r) => ({ item: r.item, ok: r.result === "correct" })));
+  saveProgress(progress);
+  session = [];
+  const right = d.results.filter((r) => r.result === "correct").length;
+  $("dict-score").textContent = `默写：${right} / ${d.results.length}`;
+  const list = $("dict-results");
+  list.replaceChildren(
+    ...d.results.map((r) => {
+      const li = document.createElement("li");
+      li.className = r.result === "correct" ? "ok" : "again";
+      li.textContent = r.char;
+      li.title = r.result === "correct" ? "写对了" : "下次再写";
+      return li;
+    }),
+  );
+  $("dict-end-line").textContent =
+    right === d.results.length ? "全部写对了！团团要向你学习！🎉" : "画圈的字，下次默写会先考它们。一次比一次好！";
+  $("dict-pad-wrap").hidden = true;
+  $("dict-end").hidden = false;
+  if (right === d.results.length) burst($("dict-score"));
+}
+
 // ---------- wiring ----------
 
 function init(): void {
@@ -373,15 +584,30 @@ function init(): void {
   });
   $("btn-home").addEventListener("click", () => {
     if ("speechSynthesis" in window) speechSynthesis.cancel();
+    writePad.stop();
+    dictPad.stop();
     renderHome();
   });
+  const written = (m: number) => onWritten(m);
+  $("btn-watch").addEventListener("click", () => writePad.showStrokes(written));
+  $("btn-trace").addEventListener("click", () => writePad.trace(written));
+  $("btn-again").addEventListener("click", () => {
+    $("btn-again").hidden = true;
+    writePad.again(written);
+  });
+  $("btn-write-next").addEventListener("click", writeNext);
+  $("btn-dictate").addEventListener("click", startDictation);
+  $("btn-dict-show").addEventListener("click", dictShow);
+  $("btn-dict-next").addEventListener("click", dictNext);
+  $("btn-dict-home").addEventListener("click", renderHome);
+  $("btn-dict-more").addEventListener("click", () => startNote(nextNote(progress)));
   $("btn-start").addEventListener("click", () => startNote(nextNote(progress)));
   $("btn-next").addEventListener("click", () => startNote(nextNote(progress)));
   $("btn-end-home").addEventListener("click", renderHome);
   $("btn-hint").addEventListener("click", onHint);
   $("btn-finish").addEventListener("click", () => {
     const pl = play;
-    if (!pl || pl.done || pl.fixing !== undefined) return;
+    if (!pl || pl.done || pl.fixing !== undefined || pl.writing !== undefined) return;
     pl.s = finish(pl.s);
     endNote(pl);
   });

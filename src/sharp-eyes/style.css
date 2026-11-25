@@ -383,3 +383,103 @@ body.no-pinyin .note-text {
     animation: none !important;
   }
 }
+
+/* ---- teaching 团团 to write ---- */
+.write-card {
+  border-color: var(--red);
+  text-align: center;
+}
+
+.write-card .turn-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+
+.write-card .speak-btn,
+.dict-sentence .speak-btn {
+  position: static;
+}
+
+.write-card .tianzige,
+.dict-pad-wrap .tianzige {
+  margin: 8px auto;
+}
+
+.end-pens {
+  text-align: center;
+  font-weight: 600;
+  color: var(--star);
+}
+
+/* ---- 默写 ---- */
+.dict-pad-wrap {
+  text-align: center;
+}
+
+.dict-sentence {
+  text-align: left;
+}
+
+.dict-blank {
+  min-width: 1.6em !important;
+  border-bottom: 3px solid var(--red);
+  margin: 0 0.15em;
+}
+
+.dict-blank rt {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.dict-results {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 0;
+}
+
+.dict-results li {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  border-radius: 12px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+}
+
+.dict-results li.ok::after {
+  content: "✓";
+  position: absolute;
+  right: -6px;
+  top: -10px;
+  color: var(--good);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.dict-results li.again {
+  color: var(--red);
+  border: 3px dashed var(--red);
+  border-radius: 50%;
+}
+
+/* 团团's comments while writing sit under the pad at a fixed height, so
+   nothing above the pad moves while she writes. */
+.pad-line {
+  min-height: 3.2em;
+  margin: 4px auto 0;
+  max-width: 320px;
+  line-height: 1.6;
+  text-align: center;
+}

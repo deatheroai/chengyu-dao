@@ -235,7 +235,7 @@ lands with its tests.
       (no count, 改好了 button). Linked from the story builder and
       sentence grower homes; `e2e/sharp-eyes.spec.ts` covers the
       starter, ink running out, hints and an essay.
-- [ ] `todo` — **3. Write every fixed character.** Each fix ends with
+- [x] `done` — **3. Write every fixed character (2026-11-25).** Each fix ends with
       writing the right character (the existing handwriting code): the
       first time she meets it, watch → trace → write alone; after that,
       write alone straight away (watch/trace one tap away if stuck).
@@ -243,6 +243,18 @@ lands with its tests.
       At the end of a session, a short 默写 of the characters she fixed
       (each in its sentence from the note); any she misses come back
       first next time.
+      Built: `writePad.ts` (教团团写「X」: a new character runs watch →
+      trace → write alone by itself; one written before goes straight
+      to writing alone, with 👀 看笔顺 / ✏️ 描一描 / 再写一次 as help).
+      A note where every fixed character was written with no wrong
+      stroke earns a ✍️ 金笔 (`pens` in progress). `dictation.ts`: up
+      to 6 characters, last time's misses first; each sentence is cut
+      to about 26 characters around the blank, with the pinyin over it,
+      and never shows the answer elsewhere (爬来爬去 gets two blanks).
+      Written alone with at most one wrong stroke counts as right (as in
+      the story writer's 默写); 看答案 or more mistakes go on the review
+      list, shown on the home screen. For now 默写 is offered on every
+      note's end card; step 4 decides when a session ends.
 - [ ] `todo` — **4. Session shape.** About 5 notes: 找一找 warm-ups (the
       count is told), 快手改 (short sentences, one mistake each, against
       the clock), then the 团团的作文 boss (a longer piece where the count

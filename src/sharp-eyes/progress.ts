@@ -12,6 +12,19 @@ export interface Progress {
   stamps: Record<string, Stamp>;
   /** "YYYY-MM-DD" of the last mistake found. */
   lastFindDay?: string;
+  /** Characters she has written before: after the first time, she
+   * writes them alone straight away. */
+  written?: string[];
+  /** Notes where she wrote every fixed character with no wrong stroke. */
+  pens?: string[];
+  /** 默写 characters to write again: missed ones come first next time. */
+  review?: DictItem[];
+}
+
+/** One fixed character, by the note and mistake it came from. */
+export interface DictItem {
+  noteId: string;
+  mistake: number;
 }
 
 const KEY = "chengyu-dao:sharp-eyes:progress:v1";
@@ -26,8 +39,16 @@ export function loadProgress(): Progress {
     if (raw && typeof raw.stamps === "object" && raw.stamps) {
       for (const [id, s] of Object.entries(raw.stamps)) if (isStamp(s) && NOTES.some((n) => n.id === id)) stamps[id] = s;
     }
-    const day = typeof raw?.lastFindDay === "string" ? raw.lastFindDay : undefined;
-    return day ? { stamps, lastFindDay: day } : { stamps };
+    const out: Progress = { stamps };
+    if (typeof raw?.lastFindDay === "string") out.lastFindDay = raw.lastFindDay;
+    const strs = (x: unknown) => (Array.isArray(x) ? x.filter((c): c is string => typeof c === "string") : []);
+    const written = strs(raw?.written).filter((c) => Array.from(c).length === 1);
+    if (written.length) out.written = [...new Set(written)];
+    const pens = strs(raw?.pens).filter((id) => NOTES.some((n) => n.id === id));
+    if (pens.length) out.pens = [...new Set(pens)];
+    const review = (Array.isArray(raw?.review) ? raw.review : []).filter(isDictItem);
+    if (review.length) out.review = review;
+    return out;
   } catch {
     return { stamps: {} };
   }
@@ -40,6 +61,23 @@ export function saveProgress(p: Progress): void {
     /* storage full or blocked: progress just isn't kept */
   }
 }
+
+function isDictItem(x: unknown): x is DictItem {
+  const d = x as DictItem;
+  if (!d || typeof d.noteId !== "string" || !Number.isInteger(d.mistake) || d.mistake < 0) return false;
+  const n = NOTES.find((n) => n.id === d.noteId);
+  return !!n && d.mistake < n.oops.length;
+}
+
+/** Whether she has written `char` before. */
+export const hasWritten = (p: Progress, char: string): boolean => (p.written ?? []).includes(char);
+
+export const withWritten = (p: Progress, char: string): Progress =>
+  hasWritten(p, char) ? p : { ...p, written: [...(p.written ?? []), char] };
+
+/** Every fixed character in the note written with no wrong stroke: ✍️. */
+export const withPen = (p: Progress, noteId: string): Progress =>
+  (p.pens ?? []).includes(noteId) ? p : { ...p, pens: [...(p.pens ?? []), noteId] };
 
 /** Keeps the better of the old and new stamp. */
 export function withStamp(p: Progress, noteId: string, stamp: Stamp): Progress {

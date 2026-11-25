@@ -68,6 +68,19 @@
           <div class="fix-choices" id="fix-choices"></div>
         </div>
 
+        <!-- Teach 团团 the right character -->
+        <div class="turn-card write-card" id="write" hidden>
+          <p class="turn-label" id="write-label"></p>
+          <div class="tianzige" id="write-pad"></div>
+          <p class="pad-line" id="write-line" aria-live="polite"></p>
+          <div class="actions center">
+            <button class="btn" id="btn-watch" type="button">👀 看笔顺</button>
+            <button class="btn" id="btn-trace" type="button">✏️ 描一描</button>
+            <button class="btn" id="btn-again" type="button" hidden>再写一次</button>
+            <button class="btn btn-primary" id="btn-write-next" type="button" hidden>继续 →</button>
+          </div>
+        </div>
+
         <div class="actions" id="play-actions">
           <button class="link-btn" id="btn-hint" type="button">🔍 提示</button>
           <button class="btn btn-primary" id="btn-finish" type="button" hidden>改好了 ✓</button>
@@ -78,9 +91,40 @@
           <div class="stamp" id="stamp" aria-live="polite"></div>
           <p class="end-line" id="end-line"></p>
           <p class="hint" id="end-missed" hidden></p>
+          <p class="end-pens" id="end-pens" hidden></p>
           <div class="actions center">
             <button class="btn" id="btn-end-home" type="button">回首页</button>
+            <button class="btn" id="btn-dictate" type="button" hidden>✍️ 默写</button>
             <button class="btn btn-primary" id="btn-next" type="button">再来一张 📝</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 默写: the characters fixed this time, from memory -->
+      <section id="view-dict" class="view" hidden>
+        <div class="note-top">
+          <span class="note-emoji" aria-hidden="true">✍️</span>
+          <h2 class="play-title">默写</h2>
+          <span class="hint" id="dict-count"></span>
+        </div>
+        <div class="paper">
+          <p class="note-text dict-sentence" id="dict-sentence"></p>
+        </div>
+        <div class="dict-pad-wrap" id="dict-pad-wrap">
+          <div class="tianzige" id="dict-pad"></div>
+          <p class="pad-line" id="dict-line" aria-live="polite"></p>
+          <div class="actions center">
+            <button class="btn" id="btn-dict-show" type="button">👀 看答案</button>
+            <button class="btn btn-primary" id="btn-dict-next" type="button" hidden>下一个 →</button>
+          </div>
+        </div>
+        <div class="turn-card end-card" id="dict-end" hidden>
+          <p class="end-title" id="dict-score"></p>
+          <ul class="dict-results" id="dict-results"></ul>
+          <p class="end-line" id="dict-end-line"></p>
+          <div class="actions center">
+            <button class="btn" id="btn-dict-home" type="button">回首页</button>
+            <button class="btn btn-primary" id="btn-dict-more" type="button">再改一张 📝</button>
           </div>
         </div>
       </section>
