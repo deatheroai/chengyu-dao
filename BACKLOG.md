@@ -185,7 +185,7 @@ marks them with a red pen and fixes them. A separate page,
 and the handwriting stage. Built in pieces, top to bottom; each piece
 lands with its tests.
 
-- [ ] `todo` — **1. Content + core logic.** `families.ts`: about 18
+- [x] `done` — **1. Content + core logic (2026-11-25).** `families.ts`: 20 (planned about 18)
       character families of look-alikes and sound-alikes across P3–P5
       (P3: 青 请清晴睛情, 场/厂, 在/再; P4: 馆/管, 已/以, 功/公, 票/漂;
       P5: 辨/辩/辫, 即/既, 历/厉…), each character with its meaning, the
@@ -200,6 +200,14 @@ lands with its tests.
       mistake really is in the note, it's one character for one
       character, both characters are in the same family, and the
       corrected note contains no known slip.
+      Built: 39 notes (12 find, 21 quick, 6 essays, 93 mistakes), 7/7/6
+      families for P3/P4/P5, every character checked against
+      hanzi-writer-data so it can be written. `round.ts` also has 🔍 提示
+      (part of the sentence → 3 characters → the character plus the
+      family's clue), fix choices (right + wrong + family, at most 4, a
+      fixed shuffle), and essays staying open until 改好了. Stamps: 优 =
+      all found with at most one wrong tap, 良 = all found, 加油 = some
+      missed; hints never lower it.
 - [ ] `todo` — **2. The page: 找一找, with help to get started.** 团团 shows a note with "这里有 N
       个错字". The child taps a character she suspects; a correct tap
       shows the funny reveal, then she picks the right character from 3–4
