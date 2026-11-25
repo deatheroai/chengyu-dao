@@ -185,36 +185,55 @@ marks them with a red pen and fixes them. A separate page,
 and the handwriting stage. Built in pieces, top to bottom; each piece
 lands with its tests.
 
-- [ ] `todo` — **1. Content + core logic.** `families.ts`: about 12
-      character families of look-alikes and sound-alikes at P3–P4 level
-      (青: 请清晴睛情; 场/厂; 馆/管; 已/以; 在/再; 功/公; 票/漂…), each
-      character with its meaning and the radical as the clue. `notes.ts`:
-      about 20 hand-written notes (lift notice, 小贩中心 order, postcard,
+- [ ] `todo` — **1. Content + core logic.** `families.ts`: about 18
+      character families of look-alikes and sound-alikes across P3–P5
+      (P3: 青 请清晴睛情, 场/厂, 在/再; P4: 馆/管, 已/以, 功/公, 票/漂;
+      P5: 辨/辩/辫, 即/既, 历/厉…), each character with its meaning, the
+      radical as the clue, and its level. `notes.ts`: about 30
+      hand-written notes, about 10 per level (P5 notes longer, with
+      harder words and more mistakes per note) (lift notice, 小贩中心 order, postcard,
       WhatsApp message, 食堂 sign, short 作文), each the correct text plus
-      its mistakes. Every mistake has the wrong character, the right one,
+      its mistakes and its level. Every mistake has the wrong character, the right one,
       its family and a funny reveal (what 团团 actually wrote: 一碗棉 →
       a bowl of cotton 🧶). No 的/地/得 (that's grammar). `round.ts`:
       taps, red ink, done/missed, stamp. Generic integrity tests: each
       mistake really is in the note, it's one character for one
       character, both characters are in the same family, and the
       corrected note contains no known slip.
-- [ ] `todo` — **2. The page: 找一找.** 团团 shows a note with "这里有 N
+- [ ] `todo` — **2. The page: 找一找, with help to get started.** 团团 shows a note with "这里有 N
       个错字". The child taps a character she suspects; a correct tap
       shows the funny reveal, then she picks the right character from 3–4
       of its family (radical highlighted as the clue). A wrong tap costs
       one drop of red ink 🖋️ (3 per note). Running out of ink is never game
       over: 团团 points out what's left and the note gets a lower stamp
       (优 / 良 / 加油). 🔊 reads the note; pinyin toggle.
-- [ ] `todo` — **3. Writing a new family.** The first time she meets a
-      family, she also writes the right character once (watch → trace →
-      write alone, the existing handwriting code). After that, picking
-      the character is enough.
+      Help to get started:
+      - 团团 asks for help ("老师要检查我的字，你能帮我吗？🙏"), so she's
+        rescuing him, not taking a test.
+      - The very first note is short with one obvious, funny mistake,
+        and costs no ink.
+      - 🔍 提示 never costs ink: first 团团 says which line, then which
+        word, then highlights the radical that gives it away.
+      - Every find gets a big moment (red circle drawn, 团团's 😱 → 😊,
+        a varied praise line), and her first find of the day more so.
+      - The home screen says "只改一张便条？" (just one note?): a tiny
+        first step, with "再来一张" offered after each note.
+- [ ] `todo` — **3. Write every fixed character.** Each fix ends with
+      writing the right character (the existing handwriting code): the
+      first time she meets it, watch → trace → write alone; after that,
+      write alone straight away (watch/trace one tap away if stuck).
+      Writing it alone with no wrong strokes earns the note's ✍️ star.
+      At the end of a session, a short 默写 of the characters she fixed
+      (each in its sentence from the note); any she misses come back
+      first next time.
 - [ ] `todo` — **4. Session shape.** About 5 notes: 找一找 warm-ups (the
       count is told), 快手改 (short sentences, one mistake each, against
       the clock), then the 团团的作文 boss (a longer piece where the count
       is *not* told, she taps 改好了 when she thinks she's done, and
       marking a correct character costs ink). End: 团团's report card
-      with stamps and ink used, compared with her best.
+      with stamps, ✍️ stars and ink used, compared with her best.
+      Levels: she starts at P3; a level's notes done with mostly 优
+      unlocks the next (P4, then P5). A grown-up can pick any level.
 - [ ] `todo` — **5. Coming back.** 字族卡: each family fixed unlocks its
       card in a collection (saved on the device, `?test` keeps a
       separate one). Mistakes she missed come back in the first note of
@@ -227,6 +246,13 @@ lands with its tests.
 - [ ] `todo` — **Later: try it with the child.** Is 3 ink drops right
       (does she freeze, or tap everything)? Are the funny reveals funny?
       Does writing a new family slow the game too much?
+- [ ] `todo` — **Later: a separate 的/地/得 game.** Kept out of
+      火眼金睛 because it's grammar, not wrong characters: the child
+      decides which 的/地/得 goes in each gap from what comes next
+      (的 + thing, 地 + action, 得 after an action). Needs its own design
+      discussion first: idea is 团团 sorting words into three baskets,
+      then fixing 的/地/得 in his notes, P3–P5. Could later link to the
+      sentence grower's …的 / …地 hint words.
 - [ ] `todo` — **Later: detective variant.** The same notes framed as a
       detective case (clues, suspects), as a second mode if the 团团
       version works.

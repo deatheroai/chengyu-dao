@@ -45,17 +45,25 @@ None open right now.
   1. **团团 makes the mistakes, the child marks them** with a red pen
      (she's the teacher, as in 教团团写字). A detective framing sounds
      fun too and stays in the backlog as a later variant.
+  2. **More writing practice:** every fixed character is written by
+     hand (watch and trace the first time, then alone), and each
+     session ends with a short 默写 of the characters she fixed.
+  3. **Levels P3 to P5,** unlocked in turn (a grown-up can pick any).
+  4. **No 的/地/得 here:** it gets its own game later (noted in
+     `BACKLOG.md`).
+  5. **Help to get started:** 团团 asks for help, the first note is
+     easy and free, hints never cost ink, every find is celebrated,
+     and the home screen asks for just one note.
   Suggested defaults, not yet confirmed by you (change any time):
-  2. **Fixing:** pick the right character from 3–4 of its family; the
-     first time she meets a family she also writes it once.
-  3. **Level and size:** P3–P4, about 12 families and 20 notes to start.
-     Sound-alikes and look-alikes only; no 的/地/得 (grammar is parked).
-  4. **Wrong taps:** 3 drops of red ink per note; running out ends the
+  6. **Fixing:** pick the right character from 3–4 of its family,
+     then write it.
+  7. **Size:** about 18 families and 30 notes, about 10 per level.
+  8. **Wrong taps:** 3 drops of red ink per note; running out ends the
      note with a lower stamp, never a game over.
-  5. **Her own slips** from the story builder come back in 团团's notes
+  9. **Her own slips** from the story builder come back in 团团's notes
      from day one.
-  6. **Hand-written content, no AI** in the first version, so a correct
-     word is never flagged by mistake.
+  10. **Hand-written content, no AI** in the first version, so a
+     correct word is never flagged by mistake.
   Plan in `BACKLOG.md`'s 火眼金睛 section.
 
 - **2026-11-21 — Story builder: fix 错别字 during the story, harder
