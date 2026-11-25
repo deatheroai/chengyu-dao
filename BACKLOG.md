@@ -200,7 +200,7 @@ lands with its tests.
       mistake really is in the note, it's one character for one
       character, both characters are in the same family, and the
       corrected note contains no known slip.
-      Built: 39 notes (12 find, 21 quick, 6 essays, 93 mistakes), 7/7/6
+      Built: 39 notes (12 find, 21 quick, 6 essays, 86 mistakes), 7/7/6
       families for P3/P4/P5, every character checked against
       hanzi-writer-data so it can be written. `round.ts` also has 🔍 提示
       (part of the sentence → 3 characters → the character plus the
