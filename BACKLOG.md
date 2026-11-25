@@ -208,7 +208,7 @@ lands with its tests.
       fixed shuffle), and essays staying open until 改好了. Stamps: 优 =
       all found with at most one wrong tap, 良 = all found, 加油 = some
       missed; hints never lower it.
-- [ ] `todo` — **2. The page: 找一找, with help to get started.** 团团 shows a note with "这里有 N
+- [x] `done` — **2. The page: 找一找, with help to get started (2026-11-25).** 团团 shows a note with "这里有 N
       个错字". The child taps a character she suspects; a correct tap
       shows the funny reveal, then she picks the right character from 3–4
       of its family (radical highlighted as the clue). A wrong tap costs
@@ -226,6 +226,15 @@ lands with its tests.
         a varied praise line), and her first find of the day more so.
       - The home screen says "只改一张便条？" (just one note?): a tiny
         first step, with "再来一张" offered after each note.
+      Built: `sharp-eyes.html`, `src/sharp-eyes/main.ts`, `lines.ts`
+      (团团's lines, tested), `progress.ts` (best stamp per note and the
+      day of the last find, on the device; `?test` separate). The home
+      button opens the next note: the starter, then notes without a
+      stamp, P3 before P4 and P5. A grown-up can open a level or a note
+      directly: `?level=4`, `?note=p5-garden`. Essays already work
+      (no count, 改好了 button). Linked from the story builder and
+      sentence grower homes; `e2e/sharp-eyes.spec.ts` covers the
+      starter, ink running out, hints and an essay.
 - [ ] `todo` — **3. Write every fixed character.** Each fix ends with
       writing the right character (the existing handwriting code): the
       first time she meets it, watch → trace → write alone; after that,

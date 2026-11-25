@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#fdf6ec" />
+    <meta name="description" content="火眼金睛：团团写错了字，用红笔帮他找出来、改过来。" />
+    <title>火眼金睛</title>
+    <link rel="stylesheet" href="/src/story-builder/style.css" />
+    <link rel="stylesheet" href="/src/sharp-eyes/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <button class="icon-btn" id="btn-home" type="button" aria-label="回到首页" style="visibility: hidden">←</button>
+        <h1>🔍 火眼金睛</h1>
+        <button class="pill-toggle" id="btn-pinyin" type="button" aria-pressed="true">拼音</button>
+      </header>
+      <p class="test-badge" id="test-badge" hidden>🧪 测试模式：这里的记录和孩子的分开，不会影响孩子的进度。</p>
+
+      <!-- Home: 团团 asks for help with just one note -->
+      <section id="view-home" class="view">
+        <div class="tuan-says big">
+          <span class="tuan-face" aria-hidden="true">🐼</span>
+          <p class="tuan-bubble" id="home-line"></p>
+        </div>
+        <button class="start-card" id="btn-start" type="button">
+          <span class="start-emoji" id="start-emoji" aria-hidden="true">📝</span>
+          <span class="start-text">
+            <strong>只改一张便条？</strong>
+            <small id="start-sub"></small>
+          </span>
+          <span class="start-pen" aria-hidden="true">🖍️</span>
+        </button>
+        <p class="hint center" id="home-count" hidden></p>
+        <p class="other-game">
+          <a href="/story-builder.html">🐼 去和团团一起编故事 →</a><br />
+          <a href="/sentence-grower.html">🌱 去让句子长大 →</a>
+        </p>
+      </section>
+
+      <!-- Play: mark one note -->
+      <section id="view-play" class="view" hidden>
+        <div class="note-top">
+          <span class="note-emoji" id="note-emoji" aria-hidden="true"></span>
+          <h2 class="play-title" id="note-title"></h2>
+          <span class="ink" id="ink" aria-live="polite"></span>
+        </div>
+        <div class="note-sub">
+          <ol class="found-dots" id="found-dots" aria-label="找到了几个错字"></ol>
+          <span class="hint" id="found-label"></span>
+        </div>
+
+        <div class="paper">
+          <p class="note-text" id="note-text"></p>
+          <span id="note-speak"></span>
+        </div>
+
+        <div class="tuan-says">
+          <span class="tuan-face" id="tuan-face" aria-hidden="true">🐼</span>
+          <p class="tuan-bubble" id="tuan-line" aria-live="polite"></p>
+        </div>
+
+        <div class="turn-card fix-card" id="fix" hidden>
+          <p class="oops" id="oops"></p>
+          <p class="turn-label" id="fix-ask"></p>
+          <div class="fix-choices" id="fix-choices"></div>
+        </div>
+
+        <div class="actions" id="play-actions">
+          <button class="link-btn" id="btn-hint" type="button">🔍 提示</button>
+          <button class="btn btn-primary" id="btn-finish" type="button" hidden>改好了 ✓</button>
+        </div>
+
+        <!-- The note is done -->
+        <div class="turn-card end-card" id="end" hidden>
+          <div class="stamp" id="stamp" aria-live="polite"></div>
+          <p class="end-line" id="end-line"></p>
+          <p class="hint" id="end-missed" hidden></p>
+          <div class="actions center">
+            <button class="btn" id="btn-end-home" type="button">回首页</button>
+            <button class="btn btn-primary" id="btn-next" type="button">再来一张 📝</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/sharp-eyes/main.ts"></script>
+  </body>
+</html>

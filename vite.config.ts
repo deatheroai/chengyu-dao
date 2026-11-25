@@ -22,6 +22,7 @@ export default defineConfig({
         storyWriter: resolve(rootDir, "story-writer.html"),
         storyBuilder: resolve(rootDir, "story-builder.html"),
         sentenceGrower: resolve(rootDir, "sentence-grower.html"),
+        sharpEyes: resolve(rootDir, "sharp-eyes.html"),
       },
     },
   },

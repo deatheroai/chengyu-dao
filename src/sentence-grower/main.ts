@@ -605,6 +605,7 @@ function init(): void {
     $("garden-title").textContent = "🧪 测试句子本";
     $("saved-hint").textContent = "句子已经放进“测试句子本”里了。";
     $<HTMLAnchorElement>("link-story").href = "/story-builder.html?test";
+    $<HTMLAnchorElement>("link-eyes").href = "/sharp-eyes.html?test";
     document.title = `🧪 ${document.title}`;
   }
   $("btn-pinyin").addEventListener("click", () => {

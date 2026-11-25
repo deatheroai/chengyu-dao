@@ -134,6 +134,27 @@ same limits and cost tracking as the story builder. Without AI, any newly
 added characters count. The two pages link to each other and share
 `src/story-builder/ui.ts` (pinyin, 🔊, 🎤).
 
+## Spot the wrong characters (`sharp-eyes.html`)
+
+火眼金睛: 团团 wrote notes, postcards and 作文 in everyday Singapore
+settings and got some characters wrong. The child taps a character she
+thinks is wrong, sees a funny reveal of what 团团 actually wrote (游永 →
+永远在游，停不下来！), and picks the right character from its family
+(晴/睛/清/情/请). A wrong tap uses one of 3 drops of red ink; running out
+is never game over, 团团 just circles what's left. 🔍 提示 never costs
+ink. Each note ends with a stamp (优 / 良 / 加油). The first note is
+easy and uses no ink.
+
+Content is in `src/sharp-eyes/`: `families.ts` (20 families of
+look-alike and sound-alike characters, P3–P5, each with meanings and a
+clue) and `notes.ts` (each mistake written `{wrong|right}` in the text,
+with one funny reveal per mistake). `content.test.ts` checks every note
+automatically: each mistake swaps one character for another in the same
+family, at or below the note's level, and every character has stroke
+data. Progress (the best stamp per note) is kept on the device only;
+`?test` keeps a separate copy. `?level=4` or `?note=p5-garden` opens a
+level or a note directly.
+
 ## Project structure
 
 `index.html` (the site root) is a static redirect to `idiom-door.html`, the
