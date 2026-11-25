@@ -41,6 +41,23 @@ None open right now.
 
 ## Resolved
 
+- **2026-11-25 — New game: 火眼金睛 (spot 团团's 错别字).** Your call:
+  1. **团团 makes the mistakes, the child marks them** with a red pen
+     (she's the teacher, as in 教团团写字). A detective framing sounds
+     fun too and stays in the backlog as a later variant.
+  Suggested defaults, not yet confirmed by you (change any time):
+  2. **Fixing:** pick the right character from 3–4 of its family; the
+     first time she meets a family she also writes it once.
+  3. **Level and size:** P3–P4, about 12 families and 20 notes to start.
+     Sound-alikes and look-alikes only; no 的/地/得 (grammar is parked).
+  4. **Wrong taps:** 3 drops of red ink per note; running out ends the
+     note with a lower stamp, never a game over.
+  5. **Her own slips** from the story builder come back in 团团's notes
+     from day one.
+  6. **Hand-written content, no AI** in the first version, so a correct
+     word is never flagged by mistake.
+  Plan in `BACKLOG.md`'s 火眼金睛 section.
+
 - **2026-11-21 — Story builder: fix 错别字 during the story, harder
   writing practice, Singapore everyday-life stories.** Your call, after
   the child wrote 芭莎 for 巴刹 and nothing corrected it:

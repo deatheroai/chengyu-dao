@@ -176,6 +176,64 @@ Built in pieces, top to bottom; each piece lands with its tests.
       they pick varied senses or always 👀? Are AI hints for 我的故事书
       sentences good?
 
+## 火眼金睛 (spot 团团's 错别字)
+
+Planned 2026-11-25, see `DECISIONS.md`. 团团 writes short notes in
+everyday Singapore settings and gets some characters wrong; the child
+marks them with a red pen and fixes them. A separate page,
+`sharp-eyes.html` (code in `src/sharp-eyes/`), reusing 团团, 🔊, pinyin
+and the handwriting stage. Built in pieces, top to bottom; each piece
+lands with its tests.
+
+- [ ] `todo` — **1. Content + core logic.** `families.ts`: about 12
+      character families of look-alikes and sound-alikes at P3–P4 level
+      (青: 请清晴睛情; 场/厂; 馆/管; 已/以; 在/再; 功/公; 票/漂…), each
+      character with its meaning and the radical as the clue. `notes.ts`:
+      about 20 hand-written notes (lift notice, 小贩中心 order, postcard,
+      WhatsApp message, 食堂 sign, short 作文), each the correct text plus
+      its mistakes. Every mistake has the wrong character, the right one,
+      its family and a funny reveal (what 团团 actually wrote: 一碗棉 →
+      a bowl of cotton 🧶). No 的/地/得 (that's grammar). `round.ts`:
+      taps, red ink, done/missed, stamp. Generic integrity tests: each
+      mistake really is in the note, it's one character for one
+      character, both characters are in the same family, and the
+      corrected note contains no known slip.
+- [ ] `todo` — **2. The page: 找一找.** 团团 shows a note with "这里有 N
+      个错字". The child taps a character she suspects; a correct tap
+      shows the funny reveal, then she picks the right character from 3–4
+      of its family (radical highlighted as the clue). A wrong tap costs
+      one drop of red ink 🖋️ (3 per note). Running out of ink is never game
+      over: 团团 points out what's left and the note gets a lower stamp
+      (优 / 良 / 加油). 🔊 reads the note; pinyin toggle.
+- [ ] `todo` — **3. Writing a new family.** The first time she meets a
+      family, she also writes the right character once (watch → trace →
+      write alone, the existing handwriting code). After that, picking
+      the character is enough.
+- [ ] `todo` — **4. Session shape.** About 5 notes: 找一找 warm-ups (the
+      count is told), 快手改 (short sentences, one mistake each, against
+      the clock), then the 团团的作文 boss (a longer piece where the count
+      is *not* told, she taps 改好了 when she thinks she's done, and
+      marking a correct character costs ink). End: 团团's report card
+      with stamps and ink used, compared with her best.
+- [ ] `todo` — **5. Coming back.** 字族卡: each family fixed unlocks its
+      card in a collection (saved on the device, `?test` keeps a
+      separate one). Mistakes she missed come back in the first note of
+      her next visit. Her own story-builder fixes (`SavedStory` lines'
+      `fixes`) and `COMMON_SLIPS` are mixed into 团团's notes from day
+      one: "团团学你以前写错的字了！"
+- [ ] `todo` — **6. Links + e2e + README.** Link from the story builder
+      and sentence grower homes (and back); Playwright tests; README
+      section.
+- [ ] `todo` — **Later: try it with the child.** Is 3 ink drops right
+      (does she freeze, or tap everything)? Are the funny reveals funny?
+      Does writing a new family slow the game too much?
+- [ ] `todo` — **Later: detective variant.** The same notes framed as a
+      detective case (clues, suspects), as a second mode if the 团团
+      version works.
+- [ ] `todo` — **Later: AI-made notes.** Only once the hand-written
+      notes prove the format; AI notes need checking for false alarms
+      (蓝球 can be a blue ball).
+
 ## Chinese Idiom Discovery Game
 
 - [x] `done` — **Fix: the "each jump costs HP..." e2e test assumed
