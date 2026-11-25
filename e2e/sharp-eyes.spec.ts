@@ -51,7 +51,7 @@ test("团团 asks for help with one note; the starter costs no ink and ends with
   await expect(page.locator("#tuan-line")).toContainText("工厂");
   await page.locator(".choice", { hasText: m.right }).click();
   await expect(cell(page, m.cell)).toHaveClass(/fixed/);
-  expect(await textOf(page.locator("#note-text"))).toBe("妈妈，我去楼下的操场玩，五点回家。");
+  expect(await textOf(page.locator("#note-text"))).toBe("妈妈，我去楼下的操场找小猫，它欠我一根竹子！");
 
   await expect(page.locator("#end")).toBeVisible();
   await expect(page.locator("#stamp")).toHaveText("优");
