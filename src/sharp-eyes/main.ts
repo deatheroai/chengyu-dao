@@ -4,6 +4,19 @@ import { charPinyin } from "../story-builder/pinyin";
 import { $, readPinyinPref, ruby, savePinyinPref, speak, speakButton } from "../story-builder/ui";
 import { afterDictation, dictationList, promptFor, type DictPrompt } from "./dictation";
 import { createWritePad } from "./writePad";
+import {
+  QUICK_SECONDS,
+  currentLevel,
+  isFast,
+  nextStageLabel,
+  planSession,
+  report,
+  toNextLevel,
+  type Stage,
+  type StageResult,
+} from "./session";
+import type { Level } from "./families";
+import type { Stamp } from "./round";
 import { LEVELS } from "./families";
 import {
   askFix,
@@ -24,7 +37,6 @@ import {
   firstFindToday,
   hasWritten,
   loadProgress,
-  nextNote,
   notesDone,
   saveProgress,
   withPen,
@@ -60,9 +72,9 @@ function applyPinyin(): void {
   $("btn-pinyin").setAttribute("aria-pressed", String(showPinyin));
 }
 
-type View = "home" | "play" | "dict";
+type View = "home" | "play" | "dict" | "report";
 function show(view: View): void {
-  for (const v of ["home", "play", "dict"] as View[]) $(`view-${v}`).hidden = v !== view;
+  for (const v of ["home", "play", "dict", "report"] as View[]) $(`view-${v}`).hidden = v !== view;
   $("btn-home").style.visibility = view === "home" ? "hidden" : "visible";
   window.scrollTo({ top: 0 });
 }
@@ -89,7 +101,27 @@ interface Play {
 let play: Play | undefined;
 
 /** Characters fixed since the last 默写, for the next one. */
-let session: DictItem[] = [];
+let toDictate: DictItem[] = [];
+
+/** The session being played (none when a single note was opened by ?note=). */
+interface Run {
+  level: Level;
+  stages: Stage[];
+  /** Stage index, and the sentence within a 快手改 stage. */
+  si: number;
+  qi: number;
+  results: StageResult[];
+  /** The 快手改 stage so far. */
+  quickStamps: Stamp[];
+  quickFast: number;
+  /** 优 needed for the next level when the session started. */
+  levelAtStart: Level;
+}
+let run: Run | undefined;
+
+/** The running 快手改 clock. */
+let quickTimer: ReturnType<typeof setInterval> | undefined;
+let quickStartedAt = 0;
 
 const writePad = createWritePad({ pad: $("write-pad"), say: (t) => ($("write-line").textContent = `🐼 ${t}`) });
 const dictPad = createWritePad({ pad: $("dict-pad"), say: (t) => ($("dict-line").textContent = `🐼 ${t}`) });
@@ -98,18 +130,166 @@ const dictPad = createWritePad({ pad: $("dict-pad"), say: (t) => ($("dict-line")
 
 function renderHome(): void {
   play = undefined;
+  run = undefined;
+  stopQuickTimer();
   const done = notesDone(progress);
-  const next = nextNote(progress);
+  const level = currentLevel(progress);
+  const next = planSession(progress, level)[0].notes[0];
   $("home-line").textContent = homeLine(done);
   $("start-emoji").textContent = next.emoji;
   $("start-sub").textContent = `${next.title} · P${next.level}`;
+  $("home-level").textContent = levelLine(level);
   const best = Object.values(progress.stamps).filter((s) => s === "优").length;
   const pens = progress.pens?.length ?? 0;
   const review = progress.review?.length ?? 0;
   $("home-count").hidden = done === 0 && review === 0;
   $("home-count").textContent =
-    `已经改了 ${done} 张，${best} 个“优”，${pens} 支✍️` + (review ? `。上次默写有 ${review} 个字要再写一写。` : "");
+    `已经改了 ${done} 张，${best} 个“优”，${pens} 支✍️金笔` + (review ? `。上次默写有 ${review} 个字要再写一写。` : "");
   show("home");
+}
+
+function levelLine(level: Level): string {
+  const more = toNextLevel(progress, level);
+  return more ? `现在是 P${level} · 再拿 ${more} 个“优”就能升到 P${level + 1}` : `现在是 P${level} · 最高级了！`;
+}
+
+// ---------- the session ----------
+
+function startSession(level?: Level): void {
+  const lv = level ?? currentLevel(progress);
+  run = { level: lv, stages: planSession(progress, lv), si: 0, qi: 0, results: [], quickStamps: [], quickFast: 0, levelAtStart: currentLevel(progress) };
+  playStage();
+}
+
+function playStage(): void {
+  if (!run) return;
+  const stage = run.stages[run.si];
+  if (!stage) return showReport();
+  renderStrip();
+  if (stage.kind === "quick") {
+    run.qi = 0;
+    run.quickStamps = [];
+    run.quickFast = 0;
+  }
+  startNote(stage.notes[stage.kind === "quick" ? run.qi : 0]);
+}
+
+const STAGE_ICON = { find: "📝", quick: "⚡", essay: "📒" } as const;
+
+function renderStrip(): void {
+  const strip = $("stage-strip");
+  strip.hidden = !run;
+  if (!run) return;
+  const r = run;
+  strip.replaceChildren(
+    ...r.stages.map((st, i) => {
+      const li = document.createElement("li");
+      li.className = i < r.si ? "done" : i === r.si ? "now" : "";
+      li.textContent = STAGE_ICON[st.kind];
+      return li;
+    }),
+    Object.assign(document.createElement("li"), { textContent: "🏅", className: r.si >= r.stages.length ? "now" : "" }),
+  );
+}
+
+const inQuick = (): boolean => run?.stages[run.si]?.kind === "quick";
+
+function startQuickTimer(level: Level): void {
+  stopQuickTimer();
+  quickStartedAt = Date.now();
+  const total = QUICK_SECONDS[level];
+  const bar = $("quick-bar");
+  const box = $("quick-timer");
+  box.hidden = false;
+  box.classList.remove("over");
+  const tick = () => {
+    const left = Math.max(0, total - (Date.now() - quickStartedAt) / 1000);
+    bar.style.width = `${(left / total) * 100}%`;
+    if (left <= 0) {
+      box.classList.add("over");
+      box.dataset.label = "慢慢来也可以～";
+    } else box.dataset.label = `⚡ ${Math.ceil(left)}`;
+  };
+  tick();
+  quickTimer = setInterval(tick, 250);
+}
+
+function stopQuickTimer(): void {
+  clearInterval(quickTimer);
+  quickTimer = undefined;
+}
+
+/** After a 快手改 sentence: on to the next one, or the stage's end card. */
+function quickSentenceDone(pl: Play, st: Stamp): boolean {
+  const r = run;
+  if (!r || !inQuick()) return false;
+  const seconds = (Date.now() - quickStartedAt) / 1000;
+  stopQuickTimer();
+  const fast = st !== "加油" && isFast(r.level, seconds);
+  r.quickStamps.push(st);
+  if (fast) r.quickFast++;
+  const stage = r.stages[r.si];
+  if (r.qi + 1 < stage.notes.length) {
+    say(fast ? `⚡ 够快！只用了 ${Math.round(seconds)} 秒！下一句……` : "改好了！下一句……", fast ? "🥳" : "😊");
+    r.qi++;
+    setTimeout(() => {
+      if (run === r && play === pl) startNote(stage.notes[r.qi]);
+    }, missedDelay(pl));
+    return true;
+  }
+  return false;
+}
+
+/** A little longer to look when 团团 had to circle missed ones. */
+const missedDelay = (pl: Play): number => (left(pl.p, pl.s).length ? 2200 : 1200);
+
+function showReport(): void {
+  const r = run;
+  if (!r) return;
+  stopQuickTimer();
+  renderStrip();
+  const before = progress.bestSession ?? 0;
+  const rep = report(r.results, before);
+  if (rep.best > before) {
+    progress = { ...progress, bestSession: rep.best };
+    saveProgress(progress);
+  }
+  const NAME = { find: "便条", quick: "快手改", essay: "作文" } as const;
+  $("report-rows").replaceChildren(
+    ...r.results.map((res) => {
+      const li = document.createElement("li");
+      const name = document.createElement("span");
+      name.textContent = `${STAGE_ICON[res.kind]} ${NAME[res.kind]}`;
+      const stamps = document.createElement("span");
+      stamps.className = "report-stamps";
+      for (const st of res.stamps) {
+        const b = document.createElement("b");
+        b.className = `mini-stamp stamp-${st === "优" ? "best" : st === "良" ? "good" : "try"}`;
+        b.textContent = st;
+        stamps.append(b);
+      }
+      const extra = document.createElement("span");
+      extra.className = "report-extra";
+      extra.textContent = [res.fast !== undefined ? `⚡${res.fast}` : "", res.pen ? "✍️" : ""].filter(Boolean).join(" ");
+      li.append(name, stamps, extra);
+      return li;
+    }),
+  );
+  $("report-sum").textContent = `“优” ${rep.best} / ${rep.total} · ⚡ ${rep.fast} · ✍️ 金笔 ${rep.pens}`;
+  $("report-line").textContent = rep.line;
+  const now = currentLevel(progress);
+  $("report-level").textContent = now > r.levelAtStart ? `🎉 升级了！下次是 P${now} 的字！` : levelLine(now);
+  const toWrite = dictationList(toDictate, progress.review).length;
+  $("btn-report-dictate").hidden = toWrite === 0;
+  $("btn-report-dictate").textContent = `✍️ 默写 ${toWrite} 个字`;
+  show("report");
+  if (rep.beatBest || rep.best === rep.total) burst($("report-sum"));
+}
+
+function nextAfterNote(): void {
+  if (!run) return startSession();
+  run.si++;
+  playStage();
 }
 
 // ---------- the note ----------
@@ -234,8 +414,11 @@ function startNote(note: Note): void {
     clean: new Map(),
     done: false,
   };
-  $("note-emoji").textContent = note.emoji;
-  $("note-title").textContent = note.title;
+  stopQuickTimer();
+  $("quick-timer").hidden = true;
+  const quick = inQuick() && run ? { i: run.qi + 1, n: run.stages[run.si].notes.length } : undefined;
+  $("note-emoji").textContent = quick ? "⚡" : note.emoji;
+  $("note-title").textContent = quick ? `快手改 ${quick.i} / ${quick.n}` : note.title;
   renderNote(play);
   renderInk(play);
   renderDots(play);
@@ -245,8 +428,9 @@ function startNote(note: Note): void {
   $("play-actions").hidden = false;
   $("btn-hint").hidden = false;
   $("btn-finish").hidden = note.kind !== "essay";
-  say(openLine(p.mistakes.length, note.kind === "essay", note.starter === true));
+  say(quick && quick.i > 1 ? "下一句！哪个字写错了？" : quick ? "⚡ 快手改！每句一个错字，看谁改得快！" : openLine(p.mistakes.length, note.kind === "essay", note.starter === true));
   show("play");
+  if (quick && run) startQuickTimer(run.level);
 }
 
 function onTap(cell: number): void {
@@ -324,8 +508,10 @@ function onPick(char: string, button: HTMLButtonElement): void {
   speak(m.family.chars.find((c) => c.char === m.right)?.word ?? m.right);
   say(fixedLine(m.right), "😊");
   renderDots(pl);
-  session.push({ noteId: pl.p.note.id, mistake });
-  setTimeout(() => openWrite(pl, mistake), 700);
+  toDictate.push({ noteId: pl.p.note.id, mistake });
+  // 快手改 is for speed: no writing now, the characters come back in 默写.
+  if (inQuick()) endNote(pl);
+  else setTimeout(() => openWrite(pl, mistake), 700);
 }
 
 // ---------- teach 团团 to write the fixed character ----------
@@ -417,6 +603,7 @@ function endNote(pl: Play): void {
   const st = stamp(pl.p, pl.s);
   progress = withStamp(progress, pl.p.note.id, st);
   saveProgress(progress);
+  if (quickSentenceDone(pl, st)) return;
   const stampEl = $("stamp");
   stampEl.textContent = st;
   stampEl.className = `stamp stamp-${st === "优" ? "best" : st === "良" ? "good" : "try"}`;
@@ -427,14 +614,31 @@ function endNote(pl: Play): void {
   const cleanCount = written.filter(Boolean).length;
   const pens = $("end-pens");
   pens.hidden = written.length === 0;
-  if (written.length && cleanCount === written.length && missed.length === 0) {
+  const pen = written.length > 0 && cleanCount === written.length && missed.length === 0;
+  if (pen) {
     progress = withPen(progress, pl.p.note.id);
     saveProgress(progress);
     pens.textContent = "✍️ 每个字都写得一笔不错，得到一支金笔！";
   } else {
     pens.textContent = `✍️ 写对了 ${cleanCount} / ${written.length} 个字`;
   }
-  const toWrite = dictationList(session, progress.review).length;
+  if (run) {
+    const r = run;
+    if (inQuick()) {
+      // quickSentenceDone has already counted this last sentence.
+      const stamps = [...r.quickStamps];
+      const fast = r.quickFast;
+      r.results.push({ kind: "quick", stamps, fast });
+      pens.hidden = false;
+      pens.textContent = `⚡ ${stamps.length} 句里有 ${fast} 句够快！`;
+      $("end-line").textContent =
+        stamps.every((x) => x === "优") ? "快手改全部“优”！团团都看呆了！" : "快手改完成！改得又快又准，团团好佩服！";
+      stampEl.textContent = stamps.every((x) => x === "优") ? "优" : stamps.includes("加油") ? "加油" : "良";
+      stampEl.className = `stamp stamp-${stampEl.textContent === "优" ? "best" : stampEl.textContent === "良" ? "good" : "try"}`;
+    } else r.results.push({ kind: pl.p.note.kind, stamps: [st], pen });
+  }
+  $("btn-next").textContent = run ? nextStageLabel(run.stages[run.si + 1]) : "再来一张 📝";
+  const toWrite = dictationList(toDictate, progress.review).length;
   $("btn-dictate").hidden = toWrite === 0;
   $("btn-dictate").textContent = `✍️ 默写 ${toWrite} 个字`;
   $("play-actions").hidden = true;
@@ -474,7 +678,7 @@ interface Dict {
 let dict: Dict | undefined;
 
 function startDictation(): void {
-  const prompts = dictationList(session, progress.review)
+  const prompts = dictationList(toDictate, progress.review)
     .map(promptFor)
     .filter((x): x is DictPrompt => x !== null);
   if (!prompts.length) return;
@@ -548,7 +752,7 @@ function dictNext(): void {
   dictPad.stop();
   progress = afterDictation(progress, d.results.map((r) => ({ item: r.item, ok: r.result === "correct" })));
   saveProgress(progress);
-  session = [];
+  toDictate = [];
   const right = d.results.filter((r) => r.result === "correct").length;
   $("dict-score").textContent = `默写：${right} / ${d.results.length}`;
   const list = $("dict-results");
@@ -600,9 +804,11 @@ function init(): void {
   $("btn-dict-show").addEventListener("click", dictShow);
   $("btn-dict-next").addEventListener("click", dictNext);
   $("btn-dict-home").addEventListener("click", renderHome);
-  $("btn-dict-more").addEventListener("click", () => startNote(nextNote(progress)));
-  $("btn-start").addEventListener("click", () => startNote(nextNote(progress)));
-  $("btn-next").addEventListener("click", () => startNote(nextNote(progress)));
+  $("btn-dict-more").addEventListener("click", () => startSession());
+  $("btn-start").addEventListener("click", () => startSession());
+  $("btn-next").addEventListener("click", nextAfterNote);
+  $("btn-report-home").addEventListener("click", renderHome);
+  $("btn-report-dictate").addEventListener("click", startDictation);
   $("btn-end-home").addEventListener("click", renderHome);
   $("btn-hint").addEventListener("click", onHint);
   $("btn-finish").addEventListener("click", () => {
@@ -616,12 +822,9 @@ function init(): void {
   const level = Number(q.get("level"));
   const noteId = q.get("note");
   renderHome();
-  const jump =
-    NOTES.find((x) => x.id === noteId) ??
-    ((LEVELS as readonly number[]).includes(level)
-      ? NOTES.find((x) => x.level === level && x.kind === "find" && !progress.stamps[x.id]) ?? NOTES.find((x) => x.level === level && x.kind === "find")
-      : undefined);
+  const jump = NOTES.find((x) => x.id === noteId);
   if (jump) startNote(jump);
+  else if ((LEVELS as readonly number[]).includes(level)) startSession(level as Level);
 }
 
 init();

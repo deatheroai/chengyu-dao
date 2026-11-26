@@ -152,6 +152,14 @@ wrong stroke earns a ✍️ 金笔. The end card offers ✍️ 默写: the
 characters fixed so far, each in its sentence with a blank and the
 pinyin over it. Ones she misses come first in the next 默写.
 
+A session (`src/sharp-eyes/session.ts`) is two notes where she's told how
+many mistakes there are, a ⚡ 快手改 round (three one-sentence fixes, 20
+seconds each for ⚡; running over only loses the ⚡), and 团团's 作文
+where she isn't told, then a 🏅 report card and 默写. She can stop after
+any note. She plays at P3 until she has 优 on 60% of its notes, then P4,
+then P5; the home screen shows how many more 优 she needs.
+`?level=4` starts a P4 session.
+
 Content is in `src/sharp-eyes/`: `families.ts` (20 families of
 look-alike and sound-alike characters, P3–P5, each with meanings and a
 clue) and `notes.ts` (each mistake written `{wrong|right}` in the text,

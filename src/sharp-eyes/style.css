@@ -483,3 +483,139 @@ body.no-pinyin .note-text {
   line-height: 1.6;
   text-align: center;
 }
+
+/* ---- the session ---- */
+.level-badge {
+  margin: 4px 0 0;
+  text-align: center;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.stage-strip {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.stage-strip li {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--card);
+  font-size: 1.05rem;
+  opacity: 0.55;
+}
+
+.stage-strip li.done {
+  opacity: 1;
+  border-color: var(--good);
+}
+
+.stage-strip li.now {
+  opacity: 1;
+  border-color: var(--red);
+  transform: scale(1.15);
+}
+
+.quick-timer {
+  position: relative;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--red-soft);
+  overflow: hidden;
+}
+
+.quick-bar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #f4a340, var(--red));
+  transition: width 0.25s linear;
+}
+
+.quick-timer::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.quick-timer.over {
+  background: var(--line);
+}
+
+/* ---- report card ---- */
+.report-card {
+  border-color: var(--red);
+  text-align: center;
+}
+
+.report-title {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+}
+
+.report-rows {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 360px;
+  display: grid;
+  gap: 6px;
+}
+
+.report-rows li {
+  display: grid;
+  grid-template-columns: 6.5em 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px dashed var(--paper-line);
+  text-align: left;
+}
+
+.report-stamps {
+  display: flex;
+  gap: 4px;
+}
+
+.mini-stamp {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  transform: rotate(-10deg);
+}
+
+.mini-stamp.stamp-best {
+  color: var(--red);
+}
+
+.mini-stamp.stamp-good {
+  color: var(--star);
+}
+
+.mini-stamp.stamp-try {
+  color: var(--accent);
+  font-size: 0.6rem;
+}
+
+.report-sum {
+  margin: 10px 0 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

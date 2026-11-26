@@ -255,7 +255,7 @@ lands with its tests.
       the story writer's 默写); 看答案 or more mistakes go on the review
       list, shown on the home screen. For now 默写 is offered on every
       note's end card; step 4 decides when a session ends.
-- [ ] `todo` — **4. Session shape.** About 5 notes: 找一找 warm-ups (the
+- [x] `done` — **4. Session shape (2026-11-26).** About 5 notes: 找一找 warm-ups (the
       count is told), 快手改 (short sentences, one mistake each, against
       the clock), then the 团团的作文 boss (a longer piece where the count
       is *not* told, she taps 改好了 when she thinks she's done, and
@@ -263,6 +263,18 @@ lands with its tests.
       with stamps, ✍️ stars and ink used, compared with her best.
       Levels: she starts at P3; a level's notes done with mostly 优
       unlocks the next (P4, then P5). A grown-up can pick any level.
+      Built: `session.ts`. "只改一张便条？" starts a session; she can stop
+      after any note. Her first session opens with the starter. Notes
+      are picked new first, then not yet 优. 快手改 is 3 sentences with
+      20 s each (25 s at P5) for ⚡; running over only drops the ⚡, and
+      there's no writing in between (the characters come back in 默写).
+      A strip of 📝📝⚡📒🏅 shows where she is. The 🏅 report card shows
+      each stage's stamps, ⚡ and ✍️, compares with her best session
+      (`bestSession`), says how many more 优 open the next level (or 🎉
+      升级了), and leads to 默写. Levels open at 优 on 60% of a level's
+      notes (`UNLOCK_SHARE`); the home screen shows how many more are
+      needed. `?level=4` starts a P4 session; `?note=` still opens one
+      note on its own.
 - [ ] `todo` — **5. Coming back.** 字族卡: each family fixed unlocks its
       card in a collection (saved on the device, `?test` keeps a
       separate one). Mistakes she missed come back in the first note of

@@ -1,10 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { NOTES, starterNote } from "./notes";
-import { firstFindToday, loadProgress, nextNote, notesDone, saveProgress, today, withStamp } from "./progress";
+import { firstFindToday, loadProgress, notesDone, saveProgress, today, withStamp } from "./progress";
 
 const KEY = "chengyu-dao:sharp-eyes:progress:v1";
-const finds = NOTES.filter((n) => n.kind === "find");
 
 describe("火眼金睛 progress", () => {
   beforeEach(() => localStorage.clear());
@@ -32,28 +30,6 @@ describe("火眼金睛 progress", () => {
     p = withStamp(p, "a", "优");
     expect(p.stamps.a).toBe("优");
     expect(notesDone(p)).toBe(1);
-  });
-
-  it("offers the starter first, then notes without a stamp, then ones not yet 优", () => {
-    expect(nextNote({ stamps: {} }).id).toBe(starterNote().id);
-    let p = withStamp({ stamps: {} }, starterNote().id, "加油");
-    expect(nextNote(p).id).toBe(finds.find((n) => !n.starter)!.id);
-    for (const n of finds) p = withStamp(p, n.id, "优");
-    p = { stamps: { ...p.stamps, [finds[2].id]: "良" } };
-    expect(nextNote(p).id).toBe(finds[2].id);
-    p = withStamp(p, finds[2].id, "优");
-    expect(nextNote(p).id).toBe(finds[0].id);
-  });
-
-  it("offers P3 notes before P4 and P5", () => {
-    let p = { stamps: {} } as ReturnType<typeof loadProgress>;
-    const levels: number[] = [];
-    for (let i = 0; i < finds.length; i++) {
-      const n = nextNote(p);
-      levels.push(n.level);
-      p = withStamp(p, n.id, "优");
-    }
-    expect(levels).toEqual([...levels].sort());
   });
 
   it("knows her first find of the day", () => {

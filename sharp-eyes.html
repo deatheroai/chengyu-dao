@@ -33,6 +33,7 @@
           </span>
           <span class="start-pen" aria-hidden="true">🖍️</span>
         </button>
+        <p class="level-badge" id="home-level"></p>
         <p class="hint center" id="home-count" hidden></p>
         <p class="other-game">
           <a href="/story-builder.html">🐼 去和团团一起编故事 →</a><br />
@@ -42,11 +43,13 @@
 
       <!-- Play: mark one note -->
       <section id="view-play" class="view" hidden>
+        <ol class="stage-strip" id="stage-strip" aria-label="这一轮的关卡" hidden></ol>
         <div class="note-top">
           <span class="note-emoji" id="note-emoji" aria-hidden="true"></span>
           <h2 class="play-title" id="note-title"></h2>
           <span class="ink" id="ink" aria-live="polite"></span>
         </div>
+        <div class="quick-timer" id="quick-timer" hidden><span class="quick-bar" id="quick-bar"></span></div>
         <div class="note-sub">
           <ol class="found-dots" id="found-dots" aria-label="找到了几个错字"></ol>
           <span class="hint" id="found-label"></span>
@@ -96,6 +99,21 @@
             <button class="btn" id="btn-end-home" type="button">回首页</button>
             <button class="btn" id="btn-dictate" type="button" hidden>✍️ 默写</button>
             <button class="btn btn-primary" id="btn-next" type="button">再来一张 📝</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- The report card at the end of a session -->
+      <section id="view-report" class="view" hidden>
+        <div class="turn-card report-card">
+          <h2 class="report-title">🏅 团团的成绩单</h2>
+          <ul class="report-rows" id="report-rows"></ul>
+          <p class="report-sum" id="report-sum"></p>
+          <p class="end-line" id="report-line"></p>
+          <p class="level-badge" id="report-level"></p>
+          <div class="actions center">
+            <button class="btn" id="btn-report-home" type="button">回首页</button>
+            <button class="btn btn-primary" id="btn-report-dictate" type="button">✍️ 默写</button>
           </div>
         </div>
       </section>

@@ -1,6 +1,5 @@
 import { isTestMode } from "../story-builder/library";
-import { LEVELS, type Level } from "./families";
-import { NOTES, type Note, type NoteKind } from "./notes";
+import { NOTES } from "./notes";
 import type { Stamp } from "./round";
 
 /**
@@ -19,6 +18,8 @@ export interface Progress {
   pens?: string[];
   /** 默写 characters to write again: missed ones come first next time. */
   review?: DictItem[];
+  /** Most 优 in one session, for the report card. */
+  bestSession?: number;
 }
 
 /** One fixed character, by the note and mistake it came from. */
@@ -48,6 +49,7 @@ export function loadProgress(): Progress {
     if (pens.length) out.pens = [...new Set(pens)];
     const review = (Array.isArray(raw?.review) ? raw.review : []).filter(isDictItem);
     if (review.length) out.review = review;
+    if (Number.isInteger(raw?.bestSession) && (raw.bestSession as number) > 0) out.bestSession = raw.bestSession;
     return out;
   } catch {
     return { stamps: {} };
@@ -95,23 +97,5 @@ export function firstFindToday(p: Progress, now = new Date()): { progress: Progr
   return { progress: { ...p, lastFindDay: d }, first: p.lastFindDay !== d };
 }
 
-/** Notes of a kind in play order: by level, then as written. */
-const inOrder = (kind: NoteKind): Note[] => LEVELS.flatMap((l) => NOTES.filter((n) => n.level === l && n.kind === kind));
-
-/**
- * The note to offer next: the starter until it's done, then the first
- * note without a stamp, then (when all have one) the first one not yet
- * 优, then the first note again.
- */
-export function nextNote(p: Progress, kind: NoteKind = "find"): Note {
-  const notes = inOrder(kind);
-  const starter = notes.find((n) => n.starter);
-  if (starter && !p.stamps[starter.id]) return starter;
-  return notes.find((n) => !p.stamps[n.id]) ?? notes.find((n) => p.stamps[n.id] !== "优") ?? notes[0];
-}
-
 /** How many notes have a stamp. */
 export const notesDone = (p: Progress): number => Object.keys(p.stamps).length;
-
-/** The highest level she has reached, by the next note's level. */
-export const currentLevel = (p: Progress): Level => nextNote(p).level;
