@@ -7,6 +7,10 @@
  * `currentStoryId` at it, then run `npm run gen:story-strokes` so the
  * new characters' stroke data gets bundled. `stories.test.ts` fails if
  * a target character is missing from the text or has no stroke data.
+ *
+ * Pick the story's hardest characters to write as targets: many
+ * strokes, or a word she meets less often (蝶 in 蝴蝶, not 努 in 努力).
+ * Characters she wrote in P1–P3 are not worth the practice time.
  */
 
 export interface TargetCharacter {
@@ -153,15 +157,15 @@ export const stories: Story[] = [
     title: "跳出来的词语",
     text:
       "年终假期里，我下定决心要学好华文。每天早上，我把新的词语抄写在本子上，读了一遍又一遍，直到全都背熟了。" +
-      "一天晚上，我梦见本子里的词语都跳了出来！“蝴蝶”拍着翅膀，在房间里飞来飞去；“彩虹”弯弯地挂在窗口；“下雨”一不小心，把我的被子淋湿了。" +
+      "一天晚上，我梦见本子里的词语都跳了出来！只见“蝴蝶”拍着翅膀，在房间里飞来飞去；“彩虹”弯弯地挂在窗口；“下雨”一不小心，把我的被子淋湿了。" +
       "词语们围着我，笑嘻嘻地说：“你这么努力，我们都愿意住进你的脑袋里！”第二天醒来，我发现那些词语，我一个也没有忘记。",
     targets: [
-      { char: "抄", pinyin: "chāo", word: "抄写", meaning: "to copy out" },
-      { char: "背", pinyin: "bèi", word: "背熟", meaning: "to know by heart" },
-      { char: "梦", pinyin: "mèng", word: "梦见", meaning: "to dream of" },
-      { char: "翅", pinyin: "chì", word: "翅膀", meaning: "wings" },
-      { char: "努", pinyin: "nǔ", word: "努力", meaning: "to work hard" },
-      { char: "醒", pinyin: "xǐng", word: "醒来", meaning: "to wake up" },
+      { char: "熟", pinyin: "shú", word: "背熟", meaning: "to know by heart" },
+      { char: "蝶", pinyin: "dié", word: "蝴蝶", meaning: "butterfly" },
+      { char: "膀", pinyin: "bǎng", word: "翅膀", meaning: "wings" },
+      { char: "窗", pinyin: "chuāng", word: "窗口", meaning: "window" },
+      { char: "湿", pinyin: "shī", word: "淋湿", meaning: "to get soaked" },
+      { char: "愿", pinyin: "yuàn", word: "愿意", meaning: "to be willing" },
     ],
   },
 ];
