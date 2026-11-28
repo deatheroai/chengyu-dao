@@ -176,6 +176,168 @@ Built in pieces, top to bottom; each piece lands with its tests.
       they pick varied senses or always 👀? Are AI hints for 我的故事书
       sentences good?
 
+## 火眼金睛 (spot 团团's 错别字)
+
+Planned 2026-11-25, see `DECISIONS.md`. 团团 writes short notes in
+everyday Singapore settings and gets some characters wrong; the child
+marks them with a red pen and fixes them. A separate page,
+`sharp-eyes.html` (code in `src/sharp-eyes/`), reusing 团团, 🔊, pinyin
+and the handwriting stage. Built in pieces, top to bottom; each piece
+lands with its tests.
+
+- [x] `done` — **1. Content + core logic (2026-11-25).** `families.ts`: 20 (planned about 18)
+      character families of look-alikes and sound-alikes across P3–P5
+      (P3: 青 请清晴睛情, 场/厂, 在/再; P4: 馆/管, 已/以, 功/公, 票/漂;
+      P5: 辨/辩/辫, 即/既, 历/厉…), each character with its meaning, the
+      radical as the clue, and its level. `notes.ts`: about 30
+      hand-written notes, about 10 per level (P5 notes longer, with
+      harder words and more mistakes per note) (lift notice, 小贩中心 order, postcard,
+      WhatsApp message, 食堂 sign, short 作文), each the correct text plus
+      its mistakes and its level. Every mistake has the wrong character, the right one,
+      its family and a funny reveal (what 团团 actually wrote: 一碗棉 →
+      a bowl of cotton 🧶). No 的/地/得 (that's grammar). `round.ts`:
+      taps, red ink, done/missed, stamp. Generic integrity tests: each
+      mistake really is in the note, it's one character for one
+      character, both characters are in the same family, and the
+      corrected note contains no known slip.
+      Built: 39 notes (12 find, 21 quick, 6 essays, 86 mistakes), 7/7/6
+      families for P3/P4/P5, every character checked against
+      hanzi-writer-data so it can be written. `round.ts` also has 🔍 提示
+      (part of the sentence → 3 characters → the character plus the
+      family's clue), fix choices (right + wrong + family, at most 4, a
+      fixed shuffle), and essays staying open until 改好了. Stamps: 优 =
+      all found with at most one wrong tap, 良 = all found, 加油 = some
+      missed; hints never lower it.
+- [x] `done` — **2. The page: 找一找, with help to get started (2026-11-25).** 团团 shows a note with "这里有 N
+      个错字". The child taps a character she suspects; a correct tap
+      shows the funny reveal, then she picks the right character from 3–4
+      of its family (radical highlighted as the clue). A wrong tap costs
+      one drop of red ink 🖋️ (3 per note). Running out of ink is never game
+      over: 团团 points out what's left and the note gets a lower stamp
+      (优 / 良 / 加油). 🔊 reads the note; pinyin toggle.
+      Help to get started:
+      - 团团 asks for help ("老师要检查我的字，你能帮我吗？🙏"), so she's
+        rescuing him, not taking a test.
+      - The very first note is short with one obvious, funny mistake,
+        and costs no ink.
+      - 🔍 提示 never costs ink: first 团团 says which line, then which
+        word, then highlights the radical that gives it away.
+      - Every find gets a big moment (red circle drawn, 团团's 😱 → 😊,
+        a varied praise line), and her first find of the day more so.
+      - The home screen says "只改一张便条？" (just one note?): a tiny
+        first step, with "再来一张" offered after each note.
+      Built: `sharp-eyes.html`, `src/sharp-eyes/main.ts`, `lines.ts`
+      (团团's lines, tested), `progress.ts` (best stamp per note and the
+      day of the last find, on the device; `?test` separate). The home
+      button opens the next note: the starter, then notes without a
+      stamp, P3 before P4 and P5. A grown-up can open a level or a note
+      directly: `?level=4`, `?note=p5-garden`. Essays already work
+      (no count, 改好了 button). Linked from the story builder and
+      sentence grower homes; `e2e/sharp-eyes.spec.ts` covers the
+      starter, ink running out, hints and an essay.
+- [x] `done` — **3. Write every fixed character (2026-11-25).** Each fix ends with
+      writing the right character (the existing handwriting code): the
+      first time she meets it, watch → trace → write alone; after that,
+      write alone straight away (watch/trace one tap away if stuck).
+      Writing it alone with no wrong strokes earns the note's ✍️ star.
+      At the end of a session, a short 默写 of the characters she fixed
+      (each in its sentence from the note); any she misses come back
+      first next time.
+      Built: `writePad.ts` (教团团写「X」: a new character runs watch →
+      trace → write alone by itself; one written before goes straight
+      to writing alone, with 👀 看笔顺 / ✏️ 描一描 / 再写一次 as help).
+      A note where every fixed character was written with no wrong
+      stroke earns a ✍️ 金笔 (`pens` in progress). `dictation.ts`: up
+      to 6 characters, last time's misses first; each sentence is cut
+      to about 26 characters around the blank, with the pinyin over it,
+      and never shows the answer elsewhere (爬来爬去 gets two blanks).
+      Written alone with at most one wrong stroke counts as right (as in
+      the story writer's 默写); 看答案 or more mistakes go on the review
+      list, shown on the home screen. For now 默写 is offered on every
+      note's end card; step 4 decides when a session ends.
+- [x] `done` — **4. Session shape (2026-11-26).** About 5 notes: 找一找 warm-ups (the
+      count is told), 快手改 (short sentences, one mistake each, against
+      the clock), then the 团团的作文 boss (a longer piece where the count
+      is *not* told, she taps 改好了 when she thinks she's done, and
+      marking a correct character costs ink). End: 团团's report card
+      with stamps, ✍️ stars and ink used, compared with her best.
+      Levels: she starts at P3; a level's notes done with mostly 优
+      unlocks the next (P4, then P5). A grown-up can pick any level.
+      Built: `session.ts`. "只改一张便条？" starts a session; she can stop
+      after any note. Her first session opens with the starter. Notes
+      are picked new first, then not yet 优. 快手改 is 3 sentences with
+      20 s each (25 s at P5) for ⚡; running over only drops the ⚡, and
+      there's no writing in between (the characters come back in 默写).
+      A strip of 📝📝⚡📒🏅 shows where she is. The 🏅 report card shows
+      each stage's stamps, ⚡ and ✍️, compares with her best session
+      (`bestSession`), says how many more 优 open the next level (or 🎉
+      升级了), and leads to 默写. Levels open at 优 on 60% of a level's
+      notes (`UNLOCK_SHARE`); the home screen shows how many more are
+      needed. `?level=4` starts a P4 session; `?note=` still opens one
+      note on its own.
+- [x] `done` — **Much less writing (2026-11-28).** She found writing
+      场 again and again tiresome (writing on a screen is fiddly), and
+      liked 快手改 best. `writing.ts`: only characters with 9+ strokes
+      are written, at most twice ever: right after her first fix of it
+      (watch, then write alone; no automatic tracing), then once in a
+      默写 at least 3 minutes later. Harder characters from 快手改 and
+      ones already written once go on a `toWrite` list; 默写 is offered
+      (end card, report card, home) only for ones due. Saves from
+      before (`written`, `review`) carry over.
+- [x] `done` — **Pinyin gave the mistake away (2026-11-28).** 眼晴
+      showed "yǎn qíng", so she could spot it from the pinyin alone. The
+      pinyin and 🔊 now follow what 团团 meant (眼晴 shows yǎnjing), like
+      typing the right pinyin and picking the wrong character.
+- [x] `done` — **⚡ 快手改 as the main course (2026-11-28).** Her
+      favourite part. 27 more sentences (16 per level now), sessions
+      are 📝 ⚡ 📝 ⚡ 📒 with 4 sentences per ⚡ round (`QUICK_COUNT`),
+      and a 🏆 fastest-time record per level (`fastest` in progress):
+      shown beside the counter, cheered when beaten, and on the end and
+      report cards.
+- [ ] `todo` — **🔊 didn't play on the preview (2026-11-28).** Reported
+      on the Vercel preview; not tested yet. Check: does 🔊 work on the
+      story builder and sentence grower on the same device (all three
+      use `speak()` in `src/story-builder/ui.ts`, the browser's
+      speechSynthesis with zh-CN)? If none do, suspect the device:
+      no Chinese voice installed, the phone on silent (iPhone mutes
+      speech on silent), or the browser. If only 火眼金睛 fails, look at
+      what's different there (the 🔊 next to the note and on the oops
+      card). Known Chrome quirk: speak() straight after cancel() can be
+      dropped.
+- [x] `done` — **5. Coming back (2026-11-28).** 字族卡: each family fixed unlocks its
+      card in a collection (saved on the device, `?test` keeps a
+      separate one). Mistakes she missed come back in the first note of
+      her next visit. Her own story-builder fixes (`SavedStory` lines'
+      `fixes`) and `COMMON_SLIPS` are mixed into 团团's notes from day
+      one: "团团学你以前写错的字了！"
+      Built: `cards.ts` (a card per family, unlocked by fixing one of
+      its mistakes, with a pop-up; 🃏 我的字族卡 on the home screen shows
+      all 20, locked ones as ？). `own.ts`: her story-builder fixes
+      become ⚡ sentences (her own sentence with the old mistake put
+      back, each changed character a mistake, choosing between hers and
+      the right one); one opens the first ⚡ round, new ones first.
+      `COMMON_SLIPS` aren't used: they have no sentence to put them in.
+      Missed notes (加油 or 良) now come back before new ones.
+- [x] `done` — **6. Links + e2e + README.** Done along the way: links
+      from both other pages, `e2e/sharp-eyes.spec.ts` (20 tests), README
+      section.
+- [ ] `todo` — **Later: try it with the child.** Is 3 ink drops right
+      (does she freeze, or tap everything)? Are the funny reveals funny?
+      Does writing a new family slow the game too much?
+- [ ] `todo` — **Later: a separate 的/地/得 game.** Kept out of
+      火眼金睛 because it's grammar, not wrong characters: the child
+      decides which 的/地/得 goes in each gap from what comes next
+      (的 + thing, 地 + action, 得 after an action). Needs its own design
+      discussion first: idea is 团团 sorting words into three baskets,
+      then fixing 的/地/得 in his notes, P3–P5. Could later link to the
+      sentence grower's …的 / …地 hint words.
+- [ ] `todo` — **Later: detective variant.** The same notes framed as a
+      detective case (clues, suspects), as a second mode if the 团团
+      version works.
+- [ ] `todo` — **Later: AI-made notes.** Only once the hand-written
+      notes prove the format; AI notes need checking for false alarms
+      (蓝球 can be a blue ball).
+
 ## Chinese Idiom Discovery Game
 
 - [x] `done` — **Fix: the "each jump costs HP..." e2e test assumed

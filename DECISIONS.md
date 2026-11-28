@@ -41,6 +41,41 @@ None open right now.
 
 ## Resolved
 
+- **2026-11-28 — 火眼金睛: much less writing.** Your call after trying
+  it: simple characters like 场 were asked to be written too often,
+  writing on a screen is fiddly, and the timed 快手改 was the most fun.
+  This replaces "write every fixed character" (2026-11-25, point 2):
+  only harder characters (9+ strokes: 晴, 馆, 漂, 戴…) are ever
+  written, at most twice each: once right after she first fixes it
+  (团团 shows the strokes, then she writes it alone), and once more in
+  a 默写 at least 3 minutes later. Simple characters are only picked.
+  The rules are in `src/sharp-eyes/writing.ts`.
+
+- **2026-11-25 — New game: 火眼金睛 (spot 团团's 错别字).** Your call:
+  1. **团团 makes the mistakes, the child marks them** with a red pen
+     (she's the teacher, as in 教团团写字). A detective framing sounds
+     fun too and stays in the backlog as a later variant.
+  2. **More writing practice:** every fixed character is written by
+     hand (watch and trace the first time, then alone), and each
+     session ends with a short 默写 of the characters she fixed.
+  3. **Levels P3 to P5,** unlocked in turn (a grown-up can pick any).
+  4. **No 的/地/得 here:** it gets its own game later (noted in
+     `BACKLOG.md`).
+  5. **Help to get started:** 团团 asks for help, the first note is
+     easy and free, hints never cost ink, every find is celebrated,
+     and the home screen asks for just one note.
+  Suggested defaults, not yet confirmed by you (change any time):
+  6. **Fixing:** pick the right character from 3–4 of its family,
+     then write it.
+  7. **Size:** about 18 families and 30 notes, about 10 per level.
+  8. **Wrong taps:** 3 drops of red ink per note; running out ends the
+     note with a lower stamp, never a game over.
+  9. **Her own slips** from the story builder come back in 团团's notes
+     from day one.
+  10. **Hand-written content, no AI** in the first version, so a
+     correct word is never flagged by mistake.
+  Plan in `BACKLOG.md`'s 火眼金睛 section.
+
 - **2026-11-21 — Story builder: fix 错别字 during the story, harder
   writing practice, Singapore everyday-life stories.** Your call, after
   the child wrote 芭莎 for 巴刹 and nothing corrected it:

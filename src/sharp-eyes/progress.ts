@@ -1,0 +1,119 @@
+import { isTestMode } from "../story-builder/library";
+import { NOTES } from "./notes";
+import type { Stamp } from "./round";
+
+/**
+ * 火眼金睛 progress, kept in this browser only: the best stamp per note,
+ * and the day of the last find (her first find each day gets an extra
+ * big cheer). `?test` keeps a separate copy, as on the other pages.
+ */
+export interface Progress {
+  stamps: Record<string, Stamp>;
+  /** "YYYY-MM-DD" of the last mistake found. */
+  lastFindDay?: string;
+  /** Per character: times written (counted tries) and when last tried. */
+  writes?: Record<string, { n: number; at: number }>;
+  /** Notes where she wrote every fixed character with no wrong stroke. */
+  pens?: string[];
+  /** Harder characters to write in a later 默写 (see writing.ts). */
+  toWrite?: DictItem[];
+  /** Most 优 in one session, for the report card. */
+  bestSession?: number;
+  /** Her own story-builder slips shown in ⚡, oldest first (see own.ts). */
+  ownSeen?: string[];
+  /** 字族卡 unlocked: family ids (see cards.ts). */
+  cards?: string[];
+  /** Fastest 快手改 sentence per level, in seconds. */
+  fastest?: Partial<Record<3 | 4 | 5, number>>;
+}
+
+/** One fixed character, by the note and mistake it came from. */
+export interface DictItem {
+  noteId: string;
+  mistake: number;
+}
+
+const KEY = "chengyu-dao:sharp-eyes:progress:v1";
+const key = () => (isTestMode() ? `${KEY}:test` : KEY);
+const RANK: Record<Stamp, number> = { 加油: 0, 良: 1, 优: 2 };
+const isStamp = (x: unknown): x is Stamp => x === "优" || x === "良" || x === "加油";
+
+export function loadProgress(): Progress {
+  try {
+    const raw = JSON.parse(localStorage.getItem(key()) ?? "{}") as Partial<Progress>;
+    const stamps: Record<string, Stamp> = {};
+    if (raw && typeof raw.stamps === "object" && raw.stamps) {
+      for (const [id, s] of Object.entries(raw.stamps)) if (isStamp(s) && NOTES.some((n) => n.id === id)) stamps[id] = s;
+    }
+    const out: Progress = { stamps };
+    if (typeof raw?.lastFindDay === "string") out.lastFindDay = raw.lastFindDay;
+    const strs = (x: unknown) => (Array.isArray(x) ? x.filter((c): c is string => typeof c === "string") : []);
+    const writes: Record<string, { n: number; at: number }> = {};
+    const rawWrites = (raw as { writes?: unknown })?.writes;
+    if (rawWrites && typeof rawWrites === "object") {
+      for (const [c, w] of Object.entries(rawWrites as Record<string, { n?: unknown; at?: unknown }>)) {
+        if (Array.from(c).length === 1 && Number.isInteger(w?.n) && typeof w?.at === "number") writes[c] = { n: w.n as number, at: w.at };
+      }
+    }
+    // Saves from before 2026-11-28 kept a plain list of written characters.
+    for (const c of strs((raw as { written?: unknown })?.written)) if (Array.from(c).length === 1 && !writes[c]) writes[c] = { n: 1, at: 0 };
+    if (Object.keys(writes).length) out.writes = writes;
+    const ownSeen = strs(raw?.ownSeen);
+    if (ownSeen.length) out.ownSeen = ownSeen.slice(-50);
+    const cards = strs(raw?.cards);
+    if (cards.length) out.cards = [...new Set(cards)];
+    const pens = strs(raw?.pens).filter((id) => NOTES.some((n) => n.id === id));
+    if (pens.length) out.pens = [...new Set(pens)];
+    const old = (raw as { review?: unknown })?.review;
+    const toWrite = [...(Array.isArray(raw?.toWrite) ? raw.toWrite : []), ...(Array.isArray(old) ? old : [])].filter(isDictItem);
+    if (toWrite.length) out.toWrite = toWrite;
+    const fast: Partial<Record<3 | 4 | 5, number>> = {};
+    for (const l of [3, 4, 5] as const) {
+      const t = raw?.fastest?.[l];
+      if (typeof t === "number" && t > 0 && t < 3600) fast[l] = t;
+    }
+    if (Object.keys(fast).length) out.fastest = fast;
+    if (Number.isInteger(raw?.bestSession) && (raw.bestSession as number) > 0) out.bestSession = raw.bestSession;
+    return out;
+  } catch {
+    return { stamps: {} };
+  }
+}
+
+export function saveProgress(p: Progress): void {
+  try {
+    localStorage.setItem(key(), JSON.stringify(p));
+  } catch {
+    /* storage full or blocked: progress just isn't kept */
+  }
+}
+
+function isDictItem(x: unknown): x is DictItem {
+  const d = x as DictItem;
+  if (!d || typeof d.noteId !== "string" || !Number.isInteger(d.mistake) || d.mistake < 0) return false;
+  const n = NOTES.find((n) => n.id === d.noteId);
+  return !!n && d.mistake < n.oops.length;
+}
+
+/** Every fixed character in the note written with no wrong stroke: ✍️. */
+export const withPen = (p: Progress, noteId: string): Progress =>
+  (p.pens ?? []).includes(noteId) ? p : { ...p, pens: [...(p.pens ?? []), noteId] };
+
+/** Keeps the better of the old and new stamp. */
+export function withStamp(p: Progress, noteId: string, stamp: Stamp): Progress {
+  const old = p.stamps[noteId];
+  if (old && RANK[old] >= RANK[stamp]) return p;
+  return { ...p, stamps: { ...p.stamps, [noteId]: stamp } };
+}
+
+export const today = (now = new Date()): string =>
+  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+/** True for her first find today; the progress then remembers today. */
+export function firstFindToday(p: Progress, now = new Date()): { progress: Progress; first: boolean } {
+  const d = today(now);
+  return { progress: { ...p, lastFindDay: d }, first: p.lastFindDay !== d };
+}
+
+/** How many notes have a stamp. */
+export const notesDone = (p: Progress): number => Object.keys(p.stamps).length;

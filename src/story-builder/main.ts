@@ -847,6 +847,7 @@ function init(): void {
     $("library-title").textContent = "🧪 测试故事书";
     $("saved-hint").textContent = "故事已经放进“测试故事书”里了。";
     $<HTMLAnchorElement>("link-grower").href = "/sentence-grower.html?test";
+    $<HTMLAnchorElement>("link-eyes").href = "/sharp-eyes.html?test";
     document.title = `🧪 ${document.title}`;
   }
   $("btn-pinyin").addEventListener("click", () => {

@@ -134,6 +134,52 @@ same limits and cost tracking as the story builder. Without AI, any newly
 added characters count. The two pages link to each other and share
 `src/story-builder/ui.ts` (pinyin, 🔊, 🎤).
 
+## Spot the wrong characters (`sharp-eyes.html`)
+
+火眼金睛: 团团 wrote notes, postcards and 作文 in everyday Singapore
+settings and got some characters wrong. The child taps a character she
+thinks is wrong, sees a funny reveal of what 团团 actually wrote (游永 →
+永远在游，停不下来！), and picks the right character from its family
+(晴/睛/清/情/请). A wrong tap uses one of 3 drops of red ink; running out
+is never game over, 团团 just circles what's left. 🔍 提示 never costs
+ink. Each note ends with a stamp (优 / 良 / 加油). The first note is
+easy and uses no ink.
+
+Fixing a mistake unlocks its family's 🃏 字族卡 (`cards.ts`); the home
+screen shows the collection. Words 团团 corrected in her story-builder
+sentences come back as ⚡ sentences, her own sentence with the old
+mistake put back (`own.ts`): one opens the first ⚡ round. Notes she
+missed something in come back before new ones.
+
+Writing is kept short (`src/sharp-eyes/writing.ts`): only harder
+characters (9+ strokes) are ever written, at most twice. The first time
+she fixes one, she teaches 团团 to write it (he watches the strokes,
+then she writes it alone). It comes back once more in a ✍️ 默写 at least
+3 minutes later, shown in its sentence with a blank and the pinyin
+over it. 默写 is offered on the end card, the report card or the home
+screen when some are due. Simple characters like 场 are only picked.
+Writing every character in a note with no wrong stroke earns a ✍️ 金笔.
+
+A session (`src/sharp-eyes/session.ts`) is 📝 ⚡ 📝 ⚡ 📒: a note where
+she's told how many mistakes there are, a ⚡ 快手改 round (four
+one-sentence fixes, 20 seconds each for ⚡; running over only loses the
+⚡), another note and ⚡ round, then 团团's 作文 where she isn't told,
+a 🏅 report card and 默写. Her fastest 快手改 sentence per level is kept
+as a 🏆 record to beat. She can stop after
+any note. She plays at P3 until she has 优 on 60% of its notes, then P4,
+then P5; the home screen shows how many more 优 she needs.
+`?level=4` starts a P4 session.
+
+Content is in `src/sharp-eyes/`: `families.ts` (20 families of
+look-alike and sound-alike characters, P3–P5, each with meanings and a
+clue) and `notes.ts` (each mistake written `{wrong|right}` in the text,
+with one funny reveal per mistake). `content.test.ts` checks every note
+automatically: each mistake swaps one character for another in the same
+family, at or below the note's level, and every character has stroke
+data. Progress (the best stamp per note) is kept on the device only;
+`?test` keeps a separate copy. `?level=4` or `?note=p5-garden` opens a
+level or a note directly.
+
 ## Project structure
 
 `index.html` (the site root) is a static redirect to `idiom-door.html`, the
