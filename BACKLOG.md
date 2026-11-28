@@ -284,6 +284,10 @@ lands with its tests.
       ones already written once go on a `toWrite` list; 默写 is offered
       (end card, report card, home) only for ones due. Saves from
       before (`written`, `review`) carry over.
+- [x] `done` — **Pinyin gave the mistake away (2026-11-28).** 眼晴
+      showed "yǎn qíng", so she could spot it from the pinyin alone. The
+      pinyin and 🔊 now follow what 团团 meant (眼晴 shows yǎnjing), like
+      typing the right pinyin and picking the wrong character.
 - [ ] `todo` — **5. Coming back.** 字族卡: each family fixed unlocks its
       card in a collection (saved on the device, `?test` keeps a
       separate one). Mistakes she missed come back in the first note of

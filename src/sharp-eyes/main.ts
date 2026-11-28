@@ -58,7 +58,6 @@ import {
   stamp,
   tap,
   tappable,
-  writtenText,
   type ParsedNote,
   type RoundState,
 } from "./round";
@@ -88,9 +87,12 @@ interface Play {
   s: RoundState;
   /** The mistake found and waiting for its fix, if any. */
   fixing?: number;
-  /** Pinyin per cell: as written, and once fixed. */
-  pyWritten: string[];
-  pyRight: string[];
+  /**
+   * Pinyin per cell, of what 团团 meant to write: 眼晴 shows yǎnjing, as
+   * when you type the right pinyin and pick the wrong character. The
+   * pinyin of the wrong character (yǎn qíng) would give it away.
+   */
+  py: string[];
   /** The fixed mistake she is teaching 团团 to write, if any. */
   writing?: number;
   /** This write has been counted (再写一次 doesn't count again). */
@@ -357,7 +359,7 @@ function renderNote(pl: Play): void {
     b.type = "button";
     b.className = "cell";
     b.dataset.cell = String(i);
-    setCellChar(b, c.char, pl.pyWritten[i] ?? "");
+    setCellChar(b, c.char, pl.py[i] ?? "");
     b.addEventListener("click", () => onTap(i));
     if (opening) {
       opening.append(b);
@@ -368,7 +370,8 @@ function renderNote(pl: Play): void {
       glue = null;
     }
   });
-  $("note-speak").replaceChildren(speakButton(writtenText(pl.p)));
+  // Read aloud as meant, for the same reason as the pinyin.
+  $("note-speak").replaceChildren(speakButton(correctText(pl.p)));
 }
 
 function renderInk(pl: Play): void {
@@ -412,8 +415,7 @@ function startNote(note: Note): void {
   play = {
     p,
     s: newRound(p),
-    pyWritten: charPinyin(writtenText(p)),
-    pyRight: charPinyin(correctText(p)),
+    py: charPinyin(correctText(p)),
     clean: new Map(),
     done: false,
   };
@@ -502,7 +504,7 @@ function onPick(char: string, button: HTMLButtonElement): void {
   const m = pl.p.mistakes[mistake];
   const el = cellEl(m.cell);
   if (el) {
-    setCellChar(el, m.right, pl.pyRight[m.cell] ?? "");
+    setCellChar(el, m.right, pl.py[m.cell] ?? "");
     el.classList.add("fixed");
     el.disabled = true;
   }
@@ -607,7 +609,7 @@ function endNote(pl: Play): void {
     const m = pl.p.mistakes[i];
     const el = cellEl(m.cell);
     if (!el) continue;
-    setCellChar(el, m.right, pl.pyRight[m.cell] ?? "");
+    setCellChar(el, m.right, pl.py[m.cell] ?? "");
     el.classList.add("missed");
   }
   for (const el of $("note-text").querySelectorAll<HTMLButtonElement>(".cell")) el.disabled = true;

@@ -149,6 +149,9 @@ test("团团 asks for help with one note; the starter costs no ink, and a simple
 test("a harder character is written once after the fix, and 默写 waits a few minutes", async ({ page }) => {
   await page.goto("/sharp-eyes.html?test&note=p3-q-cat");
   const m = parseNote(noteById("p3-q-cat")!).mistakes[0];
+  // 团团 wrote 眼晴: the pinyin is what he meant (yǎnjing), not qíng, so it doesn't give the mistake away.
+  await expect(cell(page, m.cell)).toHaveText("晴jing");
+  await expect(cell(page, m.cell - 1).locator("rt")).toHaveText("yǎn");
   await cell(page, m.cell).click();
   await page.locator(".choice", { hasText: m.right }).click();
   await expect(page.locator("#write-label")).toContainText("教团团写「睛」");
