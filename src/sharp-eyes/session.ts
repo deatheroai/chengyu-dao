@@ -4,18 +4,19 @@ import type { Progress } from "./progress";
 import type { Stamp } from "./round";
 
 /**
- * One 火眼金睛 session: two notes where she's told how many mistakes
- * there are, a ⚡ 快手改 round (three one-sentence fixes against a
- * gentle clock), then 团团's 作文 (count not told), a 🏅 report card,
- * and 默写. She can stop after any note. Her very first session opens
- * with the starter note.
+ * One 火眼金睛 session: 📝 ⚡ 📝 ⚡ 📒. A note where she's told how many
+ * mistakes there are, a ⚡ 快手改 round (four one-sentence fixes against
+ * a gentle clock), another note, another ⚡ round, then 团团's 作文
+ * (count not told) and a 🏅 report card. She can stop after any note.
+ * Her very first session opens with the starter note. ⚡ was her
+ * favourite part (2026-11-28), hence two rounds.
  *
  * Levels: she plays at the lowest level where she hasn't yet got 优 on
  * 60% of its notes; reaching that opens the next level.
  */
 
 export const UNLOCK_SHARE = 0.6;
-export const QUICK_COUNT = 3;
+export const QUICK_COUNT = 4;
 /** Seconds per 快手改 sentence for ⚡. Running over is fine, just no ⚡. */
 export const QUICK_SECONDS: Record<Level, number> = { 3: 20, 4: 20, 5: 25 };
 
@@ -65,15 +66,31 @@ export function pickNotes(p: Progress, level: Level, kind: NoteKind, n: number, 
 export function planSession(p: Progress, level: Level = currentLevel(p)): Stage[] {
   const starter = NOTES.find((n) => n.starter);
   const firstTime = starter !== undefined && !p.stamps[starter.id];
-  const finds = pickNotes(p, level, "find", firstTime ? 1 : 2);
+  const finds = [...(firstTime ? [starter] : []), ...pickNotes(p, level, "find", firstTime ? 1 : 2)];
+  const quick = pickNotes(p, level, "quick", QUICK_COUNT * 2);
+  const rounds = [quick.slice(0, QUICK_COUNT), quick.slice(QUICK_COUNT)].filter((r) => r.length >= 2);
   const stages: Stage[] = [];
-  if (firstTime) stages.push({ kind: "find", notes: [starter] });
-  for (const n of finds) stages.push({ kind: "find", notes: [n] });
-  const quick = pickNotes(p, level, "quick", QUICK_COUNT);
-  if (quick.length) stages.push({ kind: "quick", notes: quick });
+  finds.forEach((n, i) => {
+    stages.push({ kind: "find", notes: [n] });
+    if (rounds[i]) stages.push({ kind: "quick", notes: rounds[i] });
+  });
   const essay = pickNotes(p, level, "essay", 1);
   if (essay.length) stages.push({ kind: "essay", notes: essay });
   return stages;
+}
+
+/** Her fastest 快手改 sentence at this level, in seconds. */
+export const fastest = (p: Progress, level: Level): number | undefined => p.fastest?.[level];
+
+/** Seconds to one decimal, as shown. */
+export const roundSeconds = (seconds: number): number => Math.round(seconds * 10) / 10;
+
+/** Records a fixed sentence's time; `record` when it beats her fastest at this level. */
+export function withTime(p: Progress, level: Level, seconds: number): { progress: Progress; record: boolean } {
+  const t = roundSeconds(seconds);
+  const best = fastest(p, level);
+  if (best !== undefined && t >= best) return { progress: p, record: false };
+  return { progress: { ...p, fastest: { ...p.fastest, [level]: t } }, record: best !== undefined };
 }
 
 /** A 快手改 sentence is ⚡ when fixed within its time. */
@@ -88,6 +105,8 @@ export interface StageResult {
   fast?: number;
   /** ✍️ 金笔 earned. */
   pen?: boolean;
+  /** 快手改 only: a new fastest time (seconds). */
+  record?: number;
 }
 
 export interface Report {

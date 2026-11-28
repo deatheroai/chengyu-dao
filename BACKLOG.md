@@ -288,6 +288,12 @@ lands with its tests.
       showed "yǎn qíng", so she could spot it from the pinyin alone. The
       pinyin and 🔊 now follow what 团团 meant (眼晴 shows yǎnjing), like
       typing the right pinyin and picking the wrong character.
+- [x] `done` — **⚡ 快手改 as the main course (2026-11-28).** Her
+      favourite part. 27 more sentences (16 per level now), sessions
+      are 📝 ⚡ 📝 ⚡ 📒 with 4 sentences per ⚡ round (`QUICK_COUNT`),
+      and a 🏆 fastest-time record per level (`fastest` in progress):
+      shown beside the counter, cheered when beaten, and on the end and
+      report cards.
 - [ ] `todo` — **🔊 didn't play on the preview (2026-11-28).** Reported
       on the Vercel preview; not tested yet. Check: does 🔊 work on the
       story builder and sentence grower on the same device (all three

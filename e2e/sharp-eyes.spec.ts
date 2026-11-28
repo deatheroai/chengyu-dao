@@ -241,51 +241,50 @@ test("an essay doesn't say how many and stays open until 改好了", async ({ pa
   await expect(page.locator("#stamp")).toHaveText("优");
 });
 
-test("a whole session: two notes, ⚡ 快手改, the essay, then the report card and 默写", async ({ page }) => {
-  test.setTimeout(120000);
-  const stamps = { "p3-play": "优" };
-  await allWrittenBefore(page, stamps);
+test("a whole session: 📝 ⚡ 📝 ⚡ 📒, a fastest-time record, then the report card and 默写", async ({ page }) => {
+  test.setTimeout(180000);
+  await allWrittenBefore(page, { "p3-play": "优" }, { fastest: { 3: 99 } });
   const plan = planSession({ stamps: { "p3-play": "优" } }, 3);
-  expect(plan.map((st) => st.kind)).toEqual(["find", "find", "quick", "essay"]);
+  expect(plan.map((st) => st.kind)).toEqual(["find", "quick", "find", "quick", "essay"]);
 
   await page.goto("/sharp-eyes.html?test");
   await expect(page.locator("#home-level")).toContainText("现在是 P3");
   await page.click("#btn-start");
-  await expect(page.locator("#stage-strip li")).toHaveCount(5);
+  await expect(page.locator("#stage-strip li")).toHaveCount(6);
 
-  // Two notes where she's told how many.
-  for (const i of [0, 1]) {
-    await expect(page.locator("#note-title")).toHaveText(plan[i].notes[0].title);
-    await fixAll(page, plan[i].notes[0].id);
-    await expect(page.locator("#stamp")).toHaveText("优");
-    await expect(page.locator("#btn-next")).toHaveText(i === 0 ? "再来一张 📝" : "下一关：⚡ 快手改");
+  for (const [si, stage] of plan.entries()) {
+    const next = plan[si + 1];
+    if (stage.kind === "quick") {
+      // ⚡ 快手改: four sentences against the clock, no writing in between.
+      for (const [i, n] of stage.notes.entries()) {
+        await expect(page.locator("#note-title")).toHaveText(`快手改 ${i + 1} / 4`);
+        await expect(page.locator("#quick-timer")).toBeVisible();
+        await expect(page.locator("#found-label")).toContainText("🏆 最快");
+        const m = parseNote(n).mistakes[0];
+        await cell(page, m.cell).click();
+        await page.locator(".choice", { hasText: m.right }).click();
+        await expect(page.locator("#write")).toBeHidden();
+      }
+      await expect(page.locator("#end")).toBeVisible();
+      await expect(page.locator("#end-pens")).toContainText("4 句里有 4 句够快");
+      if (si === 1) await expect(page.locator("#end-pens")).toContainText("🏆 新纪录");
+    } else {
+      await expect(page.locator("#note-title")).toHaveText(stage.notes[0].title);
+      await fixAll(page, stage.notes[0].id);
+      if (stage.kind === "essay") await page.click("#btn-finish");
+      await expect(page.locator("#stamp")).toHaveText("优");
+    }
+    await expect(page.locator("#btn-next")).toHaveText(
+      !next ? "看成绩单 🏅" : next.kind === "quick" ? "下一关：⚡ 快手改" : next.kind === "essay" ? "最后一关：团团的作文 📒" : "再来一张 📝",
+    );
     await page.click("#btn-next");
   }
 
-  // 快手改: three sentences against the clock, no writing in between.
-  for (const [i, n] of plan[2].notes.entries()) {
-    await expect(page.locator("#note-title")).toHaveText(`快手改 ${i + 1} / 3`);
-    await expect(page.locator("#quick-timer")).toBeVisible();
-    const m = parseNote(n).mistakes[0];
-    await cell(page, m.cell).click();
-    await page.locator(".choice", { hasText: m.right }).click();
-    await expect(page.locator("#write")).toBeHidden();
-  }
-  await expect(page.locator("#end")).toBeVisible();
-  await expect(page.locator("#end-pens")).toContainText("3 句里有 3 句够快");
-  await expect(page.locator("#btn-next")).toHaveText("最后一关：团团的作文 📒");
-  await page.click("#btn-next");
-
-  // The essay, then the report card.
-  await expect(page.locator("#note-title")).toHaveText(plan[3].notes[0].title);
-  await fixAll(page, plan[3].notes[0].id);
-  await page.click("#btn-finish");
-  await expect(page.locator("#btn-next")).toHaveText("看成绩单 🏅");
-  await page.click("#btn-next");
   await expect(page.locator("#view-report")).toBeVisible();
-  await expect(page.locator("#report-rows li")).toHaveCount(4);
-  await expect(page.locator("#report-sum")).toContainText("“优” 6 / 6");
-  await expect(page.locator("#report-sum")).toContainText("⚡ 3");
+  await expect(page.locator("#report-rows li")).toHaveCount(5);
+  await expect(page.locator("#report-rows")).toContainText("🏆");
+  await expect(page.locator("#report-sum")).toContainText("“优” 11 / 11");
+  await expect(page.locator("#report-sum")).toContainText("⚡ 8");
   await expect(page.locator("#report-line")).toContainText("全部都是");
   const harder = new Set(plan.flatMap((st) => st.notes.flatMap((n) => parseNote(n).mistakes.map((m) => m.right))).filter(isComplex));
   const due = Math.min(6, harder.size);

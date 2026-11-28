@@ -19,6 +19,8 @@ export interface Progress {
   toWrite?: DictItem[];
   /** Most 优 in one session, for the report card. */
   bestSession?: number;
+  /** Fastest 快手改 sentence per level, in seconds. */
+  fastest?: Partial<Record<3 | 4 | 5, number>>;
 }
 
 /** One fixed character, by the note and mistake it came from. */
@@ -57,6 +59,12 @@ export function loadProgress(): Progress {
     const old = (raw as { review?: unknown })?.review;
     const toWrite = [...(Array.isArray(raw?.toWrite) ? raw.toWrite : []), ...(Array.isArray(old) ? old : [])].filter(isDictItem);
     if (toWrite.length) out.toWrite = toWrite;
+    const fast: Partial<Record<3 | 4 | 5, number>> = {};
+    for (const l of [3, 4, 5] as const) {
+      const t = raw?.fastest?.[l];
+      if (typeof t === "number" && t > 0 && t < 3600) fast[l] = t;
+    }
+    if (Object.keys(fast).length) out.fastest = fast;
     if (Number.isInteger(raw?.bestSession) && (raw.bestSession as number) > 0) out.bestSession = raw.bestSession;
     return out;
   } catch {

@@ -8,7 +8,10 @@ import { createWritePad } from "./writePad";
 import {
   QUICK_SECONDS,
   currentLevel,
+  fastest,
   isFast,
+  roundSeconds,
+  withTime,
   nextStageLabel,
   planSession,
   report,
@@ -115,6 +118,8 @@ interface Run {
   /** The 快手改 stage so far. */
   quickStamps: Stamp[];
   quickFast: number;
+  /** A new fastest time in this ⚡ round, if any. */
+  quickRecord?: number;
   /** 优 needed for the next level when the session started. */
   levelAtStart: Level;
 }
@@ -173,6 +178,7 @@ function playStage(): void {
     run.qi = 0;
     run.quickStamps = [];
     run.quickFast = 0;
+    run.quickRecord = undefined;
   }
   startNote(stage.notes[stage.kind === "quick" ? run.qi : 0]);
 }
@@ -231,9 +237,25 @@ function quickSentenceDone(pl: Play, st: Stamp): boolean {
   const fast = st !== "加油" && isFast(r.level, seconds);
   r.quickStamps.push(st);
   if (fast) r.quickFast++;
+  let record = false;
+  if (st !== "加油") {
+    const t = withTime(progress, r.level, seconds);
+    progress = t.progress;
+    saveProgress(progress);
+    record = t.record;
+    if (record) {
+      r.quickRecord = roundSeconds(seconds);
+      burst($("note-title"));
+    }
+  }
   const stage = r.stages[r.si];
   if (r.qi + 1 < stage.notes.length) {
-    say(fast ? `⚡ 够快！只用了 ${Math.round(seconds)} 秒！下一句……` : "改好了！下一句……", fast ? "🥳" : "😊");
+    const line = record
+      ? `🏆 新纪录！只用了 ${roundSeconds(seconds)} 秒！下一句……`
+      : fast
+        ? `⚡ 够快！只用了 ${Math.round(seconds)} 秒！下一句……`
+        : "改好了！下一句……";
+    say(line, fast || record ? "🥳" : "😊");
     r.qi++;
     setTimeout(() => {
       if (run === r && play === pl) startNote(stage.notes[r.qi]);
@@ -273,7 +295,9 @@ function showReport(): void {
       }
       const extra = document.createElement("span");
       extra.className = "report-extra";
-      extra.textContent = [res.fast !== undefined ? `⚡${res.fast}` : "", res.pen ? "✍️" : ""].filter(Boolean).join(" ");
+      extra.textContent = [res.fast !== undefined ? `⚡${res.fast}` : "", res.record ? "🏆" : "", res.pen ? "✍️" : ""]
+        .filter(Boolean)
+        .join(" ");
       li.append(name, stamps, extra);
       return li;
     }),
@@ -395,7 +419,10 @@ function renderDots(pl: Play): void {
   dots.replaceChildren();
   const essay = pl.p.note.kind === "essay";
   dots.hidden = essay;
-  $("found-label").textContent = essay
+  const best = run && inQuick() ? fastest(progress, run.level) : undefined;
+  $("found-label").textContent = best !== undefined
+    ? `找到 ${pl.s.found.length} / 1 个 · 🏆 最快 ${best} 秒`
+    : essay
     ? `已经找到 ${pl.s.found.length} 个`
     : `找到 ${pl.s.found.length} / ${pl.p.mistakes.length} 个`;
   pl.p.mistakes.forEach((_, i) => {
@@ -641,9 +668,10 @@ function endNote(pl: Play): void {
       // quickSentenceDone has already counted this last sentence.
       const stamps = [...r.quickStamps];
       const fast = r.quickFast;
-      r.results.push({ kind: "quick", stamps, fast });
+      r.results.push({ kind: "quick", stamps, fast, record: r.quickRecord });
       pens.hidden = false;
-      pens.textContent = `⚡ ${stamps.length} 句里有 ${fast} 句够快！`;
+      pens.textContent =
+        `⚡ ${stamps.length} 句里有 ${fast} 句够快！` + (r.quickRecord ? ` 🏆 新纪录：${r.quickRecord} 秒！` : "");
       $("end-line").textContent =
         stamps.every((x) => x === "优") ? "快手改全部“优”！团团都看呆了！" : "快手改完成！改得又快又准，团团好佩服！";
       stampEl.textContent = stamps.every((x) => x === "优") ? "优" : stamps.includes("加油") ? "加油" : "良";

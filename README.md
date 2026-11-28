@@ -154,10 +154,12 @@ over it. 默写 is offered on the end card, the report card or the home
 screen when some are due. Simple characters like 场 are only picked.
 Writing every character in a note with no wrong stroke earns a ✍️ 金笔.
 
-A session (`src/sharp-eyes/session.ts`) is two notes where she's told how
-many mistakes there are, a ⚡ 快手改 round (three one-sentence fixes, 20
-seconds each for ⚡; running over only loses the ⚡), and 团团's 作文
-where she isn't told, then a 🏅 report card and 默写. She can stop after
+A session (`src/sharp-eyes/session.ts`) is 📝 ⚡ 📝 ⚡ 📒: a note where
+she's told how many mistakes there are, a ⚡ 快手改 round (four
+one-sentence fixes, 20 seconds each for ⚡; running over only loses the
+⚡), another note and ⚡ round, then 团团's 作文 where she isn't told,
+a 🏅 report card and 默写. Her fastest 快手改 sentence per level is kept
+as a 🏆 record to beat. She can stop after
 any note. She plays at P3 until she has 优 on 60% of its notes, then P4,
 then P5; the home screen shows how many more 优 she needs.
 `?level=4` starts a P4 session.

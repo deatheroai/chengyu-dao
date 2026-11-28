@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NOTES, starterNote } from "./notes";
 import type { Progress } from "./progress";
-import { currentLevel, isFast, levelProgress, nextStageLabel, pickNotes, planSession, report, toNextLevel } from "./session";
+import { currentLevel, fastest, isFast, withTime, levelProgress, nextStageLabel, pickNotes, planSession, report, toNextLevel } from "./session";
 
 const none: Progress = { stamps: {} };
 const allBest = (level: number, share = 1): Progress => {
@@ -33,17 +33,20 @@ describe("levels", () => {
 describe("planning a session", () => {
   it("opens the first ever session with the starter", () => {
     const plan = planSession(none);
-    expect(plan.map((s) => s.kind)).toEqual(["find", "find", "quick", "essay"]);
+    expect(plan.map((s) => s.kind)).toEqual(["find", "quick", "find", "quick", "essay"]);
     expect(plan[0].notes[0].id).toBe(starterNote().id);
-    expect(plan[1].notes[0].starter).toBeFalsy();
-    expect(plan[2].notes).toHaveLength(3);
+    expect(plan[2].notes[0].starter).toBeFalsy();
+    expect(plan[1].notes).toHaveLength(4);
+    expect(plan[3].notes).toHaveLength(4);
+    const quick = [...plan[1].notes, ...plan[3].notes].map((n) => n.id);
+    expect(new Set(quick).size).toBe(8);
     expect(plan.flatMap((s) => s.notes).every((n) => n.level === 3)).toBe(true);
   });
 
   it("then plays two notes, 快手改 and the essay at her level, new notes first", () => {
     const p: Progress = { stamps: { [starterNote().id]: "优", "p3-lift": "优" } };
     const plan = planSession(p);
-    expect(plan.map((s) => s.kind)).toEqual(["find", "find", "quick", "essay"]);
+    expect(plan.map((s) => s.kind)).toEqual(["find", "quick", "find", "quick", "essay"]);
     const finds = plan.filter((s) => s.kind === "find").map((s) => s.notes[0].id);
     expect(finds).not.toContain("p3-lift");
     expect(finds).not.toContain(starterNote().id);
@@ -63,6 +66,18 @@ describe("planning a session", () => {
 });
 
 describe("快手改 and the report card", () => {
+  it("keeps her fastest time per level, and says when she beats it", () => {
+    let r = withTime(none, 3, 12.34);
+    expect(r.record).toBe(false); // the first time isn't a "new" record
+    expect(fastest(r.progress, 3)).toBe(12.3);
+    r = withTime(r.progress, 3, 13);
+    expect(r.record).toBe(false);
+    r = withTime(r.progress, 3, 9.01);
+    expect(r.record).toBe(true);
+    expect(fastest(r.progress, 3)).toBe(9);
+    expect(fastest(r.progress, 4)).toBeUndefined();
+  });
+
   it("gives ⚡ within the time", () => {
     expect(isFast(3, 20)).toBe(true);
     expect(isFast(3, 21)).toBe(false);
