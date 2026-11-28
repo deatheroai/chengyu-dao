@@ -145,6 +145,12 @@ is never game over, 团团 just circles what's left. 🔍 提示 never costs
 ink. Each note ends with a stamp (优 / 良 / 加油). The first note is
 easy and uses no ink.
 
+Fixing a mistake unlocks its family's 🃏 字族卡 (`cards.ts`); the home
+screen shows the collection. Words 团团 corrected in her story-builder
+sentences come back as ⚡ sentences, her own sentence with the old
+mistake put back (`own.ts`): one opens the first ⚡ round. Notes she
+missed something in come back before new ones.
+
 Writing is kept short (`src/sharp-eyes/writing.ts`): only harder
 characters (9+ strokes) are ever written, at most twice. The first time
 she fixes one, she teaches 团团 to write it (he watches the strokes,

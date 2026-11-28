@@ -52,7 +52,8 @@ export function parseNote(note: Note): ParsedNote {
   for (const m of note.text.matchAll(MARK)) {
     push(note.text.slice(last, m.index));
     const [, wrong, right] = m;
-    const family = familyOf(wrong, right);
+    const family =
+      familyOf(wrong, right) ?? note.families?.find((f) => f.chars.some((c) => c.char === wrong) && f.chars.some((c) => c.char === right));
     if (Array.from(wrong).length !== 1 || Array.from(right).length !== 1 || wrong === right || !family) {
       throw new Error(`${note.id}: bad mistake {${wrong}|${right}}`);
     }

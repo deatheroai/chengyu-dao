@@ -619,3 +619,99 @@ body.no-pinyin .note-text {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- 字族卡 ---- */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.family-card {
+  border: 2px solid var(--red);
+  border-radius: 14px;
+  background: var(--paper);
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.family-card summary {
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.family-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.card-chars {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.family-card small {
+  color: var(--muted);
+}
+
+.family-card.locked {
+  border-style: dashed;
+  border-color: var(--line);
+  background: var(--card);
+  opacity: 0.7;
+}
+
+.family-card ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.95rem;
+}
+
+.family-card li b {
+  color: var(--red);
+  font-size: 1.2rem;
+  margin-right: 4px;
+}
+
+.card-clue {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* A short message that pops up at the bottom. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 60;
+  margin: 0;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.2);
+}
+
+.toast.in {
+  animation: toast-in 0.35s ease-out;
+}
+
+@keyframes toast-in {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+}
+
+/* An opened card gets the whole row, so its meanings have room. */
+.family-card[open] {
+  grid-column: 1 / -1;
+}

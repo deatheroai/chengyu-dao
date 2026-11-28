@@ -1,4 +1,4 @@
-import type { Level } from "./families";
+import type { Family, Level } from "./families";
 
 /**
  * 火眼金睛: things 团团 wrote, with some characters wrong. In `text`,
@@ -26,6 +26,8 @@ export interface Note {
   text: string;
   oops: string[];
   starter?: boolean;
+  /** Her own slips (own.ts): the two characters aren't in FAMILIES, so the note brings its own. */
+  families?: Family[];
 }
 
 export const NOTES: readonly Note[] = [

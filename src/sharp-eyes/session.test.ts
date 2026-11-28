@@ -54,12 +54,12 @@ describe("planning a session", () => {
     expect(p4.flatMap((s) => s.notes).every((n) => n.level === 4)).toBe(true);
   });
 
-  it("picks not-yet-优 notes before ones already 优, never the same note twice", () => {
+  it("brings back missed notes first, then new ones, then ones already 优, never the same note twice", () => {
     const quick = NOTES.filter((n) => n.level === 3 && n.kind === "quick");
-    const p: Progress = { stamps: { [quick[0].id]: "优", [quick[1].id]: "加油" } };
+    const p: Progress = { stamps: { [quick[0].id]: "优", [quick[1].id]: "加油", [quick[5].id]: "良" } };
     const picked = pickNotes(p, 3, "quick", quick.length);
+    expect(picked.slice(0, 2).map((n) => n.id)).toEqual([quick[1].id, quick[5].id]);
     expect(picked.at(-1)!.id).toBe(quick[0].id);
-    expect(picked.findIndex((n) => n.id === quick[1].id)).toBeGreaterThan(picked.findIndex((n) => !p.stamps[n.id]));
     expect(pickNotes(p, 3, "quick", 3, [quick[2].id]).map((n) => n.id)).not.toContain(quick[2].id);
     expect(new Set(picked.map((n) => n.id)).size).toBe(picked.length);
   });

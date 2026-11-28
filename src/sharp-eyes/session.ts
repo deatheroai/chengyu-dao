@@ -54,12 +54,13 @@ export function toNextLevel(p: Progress, level: Level): number {
 }
 
 /**
- * Up to `n` notes of a kind at a level, best to practise first: never
- * played, then not yet 优, then the rest; skipping `exclude`.
+ * Up to `n` notes of a kind at a level, best to practise first: ones
+ * she missed something in (加油 or 良) come back first, then ones never
+ * played, then the rest; skipping `exclude`.
  */
 export function pickNotes(p: Progress, level: Level, kind: NoteKind, n: number, exclude: readonly string[] = []): Note[] {
   const pool = levelNotes(level).filter((x) => x.kind === kind && !x.starter && !exclude.includes(x.id));
-  const rank = (x: Note) => (!p.stamps[x.id] ? 0 : p.stamps[x.id] !== "优" ? 1 : 2);
+  const rank = (x: Note) => (!p.stamps[x.id] ? 1 : p.stamps[x.id] !== "优" ? 0 : 2);
   return [...pool].sort((a, b) => rank(a) - rank(b)).slice(0, n);
 }
 

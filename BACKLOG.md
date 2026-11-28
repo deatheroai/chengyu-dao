@@ -304,14 +304,22 @@ lands with its tests.
       what's different there (the 🔊 next to the note and on the oops
       card). Known Chrome quirk: speak() straight after cancel() can be
       dropped.
-- [ ] `todo` — **5. Coming back.** 字族卡: each family fixed unlocks its
+- [x] `done` — **5. Coming back (2026-11-28).** 字族卡: each family fixed unlocks its
       card in a collection (saved on the device, `?test` keeps a
       separate one). Mistakes she missed come back in the first note of
       her next visit. Her own story-builder fixes (`SavedStory` lines'
       `fixes`) and `COMMON_SLIPS` are mixed into 团团's notes from day
       one: "团团学你以前写错的字了！"
-- [ ] `todo` — **6. Links + e2e + README.** Link from the story builder
-      and sentence grower homes (and back); Playwright tests; README
+      Built: `cards.ts` (a card per family, unlocked by fixing one of
+      its mistakes, with a pop-up; 🃏 我的字族卡 on the home screen shows
+      all 20, locked ones as ？). `own.ts`: her story-builder fixes
+      become ⚡ sentences (her own sentence with the old mistake put
+      back, each changed character a mistake, choosing between hers and
+      the right one); one opens the first ⚡ round, new ones first.
+      `COMMON_SLIPS` aren't used: they have no sentence to put them in.
+      Missed notes (加油 or 良) now come back before new ones.
+- [x] `done` — **6. Links + e2e + README.** Done along the way: links
+      from both other pages, `e2e/sharp-eyes.spec.ts` (20 tests), README
       section.
 - [ ] `todo` — **Later: try it with the child.** Is 3 ink drops right
       (does she freeze, or tap everything)? Are the funny reveals funny?

@@ -292,3 +292,52 @@ test("a whole session: 📝 ⚡ 📝 ⚡ 📒, a fastest-time record, then the r
   await page.click("#btn-report-dictate");
   await expect(page.locator("#dict-count")).toHaveText(`第 1 / ${due} 个`);
 });
+
+test("fixing a mistake unlocks its family's 字族卡", async ({ page }) => {
+  await page.goto("/sharp-eyes.html?test&note=p3-play");
+  const m = parseNote(noteById("p3-play")!).mistakes[0];
+  await cell(page, m.cell).click();
+  await page.locator(".choice", { hasText: m.right }).click();
+  await expect(page.locator("#toast")).toContainText("新字族卡：场 厂");
+  await page.click("#btn-end-home");
+  await expect(page.locator("#btn-cards")).toHaveText(`🃏 我的字族卡 1 / ${FAMILIES.length}`);
+  await page.click("#btn-cards");
+  await expect(page.locator(".family-card")).toHaveCount(FAMILIES.length);
+  await expect(page.locator(".family-card:not(.locked)")).toHaveCount(1);
+  const card = page.locator('.family-card[data-family="chang"]');
+  await card.locator("summary").click();
+  await expect(card).toContainText("一大片地方");
+  await expect(card).toContainText("土字旁");
+});
+
+test("her own story-builder slip comes back in the first ⚡ round", async ({ page }) => {
+  const story = {
+    id: "s1",
+    adventureId: "bazaar",
+    title: "去巴刹",
+    savedAt: 1,
+    lines: [{ by: "child", text: "我和妈妈去巴刹买鱼。", fixes: [{ wrong: "芭莎", right: "巴刹", why: "巴刹是卖菜、卖鱼、卖肉的市场。" }] }],
+  };
+  await page.addInitScript((value) => {
+    localStorage.setItem("chengyu-dao:story-builder:library:v1:test", value);
+  }, JSON.stringify([story]));
+  await allWrittenBefore(page, { "p3-play": "优" });
+  const plan = planSession({ stamps: { "p3-play": "优" } }, 3);
+  await page.goto("/sharp-eyes.html?test");
+  await page.click("#btn-start");
+  await fixAll(page, plan[0].notes[0].id);
+  await page.click("#btn-next");
+
+  await expect(page.locator("#tuan-line")).toContainText("团团学你以前写错的字了");
+  expect(await textOf(page.locator("#note-text"))).toBe("我和妈妈去芭莎买鱼。");
+  await expect(page.locator("#found-label")).toContainText("/ 2 个");
+  await cell(page, 5).click();
+  await expect(page.locator("#oops")).toContainText("你以前也写过“芭莎”");
+  await expect(page.locator(".choice")).toHaveCount(2);
+  await page.locator(".choice", { hasText: "巴" }).click();
+  await cell(page, 6).click();
+  await page.locator(".choice", { hasText: "刹" }).click();
+  expect(await textOf(page.locator("#note-text"))).toBe("我和妈妈去巴刹买鱼。");
+  // On to the round's next sentence.
+  await expect(page.locator("#note-title")).toHaveText("快手改 2 / 4");
+});

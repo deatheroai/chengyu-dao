@@ -19,6 +19,10 @@ export interface Progress {
   toWrite?: DictItem[];
   /** Most 优 in one session, for the report card. */
   bestSession?: number;
+  /** Her own story-builder slips shown in ⚡, oldest first (see own.ts). */
+  ownSeen?: string[];
+  /** 字族卡 unlocked: family ids (see cards.ts). */
+  cards?: string[];
   /** Fastest 快手改 sentence per level, in seconds. */
   fastest?: Partial<Record<3 | 4 | 5, number>>;
 }
@@ -54,6 +58,10 @@ export function loadProgress(): Progress {
     // Saves from before 2026-11-28 kept a plain list of written characters.
     for (const c of strs((raw as { written?: unknown })?.written)) if (Array.from(c).length === 1 && !writes[c]) writes[c] = { n: 1, at: 0 };
     if (Object.keys(writes).length) out.writes = writes;
+    const ownSeen = strs(raw?.ownSeen);
+    if (ownSeen.length) out.ownSeen = ownSeen.slice(-50);
+    const cards = strs(raw?.cards);
+    if (cards.length) out.cards = [...new Set(cards)];
     const pens = strs(raw?.pens).filter((id) => NOTES.some((n) => n.id === id));
     if (pens.length) out.pens = [...new Set(pens)];
     const old = (raw as { review?: unknown })?.review;

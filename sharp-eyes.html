@@ -36,6 +36,7 @@
         <p class="level-badge" id="home-level"></p>
         <div class="actions center">
           <button class="btn" id="btn-home-dictate" type="button" hidden>✍️ 默写</button>
+          <button class="btn" id="btn-cards" type="button">🃏 我的字族卡</button>
         </div>
         <p class="hint center" id="home-count" hidden></p>
         <p class="other-game">
@@ -106,6 +107,17 @@
         </div>
       </section>
 
+      <!-- 字族卡: the character families she has unlocked -->
+      <section id="view-cards" class="view" hidden>
+        <div class="note-top">
+          <span class="note-emoji" aria-hidden="true">🃏</span>
+          <h2 class="play-title">我的字族卡</h2>
+          <span class="hint" id="cards-count"></span>
+        </div>
+        <p class="hint">改对一个错字，就能得到它那一家的字族卡。点一点卡片看看它们有什么不同！</p>
+        <div class="card-grid" id="card-grid"></div>
+      </section>
+
       <!-- The report card at the end of a session -->
       <section id="view-report" class="view" hidden>
         <div class="turn-card report-card">
@@ -149,6 +161,7 @@
           </div>
         </div>
       </section>
+      <p class="toast" id="toast" role="status" hidden></p>
     </main>
     <script type="module" src="/src/sharp-eyes/main.ts"></script>
   </body>

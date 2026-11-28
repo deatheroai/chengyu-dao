@@ -1,10 +1,13 @@
 import { gradeAttempt, type TestResult } from "../reading/memoryTest";
-import { isTestMode } from "../story-builder/library";
+import { isTestMode, loadLibrary } from "../story-builder/library";
 import { charPinyin } from "../story-builder/pinyin";
 import { $, readPinyinPref, ruby, savePinyinPref, speak, speakButton } from "../story-builder/ui";
 import { DICTATION_MAX, promptFor, type DictPrompt } from "./dictation";
 import { afterDictation, dueNow, waiting, withToWrite, withWrite, writeAfterFix } from "./writing";
 import { createWritePad } from "./writePad";
+import { cardCount, cardList, cardName, withCard } from "./cards";
+import { nextSlip, slipNote, slipsFromLibrary, withOwnSeen } from "./own";
+import { FAMILIES } from "./families";
 import {
   QUICK_SECONDS,
   currentLevel,
@@ -73,9 +76,9 @@ function applyPinyin(): void {
   $("btn-pinyin").setAttribute("aria-pressed", String(showPinyin));
 }
 
-type View = "home" | "play" | "dict" | "report";
+type View = "home" | "play" | "dict" | "report" | "cards";
 function show(view: View): void {
-  for (const v of ["home", "play", "dict", "report"] as View[]) $(`view-${v}`).hidden = v !== view;
+  for (const v of ["home", "play", "dict", "report", "cards"] as View[]) $(`view-${v}`).hidden = v !== view;
   $("btn-home").style.visibility = view === "home" ? "hidden" : "visible";
   window.scrollTo({ top: 0 });
 }
@@ -145,6 +148,7 @@ function renderHome(): void {
   $("start-emoji").textContent = next.emoji;
   $("start-sub").textContent = `${next.title} · P${next.level}`;
   $("home-level").textContent = levelLine(level);
+  $("btn-cards").textContent = `🃏 我的字族卡 ${cardCount(progress)} / ${FAMILIES.length}`;
   const best = Object.values(progress.stamps).filter((s) => s === "优").length;
   const pens = progress.pens?.length ?? 0;
   const due = dueNow(progress, Date.now()).length;
@@ -161,11 +165,75 @@ function levelLine(level: Level): string {
   return more ? `现在是 P${level} · 再拿 ${more} 个“优”就能升到 P${level + 1}` : `现在是 P${level} · 最高级了！`;
 }
 
+// ---------- 字族卡 ----------
+
+const KIND_LABEL = { look: "长得像", sound: "读音一样", both: "又像又同音" } as const;
+
+function renderCards(): void {
+  $("cards-count").textContent = `${cardCount(progress)} / ${FAMILIES.length}`;
+  $("card-grid").replaceChildren(
+    ...cardList(progress).map(({ family, unlocked }) => {
+      const card = document.createElement("details");
+      card.className = `family-card${unlocked ? "" : " locked"}`;
+      card.dataset.family = family.id;
+      const sum = document.createElement("summary");
+      const chars = document.createElement("span");
+      chars.className = "card-chars";
+      chars.textContent = unlocked ? cardName(family) : "？";
+      const tag = document.createElement("small");
+      tag.textContent = unlocked ? `P${family.level} · ${KIND_LABEL[family.kind]}` : `P${family.level}`;
+      sum.append(chars, tag);
+      card.append(sum);
+      if (unlocked) {
+        const list = document.createElement("ul");
+        for (const c of family.chars) {
+          const li = document.createElement("li");
+          const b = document.createElement("b");
+          b.textContent = c.char;
+          li.append(b, ruby(c.word, "card-word"), ` ${c.meaning}`);
+          list.append(li);
+        }
+        const clue = document.createElement("p");
+        clue.className = "card-clue";
+        clue.textContent = `🔍 ${family.clue}`;
+        card.append(list, clue);
+      } else {
+        const p = document.createElement("p");
+        p.className = "hint";
+        p.textContent = "改对这一家的错字，就能打开这张卡。";
+        card.append(p);
+      }
+      return card;
+    }),
+  );
+  show("cards");
+}
+
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+function toast(text: string): void {
+  const t = $("toast");
+  t.textContent = text;
+  t.hidden = false;
+  t.classList.remove("in");
+  void t.offsetWidth;
+  t.classList.add("in");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.hidden = true), 2600);
+}
+
 // ---------- the session ----------
 
 function startSession(level?: Level): void {
   const lv = level ?? currentLevel(progress);
   run = { level: lv, stages: planSession(progress, lv), si: 0, qi: 0, results: [], quickStamps: [], quickFast: 0, levelAtStart: currentLevel(progress) };
+  // One of her own story-builder slips opens the first ⚡ round.
+  const slip = nextSlip(progress, slipsFromLibrary(loadLibrary()));
+  const quick = run.stages.find((st) => st.kind === "quick");
+  if (slip && quick) {
+    quick.notes = [slipNote(slip, lv), ...quick.notes.slice(0, quick.notes.length - 1)];
+    progress = withOwnSeen(progress, slip.id);
+    saveProgress(progress);
+  }
   playStage();
 }
 
@@ -421,7 +489,7 @@ function renderDots(pl: Play): void {
   dots.hidden = essay;
   const best = run && inQuick() ? fastest(progress, run.level) : undefined;
   $("found-label").textContent = best !== undefined
-    ? `找到 ${pl.s.found.length} / 1 个 · 🏆 最快 ${best} 秒`
+    ? `找到 ${pl.s.found.length} / ${pl.p.mistakes.length} 个 · 🏆 最快 ${best} 秒`
     : essay
     ? `已经找到 ${pl.s.found.length} 个`
     : `找到 ${pl.s.found.length} / ${pl.p.mistakes.length} 个`;
@@ -460,7 +528,16 @@ function startNote(note: Note): void {
   $("play-actions").hidden = false;
   $("btn-hint").hidden = false;
   $("btn-finish").hidden = note.kind !== "essay";
-  say(quick && quick.i > 1 ? "下一句！哪个字写错了？" : quick ? "⚡ 快手改！每句一个错字，看谁改得快！" : openLine(p.mistakes.length, note.kind === "essay", note.starter === true));
+  const own = note.families !== undefined;
+  say(
+    own
+      ? "咦？团团学你以前写错的字了！这是你在故事里写过的句子，快找出来！📒"
+      : quick && quick.i > 1
+        ? "下一句！哪个字写错了？"
+        : quick
+          ? "⚡ 快手改！每句一个错字，看谁改得快！"
+          : openLine(p.mistakes.length, note.kind === "essay", note.starter === true),
+  );
   show("play");
   if (quick && run) startQuickTimer(run.level);
 }
@@ -544,6 +621,9 @@ function onPick(char: string, button: HTMLButtonElement): void {
   // (and any harder one from 快手改) comes back once more in a later 默写.
   const writeNow = !inQuick() && writeAfterFix(progress, m.right);
   progress = withToWrite(progress, { noteId: pl.p.note.id, mistake });
+  const card = withCard(progress, m.family.id);
+  progress = card.progress;
+  if (card.isNew) toast(`🃏 新字族卡：${cardName(m.family)}！`);
   saveProgress(progress);
   if (writeNow) setTimeout(() => openWrite(pl, mistake), 700);
   else if (isOver(pl.p, pl.s)) setTimeout(() => endNote(pl), inQuick() ? 0 : 900);
@@ -641,7 +721,8 @@ function endNote(pl: Play): void {
   }
   for (const el of $("note-text").querySelectorAll<HTMLButtonElement>(".cell")) el.disabled = true;
   const st = stamp(pl.p, pl.s);
-  progress = withStamp(progress, pl.p.note.id, st);
+  // Her own slips aren't kept as notes: no stamp to save.
+  if (!pl.p.note.families) progress = withStamp(progress, pl.p.note.id, st);
   saveProgress(progress);
   if (quickSentenceDone(pl, st)) return;
   const stampEl = $("stamp");
@@ -851,6 +932,7 @@ function init(): void {
   $("btn-report-home").addEventListener("click", renderHome);
   $("btn-report-dictate").addEventListener("click", startDictation);
   $("btn-home-dictate").addEventListener("click", startDictation);
+  $("btn-cards").addEventListener("click", renderCards);
   $("btn-end-home").addEventListener("click", renderHome);
   $("btn-hint").addEventListener("click", onHint);
   $("btn-finish").addEventListener("click", () => {
