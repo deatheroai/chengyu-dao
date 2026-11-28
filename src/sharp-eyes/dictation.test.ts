@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { afterDictation, dictationList, promptFor } from "./dictation";
+import { promptFor } from "./dictation";
 import { NOTES } from "./notes";
 import { parseNote } from "./round";
 
@@ -40,27 +40,5 @@ describe("默写 prompts", () => {
   it("ignore unknown notes", () => {
     expect(promptFor({ noteId: "nope", mistake: 0 })).toBeNull();
     expect(promptFor({ noteId: "p3-play", mistake: 5 })).toBeNull();
-  });
-});
-
-describe("默写 list", () => {
-  const beach0 = { noteId: "p3-beach", mistake: 0 }; // 晴
-  const cat = { noteId: "p3-q-cat", mistake: 0 }; // 睛
-  const weekend0 = { noteId: "p3-e-weekend", mistake: 0 }; // 晴 again
-  const lift1 = { noteId: "p3-lift", mistake: 1 }; // 场
-
-  it("puts last time's misses first, one per character, capped", () => {
-    expect(dictationList([cat, weekend0, lift1], [beach0])).toEqual([beach0, cat, lift1]);
-    expect(dictationList([cat, lift1, beach0], [], 2)).toEqual([cat, lift1]);
-  });
-
-  it("keeps missed characters for next time and drops ones written right", () => {
-    let p = afterDictation({ stamps: {} }, [
-      { item: beach0, ok: false },
-      { item: lift1, ok: true },
-    ]);
-    expect(p.review).toEqual([beach0]);
-    p = afterDictation(p, [{ item: weekend0, ok: true }]); // 晴 written right
-    expect(p.review).toBeUndefined();
   });
 });

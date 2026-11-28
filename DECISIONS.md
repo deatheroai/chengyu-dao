@@ -41,6 +41,16 @@ None open right now.
 
 ## Resolved
 
+- **2026-11-28 — 火眼金睛: much less writing.** Your call after trying
+  it: simple characters like 场 were asked to be written too often,
+  writing on a screen is fiddly, and the timed 快手改 was the most fun.
+  This replaces "write every fixed character" (2026-11-25, point 2):
+  only harder characters (9+ strokes: 晴, 馆, 漂, 戴…) are ever
+  written, at most twice each: once right after she first fixes it
+  (团团 shows the strokes, then she writes it alone), and once more in
+  a 默写 at least 3 minutes later. Simple characters are only picked.
+  The rules are in `src/sharp-eyes/writing.ts`.
+
 - **2026-11-25 — New game: 火眼金睛 (spot 团团's 错别字).** Your call:
   1. **团团 makes the mistakes, the child marks them** with a red pen
      (she's the teacher, as in 教团团写字). A detective framing sounds

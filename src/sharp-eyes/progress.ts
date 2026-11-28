@@ -11,13 +11,12 @@ export interface Progress {
   stamps: Record<string, Stamp>;
   /** "YYYY-MM-DD" of the last mistake found. */
   lastFindDay?: string;
-  /** Characters she has written before: after the first time, she
-   * writes them alone straight away. */
-  written?: string[];
+  /** Per character: times written (counted tries) and when last tried. */
+  writes?: Record<string, { n: number; at: number }>;
   /** Notes where she wrote every fixed character with no wrong stroke. */
   pens?: string[];
-  /** 默写 characters to write again: missed ones come first next time. */
-  review?: DictItem[];
+  /** Harder characters to write in a later 默写 (see writing.ts). */
+  toWrite?: DictItem[];
   /** Most 优 in one session, for the report card. */
   bestSession?: number;
 }
@@ -43,12 +42,21 @@ export function loadProgress(): Progress {
     const out: Progress = { stamps };
     if (typeof raw?.lastFindDay === "string") out.lastFindDay = raw.lastFindDay;
     const strs = (x: unknown) => (Array.isArray(x) ? x.filter((c): c is string => typeof c === "string") : []);
-    const written = strs(raw?.written).filter((c) => Array.from(c).length === 1);
-    if (written.length) out.written = [...new Set(written)];
+    const writes: Record<string, { n: number; at: number }> = {};
+    const rawWrites = (raw as { writes?: unknown })?.writes;
+    if (rawWrites && typeof rawWrites === "object") {
+      for (const [c, w] of Object.entries(rawWrites as Record<string, { n?: unknown; at?: unknown }>)) {
+        if (Array.from(c).length === 1 && Number.isInteger(w?.n) && typeof w?.at === "number") writes[c] = { n: w.n as number, at: w.at };
+      }
+    }
+    // Saves from before 2026-11-28 kept a plain list of written characters.
+    for (const c of strs((raw as { written?: unknown })?.written)) if (Array.from(c).length === 1 && !writes[c]) writes[c] = { n: 1, at: 0 };
+    if (Object.keys(writes).length) out.writes = writes;
     const pens = strs(raw?.pens).filter((id) => NOTES.some((n) => n.id === id));
     if (pens.length) out.pens = [...new Set(pens)];
-    const review = (Array.isArray(raw?.review) ? raw.review : []).filter(isDictItem);
-    if (review.length) out.review = review;
+    const old = (raw as { review?: unknown })?.review;
+    const toWrite = [...(Array.isArray(raw?.toWrite) ? raw.toWrite : []), ...(Array.isArray(old) ? old : [])].filter(isDictItem);
+    if (toWrite.length) out.toWrite = toWrite;
     if (Number.isInteger(raw?.bestSession) && (raw.bestSession as number) > 0) out.bestSession = raw.bestSession;
     return out;
   } catch {
@@ -70,12 +78,6 @@ function isDictItem(x: unknown): x is DictItem {
   const n = NOTES.find((n) => n.id === d.noteId);
   return !!n && d.mistake < n.oops.length;
 }
-
-/** Whether she has written `char` before. */
-export const hasWritten = (p: Progress, char: string): boolean => (p.written ?? []).includes(char);
-
-export const withWritten = (p: Progress, char: string): Progress =>
-  hasWritten(p, char) ? p : { ...p, written: [...(p.written ?? []), char] };
 
 /** Every fixed character in the note written with no wrong stroke: ✍️. */
 export const withPen = (p: Progress, noteId: string): Progress =>

@@ -145,12 +145,14 @@ is never game over, 团团 just circles what's left. 🔍 提示 never costs
 ink. Each note ends with a stamp (优 / 良 / 加油). The first note is
 easy and uses no ink.
 
-After each fix she teaches 团团 to write the right character: a new one
-is watched, traced, then written alone; one she has written before is
-written alone straight away. Writing every character in a note with no
-wrong stroke earns a ✍️ 金笔. The end card offers ✍️ 默写: the
-characters fixed so far, each in its sentence with a blank and the
-pinyin over it. Ones she misses come first in the next 默写.
+Writing is kept short (`src/sharp-eyes/writing.ts`): only harder
+characters (9+ strokes) are ever written, at most twice. The first time
+she fixes one, she teaches 团团 to write it (he watches the strokes,
+then she writes it alone). It comes back once more in a ✍️ 默写 at least
+3 minutes later, shown in its sentence with a blank and the pinyin
+over it. 默写 is offered on the end card, the report card or the home
+screen when some are due. Simple characters like 场 are only picked.
+Writing every character in a note with no wrong stroke earns a ✍️ 金笔.
 
 A session (`src/sharp-eyes/session.ts`) is two notes where she's told how
 many mistakes there are, a ⚡ 快手改 round (three one-sentence fixes, 20

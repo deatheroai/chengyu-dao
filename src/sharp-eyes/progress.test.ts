@@ -16,6 +16,15 @@ describe("火眼金睛 progress", () => {
     expect(loadProgress()).toEqual({ stamps: { "p3-play": "优" } });
   });
 
+  it("carries over saves from before the write counts", () => {
+    localStorage.setItem(KEY, JSON.stringify({ stamps: {}, written: ["晴", "场"], review: [{ noteId: "p3-beach", mistake: 0 }, { noteId: "gone", mistake: 0 }] }));
+    expect(loadProgress()).toEqual({
+      stamps: {},
+      writes: { 晴: { n: 1, at: 0 }, 场: { n: 1, at: 0 } },
+      toWrite: [{ noteId: "p3-beach", mistake: 0 }],
+    });
+  });
+
   it("saves, and keeps test mode separate", () => {
     saveProgress(withStamp({ stamps: {} }, "p3-play", "良"));
     expect(loadProgress().stamps).toEqual({ "p3-play": "良" });

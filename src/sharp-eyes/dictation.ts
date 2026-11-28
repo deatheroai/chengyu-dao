@@ -1,12 +1,12 @@
 import { charPinyin } from "../story-builder/pinyin";
 import { noteById } from "./notes";
-import type { DictItem, Progress } from "./progress";
+import type { DictItem } from "./progress";
 import { correctText, parseNote } from "./round";
 
 /**
- * 默写 at the end of a session: the characters she fixed, each shown in
- * its sentence from 团团's note with a blank (pinyin over the blank), to
- * write from memory. Ones she misses are kept and come first next time.
+ * 默写: harder characters she fixed earlier (see writing.ts for which and
+ * when), each shown in its sentence from 团团's note with a blank (pinyin
+ * over the blank), to write from memory.
  */
 
 export const DICTATION_MAX = 6;
@@ -73,38 +73,4 @@ export function promptFor(item: DictItem): DictPrompt | null {
     pinyin: charPinyin(text)[m.cell] ?? "",
     word,
   };
-}
-
-const charOf = (item: DictItem): string | undefined => promptFor(item)?.char;
-
-/** What to write: last time's misses first, then this session's fixes,
- * one per character, at most `max`. */
-export function dictationList(session: readonly DictItem[], review: readonly DictItem[] = [], max = DICTATION_MAX): DictItem[] {
-  const seen = new Set<string>();
-  const out: DictItem[] = [];
-  for (const item of [...review, ...session]) {
-    const c = charOf(item);
-    if (!c || seen.has(c)) continue;
-    seen.add(c);
-    out.push(item);
-    if (out.length >= max) break;
-  }
-  return out;
-}
-
-/** After a 默写: characters written right leave the review list; missed ones join it (at most 10). */
-export function afterDictation(p: Progress, results: readonly { item: DictItem; ok: boolean }[]): Progress {
-  const okChars = new Set(results.filter((r) => r.ok).map((r) => charOf(r.item)));
-  const missed = results.filter((r) => !r.ok).map((r) => r.item);
-  const kept = (p.review ?? []).filter((i) => !okChars.has(charOf(i)));
-  const seen = new Set<string>();
-  const review = [...missed, ...kept].filter((i) => {
-    const c = charOf(i);
-    if (!c || seen.has(c)) return false;
-    seen.add(c);
-    return true;
-  });
-  const out = { ...p, review: review.slice(0, 10) };
-  if (!out.review.length) delete (out as Partial<Progress>).review;
-  return out;
 }

@@ -2,7 +2,8 @@ import { gradeAttempt, type TestResult } from "../reading/memoryTest";
 import { isTestMode } from "../story-builder/library";
 import { charPinyin } from "../story-builder/pinyin";
 import { $, readPinyinPref, ruby, savePinyinPref, speak, speakButton } from "../story-builder/ui";
-import { afterDictation, dictationList, promptFor, type DictPrompt } from "./dictation";
+import { DICTATION_MAX, promptFor, type DictPrompt } from "./dictation";
+import { afterDictation, dueNow, waiting, withToWrite, withWrite, writeAfterFix } from "./writing";
 import { createWritePad } from "./writePad";
 import {
   QUICK_SECONDS,
@@ -35,13 +36,11 @@ import {
 import { NOTES, type Note } from "./notes";
 import {
   firstFindToday,
-  hasWritten,
   loadProgress,
   notesDone,
   saveProgress,
   withPen,
   withStamp,
-  withWritten,
   type DictItem,
   type Progress,
 } from "./progress";
@@ -94,14 +93,14 @@ interface Play {
   pyRight: string[];
   /** The fixed mistake she is teaching 团团 to write, if any. */
   writing?: number;
+  /** This write has been counted (再写一次 doesn't count again). */
+  counted?: boolean;
   /** Per fixed mistake: written alone with no wrong stroke (in any try). */
   clean: Map<number, boolean>;
   done: boolean;
 }
 let play: Play | undefined;
 
-/** Characters fixed since the last 默写, for the next one. */
-let toDictate: DictItem[] = [];
 
 /** The session being played (none when a single note was opened by ?note=). */
 interface Run {
@@ -141,10 +140,12 @@ function renderHome(): void {
   $("home-level").textContent = levelLine(level);
   const best = Object.values(progress.stamps).filter((s) => s === "优").length;
   const pens = progress.pens?.length ?? 0;
-  const review = progress.review?.length ?? 0;
-  $("home-count").hidden = done === 0 && review === 0;
-  $("home-count").textContent =
-    `已经改了 ${done} 张，${best} 个“优”，${pens} 支✍️金笔` + (review ? `。上次默写有 ${review} 个字要再写一写。` : "");
+  const due = dueNow(progress, Date.now()).length;
+  const later = waiting(progress, Date.now());
+  $("home-count").hidden = done === 0;
+  $("home-count").textContent = `已经改了 ${done} 张，${best} 个“优”，${pens} 支✍️金笔` + (later ? `。还有 ${later} 个字过一会儿再默写。` : "");
+  $("btn-home-dictate").hidden = due === 0;
+  $("btn-home-dictate").textContent = `✍️ 团团想考你 ${Math.min(due, DICTATION_MAX)} 个字（默写）`;
   show("home");
 }
 
@@ -279,8 +280,10 @@ function showReport(): void {
   $("report-line").textContent = rep.line;
   const now = currentLevel(progress);
   $("report-level").textContent = now > r.levelAtStart ? `🎉 升级了！下次是 P${now} 的字！` : levelLine(now);
-  const toWrite = dictationList(toDictate, progress.review).length;
+  const toWrite = Math.min(DICTATION_MAX, dueNow(progress, Date.now()).length);
   $("btn-report-dictate").hidden = toWrite === 0;
+  const later = waiting(progress, Date.now());
+  if (!toWrite && later) $("report-line").textContent += ` 刚写过的 ${later} 个字，过几分钟团团再考你。`;
   $("btn-report-dictate").textContent = `✍️ 默写 ${toWrite} 个字`;
   show("report");
   if (rep.beatBest || rep.best === rep.total) burst($("report-sum"));
@@ -508,10 +511,14 @@ function onPick(char: string, button: HTMLButtonElement): void {
   speak(m.family.chars.find((c) => c.char === m.right)?.word ?? m.right);
   say(fixedLine(m.right), "😊");
   renderDots(pl);
-  toDictate.push({ noteId: pl.p.note.id, mistake });
-  // 快手改 is for speed: no writing now, the characters come back in 默写.
-  if (inQuick()) endNote(pl);
-  else setTimeout(() => openWrite(pl, mistake), 700);
+  // Only a harder character she has never written is written now; it
+  // (and any harder one from 快手改) comes back once more in a later 默写.
+  const writeNow = !inQuick() && writeAfterFix(progress, m.right);
+  progress = withToWrite(progress, { noteId: pl.p.note.id, mistake });
+  saveProgress(progress);
+  if (writeNow) setTimeout(() => openWrite(pl, mistake), 700);
+  else if (isOver(pl.p, pl.s)) setTimeout(() => endNote(pl), inQuick() ? 0 : 900);
+  else if (!inQuick()) setTimeout(() => play === pl && !pl.done && say(pl.p.note.kind === "essay" ? "还有错字吗？找完了就按“改好了”。" : "还有错字，继续找！🔍"), 1500);
 }
 
 // ---------- teach 团团 to write the fixed character ----------
@@ -529,7 +536,8 @@ function openWrite(pl: Play, mistake: number): void {
   $("btn-trace").hidden = false;
   $("write").hidden = false;
   $("write-line").textContent = "";
-  writePad.teach(m.right, !hasWritten(progress, m.right), onWritten);
+  pl.counted = false;
+  writePad.teach(m.right, true, onWritten);
   // After teach() has sized the pad, so the whole card comes into view.
   $("write").scrollIntoView({ block: "end", behavior: scrollBehavior() });
 }
@@ -538,8 +546,11 @@ function onWritten(mistakes: number): void {
   const pl = play;
   if (!pl || pl.writing === undefined) return;
   const m = pl.p.mistakes[pl.writing];
-  progress = withWritten(progress, m.right);
-  saveProgress(progress);
+  if (!pl.counted) {
+    pl.counted = true;
+    progress = withWrite(progress, m.right, Date.now());
+    saveProgress(progress);
+  }
   const clean = mistakes === 0;
   if (clean) pl.clean.set(pl.writing, true);
   else if (!pl.clean.has(pl.writing)) pl.clean.set(pl.writing, false);
@@ -638,7 +649,7 @@ function endNote(pl: Play): void {
     } else r.results.push({ kind: pl.p.note.kind, stamps: [st], pen });
   }
   $("btn-next").textContent = run ? nextStageLabel(run.stages[run.si + 1]) : "再来一张 📝";
-  const toWrite = dictationList(toDictate, progress.review).length;
+  const toWrite = Math.min(DICTATION_MAX, dueNow(progress, Date.now()).length);
   $("btn-dictate").hidden = toWrite === 0;
   $("btn-dictate").textContent = `✍️ 默写 ${toWrite} 个字`;
   $("play-actions").hidden = true;
@@ -678,7 +689,8 @@ interface Dict {
 let dict: Dict | undefined;
 
 function startDictation(): void {
-  const prompts = dictationList(toDictate, progress.review)
+  const prompts = dueNow(progress, Date.now())
+    .slice(0, DICTATION_MAX)
     .map(promptFor)
     .filter((x): x is DictPrompt => x !== null);
   if (!prompts.length) return;
@@ -750,9 +762,8 @@ function dictNext(): void {
     return;
   }
   dictPad.stop();
-  progress = afterDictation(progress, d.results.map((r) => ({ item: r.item, ok: r.result === "correct" })));
+  progress = afterDictation(progress, d.results.map((r) => ({ item: r.item, ok: r.result === "correct" })), Date.now());
   saveProgress(progress);
-  toDictate = [];
   const right = d.results.filter((r) => r.result === "correct").length;
   $("dict-score").textContent = `默写：${right} / ${d.results.length}`;
   const list = $("dict-results");
@@ -766,7 +777,7 @@ function dictNext(): void {
     }),
   );
   $("dict-end-line").textContent =
-    right === d.results.length ? "全部写对了！团团要向你学习！🎉" : "画圈的字，下次默写会先考它们。一次比一次好！";
+    right === d.results.length ? "全部写对了！这些字你都会了，团团不会再考啦！🎉" : "画圈的字，过一会儿团团再考你一次。一次比一次好！";
   $("dict-pad-wrap").hidden = true;
   $("dict-end").hidden = false;
   if (right === d.results.length) burst($("dict-score"));
@@ -809,6 +820,7 @@ function init(): void {
   $("btn-next").addEventListener("click", nextAfterNote);
   $("btn-report-home").addEventListener("click", renderHome);
   $("btn-report-dictate").addEventListener("click", startDictation);
+  $("btn-home-dictate").addEventListener("click", startDictation);
   $("btn-end-home").addEventListener("click", renderHome);
   $("btn-hint").addEventListener("click", onHint);
   $("btn-finish").addEventListener("click", () => {

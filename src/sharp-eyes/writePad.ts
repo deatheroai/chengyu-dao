@@ -3,9 +3,8 @@ import { keepClipRefsRelative } from "../reading/clipRefs";
 
 /**
  * The 火眼金睛 writing pad. After fixing a character she teaches 团团
- * how to write it: a new character goes watch → trace → write alone by
- * itself; one she has written before goes straight to writing alone
- * (watch and trace stay one tap away). Also runs the 默写: write alone
+ * how to write it: 团团 watches its strokes, then she writes it alone
+ * (watch again and trace stay one tap away). Also runs the 默写: write alone
  * with no outline, or tap 看答案. Stroke data comes from jsDelivr, as
  * on the story builder's pad.
  */
@@ -114,8 +113,8 @@ export function createWritePad(els: PadEls) {
 
   return {
     /**
-     * Teaching 团团 the fixed character. `guided` (a new character) runs
-     * watch → trace → write alone by itself. `onWritten` gets the number
+     * Teaching 团团 the fixed character. `guided` shows the strokes
+     * first, then she writes it alone. `onWritten` gets the number
      * of wrong strokes in the write-alone try.
      */
     teach(c: string, guided: boolean, onWritten: (mistakes: number) => void): void {
@@ -124,12 +123,8 @@ export function createWritePad(els: PadEls) {
         els.say(`现在不看提示，写一个「${c}」给我看！`);
         quiz(false, onWritten);
       };
-      if (guided) {
-        watch(() => {
-          els.say(`跟着灰色的字描一描「${c}」，我跟着学。`);
-          quiz(true, () => setTimeout(alone, 500));
-        });
-      } else alone();
+      if (guided) watch(() => setTimeout(alone, 400));
+      else alone();
     },
     /** Help while writing alone: watch the strokes, then write again. */
     showStrokes(onWritten: (mistakes: number) => void): void {

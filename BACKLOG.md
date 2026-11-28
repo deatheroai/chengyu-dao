@@ -275,6 +275,15 @@ lands with its tests.
       notes (`UNLOCK_SHARE`); the home screen shows how many more are
       needed. `?level=4` starts a P4 session; `?note=` still opens one
       note on its own.
+- [x] `done` — **Much less writing (2026-11-28).** She found writing
+      场 again and again tiresome (writing on a screen is fiddly), and
+      liked 快手改 best. `writing.ts`: only characters with 9+ strokes
+      are written, at most twice ever: right after her first fix of it
+      (watch, then write alone; no automatic tracing), then once in a
+      默写 at least 3 minutes later. Harder characters from 快手改 and
+      ones already written once go on a `toWrite` list; 默写 is offered
+      (end card, report card, home) only for ones due. Saves from
+      before (`written`, `review`) carry over.
 - [ ] `todo` — **5. Coming back.** 字族卡: each family fixed unlocks its
       card in a collection (saved on the device, `?test` keeps a
       separate one). Mistakes she missed come back in the first note of
