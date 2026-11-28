@@ -288,6 +288,16 @@ lands with its tests.
       showed "yǎn qíng", so she could spot it from the pinyin alone. The
       pinyin and 🔊 now follow what 团团 meant (眼晴 shows yǎnjing), like
       typing the right pinyin and picking the wrong character.
+- [ ] `todo` — **🔊 didn't play on the preview (2026-11-28).** Reported
+      on the Vercel preview; not tested yet. Check: does 🔊 work on the
+      story builder and sentence grower on the same device (all three
+      use `speak()` in `src/story-builder/ui.ts`, the browser's
+      speechSynthesis with zh-CN)? If none do, suspect the device:
+      no Chinese voice installed, the phone on silent (iPhone mutes
+      speech on silent), or the browser. If only 火眼金睛 fails, look at
+      what's different there (the 🔊 next to the note and on the oops
+      card). Known Chrome quirk: speak() straight after cancel() can be
+      dropped.
 - [ ] `todo` — **5. Coming back.** 字族卡: each family fixed unlocks its
       card in a collection (saved on the device, `?test` keeps a
       separate one). Mistakes she missed come back in the first note of
